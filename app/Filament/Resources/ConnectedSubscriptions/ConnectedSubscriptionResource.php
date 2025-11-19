@@ -22,6 +22,8 @@ class ConnectedSubscriptionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function form(Schema $schema): Schema
     {
         return ConnectedSubscriptionForm::configure($schema);
@@ -40,7 +42,7 @@ class ConnectedSubscriptionResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            \App\Filament\Resources\ConnectedSubscriptions\RelationManagers\ItemsRelationManager::class,
         ];
     }
 

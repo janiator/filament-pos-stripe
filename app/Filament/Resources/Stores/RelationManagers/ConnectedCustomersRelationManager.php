@@ -1,22 +1,36 @@
 <?php
 
-namespace App\Filament\Resources\ConnectedCustomers\Tables;
+namespace App\Filament\Resources\Stores\RelationManagers;
 
+use App\Filament\Resources\ConnectedCustomers\ConnectedCustomerResource;
 use App\Models\ConnectedCustomer;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
-class ConnectedCustomersTable
+class ConnectedCustomersRelationManager extends RelationManager
 {
-    public static function configure(Table $table): Table
+    protected static string $relationship = 'connectedCustomers';
+
+    protected static ?string $title = 'Customers';
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                //
+            ]);
+    }
+
+    public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['store']))
+            ->modifyQueryUsing(fn ($query) => $query->where('stripe_account_id', $this->ownerRecord->stripe_account_id))
             ->columns([
                 TextColumn::make('name')
                     ->label('Name')
@@ -32,16 +46,6 @@ class ConnectedCustomersTable
                     ->icon(\Filament\Support\Icons\Heroicon::OutlinedEnvelope)
                     ->placeholder('-'),
 
-                TextColumn::make('store.name')
-                    ->label('Store')
-                    ->searchable()
-                    ->sortable()
-                    ->badge()
-                    ->color('gray')
-                    ->url(fn (ConnectedCustomer $record) => $record->store
-                        ? \App\Filament\Resources\Stores\StoreResource::getUrl('view', ['record' => $record->store])
-                        : null),
-
                 TextColumn::make('subscriptions_count')
                     ->label('Subscriptions')
                     ->counts('subscriptions')
@@ -55,12 +59,6 @@ class ConnectedCustomersTable
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('stripe_account_id')
-                    ->label('Account ID')
-                    ->searchable()
-                    ->copyable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
                 TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
@@ -68,18 +66,18 @@ class ConnectedCustomersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('stripe_account_id')
-                    ->label('Store')
-                    ->relationship('store', 'name')
-                    ->searchable()
-                    ->preload(),
+                //
+            ])
+            ->headerActions([
+                // Customers are typically created via API
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()
+                    ->url(fn ($record) => ConnectedCustomerResource::getUrl('view', ['record' => $record])),
+                EditAction::make()
+                    ->url(fn ($record) => ConnectedCustomerResource::getUrl('edit', ['record' => $record])),
             ])
-            ->defaultSort('created_at', 'desc')
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),

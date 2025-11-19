@@ -72,14 +72,14 @@ class SyncConnectedPaymentLinksFromStripe
                         'stripe_payment_link_id' => $paymentLink->id,
                         'stripe_account_id' => $store->stripe_account_id,
                         'stripe_price_id' => $priceId,
-                        'name' => $paymentLink->metadata->name ?? null,
+                        'name' => $paymentLink->metadata?->name ?? null,
                         'description' => null, // Payment links don't have direct description
                         'url' => $paymentLink->url,
                         'active' => $paymentLink->active ?? true,
                         'link_type' => 'direct', // Would need to check if it's destination based on application_fee
                         'application_fee_percent' => $paymentLink->application_fee_percent ?? null,
                         'application_fee_amount' => $paymentLink->application_fee_amount ?? null,
-                        'after_completion_redirect_url' => $paymentLink->after_completion->redirect->url ?? null,
+                        'after_completion_redirect_url' => $paymentLink->after_completion?->redirect?->url ?? null,
                         'line_items' => $paymentLink->line_items ? (array) $paymentLink->line_items : null,
                         'metadata' => $paymentLink->metadata ? (array) $paymentLink->metadata : null,
                     ];

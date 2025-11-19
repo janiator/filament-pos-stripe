@@ -68,7 +68,7 @@ class SyncConnectedChargesFromStripe
                         'amount_refunded' => $charge->amount_refunded ?? 0,
                         'currency' => $charge->currency,
                         'status' => $charge->status,
-                        'payment_method' => $charge->payment_method_details->type ?? null,
+                        'payment_method' => $charge->payment_method_details?->type ?? null,
                         'description' => $charge->description,
                         'failure_code' => $charge->failure_code,
                         'failure_message' => $charge->failure_message,

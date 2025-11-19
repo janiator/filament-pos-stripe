@@ -22,6 +22,8 @@ class ConnectedProductResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function form(Schema $schema): Schema
     {
         return ConnectedProductForm::configure($schema);
@@ -40,7 +42,7 @@ class ConnectedProductResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            \App\Filament\Resources\ConnectedProducts\RelationManagers\PricesRelationManager::class,
         ];
     }
 

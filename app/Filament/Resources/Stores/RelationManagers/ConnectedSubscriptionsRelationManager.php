@@ -1,27 +1,38 @@
 <?php
 
-namespace App\Filament\Resources\ConnectedSubscriptions\Tables;
+namespace App\Filament\Resources\Stores\RelationManagers;
 
+use App\Filament\Resources\ConnectedSubscriptions\ConnectedSubscriptionResource;
 use App\Models\ConnectedSubscription;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
-class ConnectedSubscriptionsTable
+class ConnectedSubscriptionsRelationManager extends RelationManager
 {
-    public static function configure(Table $table): Table
+    protected static string $relationship = 'connectedSubscriptions';
+
+    protected static ?string $title = 'Subscriptions';
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                //
+            ]);
+    }
+
+    public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(function ($query) {
-                $query->with(['store']);
-                if (class_exists(\App\Models\ConnectedCustomer::class)) {
-                    $query->with(['customer']);
-                }
-            })
+            ->modifyQueryUsing(fn ($query) => $query->where('stripe_account_id', $this->ownerRecord->stripe_account_id)
+                ->with(['customer']))
             ->columns([
                 TextColumn::make('name')
                     ->label('Name')
@@ -82,23 +93,6 @@ class ConnectedSubscriptionsTable
                     ->dateTime()
                     ->sortable()
                     ->placeholder('-')
-                    ->color(fn ($record) => $record->trial_ends_at && $record->trial_ends_at->isFuture() ? 'warning' : null)
-                    ->toggleable(),
-
-                TextColumn::make('ends_at')
-                    ->label('Ends At')
-                    ->dateTime()
-                    ->sortable()
-                    ->placeholder('-')
-                    ->color(fn ($record) => $record->ends_at && $record->ends_at->isPast() ? 'danger' : null)
-                    ->toggleable(),
-
-                TextColumn::make('store.name')
-                    ->label('Store')
-                    ->searchable()
-                    ->sortable()
-                    ->badge()
-                    ->color('gray')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('stripe_id')
@@ -126,12 +120,16 @@ class ConnectedSubscriptionsTable
                         'incomplete_expired' => 'Incomplete Expired',
                     ]),
             ])
-            ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+            ->headerActions([
+                // Subscriptions are typically created via API
             ])
-            ->defaultSort('created_at', 'desc')
-            ->toolbarActions([
+            ->recordActions([
+                ViewAction::make()
+                    ->url(fn ($record) => ConnectedSubscriptionResource::getUrl('view', ['record' => $record])),
+                EditAction::make()
+                    ->url(fn ($record) => ConnectedSubscriptionResource::getUrl('edit', ['record' => $record])),
+            ])
+            ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),

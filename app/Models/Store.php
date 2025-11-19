@@ -67,4 +67,37 @@ class Store extends Model implements StripeAccount
     {
         return $this->hasMany(\App\Models\ConnectedPaymentLink::class, 'stripe_account_id', 'stripe_account_id');
     }
+
+    /**
+     * Get the connected customers for this store
+     */
+    public function connectedCustomers()
+    {
+        if (!class_exists(\App\Models\ConnectedCustomer::class)) {
+            return $this->hasMany(\App\Models\ConnectedCustomer::class, 'stripe_account_id', 'stripe_account_id');
+        }
+        return $this->hasMany(\App\Models\ConnectedCustomer::class, 'stripe_account_id', 'stripe_account_id');
+    }
+
+    /**
+     * Get the connected subscriptions for this store
+     */
+    public function connectedSubscriptions()
+    {
+        if (!class_exists(\App\Models\ConnectedSubscription::class)) {
+            return $this->hasMany(\App\Models\ConnectedSubscription::class, 'stripe_account_id', 'stripe_account_id');
+        }
+        return $this->hasMany(\App\Models\ConnectedSubscription::class, 'stripe_account_id', 'stripe_account_id');
+    }
+
+    /**
+     * Get the connected products for this store
+     */
+    public function connectedProducts()
+    {
+        if (!class_exists(\App\Models\ConnectedProduct::class)) {
+            return $this->hasMany(\App\Models\ConnectedProduct::class, 'stripe_account_id', 'stripe_account_id');
+        }
+        return $this->hasMany(\App\Models\ConnectedProduct::class, 'stripe_account_id', 'stripe_account_id');
+    }
 }

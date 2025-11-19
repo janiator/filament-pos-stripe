@@ -1,24 +1,38 @@
 <?php
 
-namespace App\Filament\Resources\ConnectedProducts\Tables;
+namespace App\Filament\Resources\Stores\RelationManagers;
 
+use App\Filament\Resources\ConnectedProducts\ConnectedProductResource;
 use App\Models\ConnectedProduct;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
-class ConnectedProductsTable
+class ConnectedProductsRelationManager extends RelationManager
 {
-    public static function configure(Table $table): Table
+    protected static string $relationship = 'connectedProducts';
+
+    protected static ?string $title = 'Products';
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                //
+            ]);
+    }
+
+    public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['store']))
+            ->modifyQueryUsing(fn ($query) => $query->where('stripe_account_id', $this->ownerRecord->stripe_account_id))
             ->columns([
                 TextColumn::make('name')
                     ->label('Name')
@@ -53,17 +67,6 @@ class ConnectedProductsTable
                     ->color('gray')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('store.name')
-                    ->label('Store')
-                    ->searchable()
-                    ->sortable()
-                    ->badge()
-                    ->color('gray')
-                    ->url(fn (ConnectedProduct $record) => $record->store
-                        ? \App\Filament\Resources\Stores\StoreResource::getUrl('view', ['record' => $record->store])
-                        : null)
-                    ->toggleable(isToggledHiddenByDefault: true),
-
                 TextColumn::make('stripe_product_id')
                     ->label('Product ID')
                     ->searchable()
@@ -82,19 +85,17 @@ class ConnectedProductsTable
                     ->placeholder('All')
                     ->trueLabel('Active only')
                     ->falseLabel('Inactive only'),
-
-                SelectFilter::make('stripe_account_id')
-                    ->label('Store')
-                    ->relationship('store', 'name')
-                    ->searchable()
-                    ->preload(),
+            ])
+            ->headerActions([
+                // Products are typically created via API
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()
+                    ->url(fn ($record) => ConnectedProductResource::getUrl('view', ['record' => $record])),
+                EditAction::make()
+                    ->url(fn ($record) => ConnectedProductResource::getUrl('edit', ['record' => $record])),
             ])
-            ->defaultSort('created_at', 'desc')
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
