@@ -4,15 +4,21 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasDefaultTenant;
+use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
+use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasTenants, HasDefaultTenant
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -56,5 +62,55 @@ class User extends Authenticatable implements FilamentUser
         }else {
             return false;
         }
+    }
+
+    // Tenancy methods
+    public function getTenants(Panel $panel): Collection
+    {
+        // Super admins can access all teams
+        if ($this->isSuperAdmin()) {
+            return Team::all();
+        }
+        
+        return $this->teams;
+    }
+
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class);
+    }
+
+    public function canAccessTenant(Model $tenant): bool
+    {
+        // Super admins can access all teams
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+        
+        return $this->teams->contains($tenant);
+    }
+
+    /**
+     * Check if user is a super admin, bypassing tenant scoping
+     */
+    protected function isSuperAdmin(): bool
+    {
+        try {
+            // Use withoutGlobalScopes to bypass tenant scoping for role checks
+            $tenant = \Filament\Facades\Filament::getTenant();
+            if ($tenant) {
+                return $this->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists();
+            }
+            return $this->hasRole('super_admin');
+        } catch (\Throwable $e) {
+            // Fallback to regular check if Filament facade is not available
+            return $this->hasRole('super_admin');
+        }
+    }
+
+    public function getDefaultTenant(Panel $panel): ?Model
+    {
+        // Return the user's first team, or null if they have no teams
+        return $this->teams()->first();
     }
 }

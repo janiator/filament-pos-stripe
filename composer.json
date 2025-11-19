@@ -7,7 +7,9 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "bezhansalleh/filament-shield": "^4.0",
         "filament/filament": "^4.1",
+        "filament/spatie-laravel-media-library-plugin": "^4.0",
         "lanos/laravel-cashier-stripe-connect": "^1.2",
         "laravel/cashier": "^15.0",
         "laravel/framework": "^12.0",

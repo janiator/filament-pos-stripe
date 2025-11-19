@@ -9,6 +9,7 @@ use App\Filament\Resources\ConnectedCustomers\Pages\ViewConnectedCustomer;
 use App\Filament\Resources\ConnectedCustomers\Schemas\ConnectedCustomerForm;
 use App\Filament\Resources\ConnectedCustomers\Schemas\ConnectedCustomerInfolist;
 use App\Filament\Resources\ConnectedCustomers\Tables\ConnectedCustomersTable;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedCustomer;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -18,7 +19,12 @@ use Filament\Tables\Table;
 
 class ConnectedCustomerResource extends Resource
 {
+    use HasTenantScopedQuery;
+
     protected static ?string $model = ConnectedCustomer::class;
+
+    // Disable automatic tenant scoping - we'll handle it manually via trait
+    protected static ?string $tenantOwnershipRelationshipName = null;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUser;
 

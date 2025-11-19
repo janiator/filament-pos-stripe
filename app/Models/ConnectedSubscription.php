@@ -122,4 +122,9 @@ class ConnectedSubscription extends Model
     {
         return $this->trial_ends_at && $this->trial_ends_at->isFuture();
     }
+
+    public function team()
+    {
+        return $this->store?->team;
+    }
 }

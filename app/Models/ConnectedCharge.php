@@ -75,4 +75,9 @@ class ConnectedCharge extends Model
         $net = $this->amount - $this->amount_refunded - ($this->application_fee_amount ?? 0);
         return number_format($net / 100, 2) . ' ' . strtoupper($this->currency);
     }
+
+    public function team()
+    {
+        return $this->store?->team;
+    }
 }

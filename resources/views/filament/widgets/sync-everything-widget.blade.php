@@ -5,13 +5,21 @@
         </x-slot>
 
         <x-slot name="description">
-            Sync all charges, transfers, payment methods, and payment links from all connected Stripe accounts.
+            @php
+                $tenant = \Filament\Facades\Filament::getTenant();
+                $isAdmin = $tenant && $tenant->slug === 'visivo-admin';
+            @endphp
+            @if($isAdmin)
+                Sync all charges, transfers, payment methods, and payment links from all connected Stripe accounts.
+            @else
+                Sync all charges, transfers, payment methods, and payment links from the current team's Stripe account.
+            @endif
         </x-slot>
 
         <div class="flex items-center gap-4">
             <x-filament::button
                 wire:click="syncEverything"
-                wire:confirm="This will sync all charges, transfers, payment methods, and payment links from all connected Stripe accounts. This may take a moment. Continue?"
+                wire:confirm="{{ $isAdmin ? 'This will sync all charges, transfers, payment methods, and payment links from all connected Stripe accounts. This may take a moment. Continue?' : 'This will sync all charges, transfers, payment methods, and payment links from the current team\'s Stripe account. This may take a moment. Continue?' }}"
                 icon="heroicon-o-arrow-path"
                 color="gray"
             >

@@ -9,6 +9,7 @@ use App\Filament\Resources\ConnectedPaymentMethods\Pages\ViewConnectedPaymentMet
 use App\Filament\Resources\ConnectedPaymentMethods\Schemas\ConnectedPaymentMethodForm;
 use App\Filament\Resources\ConnectedPaymentMethods\Schemas\ConnectedPaymentMethodInfolist;
 use App\Filament\Resources\ConnectedPaymentMethods\Tables\ConnectedPaymentMethodsTable;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedPaymentMethod;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -18,7 +19,12 @@ use Filament\Tables\Table;
 
 class ConnectedPaymentMethodResource extends Resource
 {
+    use HasTenantScopedQuery;
+
     protected static ?string $model = ConnectedPaymentMethod::class;
+
+    // Disable automatic tenant scoping - we'll handle it manually via trait
+    protected static ?string $tenantOwnershipRelationshipName = null;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
 

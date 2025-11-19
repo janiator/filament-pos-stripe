@@ -29,6 +29,40 @@ class StoreResource extends Resource
         return null; // Stores is the main resource, no group
     }
 
+    public static function canViewAny(): bool
+    {
+        // Only allow super admins to view all stores
+        // Use withoutGlobalScopes to bypass tenant scoping for role checks
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+        
+        // Temporarily disable tenant scoping for role check
+        return \Filament\Facades\Filament::getTenant() 
+            ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
+            : $user->hasRole('super_admin');
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        // Super admins can see all stores, others see none
+        $user = auth()->user();
+        if (!$user) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+        
+        $isSuperAdmin = \Filament\Facades\Filament::getTenant() 
+            ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
+            : $user->hasRole('super_admin');
+            
+        if ($isSuperAdmin) {
+            return parent::getEloquentQuery();
+        }
+        
+        return parent::getEloquentQuery()->whereRaw('1 = 0'); // Return empty query
+    }
+
     public static function form(Schema $schema): Schema
     {
         return StoreForm::configure($schema);

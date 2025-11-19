@@ -67,4 +67,9 @@ class ConnectedCustomer extends Model
         return $this->hasMany(\App\Models\ConnectedPaymentMethod::class, 'stripe_customer_id', 'stripe_customer_id')
             ->where('connected_payment_methods.stripe_account_id', $this->stripe_account_id);
     }
+
+    public function team()
+    {
+        return $this->store?->team;
+    }
 }

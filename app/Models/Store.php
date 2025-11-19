@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Cashier\Billable as CashierBillable;
 use Lanos\CashierConnect\Billable as ConnectBillable;
 use Lanos\CashierConnect\Contracts\StripeAccount;
@@ -20,6 +21,7 @@ class Store extends Model implements StripeAccount
         'commission_type',
         'commission_rate',
         'stripe_account_id',
+        'team_id',
     ];
 
     protected $casts = [
@@ -113,5 +115,37 @@ class Store extends Model implements StripeAccount
             return $this->hasMany(\App\Models\ConnectedProduct::class, 'stripe_account_id', 'stripe_account_id');
         }
         return $this->hasMany(\App\Models\ConnectedProduct::class, 'stripe_account_id', 'stripe_account_id');
+    }
+
+    /**
+     * Get the team that owns this store
+     */
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
+
+    /**
+     * Get stores for syncing based on current tenant
+     * Returns current team's store, or all stores if on admin team
+     */
+    public static function getStoresForSync(): \Illuminate\Database\Eloquent\Collection
+    {
+        try {
+            $tenant = \Filament\Facades\Filament::getTenant();
+            
+            // If no tenant or admin team, sync all stores
+            if (!$tenant || $tenant->slug === 'visivo-admin') {
+                return static::whereNotNull('stripe_account_id')->get();
+            }
+            
+            // Otherwise, sync only the current team's store
+            return static::whereNotNull('stripe_account_id')
+                ->where('team_id', $tenant->id)
+                ->get();
+        } catch (\Throwable $e) {
+            // Fallback: if Filament facade not available, return all stores
+            return static::whereNotNull('stripe_account_id')->get();
+        }
     }
 }

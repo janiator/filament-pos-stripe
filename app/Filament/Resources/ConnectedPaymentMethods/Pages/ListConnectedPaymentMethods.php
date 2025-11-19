@@ -40,10 +40,10 @@ class ListConnectedPaymentMethods extends ListRecords
                 ->color('gray')
                 ->requiresConfirmation()
                 ->modalHeading('Sync Payment Methods from Stripe')
-                ->modalDescription('This will sync all payment methods from all connected Stripe accounts. This may take a moment.')
+                ->modalDescription(fn () => $this->getSyncDescription('payment methods'))
                 ->action(function () {
                     $syncAction = new SyncConnectedPaymentMethodsFromStripe();
-                    $stores = Store::whereNotNull('stripe_account_id')->get();
+                    $stores = Store::getStoresForSync();
 
                     $totalCreated = 0;
                     $totalUpdated = 0;
@@ -81,5 +81,18 @@ class ListConnectedPaymentMethods extends ListRecords
                     $this->refresh();
                 }),
         ];
+    }
+
+    protected function getSyncDescription(string $type): string
+    {
+        try {
+            $tenant = \Filament\Facades\Filament::getTenant();
+            if ($tenant && $tenant->slug !== 'visivo-admin') {
+                return "This will sync all {$type} from the current team's Stripe account. This may take a moment.";
+            }
+        } catch (\Throwable $e) {
+            // Fallback
+        }
+        return "This will sync all {$type} from all connected Stripe accounts. This may take a moment.";
     }
 }

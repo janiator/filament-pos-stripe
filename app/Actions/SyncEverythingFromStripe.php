@@ -13,7 +13,7 @@ class SyncEverythingFromStripe
 {
     public function __invoke(bool $notify = false): array
     {
-        $stores = Store::whereNotNull('stripe_account_id')->get();
+        $stores = Store::getStoresForSync();
 
         if ($stores->isEmpty()) {
             if ($notify) {

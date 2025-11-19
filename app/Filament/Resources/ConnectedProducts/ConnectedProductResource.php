@@ -9,6 +9,7 @@ use App\Filament\Resources\ConnectedProducts\Pages\ViewConnectedProduct;
 use App\Filament\Resources\ConnectedProducts\Schemas\ConnectedProductForm;
 use App\Filament\Resources\ConnectedProducts\Schemas\ConnectedProductInfolist;
 use App\Filament\Resources\ConnectedProducts\Tables\ConnectedProductsTable;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedProduct;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -18,7 +19,12 @@ use Filament\Tables\Table;
 
 class ConnectedProductResource extends Resource
 {
+    use HasTenantScopedQuery;
+
     protected static ?string $model = ConnectedProduct::class;
+
+    // Disable automatic tenant scoping - we'll handle it manually via trait
+    protected static ?string $tenantOwnershipRelationshipName = null;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

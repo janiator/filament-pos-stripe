@@ -59,4 +59,9 @@ class ConnectedProduct extends Model
         return $this->hasMany(ConnectedPrice::class, 'stripe_product_id', 'stripe_product_id')
             ->where('stripe_account_id', $this->stripe_account_id);
     }
+
+    public function team()
+    {
+        return $this->store?->team;
+    }
 }

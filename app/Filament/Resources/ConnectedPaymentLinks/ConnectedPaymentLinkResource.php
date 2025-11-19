@@ -9,6 +9,7 @@ use App\Filament\Resources\ConnectedPaymentLinks\Pages\ViewConnectedPaymentLink;
 use App\Filament\Resources\ConnectedPaymentLinks\Schemas\ConnectedPaymentLinkForm;
 use App\Filament\Resources\ConnectedPaymentLinks\Schemas\ConnectedPaymentLinkInfolist;
 use App\Filament\Resources\ConnectedPaymentLinks\Tables\ConnectedPaymentLinksTable;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedPaymentLink;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -18,11 +19,16 @@ use Filament\Tables\Table;
 
 class ConnectedPaymentLinkResource extends Resource
 {
+    use HasTenantScopedQuery;
+
     protected static ?string $model = ConnectedPaymentLink::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedLink;
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    // Disable automatic tenant scoping - we'll handle it manually via trait
+    protected static ?string $tenantOwnershipRelationshipName = null;
 
     public static function getLabel(): string
     {

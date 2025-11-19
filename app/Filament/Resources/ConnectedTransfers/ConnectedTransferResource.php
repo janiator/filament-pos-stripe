@@ -9,6 +9,7 @@ use App\Filament\Resources\ConnectedTransfers\Pages\ViewConnectedTransfer;
 use App\Filament\Resources\ConnectedTransfers\Schemas\ConnectedTransferForm;
 use App\Filament\Resources\ConnectedTransfers\Schemas\ConnectedTransferInfolist;
 use App\Filament\Resources\ConnectedTransfers\Tables\ConnectedTransfersTable;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedTransfer;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -18,7 +19,12 @@ use Filament\Tables\Table;
 
 class ConnectedTransferResource extends Resource
 {
+    use HasTenantScopedQuery;
+
     protected static ?string $model = ConnectedTransfer::class;
+
+    // Disable automatic tenant scoping - we'll handle it manually via trait
+    protected static ?string $tenantOwnershipRelationshipName = null;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowRightCircle;
 

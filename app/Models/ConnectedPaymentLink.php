@@ -44,4 +44,9 @@ class ConnectedPaymentLink extends Model
         return $this->belongsTo(ConnectedPrice::class, 'stripe_price_id', 'stripe_price_id')
             ->where('stripe_account_id', $this->stripe_account_id);
     }
+
+    public function team()
+    {
+        return $this->store?->team;
+    }
 }

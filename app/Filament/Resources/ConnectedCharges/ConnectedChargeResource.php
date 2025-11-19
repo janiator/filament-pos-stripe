@@ -9,6 +9,7 @@ use App\Filament\Resources\ConnectedCharges\Pages\ViewConnectedCharge;
 use App\Filament\Resources\ConnectedCharges\Schemas\ConnectedChargeForm;
 use App\Filament\Resources\ConnectedCharges\Schemas\ConnectedChargeInfolist;
 use App\Filament\Resources\ConnectedCharges\Tables\ConnectedChargesTable;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedCharge;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -18,7 +19,12 @@ use Filament\Tables\Table;
 
 class ConnectedChargeResource extends Resource
 {
+    use HasTenantScopedQuery;
+
     protected static ?string $model = ConnectedCharge::class;
+
+    // Disable automatic tenant scoping - we'll handle it manually via trait
+    protected static ?string $tenantOwnershipRelationshipName = null;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
 

@@ -9,6 +9,7 @@ use App\Filament\Resources\ConnectedSubscriptions\Pages\ViewConnectedSubscriptio
 use App\Filament\Resources\ConnectedSubscriptions\Schemas\ConnectedSubscriptionForm;
 use App\Filament\Resources\ConnectedSubscriptions\Schemas\ConnectedSubscriptionInfolist;
 use App\Filament\Resources\ConnectedSubscriptions\Tables\ConnectedSubscriptionsTable;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedSubscription;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -18,7 +19,12 @@ use Filament\Tables\Table;
 
 class ConnectedSubscriptionResource extends Resource
 {
+    use HasTenantScopedQuery;
+
     protected static ?string $model = ConnectedSubscription::class;
+
+    // Disable automatic tenant scoping - we'll handle it manually via trait
+    protected static ?string $tenantOwnershipRelationshipName = null;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

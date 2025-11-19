@@ -60,4 +60,9 @@ class ConnectedTransfer extends Model
         $net = $this->amount - $this->reversed_amount;
         return number_format($net / 100, 2) . ' ' . strtoupper($this->currency);
     }
+
+    public function team()
+    {
+        return $this->store?->team;
+    }
 }
