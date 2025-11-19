@@ -44,6 +44,10 @@ class StoreResource extends Resource
         return [
             \App\Filament\Resources\Stores\RelationManagers\TerminalLocationsRelationManager::class,
             \App\Filament\Resources\Stores\RelationManagers\TerminalReadersRelationManager::class,
+            \App\Filament\Resources\Stores\RelationManagers\ConnectedChargesRelationManager::class,
+            \App\Filament\Resources\Stores\RelationManagers\ConnectedTransfersRelationManager::class,
+            \App\Filament\Resources\Stores\RelationManagers\ConnectedPaymentMethodsRelationManager::class,
+            \App\Filament\Resources\Stores\RelationManagers\ConnectedPaymentLinksRelationManager::class,
         ];
     }
 
