@@ -24,6 +24,26 @@ class ConnectedChargeResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'stripe_charge_id';
 
+    public static function getLabel(): string
+    {
+        return 'Charge';
+    }
+
+    public static function getPluralLabel(): string
+    {
+        return 'Charges';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Charges';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Payments';
+    }
+
     public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null
     {
         if (! $record) {

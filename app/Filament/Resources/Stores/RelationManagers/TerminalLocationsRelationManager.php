@@ -26,32 +26,53 @@ class TerminalLocationsRelationManager extends RelationManager
                 Forms\Components\TextInput::make('display_name')
                     ->label('Display name')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->helperText(fn ($record) => $record && $record->stripe_location_id 
+                        ? 'Location display name. This field will sync to Stripe when saved.'
+                        : 'Location display name'),
 
                 Forms\Components\TextInput::make('line1')
                     ->label('Address line 1')
-                    ->required(),
+                    ->required()
+                    ->helperText(fn ($record) => $record && $record->stripe_location_id 
+                        ? 'Address line 1. This field will sync to Stripe when saved.'
+                        : 'Address line 1'),
 
                 Forms\Components\TextInput::make('line2')
                     ->label('Address line 2')
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->helperText(fn ($record) => $record && $record->stripe_location_id 
+                        ? 'Address line 2. This field will sync to Stripe when saved.'
+                        : 'Address line 2'),
 
                 Forms\Components\TextInput::make('city')
-                    ->required(),
+                    ->required()
+                    ->helperText(fn ($record) => $record && $record->stripe_location_id 
+                        ? 'City. This field will sync to Stripe when saved.'
+                        : 'City'),
 
                 Forms\Components\TextInput::make('state')
                     ->label('State / County')
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->helperText(fn ($record) => $record && $record->stripe_location_id 
+                        ? 'State or county. This field will sync to Stripe when saved.'
+                        : 'State or county'),
 
                 Forms\Components\TextInput::make('postal_code')
                     ->label('Postal code')
-                    ->required(),
+                    ->required()
+                    ->helperText(fn ($record) => $record && $record->stripe_location_id 
+                        ? 'Postal code. This field will sync to Stripe when saved.'
+                        : 'Postal code'),
 
                 Forms\Components\TextInput::make('country')
                     ->label('Country (ISO 2-letter)')
                     ->required()
                     ->default('US')
-                    ->maxLength(2),
+                    ->maxLength(2)
+                    ->helperText(fn ($record) => $record && $record->stripe_location_id 
+                        ? 'Country code (ISO 2-letter). This field will sync to Stripe when saved.'
+                        : 'Country code (ISO 2-letter)'),
 
                 Forms\Components\TextInput::make('stripe_location_id')
                     ->label('Stripe location ID')

@@ -24,6 +24,26 @@ class ConnectedProductResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function getLabel(): string
+    {
+        return 'Product';
+    }
+
+    public static function getPluralLabel(): string
+    {
+        return 'Products';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Products';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Catalog';
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ConnectedProductForm::configure($schema);

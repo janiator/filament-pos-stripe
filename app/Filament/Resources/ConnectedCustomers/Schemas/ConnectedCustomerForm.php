@@ -35,14 +35,18 @@ class ConnectedCustomerForm
                 TextInput::make('name')
                     ->label('Name')
                     ->maxLength(255)
-                    ->helperText('Customer name')
+                    ->helperText(fn ($record) => $record && $record->stripe_customer_id 
+                        ? 'Customer name. This field will sync to Stripe when saved.'
+                        : 'Customer name')
                     ->visibleOn(['create', 'edit']),
 
                 TextInput::make('email')
                     ->label('Email')
                     ->email()
                     ->maxLength(255)
-                    ->helperText('Customer email address')
+                    ->helperText(fn ($record) => $record && $record->stripe_customer_id 
+                        ? 'Customer email address. This field will sync to Stripe when saved.'
+                        : 'Customer email address')
                     ->visibleOn(['create', 'edit']),
 
                 // Model mapping fields (optional)

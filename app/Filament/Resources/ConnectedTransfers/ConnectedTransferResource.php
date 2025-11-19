@@ -24,6 +24,26 @@ class ConnectedTransferResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'stripe_transfer_id';
 
+    public static function getLabel(): string
+    {
+        return 'Transfer';
+    }
+
+    public static function getPluralLabel(): string
+    {
+        return 'Transfers';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Transfers';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Payments';
+    }
+
     public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null
     {
         if (! $record) {

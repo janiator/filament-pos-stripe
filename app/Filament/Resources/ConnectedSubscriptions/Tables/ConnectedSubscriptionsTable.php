@@ -21,13 +21,55 @@ class ConnectedSubscriptionsTable
                 if (class_exists(\App\Models\ConnectedCustomer::class)) {
                     $query->with(['customer']);
                 }
+                // Eager load price and product for subscription name
+                if (class_exists(\App\Models\ConnectedPrice::class)) {
+                    $query->with(['price.product']);
+                }
             })
             ->columns([
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label('Subscription')
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
+                    ->formatStateUsing(function (ConnectedSubscription $record) {
+                        // Try to build a meaningful subscription name
+                        $parts = [];
+                        
+                        // Get product name from price
+                        if ($record->connected_price_id) {
+                            $price = $record->price;
+                            
+                            // Filter by account_id if price is loaded
+                            if ($price && $price->stripe_account_id === $record->stripe_account_id) {
+                                $product = $price->product;
+                                
+                                if ($product && $product->name) {
+                                    $parts[] = $product->name;
+                                    
+                                    // Add recurring interval if applicable
+                                    if ($price->type === 'recurring' && $price->recurring_description) {
+                                        $parts[] = "({$price->recurring_description})";
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Fallback to customer name if no product name
+                        if (empty($parts) && $record->customer) {
+                            $parts[] = $record->customer->name ?? $record->customer->email ?? 'Subscription';
+                        }
+                        
+                        // Final fallback
+                        if (empty($parts)) {
+                            $parts[] = $record->name ?: 'Subscription';
+                        }
+                        
+                        return implode(' ', $parts);
+                    })
+                    ->description(fn (ConnectedSubscription $record) => $record->customer 
+                        ? ($record->customer->name ?? $record->customer->email ?? $record->stripe_customer_id)
+                        : $record->stripe_customer_id)
                     ->placeholder('-'),
 
                 TextColumn::make('customer.name')

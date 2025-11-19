@@ -35,15 +35,32 @@ class SyncStoreToStripe
                 $store->save();
             } else {
                 // Update existing Stripe account
-                $stripe->accounts->update($store->stripe_account_id, [
-                    'email' => $store->email,
+                // Note: email cannot be updated via API for connected accounts
+                // Only business_profile.name can be updated
+                $updateData = [
                     'business_profile' => [
                         'name' => $store->name,
                     ],
-                ]);
+                ];
+
+                $stripe->accounts->update($store->stripe_account_id, $updateData);
             }
+        } catch (\Stripe\Exception\PermissionException $e) {
+            // Some fields (like email) cannot be updated via API for connected accounts
+            // Log but don't throw - allow the model save to complete
+            \Log::warning('SyncStoreToStripe: Permission denied updating Stripe account', [
+                'store_id' => $store->id,
+                'stripe_account_id' => $store->stripe_account_id,
+                'error' => $e->getMessage(),
+            ]);
+            report($e);
         } catch (Throwable $e) {
-            // Log or handle as you like; avoiding hard failures in Filament forms is usually preferable
+            // Log other errors but don't throw - allow the model save to complete
+            \Log::error('SyncStoreToStripe: Failed to sync store to Stripe', [
+                'store_id' => $store->id,
+                'stripe_account_id' => $store->stripe_account_id,
+                'error' => $e->getMessage(),
+            ]);
             report($e);
         }
     }

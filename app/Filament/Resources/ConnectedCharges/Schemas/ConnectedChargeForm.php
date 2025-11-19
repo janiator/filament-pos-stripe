@@ -55,7 +55,70 @@ class ConnectedChargeForm
                     })
                     ->searchable()
                     ->preload()
-                    ->helperText('Select a customer from this store')
+                    ->helperText('Select a customer from this store. If the customer has no payment methods, you must provide a payment method below.')
+                    ->live()
+                    ->visibleOn('create'),
+
+                Select::make('stripe_payment_method_id')
+                    ->label('Payment Method')
+                    ->key('stripe_payment_method_id')
+                    ->options(function (Get $get) {
+                        $accountId = $get('stripe_account_id');
+                        $customerId = $get('stripe_customer_id');
+                        
+                        if (! $accountId || ! $customerId) {
+                            return [];
+                        }
+
+                        // Check if ConnectedPaymentMethod model exists
+                        if (!class_exists(\App\Models\ConnectedPaymentMethod::class)) {
+                            return [];
+                        }
+
+                        $paymentMethods = \App\Models\ConnectedPaymentMethod::where('stripe_account_id', $accountId)
+                            ->where('stripe_customer_id', $customerId)
+                            ->get();
+
+                        if ($paymentMethods->isEmpty()) {
+                            return [];
+                        }
+
+                        return $paymentMethods->mapWithKeys(function ($paymentMethod) {
+                            $label = $paymentMethod->card_display;
+                            if ($paymentMethod->is_default) {
+                                $label .= ' (Default)';
+                            }
+                            return [$paymentMethod->stripe_payment_method_id => $label];
+                        });
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->live()
+                    ->helperText(function (Get $get) {
+                        $accountId = $get('stripe_account_id');
+                        $customerId = $get('stripe_customer_id');
+                        
+                        if (! $customerId) {
+                            return 'Select a customer first to see their payment methods.';
+                        }
+                        
+                        if (! $accountId) {
+                            return 'Select a store first.';
+                        }
+                        
+                        // Check if customer has payment methods
+                        if (class_exists(\App\Models\ConnectedPaymentMethod::class)) {
+                            $hasPaymentMethods = \App\Models\ConnectedPaymentMethod::where('stripe_account_id', $accountId)
+                                ->where('stripe_customer_id', $customerId)
+                                ->exists();
+                            
+                            if (! $hasPaymentMethods) {
+                                return '⚠️ This customer has no payment methods saved. You must add a payment method to Stripe first, or the charge will fail.';
+                            }
+                        }
+                        
+                        return 'Optional: Select a specific payment method. If not provided, Stripe will attempt to use the customer\'s default payment method.';
+                    })
                     ->visibleOn('create'),
 
                 TextInput::make('amount')
@@ -74,6 +137,7 @@ class ConnectedChargeForm
                         'gbp' => 'GBP',
                         'cad' => 'CAD',
                         'aud' => 'AUD',
+                        'nok' => 'NOK',
                     ])
                     ->default('usd')
                     ->required()

@@ -24,6 +24,26 @@ class ConnectedSubscriptionResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function getLabel(): string
+    {
+        return 'Subscription';
+    }
+
+    public static function getPluralLabel(): string
+    {
+        return 'Subscriptions';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Subscriptions';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Subscriptions';
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ConnectedSubscriptionForm::configure($schema);

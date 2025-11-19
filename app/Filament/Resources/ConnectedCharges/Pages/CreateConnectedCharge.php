@@ -18,7 +18,8 @@ class CreateConnectedCharge extends CreateRecord
         $charge = $action($store, $data, true);
 
         if (! $charge) {
-            throw new \Exception('Failed to create charge on Stripe.');
+            // The action already shows notifications, but we need to prevent form submission
+            throw new \Exception('Failed to create charge on Stripe. Please check the notifications for details.');
         }
 
         return [

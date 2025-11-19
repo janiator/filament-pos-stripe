@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ConnectedSubscriptions\Schemas;
 
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -115,7 +116,6 @@ class ConnectedSubscriptionForm
                     ->label('Status')
                     ->disabled()
                     ->dehydrated(false)
-                    ->badge()
                     ->visibleOn('edit'),
 
                 TextInput::make('stripe_id')
@@ -150,9 +150,20 @@ class ConnectedSubscriptionForm
 
                 Toggle::make('cancel_at_period_end')
                     ->label('Cancel at Period End')
-                    ->helperText('Whether to cancel the subscription at the end of the current period')
+                    ->helperText('Whether to cancel the subscription at the end of the current period. This will sync to Stripe when saved.')
                     ->visibleOn('edit')
                     ->visible(fn ($record) => isset($record->cancel_at_period_end)),
+
+                KeyValue::make('metadata')
+                    ->label('Metadata')
+                    ->helperText('Custom key-value pairs. This field will sync to Stripe when saved.')
+                    ->keyLabel('Key')
+                    ->valueLabel('Value')
+                    ->visibleOn('edit'),
+
+                // Note: Most subscription fields cannot be synced to Stripe
+                // Only cancel_at_period_end and metadata can be updated via API
+                // Other fields (status, price, quantity, etc.) are managed by Stripe
             ]);
     }
 }

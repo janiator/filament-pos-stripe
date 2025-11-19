@@ -24,6 +24,26 @@ class ConnectedPaymentLinkResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function getLabel(): string
+    {
+        return 'Payment Link';
+    }
+
+    public static function getPluralLabel(): string
+    {
+        return 'Payment Links';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Payment Links';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Payments';
+    }
+
     public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null
     {
         if (! $record) {

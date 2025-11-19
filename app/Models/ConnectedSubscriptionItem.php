@@ -42,7 +42,7 @@ class ConnectedSubscriptionItem extends Model
         }
 
         $subscription = $this->subscription;
-        if (! $subscription) {
+        if (! $subscription || ! $subscription->stripe_account_id) {
             return null;
         }
 
@@ -61,12 +61,13 @@ class ConnectedSubscriptionItem extends Model
         }
 
         $subscription = $this->subscription;
-        if (! $subscription) {
+        if (! $subscription || ! $subscription->stripe_account_id) {
             return null;
         }
 
         return ConnectedPrice::where('stripe_price_id', $this->connected_price)
             ->where('stripe_account_id', $subscription->stripe_account_id)
+            ->with('product') // Eager load product for price info
             ->first();
     }
 }

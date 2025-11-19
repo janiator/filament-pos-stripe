@@ -15,13 +15,18 @@ class StoreForm
             ->components([
                 TextInput::make('name')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->helperText('This field will sync to Stripe when saved'),
 
                 TextInput::make('email')
                     ->label('Email')
                     ->email()
                     ->required()
-                    ->unique(ignoreRecord: true),
+                    ->unique(ignoreRecord: true)
+                    ->disabled(fn ($record) => $record && $record->stripe_account_id)
+                    ->helperText(fn ($record) => $record && $record->stripe_account_id 
+                        ? 'Email cannot be synced to Stripe for connected accounts. Update it in the Stripe Dashboard or Connect onboarding flow.'
+                        : 'Email address for the store'),
 
                 Radio::make('commission_type')
                     ->label('Commission type')

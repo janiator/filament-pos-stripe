@@ -21,6 +21,20 @@ class TerminalLocation extends Model
         'country',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function (TerminalLocation $location) {
+            // Use saved event to ensure it fires for both create and update
+            // Only sync on update (not create)
+            if ($location->wasRecentlyCreated) {
+                return;
+            }
+            
+            $listener = new \App\Listeners\SyncTerminalLocationToStripeListener();
+            $listener->handle($location);
+        });
+    }
+
     public function store()
     {
         return $this->belongsTo(Store::class);

@@ -29,6 +29,7 @@ class ConnectedSubscription extends Model
         'currency',
         'stripe_customer_id',
         'stripe_account_id',
+        'metadata',
     ];
 
     protected $casts = [
@@ -39,7 +40,22 @@ class ConnectedSubscription extends Model
         'billing_cycle_anchor' => 'datetime',
         'cancel_at_period_end' => 'boolean',
         'quantity' => 'integer',
+        'metadata' => 'array',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(function (ConnectedSubscription $subscription) {
+            // Use saved event to ensure it fires for both create and update
+            // Only sync on update (not create)
+            if ($subscription->wasRecentlyCreated) {
+                return;
+            }
+            
+            $listener = new \App\Listeners\SyncConnectedSubscriptionToStripeListener();
+            $listener->handle($subscription);
+        });
+    }
 
     /**
      * Get the store that owns this subscription via stripe_account_id
@@ -72,6 +88,23 @@ class ConnectedSubscription extends Model
     public function items(): HasMany
     {
         return $this->hasMany(ConnectedSubscriptionItem::class);
+    }
+
+    /**
+     * Get the price for this subscription
+     */
+    public function price(): ?BelongsTo
+    {
+        if (!class_exists(\App\Models\ConnectedPrice::class)) {
+            return null;
+        }
+        
+        // Note: We can't use where() in belongsTo with eager loading, so we'll filter in the accessor
+        return $this->belongsTo(
+            ConnectedPrice::class,
+            'connected_price_id',
+            'stripe_price_id'
+        );
     }
 
     /**

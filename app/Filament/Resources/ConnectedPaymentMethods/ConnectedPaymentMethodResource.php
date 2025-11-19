@@ -24,6 +24,26 @@ class ConnectedPaymentMethodResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'stripe_payment_method_id';
 
+    public static function getLabel(): string
+    {
+        return 'Payment Method';
+    }
+
+    public static function getPluralLabel(): string
+    {
+        return 'Payment Methods';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Payment Methods';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Payments';
+    }
+
     public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null
     {
         if (! $record) {

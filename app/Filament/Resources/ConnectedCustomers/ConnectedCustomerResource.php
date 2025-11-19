@@ -24,6 +24,26 @@ class ConnectedCustomerResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function getLabel(): string
+    {
+        return 'Customer';
+    }
+
+    public static function getPluralLabel(): string
+    {
+        return 'Customers';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Customers';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Customers';
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ConnectedCustomerForm::configure($schema);

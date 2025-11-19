@@ -20,8 +20,9 @@ class EditStore extends EditRecord
         ];
     }
 
-    protected function afterSave(): void
-    {
-        app(SyncStoreToStripe::class)($this->record);
-    }
+    // Sync is handled by model event listener in Store::booted()
+    // protected function afterSave(): void
+    // {
+    //     app(SyncStoreToStripe::class)($this->record);
+    // }
 }

@@ -45,15 +45,58 @@ class CreateConnectedChargeOnStripe
             // Prepare charge data for Stripe
             $stripeChargeData = [
                 'amount' => $chargeData['amount'], // Amount in cents
-                'currency' => $chargeData['currency'] ?? 'usd',
+                'currency' => strtolower($chargeData['currency'] ?? 'usd'),
                 'customer' => $chargeData['stripe_customer_id'] ?? null,
                 'payment_method' => $chargeData['stripe_payment_method_id'] ?? null,
                 'description' => $chargeData['description'] ?? null,
                 'metadata' => $chargeData['metadata'] ?? [],
             ];
 
-            // Remove null values
-            $stripeChargeData = array_filter($stripeChargeData, fn ($value) => ! is_null($value));
+            // Remove null values (but keep empty arrays for metadata)
+            $stripeChargeData = array_filter($stripeChargeData, function ($value, $key) {
+                if ($key === 'metadata') {
+                    return true; // Always include metadata, even if empty
+                }
+                return ! is_null($value);
+            }, ARRAY_FILTER_USE_BOTH);
+            
+            // Stripe requires either customer or payment_method for charges
+            if (empty($stripeChargeData['customer']) && empty($stripeChargeData['payment_method'])) {
+                if ($notify) {
+                    Notification::make()
+                        ->title('Charge creation failed')
+                        ->body('Either a customer or payment method must be provided to create a charge.')
+                        ->danger()
+                        ->send();
+                }
+                return null;
+            }
+            
+            // If customer is provided but no payment method, check if customer has a default payment method
+            if (!empty($stripeChargeData['customer']) && empty($stripeChargeData['payment_method'])) {
+                // Try to get the customer's default payment method from Stripe
+                try {
+                    $customer = $stripe->customers->retrieve(
+                        $stripeChargeData['customer'],
+                        ['stripe_account' => $store->stripe_account_id]
+                    );
+                    
+                    // Check if customer has a default payment method
+                    if (empty($customer->invoice_settings->default_payment_method) && empty($customer->default_source)) {
+                        if ($notify) {
+                            Notification::make()
+                                ->title('Charge creation failed')
+                                ->body('The selected customer does not have a default payment method. Please select a payment method for this charge.')
+                                ->danger()
+                                ->send();
+                        }
+                        return null;
+                    }
+                } catch (Throwable $e) {
+                    // If we can't retrieve the customer, proceed and let Stripe handle the error
+                    // This might be a permissions issue or the customer might not exist
+                }
+            }
 
             // Create charge on connected account
             $charge = $stripe->charges->create(

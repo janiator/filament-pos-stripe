@@ -57,30 +57,31 @@ class ConnectedProductForm
                     ->helperText('Whether the product is active')
                     ->visibleOn('create'),
 
-                // Read-only fields on edit
+                // Editable fields on edit (these will sync to Stripe)
                 TextInput::make('name')
                     ->label('Name')
-                    ->disabled()
-                    ->dehydrated(false)
+                    ->maxLength(255)
+                    ->helperText('This field will sync to Stripe when saved')
                     ->visibleOn('edit'),
 
                 Textarea::make('description')
                     ->label('Description')
-                    ->disabled()
-                    ->dehydrated(false)
+                    ->rows(3)
+                    ->helperText('This field will sync to Stripe when saved')
                     ->visibleOn('edit'),
 
                 Toggle::make('active')
                     ->label('Active')
-                    ->disabled()
-                    ->dehydrated(false)
+                    ->helperText('This field will sync to Stripe when saved')
                     ->visibleOn('edit'),
 
+                // Type cannot be changed after creation in Stripe
                 TextInput::make('type')
                     ->label('Type')
                     ->disabled()
                     ->dehydrated(false)
                     ->formatStateUsing(fn ($state) => $state ? ucfirst($state) : 'Service')
+                    ->helperText('Product type cannot be changed after creation')
                     ->visibleOn('edit'),
 
                 TextInput::make('stripe_product_id')

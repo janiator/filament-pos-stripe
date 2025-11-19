@@ -29,6 +29,20 @@ class ConnectedProduct extends Model
         'metadata' => 'array',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function (ConnectedProduct $product) {
+            // Use saved event to ensure it fires for both create and update
+            // Only sync on update (not create)
+            if ($product->wasRecentlyCreated) {
+                return;
+            }
+            
+            $listener = new \App\Listeners\SyncConnectedProductToStripeListener();
+            $listener->handle($product);
+        });
+    }
+
     /**
      * Get the store that owns this product via stripe_account_id
      */

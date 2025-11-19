@@ -24,6 +24,11 @@ class StoreResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function getNavigationGroup(): ?string
+    {
+        return null; // Stores is the main resource, no group
+    }
+
     public static function form(Schema $schema): Schema
     {
         return StoreForm::configure($schema);

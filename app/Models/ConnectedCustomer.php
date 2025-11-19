@@ -23,6 +23,20 @@ class ConnectedCustomer extends Model
         'email',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function (ConnectedCustomer $customer) {
+            // Use saved event to ensure it fires for both create and update
+            // Only sync on update (not create)
+            if ($customer->wasRecentlyCreated) {
+                return;
+            }
+            
+            $listener = new \App\Listeners\SyncConnectedCustomerToStripeListener();
+            $listener->handle($customer);
+        });
+    }
+
     /**
      * Get the store that owns this customer via stripe_account_id
      */

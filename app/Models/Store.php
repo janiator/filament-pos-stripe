@@ -26,6 +26,20 @@ class Store extends Model implements StripeAccount
         'commission_rate' => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function (Store $store) {
+            // Use saved event to ensure it fires for both create and update
+            // Only sync on update (not create)
+            if ($store->wasRecentlyCreated) {
+                return;
+            }
+            
+            $listener = new \App\Listeners\SyncStoreToStripeListener();
+            $listener->handle($store);
+        });
+    }
+
     public function terminalLocations()
     {
         return $this->hasMany(\App\Models\TerminalLocation::class);

@@ -25,6 +25,21 @@ class ConnectedPriceResource extends Resource
     // Prices are managed through products, so hide from navigation
     protected static bool $shouldRegisterNavigation = false;
 
+    public static function getLabel(): string
+    {
+        return 'Price';
+    }
+
+    public static function getPluralLabel(): string
+    {
+        return 'Prices';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Prices';
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ConnectedPriceForm::configure($schema);
