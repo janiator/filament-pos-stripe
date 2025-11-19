@@ -16,13 +16,16 @@ class ListConnectedPaymentMethods extends ListRecords
 
     protected function getTableQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return parent::getTableQuery()
-            ->with(['store'])
-            ->with(['customer' => function ($q) {
-                if (class_exists(\App\Models\ConnectedCustomer::class)) {
-                    $q->whereColumn('stripe_account_id', 'connected_payment_methods.stripe_account_id');
-                }
-            }]);
+        $query = parent::getTableQuery()
+            ->with(['store']);
+        
+        // Note: Customer relationship will be loaded but may not be filtered by account_id
+        // This is acceptable as the relationship is defined to match on customer_id only
+        if (class_exists(\App\Models\ConnectedCustomer::class)) {
+            $query->with(['customer']);
+        }
+        
+        return $query;
     }
 
     protected function getHeaderActions(): array

@@ -20,7 +20,9 @@ class ConnectedCustomerResource extends Resource
 {
     protected static ?string $model = ConnectedCustomer::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUser;
+
+    protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema
     {
@@ -40,7 +42,8 @@ class ConnectedCustomerResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            \App\Filament\Resources\ConnectedCustomers\RelationManagers\SubscriptionsRelationManager::class,
+            \App\Filament\Resources\ConnectedCustomers\RelationManagers\PaymentMethodsRelationManager::class,
         ];
     }
 

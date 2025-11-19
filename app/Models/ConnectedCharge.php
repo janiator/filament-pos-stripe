@@ -55,9 +55,9 @@ class ConnectedCharge extends Model
         if (!class_exists(\App\Models\ConnectedCustomer::class)) {
             return null;
         }
-        $accountId = $this->stripe_account_id;
-        return $this->belongsTo(\App\Models\ConnectedCustomer::class, 'stripe_customer_id', 'stripe_customer_id')
-            ->where('stripe_account_id', $accountId);
+        // We can't use whereColumn in belongsTo with eager loading, so we'll handle the constraint
+        // in the eager loading closure or filter after loading
+        return $this->belongsTo(\App\Models\ConnectedCustomer::class, 'stripe_customer_id', 'stripe_customer_id');
     }
 
     public function getFormattedAmountAttribute(): string

@@ -40,4 +40,17 @@ class ConnectedCustomer extends Model
         return $this->hasMany(ConnectedSubscription::class, 'stripe_customer_id', 'stripe_customer_id')
             ->where('connected_subscriptions.stripe_account_id', $accountId);
     }
+
+    /**
+     * Get the payment methods for this customer
+     */
+    public function paymentMethods(): HasMany
+    {
+        if (!class_exists(\App\Models\ConnectedPaymentMethod::class)) {
+            return $this->hasMany(\App\Models\ConnectedPaymentMethod::class, 'stripe_customer_id', 'stripe_customer_id')
+                ->where('connected_payment_methods.stripe_account_id', $this->stripe_account_id);
+        }
+        return $this->hasMany(\App\Models\ConnectedPaymentMethod::class, 'stripe_customer_id', 'stripe_customer_id')
+            ->where('connected_payment_methods.stripe_account_id', $this->stripe_account_id);
+    }
 }

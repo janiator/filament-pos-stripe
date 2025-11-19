@@ -20,7 +20,10 @@ class ConnectedPriceResource extends Resource
 {
     protected static ?string $model = ConnectedPrice::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
+
+    // Prices are managed through products, so hide from navigation
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Schema $schema): Schema
     {

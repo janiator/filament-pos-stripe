@@ -1,27 +1,37 @@
 <?php
 
-namespace App\Filament\Resources\ConnectedSubscriptions\Tables;
+namespace App\Filament\Resources\ConnectedCustomers\RelationManagers;
 
+use App\Filament\Resources\ConnectedSubscriptions\ConnectedSubscriptionResource;
 use App\Models\ConnectedSubscription;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
-class ConnectedSubscriptionsTable
+class SubscriptionsRelationManager extends RelationManager
 {
-    public static function configure(Table $table): Table
+    protected static string $relationship = 'subscriptions';
+
+    protected static ?string $title = 'Subscriptions';
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                //
+            ]);
+    }
+
+    public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(function ($query) {
-                $query->with(['store']);
-                if (class_exists(\App\Models\ConnectedCustomer::class)) {
-                    $query->with(['customer']);
-                }
-            })
+            ->modifyQueryUsing(fn ($query) => $query->where('stripe_customer_id', $this->ownerRecord->stripe_customer_id)
+                ->where('stripe_account_id', $this->ownerRecord->stripe_account_id))
             ->columns([
                 TextColumn::make('name')
                     ->label('Name')
@@ -29,17 +39,6 @@ class ConnectedSubscriptionsTable
                     ->sortable()
                     ->weight('bold')
                     ->placeholder('-'),
-
-                TextColumn::make('customer.name')
-                    ->label('Customer')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder(fn (ConnectedSubscription $record) => $record->customer?->email ?? $record->customer?->name ?? $record->stripe_customer_id ?? 'Unknown')
-                    ->description(fn (ConnectedSubscription $record) => $record->customer?->email)
-                    ->url(fn (ConnectedSubscription $record) => $record->customer && class_exists(\App\Filament\Resources\ConnectedCustomers\ConnectedCustomerResource::class)
-                        ? \App\Filament\Resources\ConnectedCustomers\ConnectedCustomerResource::getUrl('view', ['record' => $record->customer])
-                        : null)
-                    ->wrap(),
 
                 TextColumn::make('stripe_status')
                     ->label('Status')
@@ -58,6 +57,7 @@ class ConnectedSubscriptionsTable
                     ->color('success')
                     ->placeholder('-')
                     ->formatStateUsing(function (ConnectedSubscription $record) {
+                        // Try to get price from connected_price_id
                         if ($record->connected_price_id && class_exists(\App\Models\ConnectedPrice::class)) {
                             $price = \App\Models\ConnectedPrice::where('stripe_price_id', $record->connected_price_id)
                                 ->where('stripe_account_id', $record->stripe_account_id)
@@ -73,33 +73,21 @@ class ConnectedSubscriptionsTable
                     ->label('Quantity')
                     ->numeric()
                     ->sortable()
-                    ->badge()
-                    ->color('info')
-                    ->default(1),
+                    ->placeholder('1'),
 
                 TextColumn::make('trial_ends_at')
                     ->label('Trial Ends')
                     ->dateTime()
                     ->sortable()
                     ->placeholder('-')
-                    ->color(fn ($record) => $record->trial_ends_at && $record->trial_ends_at->isFuture() ? 'warning' : null)
-                    ->toggleable(),
+                    ->color(fn ($record) => $record->trial_ends_at && $record->trial_ends_at->isFuture() ? 'warning' : null),
 
                 TextColumn::make('ends_at')
                     ->label('Ends At')
                     ->dateTime()
                     ->sortable()
                     ->placeholder('-')
-                    ->color(fn ($record) => $record->ends_at && $record->ends_at->isPast() ? 'danger' : null)
-                    ->toggleable(),
-
-                TextColumn::make('store.name')
-                    ->label('Store')
-                    ->searchable()
-                    ->sortable()
-                    ->badge()
-                    ->color('gray')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->color(fn ($record) => $record->ends_at && $record->ends_at->isPast() ? 'danger' : null),
 
                 TextColumn::make('stripe_id')
                     ->label('Subscription ID')
@@ -114,24 +102,18 @@ class ConnectedSubscriptionsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('stripe_status')
-                    ->label('Status')
-                    ->options([
-                        'active' => 'Active',
-                        'trialing' => 'Trialing',
-                        'past_due' => 'Past Due',
-                        'canceled' => 'Canceled',
-                        'unpaid' => 'Unpaid',
-                        'incomplete' => 'Incomplete',
-                        'incomplete_expired' => 'Incomplete Expired',
-                    ]),
+                //
+            ])
+            ->headerActions([
+                // Subscriptions are typically created via API
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()
+                    ->url(fn ($record) => ConnectedSubscriptionResource::getUrl('view', ['record' => $record])),
+                EditAction::make()
+                    ->url(fn ($record) => ConnectedSubscriptionResource::getUrl('edit', ['record' => $record])),
             ])
-            ->defaultSort('created_at', 'desc')
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),

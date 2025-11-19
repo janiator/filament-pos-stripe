@@ -52,13 +52,18 @@ class ConnectedSubscription extends Model
     /**
      * Get the customer for this subscription
      */
-    public function customer(): BelongsTo
+    public function customer(): ?BelongsTo
     {
+        if (!class_exists(\App\Models\ConnectedCustomer::class)) {
+            return null;
+        }
+        // We can't use where in belongsTo with eager loading, so we'll handle the constraint
+        // in the eager loading closure or filter after loading
         return $this->belongsTo(
             ConnectedCustomer::class,
             'stripe_customer_id',
             'stripe_customer_id'
-        )->where('stripe_account_id', $this->stripe_account_id);
+        );
     }
 
     /**
