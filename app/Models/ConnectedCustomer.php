@@ -68,8 +68,4 @@ class ConnectedCustomer extends Model
             ->where('connected_payment_methods.stripe_account_id', $this->stripe_account_id);
     }
 
-    public function team()
-    {
-        return $this->store?->team;
-    }
 }

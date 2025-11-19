@@ -64,8 +64,4 @@ class ConnectedPaymentMethod extends Model
         return "{$brand}{$last4}{$exp}";
     }
 
-    public function team()
-    {
-        return $this->store?->team;
-    }
 }

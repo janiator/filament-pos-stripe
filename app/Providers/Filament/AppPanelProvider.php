@@ -6,7 +6,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use App\Models\Team;
+use App\Models\Store;
 use App\Filament\Resources\Shield\Roles\RoleResource;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Pages\Dashboard;
@@ -31,8 +31,8 @@ class AppPanelProvider extends PanelProvider
             ->id('app')
             ->path('app')
             ->login()
-            ->tenant(Team::class)
-            ->tenantRoutePrefix('team')
+            ->tenant(Store::class)
+            ->tenantRoutePrefix('store')
             ->colors([
                 'primary' => Color::Amber,
             ])

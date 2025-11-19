@@ -76,8 +76,4 @@ class ConnectedCharge extends Model
         return number_format($net / 100, 2) . ' ' . strtoupper($this->currency);
     }
 
-    public function team()
-    {
-        return $this->store?->team;
-    }
 }

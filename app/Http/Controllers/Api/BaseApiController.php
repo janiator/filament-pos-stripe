@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Team;
+use App\Models\Store;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\Request;
@@ -15,45 +15,39 @@ abstract class BaseApiController extends BaseController
     /**
      * Get the current tenant from the request
      */
-    protected function getTenant(Request $request): ?Team
+    protected function getTenant(Request $request): ?Store
     {
-        // Get tenant from route parameter or user's current team
+        // Get tenant from route parameter or user's current store
         $tenantSlug = $request->route('tenant') ?? $request->header('X-Tenant');
         
         if ($tenantSlug) {
-            return Team::where('slug', $tenantSlug)->first();
+            return Store::where('slug', $tenantSlug)->first();
         }
 
-        // Fallback to user's first team
+        // Fallback to user's first store
         if ($user = $request->user()) {
-            return $user->teams()->first();
+            return $user->stores()->first();
         }
 
         return null;
     }
 
     /**
-     * Get the store for the current tenant
+     * Get the store for the current tenant (tenant IS the store now)
      */
     protected function getTenantStore(Request $request)
     {
-        $tenant = $this->getTenant($request);
-        
-        if (!$tenant) {
-            return null;
-        }
-
-        return $tenant->store;
+        return $this->getTenant($request);
     }
 
     /**
      * Ensure the user has access to the tenant
      */
-    protected function authorizeTenant(Request $request, Team $tenant): void
+    protected function authorizeTenant(Request $request, Store $tenant): void
     {
         $user = $request->user();
         
-        if (!$user || !$user->teams->contains($tenant)) {
+        if (!$user || !$user->stores->contains($tenant)) {
             abort(403, 'You do not have access to this tenant.');
         }
     }

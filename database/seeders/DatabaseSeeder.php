@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Team;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -24,10 +24,13 @@ class DatabaseSeeder extends Seeder
             ['guard_name' => 'web']
         );
 
-        // Create admin team
-        $team = Team::firstOrCreate(
+        // Create admin store (tenant)
+        $store = Store::firstOrCreate(
             ['slug' => 'visivo-admin'],
-            ['name' => 'Visivo Admin']
+            [
+                'name' => 'Visivo Admin',
+                'email' => 'admin@pos.visivo.no',
+            ]
         );
 
         // Create admin user
@@ -45,12 +48,12 @@ class DatabaseSeeder extends Seeder
             $admin->assignRole('super_admin');
         }
 
-        // Assign team to admin user
-        if (!$admin->teams->contains($team)) {
-            $admin->teams()->attach($team);
+        // Assign store to admin user
+        if (!$admin->stores->contains($store)) {
+            $admin->stores()->attach($store);
         }
 
         $this->command->info('Admin user created: admin@pos.visivo.no / admin');
-        $this->command->info('Admin team created: ' . $team->name);
+        $this->command->info('Admin store created: ' . $store->name);
     }
 }

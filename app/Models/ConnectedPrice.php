@@ -75,8 +75,4 @@ class ConnectedPrice extends Model
         return $count . $interval;
     }
 
-    public function team()
-    {
-        return $this->store?->team;
-    }
 }

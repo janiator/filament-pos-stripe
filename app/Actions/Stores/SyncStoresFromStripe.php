@@ -3,7 +3,6 @@
 namespace App\Actions\Stores;
 
 use App\Models\Store;
-use App\Models\Team;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -60,8 +59,18 @@ class SyncStoresFromStripe
                     ?? $account->business_profile->url
                         ?? $account->id;
 
+                // Generate slug for store
+                $storeSlug = Str::slug($storeName);
+                
+                // Ensure slug is unique by appending account ID if needed
+                $existingStore = Store::where('slug', $storeSlug)->first();
+                if ($existingStore && $existingStore->stripe_account_id !== $account->id) {
+                    $storeSlug = $storeSlug . '-' . Str::substr($account->id, -8);
+                }
+
                 $data = [
                     'name'             => $storeName,
+                    'slug'             => $storeSlug,
                     'email'            => $email,
                     'stripe_account_id'=> $account->id,
                 ];
@@ -76,21 +85,6 @@ class SyncStoresFromStripe
                     $data['commission_type'] = 'percentage';
                     $data['commission_rate'] = 0;
 
-                    // Create team for new store
-                    $teamSlug = Str::slug($storeName);
-                    
-                    // Ensure slug is unique by appending account ID if needed
-                    $existingTeam = Team::where('slug', $teamSlug)->first();
-                    if ($existingTeam && $existingTeam->store && $existingTeam->store->stripe_account_id !== $account->id) {
-                        $teamSlug = $teamSlug . '-' . Str::substr($account->id, -8);
-                    }
-                    
-                    $team = Team::firstOrCreate(
-                        ['slug' => $teamSlug],
-                        ['name' => $storeName]
-                    );
-
-                    $data['team_id'] = $team->id;
                     $store = Store::create($data);
                     $result['created']++;
                 }

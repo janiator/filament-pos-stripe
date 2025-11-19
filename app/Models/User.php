@@ -10,6 +10,7 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\Store;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
@@ -67,27 +68,27 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
     // Tenancy methods
     public function getTenants(Panel $panel): Collection
     {
-        // Super admins can access all teams
+        // Super admins can access all stores
         if ($this->isSuperAdmin()) {
-            return Team::all();
+            return Store::all();
         }
         
-        return $this->teams;
+        return $this->stores;
     }
 
-    public function teams(): BelongsToMany
+    public function stores(): BelongsToMany
     {
-        return $this->belongsToMany(Team::class);
+        return $this->belongsToMany(Store::class);
     }
 
     public function canAccessTenant(Model $tenant): bool
     {
-        // Super admins can access all teams
+        // Super admins can access all stores
         if ($this->isSuperAdmin()) {
             return true;
         }
         
-        return $this->teams->contains($tenant);
+        return $this->stores->contains($tenant);
     }
 
     /**
@@ -110,7 +111,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
 
     public function getDefaultTenant(Panel $panel): ?Model
     {
-        // Return the user's first team, or null if they have no teams
-        return $this->teams()->first();
+        // Return the user's first store, or null if they have no stores
+        return $this->stores()->first();
     }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Str;
 use Laravel\Cashier\Billable as CashierBillable;
 use Lanos\CashierConnect\Billable as ConnectBillable;
 use Lanos\CashierConnect\Contracts\StripeAccount;
@@ -17,11 +19,11 @@ class Store extends Model implements StripeAccount
 
     protected $fillable = [
         'name',
+        'slug',
         'email',
         'commission_type',
         'commission_rate',
         'stripe_account_id',
-        'team_id',
     ];
 
     protected $casts = [
@@ -30,6 +32,12 @@ class Store extends Model implements StripeAccount
 
     protected static function booted(): void
     {
+        static::creating(function (Store $store) {
+            if (empty($store->slug)) {
+                $store->slug = Str::slug($store->name ?? 'store-' . $store->id);
+            }
+        });
+
         static::saved(function (Store $store) {
             // Use saved event to ensure it fires for both create and update
             // Only sync on update (not create)
@@ -40,6 +48,11 @@ class Store extends Model implements StripeAccount
             $listener = new \App\Listeners\SyncStoreToStripeListener();
             $listener->handle($store);
         });
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
     }
 
     public function terminalLocations()
@@ -118,30 +131,30 @@ class Store extends Model implements StripeAccount
     }
 
     /**
-     * Get the team that owns this store
+     * Get the users that belong to this store (tenant)
      */
-    public function team(): BelongsTo
+    public function users(): BelongsToMany
     {
-        return $this->belongsTo(Team::class);
+        return $this->belongsToMany(User::class);
     }
 
     /**
      * Get stores for syncing based on current tenant
-     * Returns current team's store, or all stores if on admin team
+     * Returns current store, or all stores if on admin store
      */
     public static function getStoresForSync(): \Illuminate\Database\Eloquent\Collection
     {
         try {
             $tenant = \Filament\Facades\Filament::getTenant();
             
-            // If no tenant or admin team, sync all stores
+            // If no tenant or admin store, sync all stores
             if (!$tenant || $tenant->slug === 'visivo-admin') {
                 return static::whereNotNull('stripe_account_id')->get();
             }
             
-            // Otherwise, sync only the current team's store
+            // Otherwise, sync only the current store
             return static::whereNotNull('stripe_account_id')
-                ->where('team_id', $tenant->id)
+                ->where('id', $tenant->id)
                 ->get();
         } catch (\Throwable $e) {
             // Fallback: if Filament facade not available, return all stores

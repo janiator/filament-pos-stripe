@@ -60,8 +60,4 @@ class ConnectedProduct extends Model
             ->where('stripe_account_id', $this->stripe_account_id);
     }
 
-    public function team()
-    {
-        return $this->store?->team;
-    }
 }
