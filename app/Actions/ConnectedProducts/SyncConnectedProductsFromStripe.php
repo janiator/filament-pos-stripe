@@ -22,7 +22,7 @@ class SyncConnectedProductsFromStripe
         ];
 
         try {
-            if (! $store->hasStripeAccount()) {
+            if (! $store->hasStripeAccount() || ! $store->stripe_account_id) {
                 if ($notify) {
                     Notification::make()
                         ->title('Store not connected')
@@ -60,10 +60,16 @@ class SyncConnectedProductsFromStripe
                 $result['total']++;
 
                 try {
+                    // Ensure stripe_account_id is set
+                    if (! $store->stripe_account_id) {
+                        $result['errors'][] = "Product {$product->id}: Store does not have a stripe_account_id";
+                        continue;
+                    }
+
                     $data = [
                         'stripe_product_id' => $product->id,
                         'stripe_account_id' => $store->stripe_account_id,
-                        'name' => $product->name,
+                        'name' => $product->name ?? $product->id, // Use product ID as fallback if name is null
                         'description' => $product->description,
                         'active' => $product->active,
                         'images' => $product->images ? (array) $product->images : null,

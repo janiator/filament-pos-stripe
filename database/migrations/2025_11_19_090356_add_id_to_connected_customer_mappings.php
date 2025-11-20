@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('stripe_connected_customer_mappings', function (Blueprint $table) {
-            //
+            if (!Schema::hasColumn('stripe_connected_customer_mappings', 'id')) {
+                $table->id()->first();
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('stripe_connected_customer_mappings', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('stripe_connected_customer_mappings', 'id')) {
+                $table->dropColumn('id');
+            }
         });
     }
 };

@@ -24,6 +24,50 @@ class StoreResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    // Disable tenant scoping - Store IS the tenant model
+    protected static ?string $tenantOwnershipRelationshipName = null;
+
+    public static function boot(): void
+    {
+        parent::boot();
+        
+        // Completely disable tenant scoping for this resource
+        // Store IS the tenant, so it cannot be scoped to itself
+        static::scopeToTenant(false);
+    }
+
+    public static function isScopedToTenant(): bool
+    {
+        // Explicitly return false - Store IS the tenant model
+        return false;
+    }
+
+    public static function scopeEloquentQueryToTenant(\Illuminate\Database\Eloquent\Builder $query, ?\Illuminate\Database\Eloquent\Model $tenant = null): \Illuminate\Database\Eloquent\Builder
+    {
+        // Don't scope to tenant - StoreResource is for super admins to manage all stores
+        // If the query model is Store (the tenant), just return the query as-is
+        if ($query->getModel()::class === Store::class) {
+            return $query;
+        }
+        return $query;
+    }
+
+    public static function getTenantOwnershipRelationshipName(): string
+    {
+        // Return empty string to prevent Filament from trying to find a relationship
+        // Store IS the tenant, so there's no ownership relationship
+        return '';
+    }
+
+    public static function getTenantOwnershipRelationship(\Illuminate\Database\Eloquent\Model $record): \Illuminate\Database\Eloquent\Relations\Relation
+    {
+        // This should never be called since isScopedToTenant() returns false
+        // But if it is called, we need to handle it gracefully
+        // Since the method signature requires a Relation, we can't return null
+        // The best we can do is throw a clear exception
+        throw new \LogicException('StoreResource has tenant scoping disabled. getTenantOwnershipRelationship() should not be called.');
+    }
+
     public static function getNavigationGroup(): ?string
     {
         return null; // Stores is the main resource, no group
@@ -46,21 +90,25 @@ class StoreResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
+        // Bypass Filament's tenant scoping entirely by querying Store directly
+        // Store IS the tenant, so we can't use parent::getEloquentQuery() which tries to apply tenant scoping
+        $query = Store::query()->withoutGlobalScopes();
+        
         // Super admins can see all stores, others see none
         $user = auth()->user();
         if (!$user) {
-            return parent::getEloquentQuery()->whereRaw('1 = 0');
+            return $query->whereRaw('1 = 0');
         }
         
         $isSuperAdmin = \Filament\Facades\Filament::getTenant() 
             ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
             : $user->hasRole('super_admin');
             
-        if ($isSuperAdmin) {
-            return parent::getEloquentQuery();
+        if (!$isSuperAdmin) {
+            return $query->whereRaw('1 = 0'); // Return empty query
         }
         
-        return parent::getEloquentQuery()->whereRaw('1 = 0'); // Return empty query
+        return $query;
     }
 
     public static function form(Schema $schema): Schema

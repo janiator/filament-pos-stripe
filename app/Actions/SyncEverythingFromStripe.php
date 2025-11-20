@@ -44,6 +44,12 @@ class SyncEverythingFromStripe
         // Sync customers
         $customerSync = new SyncConnectedCustomersFromStripe();
         foreach ($stores as $store) {
+            // Refresh the store to ensure we have the latest data
+            $store->refresh();
+            // Skip if store doesn't have stripe_account_id
+            if (!$store->stripe_account_id) {
+                continue;
+            }
             $result = $customerSync($store, false);
             $totalFound += $result['total'];
             $totalCreated += $result['created'];

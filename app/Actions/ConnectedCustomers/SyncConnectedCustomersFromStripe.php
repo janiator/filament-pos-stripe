@@ -21,11 +21,12 @@ class SyncConnectedCustomersFromStripe
         ];
 
         try {
-            if (! $store->hasStripeAccount()) {
+            // Ensure store has a stripe_account_id
+            if (! $store->stripe_account_id) {
                 if ($notify) {
                     Notification::make()
                         ->title('Store not connected')
-                        ->body('This store is not connected to Stripe.')
+                        ->body("Store '{$store->name}' does not have a Stripe account ID.")
                         ->danger()
                         ->send();
                 }
@@ -48,35 +49,86 @@ class SyncConnectedCustomersFromStripe
             }
 
             $stripe = new StripeClient($secret);
+            
+            // Double-check and get the stripe_account_id - refresh if needed
+            $store->refresh();
+            $stripeAccountId = $store->getAttribute('stripe_account_id');
+            
+            // Final validation - if still null or empty, skip this store
+            if (empty($stripeAccountId)) {
+                $result['errors'][] = "Store '{$store->name}' (ID: {$store->id}) does not have a stripe_account_id";
+                \Log::warning('Store missing stripe_account_id', [
+                    'store_id' => $store->id,
+                    'store_name' => $store->name,
+                    'stripe_account_id' => $store->stripe_account_id,
+                ]);
+                return $result;
+            }
+            
+            // Log for debugging
+            \Log::debug('Syncing customers for store', [
+                'store_id' => $store->id,
+                'store_name' => $store->name,
+                'stripe_account_id' => $stripeAccountId,
+            ]);
 
             // Get customers from the connected account
             $customers = $stripe->customers->all(
                 ['limit' => 100],
-                ['stripe_account' => $store->stripe_account_id]
+                ['stripe_account' => $stripeAccountId]
             );
 
             foreach ($customers->autoPagingIterator() as $customer) {
                 $result['total']++;
 
                 try {
-                    $data = [
+                    // Ensure stripe_account_id is still set before creating
+                    if (empty($stripeAccountId)) {
+                        $result['errors'][] = "Customer {$customer->id}: stripe_account_id is empty (store: {$store->id})";
+                        continue;
+                    }
+                    
+                    // Use firstOrNew to get or create the record
+                    $customerRecord = ConnectedCustomer::firstOrNew([
                         'stripe_customer_id' => $customer->id,
-                        'stripe_account_id' => $store->stripe_account_id,
-                        'name' => $customer->name,
-                        'email' => $customer->email,
-                    ];
-
-                    $customerRecord = ConnectedCustomer::where('stripe_customer_id', $customer->id)
-                        ->where('stripe_account_id', $store->stripe_account_id)
-                        ->first();
-
-                    if ($customerRecord) {
-                        $customerRecord->fill($data);
-                        $customerRecord->save();
-                        $result['updated']++;
-                    } else {
-                        ConnectedCustomer::create($data);
+                        'stripe_account_id' => $stripeAccountId,
+                    ]);
+                    
+                    // Set/update the attributes
+                    $customerRecord->name = $customer->name;
+                    $customerRecord->email = $customer->email;
+                    
+                    // Ensure stripe_account_id is set (in case firstOrNew didn't set it)
+                    if (empty($customerRecord->stripe_account_id)) {
+                        $customerRecord->stripe_account_id = $stripeAccountId;
+                    }
+                    
+                    // Log before save
+                    \Log::debug('Saving customer', [
+                        'customer_id' => $customer->id,
+                        'stripe_account_id' => $customerRecord->stripe_account_id,
+                        'is_new' => $customerRecord->exists === false,
+                        'attributes' => $customerRecord->getAttributes(),
+                    ]);
+                    
+                    $wasNew = !$customerRecord->exists;
+                    $customerRecord->save();
+                    
+                    if ($wasNew) {
                         $result['created']++;
+                    } else {
+                        $result['updated']++;
+                    }
+                    
+                    // Verify the record was saved correctly
+                    $customerRecord->refresh();
+                    if (empty($customerRecord->stripe_account_id)) {
+                        $result['errors'][] = "Customer {$customer->id}: stripe_account_id was not saved correctly";
+                        \Log::error('Customer saved without stripe_account_id', [
+                            'customer_id' => $customer->id,
+                            'record_id' => $customerRecord->id,
+                            'stripe_account_id' => $customerRecord->stripe_account_id,
+                        ]);
                     }
                 } catch (Throwable $e) {
                     $result['errors'][] = "Customer {$customer->id}: {$e->getMessage()}";

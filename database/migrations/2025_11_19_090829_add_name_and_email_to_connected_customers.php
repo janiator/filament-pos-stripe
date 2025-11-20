@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('stripe_connected_customer_mappings', function (Blueprint $table) {
-            //
+            $table->string('name')->nullable()->after('stripe_account_id');
+            $table->string('email')->nullable()->after('name');
         });
     }
 
@@ -22,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('stripe_connected_customer_mappings', function (Blueprint $table) {
-            //
+            $table->dropColumn(['name', 'email']);
         });
     }
 };

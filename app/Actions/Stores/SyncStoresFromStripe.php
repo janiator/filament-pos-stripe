@@ -48,11 +48,12 @@ class SyncStoresFromStripe
                     ?? "{$account->id}@connected.test";
 
                 // Prefer match by stripe_account_id
-                $store = Store::where('stripe_account_id', $account->id)->first();
+                // Use withoutGlobalScopes to bypass any tenant scoping since Store IS the tenant
+                $store = Store::withoutGlobalScopes()->where('stripe_account_id', $account->id)->first();
 
                 // Fallback: match by email
                 if (! $store) {
-                    $store = Store::where('email', $email)->first();
+                    $store = Store::withoutGlobalScopes()->where('email', $email)->first();
                 }
 
                 $storeName = $account->business_profile->name
@@ -63,7 +64,8 @@ class SyncStoresFromStripe
                 $storeSlug = Str::slug($storeName);
                 
                 // Ensure slug is unique by appending account ID if needed
-                $existingStore = Store::where('slug', $storeSlug)->first();
+                // Use withoutGlobalScopes to bypass any tenant scoping
+                $existingStore = Store::withoutGlobalScopes()->where('slug', $storeSlug)->first();
                 if ($existingStore && $existingStore->stripe_account_id !== $account->id) {
                     $storeSlug = $storeSlug . '-' . Str::substr($account->id, -8);
                 }
@@ -79,13 +81,15 @@ class SyncStoresFromStripe
                     $data['commission_type'] = $store->commission_type ?? 'percentage';
                     $data['commission_rate'] = $store->commission_rate ?? 0;
 
+                    // Store was already queried without global scopes, so save normally
                     $store->fill($data)->save();
                     $result['updated']++;
                 } else {
                     $data['commission_type'] = 'percentage';
                     $data['commission_rate'] = 0;
 
-                    $store = Store::create($data);
+                    // Use withoutGlobalScopes when creating to bypass tenant scoping
+                    $store = Store::withoutGlobalScopes()->create($data);
                     $result['created']++;
                 }
 
