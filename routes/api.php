@@ -12,7 +12,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::post('/stripe/connect/webhook', StripeConnectWebhookController::class)
-    ->name('stripeConnect.webhook');
+    ->name('stripe.connect.webhook');
 
 //Route::middleware([
 //    // add whatever auth you use for your native app (Sanctum, JWT, etc.)
