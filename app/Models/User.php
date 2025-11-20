@@ -60,6 +60,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
             return str_ends_with($this->email, '@visivo.no') && $this->hasVerifiedEmail();
         } elseif (app()->environment('local')) {
             return true;
+        }elseif (app()->environment('development')) {
+            return true;
         }else {
             return false;
         }
@@ -72,7 +74,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
         if ($this->isSuperAdmin()) {
             return Store::all();
         }
-        
+
         return $this->stores;
     }
 
@@ -87,7 +89,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
         if ($this->isSuperAdmin()) {
             return true;
         }
-        
+
         return $this->stores->contains($tenant);
     }
 
