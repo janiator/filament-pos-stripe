@@ -33,26 +33,29 @@ class SyncStoreTerminalLocationsFromStripe
             foreach ($items as $location) {
                 $result['total']++;
 
-                $record = TerminalLocation::firstOrNew([
-                    'store_id'           => $store->id,
-                    'stripe_location_id' => $location->id,
-                ]);
+                // Use updateOrCreate with stripe_location_id as the unique key
+                // since it has a unique constraint in the database
+                $record = TerminalLocation::updateOrCreate(
+                    [
+                        'stripe_location_id' => $location->id,
+                    ],
+                    [
+                        'store_id'     => $store->id,
+                        'display_name' => $location->display_name ?? $location->id,
+                        'line1'        => $location->address->line1 ?? '',
+                        'line2'        => $location->address->line2 ?? null,
+                        'city'         => $location->address->city ?? '',
+                        'state'        => $location->address->state ?? null,
+                        'postal_code'  => $location->address->postal_code ?? '',
+                        'country'      => $location->address->country ?? '',
+                    ]
+                );
 
-                $record->display_name = $location->display_name ?? $location->id;
-                $record->line1        = $location->address->line1 ?? '';
-                $record->line2        = $location->address->line2 ?? null;
-                $record->city         = $location->address->city ?? '';
-                $record->state        = $location->address->state ?? null;
-                $record->postal_code  = $location->address->postal_code ?? '';
-                $record->country      = $location->address->country ?? '';
-
-                if ($record->exists) {
-                    $result['updated']++;
-                } else {
+                if ($record->wasRecentlyCreated) {
                     $result['created']++;
+                } else {
+                    $result['updated']++;
                 }
-
-                $record->save();
             }
         } catch (AccountNotFoundException $e) {
             $result['error'] = $e->getMessage();

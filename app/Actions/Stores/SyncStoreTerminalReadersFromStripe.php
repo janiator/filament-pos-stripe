@@ -43,26 +43,29 @@ class SyncStoreTerminalReadersFromStripe
                         ->value('id');
                 }
 
-                $record = TerminalReader::firstOrNew([
-                    'store_id'         => $store->id,
-                    'stripe_reader_id' => $reader->id,
-                ]);
-
-                $record->label                = $reader->label ?? $reader->id;
-                $record->terminal_location_id = $terminalLocationId;
-                $record->device_type          = $reader->device_type ?? null;
-                $record->status               = $reader->status ?? null;
-
+                // Use updateOrCreate with stripe_reader_id as the unique key
+                // since it has a unique constraint in the database
                 $deviceType = $reader->device_type ?? '';
-                $record->tap_to_pay = str_contains($deviceType, 'tap_to_pay');
+                
+                $record = TerminalReader::updateOrCreate(
+                    [
+                        'stripe_reader_id' => $reader->id,
+                    ],
+                    [
+                        'store_id'            => $store->id,
+                        'label'               => $reader->label ?? $reader->id,
+                        'terminal_location_id' => $terminalLocationId,
+                        'device_type'         => $reader->device_type ?? null,
+                        'status'              => $reader->status ?? null,
+                        'tap_to_pay'          => str_contains($deviceType, 'tap_to_pay'),
+                    ]
+                );
 
-                if ($record->exists) {
-                    $result['updated']++;
-                } else {
+                if ($record->wasRecentlyCreated) {
                     $result['created']++;
+                } else {
+                    $result['updated']++;
                 }
-
-                $record->save();
             }
         } catch (AccountNotFoundException $e) {
             $result['error'] = $e->getMessage();
