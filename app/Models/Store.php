@@ -66,6 +66,14 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * Get POS devices for this store
+     */
+    public function posDevices()
+    {
+        return $this->hasMany(\App\Models\PosDevice::class);
+    }
+
+    /**
      * Get the connected charges for this store
      */
     public function connectedCharges()

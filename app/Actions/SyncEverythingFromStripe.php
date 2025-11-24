@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Actions\ConnectedCharges\SyncConnectedChargesFromStripe;
 use App\Actions\ConnectedCustomers\SyncConnectedCustomersFromStripe;
+use App\Actions\ConnectedPaymentIntents\SyncConnectedPaymentIntentsFromStripe;
 use App\Actions\ConnectedPaymentLinks\SyncConnectedPaymentLinksFromStripe;
 use App\Actions\ConnectedPaymentMethods\SyncConnectedPaymentMethodsFromStripe;
 use App\Actions\ConnectedProducts\SyncConnectedProductsFromStripe;
@@ -71,6 +72,16 @@ class SyncEverythingFromStripe
         $subscriptionSync = new SyncConnectedSubscriptionsFromStripe();
         foreach ($stores as $store) {
             $result = $subscriptionSync($store, false);
+            $totalFound += $result['total'];
+            $totalCreated += $result['created'];
+            $totalUpdated += $result['updated'];
+            $allErrors = array_merge($allErrors, $result['errors']);
+        }
+
+        // Sync payment intents
+        $paymentIntentSync = new SyncConnectedPaymentIntentsFromStripe();
+        foreach ($stores as $store) {
+            $result = $paymentIntentSync($store, false);
             $totalFound += $result['total'];
             $totalCreated += $result['created'];
             $totalUpdated += $result['updated'];

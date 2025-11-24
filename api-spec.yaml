@@ -1,0 +1,1557 @@
+openapi: 3.0.3
+info:
+  title: POS Stripe Connect API
+  description: |
+    API for managing Stripe Connect integration for POS systems.
+
+    This API provides endpoints for:
+    - User authentication and authorization
+    - Store management
+    - Customer management
+    - Terminal operations (connection tokens and payment intents)
+
+    All endpoints (except login and webhooks) require Bearer token authentication.
+    Requests are automatically scoped to the authenticated user's accessible stores.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@visivo.no
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://pos.visivo.no/api
+    description: Production server
+  - url: http://pos-stripe.test/api
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Stores
+    description: Store management operations
+  - name: Customers
+    description: Customer management operations
+  - name: POS Devices
+    description: POS device registration and management (vendor-agnostic)
+  - name: Terminals
+    description: Terminal locations and readers management (Stripe-specific)
+  - name: Webhooks
+    description: Stripe webhook endpoints
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user and receive API token
+      operationId: login
+      security: []  # Public endpoint - no authentication required
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@pos.visivo.no
+                password:
+                  type: string
+                  format: password
+                  example: admin
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: The provided credentials are incorrect.
+                errors:
+                  email:
+                    - The provided credentials are incorrect.
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Get authenticated user information and accessible stores
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Revoke current authentication token
+      operationId: logout
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/logout-all:
+    post:
+      tags:
+        - Authentication
+      summary: Logout from all devices
+      description: Revoke all authentication tokens for the user
+      operationId: logoutAll
+      responses:
+        '200':
+          description: Successfully logged out from all devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out from all devices successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /stores:
+    get:
+      tags:
+        - Stores
+      summary: List stores
+      description: Get all stores accessible by the authenticated user
+      operationId: listStores
+      responses:
+        '200':
+          description: List of stores
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stores:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Store'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /stores/current:
+    get:
+      tags:
+        - Stores
+      summary: Get current store
+      description: Get the authenticated user's default store
+      operationId: getCurrentStore
+      responses:
+        '200':
+          description: Store information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  store:
+                    $ref: '#/components/schemas/Store'
+        '404':
+          description: No store assigned to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: No store assigned to this user
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    put:
+      tags:
+        - Stores
+      summary: Change current store
+      description: Change the authenticated user's current/default store
+      operationId: changeCurrentStore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - store_id
+              properties:
+                store_id:
+                  type: integer
+                  description: Store ID to set as current
+                  example: 1
+                store_slug:
+                  type: string
+                  description: Store slug to set as current (alternative to store_id)
+                  example: my-store
+              oneOf:
+                - required: [store_id]
+                - required: [store_slug]
+      responses:
+        '200':
+          description: Current store changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Current store changed successfully
+                  store:
+                    $ref: '#/components/schemas/Store'
+        '403':
+          description: User does not have access to this store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: You do not have access to this store
+        '404':
+          description: Store not found or no store assigned to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Store not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    patch:
+      tags:
+        - Stores
+      summary: Change current store (partial)
+      description: Change the authenticated user's current/default store (alternative to PUT)
+      operationId: patchCurrentStore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - store_id
+              properties:
+                store_id:
+                  type: integer
+                  description: Store ID to set as current
+                  example: 1
+                store_slug:
+                  type: string
+                  description: Store slug to set as current (alternative to store_id)
+                  example: my-store
+              oneOf:
+                - required: [store_id]
+                - required: [store_slug]
+      responses:
+        '200':
+          description: Current store changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Current store changed successfully
+                  store:
+                    $ref: '#/components/schemas/Store'
+        '403':
+          description: User does not have access to this store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: You do not have access to this store
+        '404':
+          description: Store not found or no store assigned to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Store not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /stores/{slug}:
+    get:
+      tags:
+        - Stores
+      summary: Get store by slug
+      description: Get a specific store by its slug
+      operationId: getStore
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: Store slug
+          schema:
+            type: string
+          example: my-store
+      responses:
+        '200':
+          description: Store information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  store:
+                    $ref: '#/components/schemas/Store'
+        '403':
+          description: User does not have access to this store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: You do not have access to this store
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Store not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-devices:
+    get:
+      tags:
+        - POS Devices
+      summary: List POS devices
+      description: Get all POS devices for the current store
+      operationId: listPosDevices
+      responses:
+        '200':
+          description: List of POS devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PosDevice'
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags:
+        - POS Devices
+      summary: Register POS device
+      description: Register a new POS device using device information from device_info_plus
+      operationId: registerPosDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - device_identifier
+                - device_name
+                - platform
+              properties:
+                device_identifier:
+                  type: string
+                  description: "Unique device identifier (iOS: identifierForVendor, Android: androidId)"
+                  example: ABC123-DEF456-GHI789
+                device_name:
+                  type: string
+                  description: "Human-readable device name (iOS: name, Android: device)"
+                  example: Jan's iPad
+                platform:
+                  type: string
+                  enum: [ios, android]
+                  description: Device platform
+                  example: ios
+                device_model:
+                  type: string
+                  nullable: true
+                  description: Device model
+                  example: iPad
+                device_brand:
+                  type: string
+                  nullable: true
+                  description: Device brand (Android only)
+                  example: Apple
+                device_manufacturer:
+                  type: string
+                  nullable: true
+                  description: Device manufacturer (Android only)
+                  example: Apple
+                device_product:
+                  type: string
+                  nullable: true
+                  description: Device product (Android only)
+                device_hardware:
+                  type: string
+                  nullable: true
+                  description: Device hardware (Android only)
+                machine_identifier:
+                  type: string
+                  nullable: true
+                  description: "Machine identifier (iOS: utsname.machine)"
+                  example: "iPad13,1"
+                system_name:
+                  type: string
+                  nullable: true
+                  description: "System name (iOS: systemName)"
+                  example: iOS
+                system_version:
+                  type: string
+                  nullable: true
+                  description: System version
+                  example: 17.0
+                vendor_identifier:
+                  type: string
+                  nullable: true
+                  description: "Vendor identifier (iOS: identifierForVendor)"
+                android_id:
+                  type: string
+                  nullable: true
+                  description: Android ID (Android only)
+                serial_number:
+                  type: string
+                  nullable: true
+                  description: Serial number (if available)
+                device_metadata:
+                  type: object
+                  nullable: true
+                  description: Additional device metadata (battery, storage, etc.)
+                  additionalProperties: true
+      responses:
+        '201':
+          description: POS device registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: POS device registered successfully
+                  device:
+                    $ref: '#/components/schemas/PosDevice'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-devices/{id}:
+    get:
+      tags:
+        - POS Devices
+      summary: Get POS device
+      description: Get a specific POS device by ID
+      operationId: getPosDevice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: POS device information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device:
+                    $ref: '#/components/schemas/PosDevice'
+        '404':
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    put:
+      tags:
+        - POS Devices
+      summary: Update POS device
+      description: Update POS device information
+      operationId: updatePosDevice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device_name:
+                  type: string
+                device_model:
+                  type: string
+                  nullable: true
+                device_brand:
+                  type: string
+                  nullable: true
+                device_manufacturer:
+                  type: string
+                  nullable: true
+                device_product:
+                  type: string
+                  nullable: true
+                device_hardware:
+                  type: string
+                  nullable: true
+                machine_identifier:
+                  type: string
+                  nullable: true
+                system_name:
+                  type: string
+                  nullable: true
+                system_version:
+                  type: string
+                  nullable: true
+                vendor_identifier:
+                  type: string
+                  nullable: true
+                android_id:
+                  type: string
+                  nullable: true
+                serial_number:
+                  type: string
+                  nullable: true
+                device_status:
+                  type: string
+                  enum: [active, inactive, maintenance, offline]
+                device_metadata:
+                  type: object
+                  nullable: true
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Device updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: POS device updated successfully
+                  device:
+                    $ref: '#/components/schemas/PosDevice'
+        '404':
+          description: Device not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    patch:
+      tags:
+        - POS Devices
+      summary: Update POS device (partial)
+      description: Partially update POS device information
+      operationId: patchPosDevice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device_name:
+                  type: string
+                device_status:
+                  type: string
+                  enum: [active, inactive, maintenance, offline]
+                device_metadata:
+                  type: object
+                  nullable: true
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Device updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: POS device updated successfully
+                  device:
+                    $ref: '#/components/schemas/PosDevice'
+        '404':
+          description: Device not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-devices/{id}/heartbeat:
+    post:
+      tags:
+        - POS Devices
+      summary: Update device heartbeat
+      description: Update device last_seen_at timestamp and optionally status/metadata
+      operationId: updateDeviceHeartbeat
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device_status:
+                  type: string
+                  enum: [active, inactive, maintenance, offline]
+                device_metadata:
+                  type: object
+                  nullable: true
+                  description: Additional metadata (battery level, storage, etc.)
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Heartbeat updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Device heartbeat updated
+                  device:
+                    $ref: '#/components/schemas/PosDevice'
+        '404':
+          description: Device not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /terminals/locations:
+    get:
+      tags:
+        - Terminals
+      summary: List terminal locations
+      description: Get all terminal locations for the current store
+      operationId: listTerminalLocations
+      responses:
+        '200':
+          description: List of terminal locations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  locations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TerminalLocation'
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /terminals/readers:
+    get:
+      tags:
+        - Terminals
+      summary: List terminal readers
+      description: Get all terminal readers for the current store
+      operationId: listTerminalReaders
+      responses:
+        '200':
+          description: List of terminal readers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  readers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TerminalReader'
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /customers:
+    get:
+      tags:
+        - Customers
+      summary: List customers
+      description: Get paginated list of customers for the current store
+      operationId: listCustomers
+      parameters:
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 15
+        - name: X-Tenant
+          in: header
+          description: Store slug (optional, defaults to user's first store)
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated list of customers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCustomers'
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags:
+        - Customers
+      summary: Create customer
+      description: Create a new customer for the current store
+      operationId: createCustomer
+      parameters:
+        - name: X-Tenant
+          in: header
+          description: Store slug (optional, defaults to user's first store)
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stripe_customer_id
+              properties:
+                stripe_customer_id:
+                  type: string
+                  description: Stripe customer ID
+                  example: cus_1234567890
+                name:
+                  type: string
+                  maxLength: 255
+                  example: John Doe
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+                  example: john@example.com
+                model:
+                  type: string
+                  nullable: true
+                model_id:
+                  type: integer
+                  nullable: true
+                model_uuid:
+                  type: string
+                  format: uuid
+                  nullable: true
+      responses:
+        '201':
+          description: Customer created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /customers/{id}:
+    get:
+      tags:
+        - Customers
+      summary: Get customer
+      description: Get a specific customer by ID
+      operationId: getCustomer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+        - name: X-Tenant
+          in: header
+          description: Store slug (optional, defaults to user's first store)
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Customer information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    put:
+      tags:
+        - Customers
+      summary: Update customer
+      description: Update a customer's information
+      operationId: updateCustomer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+        - name: X-Tenant
+          in: header
+          description: Store slug (optional, defaults to user's first store)
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 255
+                  example: John Doe
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+                  example: john@example.com
+                model:
+                  type: string
+                  nullable: true
+                model_id:
+                  type: integer
+                  nullable: true
+                model_uuid:
+                  type: string
+                  format: uuid
+                  nullable: true
+      responses:
+        '200':
+          description: Customer updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    delete:
+      tags:
+        - Customers
+      summary: Delete customer
+      description: Delete a customer
+      operationId: deleteCustomer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+        - name: X-Tenant
+          in: header
+          description: Store slug (optional, defaults to user's first store)
+          required: false
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Customer deleted successfully
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /stores/{store}/terminal/connection-token:
+    post:
+      tags:
+        - Terminal
+      summary: Create terminal connection token
+      description: Create a connection token for Stripe Terminal
+      operationId: createTerminalConnectionToken
+      parameters:
+        - name: store
+          in: path
+          required: true
+          description: Store ID or slug
+          schema:
+            type: string
+          example: 1
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                location_id:
+                  type: integer
+                  description: Terminal location ID (optional if store has only one location)
+                  example: 1
+      responses:
+        '200':
+          description: Connection token created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret:
+                    type: string
+                    example: pst_test_1234567890
+        '404':
+          description: Store or location not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /stores/{store}/terminal/payment-intents:
+    post:
+      tags:
+        - Terminal
+      summary: Create payment intent
+      description: Create a payment intent for Stripe Terminal
+      operationId: createTerminalPaymentIntent
+      parameters:
+        - name: store
+          in: path
+          required: true
+          description: Store ID or slug
+          schema:
+            type: string
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: integer
+                  description: Amount in minor units (cents)
+                  minimum: 1
+                  example: 1000
+                currency:
+                  type: string
+                  description: Currency code (ISO 3-letter)
+                  minLength: 3
+                  maxLength: 3
+                  example: usd
+                description:
+                  type: string
+                  maxLength: 255
+                  example: Payment for order #123
+                metadata:
+                  type: object
+                  additionalProperties: true
+                  example:
+                    order_id: "123"
+                    customer_name: "John Doe"
+      responses:
+        '201':
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Stripe PaymentIntent object
+                properties:
+                  id:
+                    type: string
+                    example: pi_1234567890
+                  amount:
+                    type: integer
+                    example: 1000
+                  currency:
+                    type: string
+                    example: usd
+                  status:
+                    type: string
+                    example: requires_payment_method
+        '422':
+          description: Validation error or store not connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /stripe/connect/webhook:
+    post:
+      tags:
+        - Webhooks
+      summary: Stripe Connect webhook
+      description: |
+        Webhook endpoint for Stripe Connect events.
+
+        This endpoint receives webhooks from Stripe for connected account events.
+        It handles events such as:
+        - account.created, account.updated, account.deleted
+        - customer.created, customer.updated, customer.deleted
+        - charge.created, charge.updated, charge.refunded
+        - subscription events
+        - product and price events
+        - payment method events
+        - transfer events
+
+        **Note:** This endpoint does not require authentication as it uses Stripe signature verification.
+      operationId: stripeConnectWebhook
+      security: []  # Public endpoint - uses Stripe signature verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Stripe webhook event payload
+      responses:
+        '200':
+          description: Webhook processed successfully
+        '400':
+          description: Invalid payload or signature
+        '500':
+          description: Server error
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Sanctum Bearer Token authentication.
+
+        Include the token in the Authorization header:
+        ```
+        Authorization: Bearer {token}
+        ```
+
+        Get a token by calling the `/auth/login` endpoint.
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: user@example.com
+
+    Store:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        slug:
+          type: string
+          example: my-store
+        name:
+          type: string
+          example: My Store
+        email:
+          type: string
+          format: email
+          example: store@example.com
+        stripe_account_id:
+          type: string
+          nullable: true
+          example: acct_1234567890
+        commission_type:
+          type: string
+          enum: [percentage, fixed]
+          example: percentage
+        commission_rate:
+          type: integer
+          example: 10
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        stripe_customer_id:
+          type: string
+          example: cus_1234567890
+        stripe_account_id:
+          type: string
+          example: acct_1234567890
+        name:
+          type: string
+          nullable: true
+          example: John Doe
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: john@example.com
+        model:
+          type: string
+          nullable: true
+        model_id:
+          type: integer
+          nullable: true
+        model_uuid:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TerminalLocation:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        stripe_location_id:
+          type: string
+          nullable: true
+          example: tml_1234567890
+        display_name:
+          type: string
+          example: Main Store Location
+        address:
+          type: object
+          properties:
+            line1:
+              type: string
+              nullable: true
+              example: 123 Main St
+            line2:
+              type: string
+              nullable: true
+              example: Suite 100
+            city:
+              type: string
+              nullable: true
+              example: Oslo
+            state:
+              type: string
+              nullable: true
+              example: Oslo
+            postal_code:
+              type: string
+              nullable: true
+              example: 0001
+            country:
+              type: string
+              nullable: true
+              example: NO
+        readers_count:
+          type: integer
+          example: 3
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TerminalReader:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        stripe_reader_id:
+          type: string
+          nullable: true
+          example: tmr_1234567890
+        label:
+          type: string
+          example: Counter Reader 1
+        tap_to_pay:
+          type: boolean
+          example: false
+        device_type:
+          type: string
+          nullable: true
+          example: verifone_P400
+        status:
+          type: string
+          nullable: true
+          example: online
+        location:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+              example: 1
+            display_name:
+              type: string
+              example: Main Store Location
+            stripe_location_id:
+              type: string
+              example: tml_1234567890
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PosDevice:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        device_identifier:
+          type: string
+          description: "Unique device identifier (iOS: identifierForVendor, Android: androidId)"
+          example: ABC123-DEF456-GHI789
+        device_name:
+          type: string
+          example: Jan's iPad
+        platform:
+          type: string
+          enum: [ios, android]
+          example: ios
+        device_info:
+          type: object
+          properties:
+            model:
+              type: string
+              nullable: true
+              example: iPad
+            brand:
+              type: string
+              nullable: true
+              example: Apple
+            manufacturer:
+              type: string
+              nullable: true
+              example: Apple
+            product:
+              type: string
+              nullable: true
+            hardware:
+              type: string
+              nullable: true
+            machine_identifier:
+              type: string
+              nullable: true
+              example: "iPad13,1"
+        system_info:
+          type: object
+          properties:
+            name:
+              type: string
+              nullable: true
+              example: iOS
+            version:
+              type: string
+              nullable: true
+              example: 17.0
+        identifiers:
+          type: object
+          properties:
+            vendor_identifier:
+              type: string
+              nullable: true
+            android_id:
+              type: string
+              nullable: true
+            serial_number:
+              type: string
+              nullable: true
+        device_status:
+          type: string
+          enum: [active, inactive, maintenance, offline]
+          example: active
+        last_seen_at:
+          type: string
+          format: date-time
+          nullable: true
+        device_metadata:
+          type: object
+          nullable: true
+          description: Additional device metadata
+          additionalProperties: true
+        terminal_locations_count:
+          type: integer
+          example: 1
+        terminal_locations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              display_name:
+                type: string
+              stripe_location_id:
+                type: string
+                nullable: true
+              readers_count:
+                type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+          description: Bearer token for API authentication
+          example: 1|abc123def456...
+        current_store:
+          $ref: '#/components/schemas/Store'
+          nullable: true
+          description: User's current/default store
+        stores:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/Store'
+              - type: object
+                properties:
+                  is_current:
+                    type: boolean
+                    description: Whether this is the user's current store
+                    example: true
+
+    UserResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        current_store:
+          $ref: '#/components/schemas/Store'
+          nullable: true
+          description: User's current/default store
+        stores:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/Store'
+              - type: object
+                properties:
+                  is_current:
+                    type: boolean
+                    description: Whether this is the user's current store
+                    example: true
+
+    PaginatedCustomers:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+        current_page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 15
+        total:
+          type: integer
+          example: 100
+        last_page:
+          type: integer
+          example: 7
+        from:
+          type: integer
+          example: 1
+        to:
+          type: integer
+          example: 15
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Error message
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            email:
+              - The email field is required.
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: Unauthenticated.
+
+security:
+  - bearerAuth: []
+

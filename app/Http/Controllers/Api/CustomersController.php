@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\ConnectedCustomer;
-use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -14,19 +13,13 @@ class CustomersController extends BaseApiController
      */
     public function index(Request $request): JsonResponse
     {
-        $tenant = $this->getTenant($request);
-        
-        if (!$tenant) {
-            return response()->json(['error' => 'Tenant not found'], 404);
-        }
-
-        $this->authorizeTenant($request, $tenant);
-        
-        $store = $tenant->store;
+        $store = $this->getTenantStore($request);
         
         if (!$store) {
-            return response()->json(['error' => 'Store not found for tenant'], 404);
+            return response()->json(['error' => 'Store not found'], 404);
         }
+
+        $this->authorizeTenant($request, $store);
 
         $customers = ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id)
             ->with(['store'])
@@ -40,19 +33,13 @@ class CustomersController extends BaseApiController
      */
     public function store(Request $request): JsonResponse
     {
-        $tenant = $this->getTenant($request);
-        
-        if (!$tenant) {
-            return response()->json(['error' => 'Tenant not found'], 404);
-        }
-
-        $this->authorizeTenant($request, $tenant);
-        
-        $store = $tenant->store;
+        $store = $this->getTenantStore($request);
         
         if (!$store) {
-            return response()->json(['error' => 'Store not found for tenant'], 404);
+            return response()->json(['error' => 'Store not found'], 404);
         }
+
+        $this->authorizeTenant($request, $store);
 
         $validated = $request->validate([
             'stripe_customer_id' => 'required|string',
@@ -75,19 +62,13 @@ class CustomersController extends BaseApiController
      */
     public function show(Request $request, string $id): JsonResponse
     {
-        $tenant = $this->getTenant($request);
-        
-        if (!$tenant) {
-            return response()->json(['error' => 'Tenant not found'], 404);
-        }
-
-        $this->authorizeTenant($request, $tenant);
-        
-        $store = $tenant->store;
+        $store = $this->getTenantStore($request);
         
         if (!$store) {
-            return response()->json(['error' => 'Store not found for tenant'], 404);
+            return response()->json(['error' => 'Store not found'], 404);
         }
+
+        $this->authorizeTenant($request, $store);
 
         $customer = ConnectedCustomer::where('id', $id)
             ->where('stripe_account_id', $store->stripe_account_id)
@@ -102,19 +83,13 @@ class CustomersController extends BaseApiController
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        $tenant = $this->getTenant($request);
-        
-        if (!$tenant) {
-            return response()->json(['error' => 'Tenant not found'], 404);
-        }
-
-        $this->authorizeTenant($request, $tenant);
-        
-        $store = $tenant->store;
+        $store = $this->getTenantStore($request);
         
         if (!$store) {
-            return response()->json(['error' => 'Store not found for tenant'], 404);
+            return response()->json(['error' => 'Store not found'], 404);
         }
+
+        $this->authorizeTenant($request, $store);
 
         $customer = ConnectedCustomer::where('id', $id)
             ->where('stripe_account_id', $store->stripe_account_id)
@@ -138,19 +113,13 @@ class CustomersController extends BaseApiController
      */
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $tenant = $this->getTenant($request);
-        
-        if (!$tenant) {
-            return response()->json(['error' => 'Tenant not found'], 404);
-        }
-
-        $this->authorizeTenant($request, $tenant);
-        
-        $store = $tenant->store;
+        $store = $this->getTenantStore($request);
         
         if (!$store) {
-            return response()->json(['error' => 'Store not found for tenant'], 404);
+            return response()->json(['error' => 'Store not found'], 404);
         }
+
+        $this->authorizeTenant($request, $store);
 
         $customer = ConnectedCustomer::where('id', $id)
             ->where('stripe_account_id', $store->stripe_account_id)

@@ -10,15 +10,24 @@ use Illuminate\Routing\Controller;
 
 class StoreTerminalConnectionTokenController extends Controller
 {
-    public function __invoke(Store $store, Request $request): JsonResponse
+    public function __invoke(Request $request, string $store): JsonResponse
     {
+        // Find store by slug
+        $storeModel = Store::where('slug', $store)->first();
+        
+        if (!$storeModel) {
+            return response()->json([
+                'message' => 'Store not found.',
+            ], 404);
+        }
+        
         // TODO: Authorize the caller
 
         $locationId = $request->input('location_id');
 
         if ($locationId) {
             $location = TerminalLocation::where('id', $locationId)
-                ->where('store_id', $store->id)
+                ->where('store_id', $storeModel->id)
                 ->first();
 
             if (! $location) {
@@ -27,7 +36,7 @@ class StoreTerminalConnectionTokenController extends Controller
                 ], 404);
             }
         } else {
-            $locations = TerminalLocation::where('store_id', $store->id)->get();
+            $locations = TerminalLocation::where('store_id', $storeModel->id)->get();
 
             if ($locations->isEmpty()) {
                 return response()->json([
@@ -45,7 +54,7 @@ class StoreTerminalConnectionTokenController extends Controller
         }
 
         // FIX: pass params as an array, not a string
-        $connectionToken = $store->createConnectionToken([
+        $connectionToken = $storeModel->createConnectionToken([
             'location' => $location->stripe_location_id,
         ], true); // true = connected account
 

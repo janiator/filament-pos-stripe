@@ -7,10 +7,25 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Validation\ValidationException;
 
 abstract class BaseApiController extends BaseController
 {
     use AuthorizesRequests, ValidatesRequests;
+
+    /**
+     * Handle a failed validation attempt.
+     *
+     * @param  \Illuminate\Contracts\Validation\Validator  $validator
+     * @return void
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator, Request $request = null)
+    {
+        // Always throw ValidationException for API routes - Laravel will return JSON
+        throw new ValidationException($validator);
+    }
 
     /**
      * Get the current tenant from the request
@@ -24,9 +39,9 @@ abstract class BaseApiController extends BaseController
             return Store::where('slug', $tenantSlug)->first();
         }
 
-        // Fallback to user's first store
+        // Fallback to user's current store
         if ($user = $request->user()) {
-            return $user->stores()->first();
+            return $user->currentStore();
         }
 
         return null;

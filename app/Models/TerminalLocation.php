@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TerminalLocation extends Model
 {
@@ -11,6 +13,7 @@ class TerminalLocation extends Model
 
     protected $fillable = [
         'store_id',
+        'pos_device_id',
         'stripe_location_id',
         'display_name',
         'line1',
@@ -35,12 +38,20 @@ class TerminalLocation extends Model
         });
     }
 
-    public function store()
+    public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
     }
 
-    public function terminalReaders()
+    /**
+     * Get the POS device this terminal location is associated with (optional)
+     */
+    public function posDevice(): BelongsTo
+    {
+        return $this->belongsTo(PosDevice::class);
+    }
+
+    public function terminalReaders(): HasMany
     {
         return $this->hasMany(TerminalReader::class);
     }

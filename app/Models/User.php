@@ -14,12 +14,13 @@ use App\Models\Store;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser, HasTenants, HasDefaultTenant
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -30,6 +31,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
         'name',
         'email',
         'password',
+        'current_store_id',
     ];
 
     /**
@@ -83,6 +85,33 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
         return $this->belongsToMany(Store::class);
     }
 
+    /**
+     * Get the user's current store
+     */
+    public function currentStore(): ?Store
+    {
+        if ($this->current_store_id) {
+            return $this->stores()->where('stores.id', $this->current_store_id)->first();
+        }
+        
+        // Fallback to first store if no current store is set
+        return $this->stores()->first();
+    }
+
+    /**
+     * Set the current store for the user
+     */
+    public function setCurrentStore(Store $store): bool
+    {
+        // Verify user has access to this store
+        if (!$this->stores->contains($store)) {
+            return false;
+        }
+
+        $this->current_store_id = $store->id;
+        return $this->save();
+    }
+
     public function canAccessTenant(Model $tenant): bool
     {
         // Super admins can access all stores
@@ -113,7 +142,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
 
     public function getDefaultTenant(Panel $panel): ?Model
     {
-        // Return the user's first store, or null if they have no stores
-        return $this->stores()->first();
+        // Return the user's current store, or first store if not set, or null if they have no stores
+        return $this->currentStore();
     }
 }
