@@ -17,9 +17,7 @@ class ReceiptTemplateService
     public function __construct()
     {
         $this->templatePath = base_path('resources/receipt-templates/epson');
-        $this->mustache = new Mustache_Engine([
-            'loader' => new \Mustache_Loader_FilesystemLoader($this->templatePath),
-        ]);
+        $this->mustache = new Mustache_Engine();
     }
 
     /**
@@ -28,13 +26,17 @@ class ReceiptTemplateService
     public function renderReceipt(Receipt $receipt): string
     {
         $templateName = $this->getTemplateName($receipt->receipt_type);
+        $templatePath = $this->templatePath . '/' . $templateName;
         
+        if (!File::exists($templatePath)) {
+            throw new \RuntimeException("Receipt template not found: {$templatePath}");
+        }
+        
+        $template = File::get($templatePath);
         $data = $this->prepareReceiptData($receipt);
         
         // Use Mustache to render the template
-        // Remove .xml extension for Mustache loader
-        $templateKey = str_replace('.xml', '', $templateName);
-        return $this->mustache->render($templateKey, $data);
+        return $this->mustache->render($template, $data);
     }
 
     /**

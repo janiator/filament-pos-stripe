@@ -132,6 +132,11 @@ class GenerateSafTCashRegister
                 $this->addElement($xml, $line, 'RecordID', (string) $charge->id);
                 $this->addElement($xml, $line, 'AccountID', $this->getAccountIdForPaymentMethod($charge->payment_method));
                 
+                // Add PaymentCode (PredefinedBasicID-12)
+                if ($charge->payment_code) {
+                    $this->addElement($xml, $line, 'PaymentCode', $charge->payment_code);
+                }
+                
                 // Add ArticleGroupCode (PredefinedBasicID-04)
                 if ($charge->article_group_code) {
                     $this->addElement($xml, $line, 'ArticleGroupCode', $charge->article_group_code);

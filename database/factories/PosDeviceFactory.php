@@ -25,8 +25,8 @@ class PosDeviceFactory extends Factory
             'device_name' => fake()->word() . ' POS Device',
             'device_identifier' => fake()->uuid(),
             'platform' => fake()->randomElement(['ios', 'android', 'web', 'desktop']),
-            'model' => fake()->word(),
-            'status' => fake()->randomElement(['active', 'inactive']),
+            'device_model' => fake()->word(),
+            'device_status' => fake()->randomElement(['active', 'inactive']),
             'device_metadata' => [],
             'last_seen_at' => now(),
         ];

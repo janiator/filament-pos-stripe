@@ -97,19 +97,19 @@ class ConnectedChargeObserver
     {
         $updates = [];
 
-        // Map payment code if not set
-        if (!$charge->payment_code) {
+        // Map payment code if not set or empty
+        if (empty($charge->payment_code)) {
             $updates['payment_code'] = SafTCodeMapper::mapPaymentMethodToCode($charge->payment_method);
         }
 
-        // Map transaction code if not set
-        if (!$charge->transaction_code) {
+        // Map transaction code if not set or empty
+        if (empty($charge->transaction_code)) {
             $updates['transaction_code'] = SafTCodeMapper::mapTransactionToCode($charge);
         }
 
-        // Update if we have changes
+        // Update if we have changes (use updateQuietly to avoid triggering events)
         if (!empty($updates)) {
-            $charge->update($updates);
+            $charge->updateQuietly($updates);
         }
     }
 }

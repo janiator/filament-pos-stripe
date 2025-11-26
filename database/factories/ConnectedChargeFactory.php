@@ -46,14 +46,10 @@ class ConnectedChargeFactory extends Factory
             'outcome' => [],
             'charge_type' => 'payment',
             'application_fee_amount' => 0,
-            'transaction_code' => $paymentMethod === 'cash' ? '11001' : '11002',
-            'payment_code' => match($paymentMethod) {
-                'cash' => '12001',
-                'card' => '12002',
-                'mobile' => '12011',
-                default => '12999',
-            },
-            'tip_amount' => fake()->optional(0.3)->numberBetween(0, 5000),
+            // Don't set codes in factory - let observer handle it to ensure consistency
+            'transaction_code' => null,
+            'payment_code' => null,
+            'tip_amount' => fake()->optional(0.3)->numberBetween(0, 5000) ?? 0,
             'article_group_code' => fake()->randomElement(['04003', '04006', '04014']),
         ];
     }

@@ -56,8 +56,24 @@ return new class extends Migration
             Schema::table('store_user', function (Blueprint $table) {
                 $table->foreignId('store_id')->nullable(false)->change();
                 $table->foreign('store_id')->references('id')->on('stores')->cascadeOnDelete();
-                $table->dropColumn('team_id');
             });
+            
+            // Make team_id nullable for SQLite compatibility (can't drop columns in SQLite)
+            if (config('database.default') === 'sqlite') {
+                // SQLite doesn't support dropping columns, so make team_id nullable
+                Schema::table('store_user', function (Blueprint $table) {
+                    if (Schema::hasColumn('store_user', 'team_id')) {
+                        $table->unsignedBigInteger('team_id')->nullable()->change();
+                    }
+                });
+            } else {
+                // For other databases, drop the column
+                Schema::table('store_user', function (Blueprint $table) {
+                    if (Schema::hasColumn('store_user', 'team_id')) {
+                        $table->dropColumn('team_id');
+                    }
+                });
+            }
         }
     }
 

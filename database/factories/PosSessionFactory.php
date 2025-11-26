@@ -34,7 +34,7 @@ class PosSessionFactory extends Factory
             'opened_at' => $openedAt,
             'closed_at' => $status === 'closed' ? fake()->dateTimeBetween($openedAt, 'now') : null,
             'opening_balance' => fake()->numberBetween(0, 100000),
-            'expected_cash' => $status === 'closed' ? fake()->numberBetween(0, 200000) : null,
+            'expected_cash' => 0, // Will be calculated from charges
             'actual_cash' => $status === 'closed' ? fake()->numberBetween(0, 200000) : null,
             'cash_difference' => $status === 'closed' ? fake()->numberBetween(-5000, 5000) : null,
             'opening_notes' => fake()->optional()->sentence(),
