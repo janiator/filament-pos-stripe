@@ -52,7 +52,9 @@ class StripeConnectWebhookController extends Controller
         if (! $secret) {
             // Misconfiguration – don't throw to Stripe, just log.
             report(new \RuntimeException('Stripe webhook secret not configured.'));
-            return response('Webhook misconfigured', 500);
+            return response()->json([
+                'message' => 'Webhook misconfigured',
+            ], 500);
         }
 
         try {
@@ -63,10 +65,14 @@ class StripeConnectWebhookController extends Controller
             );
         } catch (UnexpectedValueException $e) {
             // Invalid payload
-            return response('Invalid payload', 400);
+            return response()->json([
+                'message' => 'Invalid payload',
+            ], 400);
         } catch (SignatureVerificationException $e) {
             // Invalid signature
-            return response('Invalid signature', 400);
+            return response()->json([
+                'message' => 'Invalid signature',
+            ], 400);
         }
 
         // Get the account ID from the event (for Connect webhooks)

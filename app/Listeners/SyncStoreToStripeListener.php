@@ -49,9 +49,8 @@ class SyncStoreToStripeListener
         ]);
 
         try {
-            $action = new SyncStoreToStripe();
-            $action($store);
-            \Log::info('SyncStoreToStripeListener: Successfully synced store to Stripe', ['store_id' => $store->id]);
+            \App\Jobs\SyncStoreToStripeJob::dispatch($store);
+            \Log::info('SyncStoreToStripeListener: Dispatched sync job for store to Stripe', ['store_id' => $store->id]);
         } catch (\Throwable $e) {
             \Log::error('SyncStoreToStripeListener: Failed to sync store to Stripe', [
                 'store_id' => $store->id,

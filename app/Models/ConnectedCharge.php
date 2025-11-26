@@ -10,9 +10,15 @@ class ConnectedCharge extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::observe(\App\Observers\ConnectedChargeObserver::class);
+    }
+
     protected $fillable = [
         'stripe_charge_id',
         'stripe_account_id',
+        'pos_session_id',
         'stripe_customer_id',
         'stripe_payment_intent_id',
         'amount',
@@ -31,12 +37,17 @@ class ConnectedCharge extends Model
         'outcome',
         'charge_type',
         'application_fee_amount',
+        'transaction_code',
+        'payment_code',
+        'tip_amount',
+        'article_group_code',
     ];
 
     protected $casts = [
         'amount' => 'integer',
         'amount_refunded' => 'integer',
         'application_fee_amount' => 'integer',
+        'tip_amount' => 'integer',
         'captured' => 'boolean',
         'refunded' => 'boolean',
         'paid' => 'boolean',
@@ -58,6 +69,14 @@ class ConnectedCharge extends Model
         // We can't use whereColumn in belongsTo with eager loading, so we'll handle the constraint
         // in the eager loading closure or filter after loading
         return $this->belongsTo(\App\Models\ConnectedCustomer::class, 'stripe_customer_id', 'stripe_customer_id');
+    }
+
+    /**
+     * Get the POS session for this charge
+     */
+    public function posSession(): BelongsTo
+    {
+        return $this->belongsTo(PosSession::class);
     }
 
     public function getFormattedAmountAttribute(): string

@@ -32,8 +32,7 @@ class SyncTerminalLocationToStripeListener
             return;
         }
 
-        $action = new UpdateTerminalLocationToStripe();
-        $action($location);
+        \App\Jobs\SyncTerminalLocationToStripeJob::dispatch($location);
     }
 }
 

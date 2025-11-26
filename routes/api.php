@@ -38,6 +38,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/pos-devices/{id}', [\App\Http\Controllers\Api\PosDevicesController::class, 'update'])->name('api.pos-devices.patch');
     Route::post('/pos-devices/{id}/heartbeat', [\App\Http\Controllers\Api\PosDevicesController::class, 'heartbeat'])->name('api.pos-devices.heartbeat');
 
+    // POS Session endpoints (Kassasystemforskriften compliance)
+    Route::get('/pos-sessions', [\App\Http\Controllers\Api\PosSessionsController::class, 'index'])->name('api.pos-sessions.index');
+    Route::get('/pos-sessions/current', [\App\Http\Controllers\Api\PosSessionsController::class, 'current'])->name('api.pos-sessions.current');
+    Route::post('/pos-sessions/open', [\App\Http\Controllers\Api\PosSessionsController::class, 'open'])->name('api.pos-sessions.open');
+    Route::post('/pos-sessions/{id}/close', [\App\Http\Controllers\Api\PosSessionsController::class, 'close'])->name('api.pos-sessions.close');
+    Route::post('/pos-sessions/{id}/x-report', [\App\Http\Controllers\Api\PosSessionsController::class, 'xReport'])->name('api.pos-sessions.x-report');
+    Route::post('/pos-sessions/{id}/z-report', [\App\Http\Controllers\Api\PosSessionsController::class, 'zReport'])->name('api.pos-sessions.z-report');
+    Route::get('/pos-sessions/{id}', [\App\Http\Controllers\Api\PosSessionsController::class, 'show'])->name('api.pos-sessions.show');
+    Route::post('/pos-sessions/daily-closing', [\App\Http\Controllers\Api\PosSessionsController::class, 'createDailyClosing'])->name('api.pos-sessions.daily-closing');
+
     // Terminal endpoints (Stripe-specific, require authentication)
     Route::get('/terminals/locations', [\App\Http\Controllers\Api\TerminalLocationsController::class, 'index'])->name('api.terminals.locations');
     Route::get('/terminals/readers', [\App\Http\Controllers\Api\TerminalReadersController::class, 'index'])->name('api.terminals.readers');
@@ -48,15 +58,21 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Tenant-scoped API resources
     Route::apiResource('customers', \App\Http\Controllers\Api\CustomersController::class);
+    Route::apiResource('products', \App\Http\Controllers\Api\ProductsController::class)->only(['index', 'show']);
+    
+    // SAF-T endpoints (Kassasystemforskriften compliance)
+    Route::post('/saf-t/generate', [\App\Http\Controllers\Api\SafTController::class, 'generate'])->name('api.saf-t.generate');
+    Route::get('/saf-t/content', [\App\Http\Controllers\Api\SafTController::class, 'content'])->name('api.saf-t.content');
+    Route::get('/saf-t/download/{filename}', [\App\Http\Controllers\Api\SafTController::class, 'download'])->name('api.saf-t.download');
     
     // Note: Add more API resources here following the same pattern:
     // Route::apiResource('subscriptions', \App\Http\Controllers\Api\SubscriptionsController::class);
-    // Route::apiResource('products', \App\Http\Controllers\Api\ProductsController::class);
     // Route::apiResource('charges', \App\Http\Controllers\Api\ChargesController::class);
     // etc.
 });
 
 // Legacy endpoint (kept for backward compatibility)
 Route::get('/user', function (Request $request) {
-    return $request->user();
+    $user = $request->user();
+    return response()->json($user);
 })->middleware('auth:sanctum');

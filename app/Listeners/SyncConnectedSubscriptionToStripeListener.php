@@ -32,8 +32,7 @@ class SyncConnectedSubscriptionToStripeListener
             return;
         }
 
-        $action = new UpdateConnectedSubscriptionToStripe();
-        $action($subscription);
+        \App\Jobs\SyncConnectedSubscriptionToStripeJob::dispatch($subscription);
     }
 }
 

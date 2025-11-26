@@ -1,0 +1,18 @@
+[Unit]
+Description=Laravel Horizon Queue Worker
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/Users/jan/Herd/pos-stripe
+ExecStart=/usr/bin/php /Users/jan/Herd/pos-stripe/artisan horizon
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=horizon
+
+[Install]
+WantedBy=multi-user.target
+

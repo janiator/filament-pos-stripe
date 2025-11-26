@@ -5,7 +5,6 @@ namespace App\Filament\Resources\ConnectedProducts;
 use App\Filament\Resources\ConnectedProducts\Pages\CreateConnectedProduct;
 use App\Filament\Resources\ConnectedProducts\Pages\EditConnectedProduct;
 use App\Filament\Resources\ConnectedProducts\Pages\ListConnectedProducts;
-use App\Filament\Resources\ConnectedProducts\Pages\ViewConnectedProduct;
 use App\Filament\Resources\ConnectedProducts\Schemas\ConnectedProductForm;
 use App\Filament\Resources\ConnectedProducts\Schemas\ConnectedProductInfolist;
 use App\Filament\Resources\ConnectedProducts\Tables\ConnectedProductsTable;
@@ -77,7 +76,6 @@ class ConnectedProductResource extends Resource
         return [
             'index' => ListConnectedProducts::route('/'),
             'create' => CreateConnectedProduct::route('/create'),
-            'view' => ViewConnectedProduct::route('/{record}'),
             'edit' => EditConnectedProduct::route('/{record}/edit'),
         ];
     }

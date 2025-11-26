@@ -1,0 +1,1 @@
+herd share http://pos.stripe.test --domain=share.visivo.no --server=eu-1

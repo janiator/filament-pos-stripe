@@ -1,0 +1,574 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Models\PosSession;
+use App\Models\PosSessionClosing;
+use App\Models\PosDevice;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class PosSessionsController extends BaseApiController
+{
+    /**
+     * Get all sessions for the current store
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $query = PosSession::where('store_id', $store->id)
+            ->with(['posDevice', 'user']);
+
+        // Filter by status
+        if ($request->has('status')) {
+            $query->where('status', $request->get('status'));
+        }
+
+        // Filter by date
+        if ($request->has('date')) {
+            $query->whereDate('opened_at', $request->get('date'));
+        }
+
+        // Filter by device
+        if ($request->has('pos_device_id')) {
+            $query->where('pos_device_id', $request->get('pos_device_id'));
+        }
+
+        $sessions = $query->orderBy('opened_at', 'desc')
+            ->paginate($request->get('per_page', 20));
+
+        return response()->json([
+            'sessions' => $sessions->getCollection()->map(function ($session) {
+                return $this->formatSessionResponse($session);
+            }),
+            'meta' => [
+                'current_page' => $sessions->currentPage(),
+                'last_page' => $sessions->lastPage(),
+                'per_page' => $sessions->perPage(),
+                'total' => $sessions->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Get current open session for a device
+     */
+    public function current(Request $request): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $validated = $request->validate([
+            'pos_device_id' => 'required|exists:pos_devices,id',
+        ]);
+
+        $session = PosSession::where('store_id', $store->id)
+            ->where('pos_device_id', $validated['pos_device_id'])
+            ->where('status', 'open')
+            ->with(['posDevice', 'user', 'charges'])
+            ->first();
+
+        if (!$session) {
+            return response()->json([
+                'message' => 'No open session found',
+                'session' => null,
+            ]);
+        }
+
+        return response()->json([
+            'session' => $this->formatSessionResponse($session, true),
+        ]);
+    }
+
+    /**
+     * Open a new POS session
+     */
+    public function open(Request $request): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $validated = $request->validate([
+            'pos_device_id' => 'required|exists:pos_devices,id',
+            'opening_balance' => 'nullable|integer|min:0',
+            'opening_notes' => 'nullable|string|max:1000',
+            'opening_data' => 'nullable|array',
+        ]);
+
+        // Check if device already has an open session
+        $existingSession = PosSession::where('store_id', $store->id)
+            ->where('pos_device_id', $validated['pos_device_id'])
+            ->where('status', 'open')
+            ->first();
+
+        if ($existingSession) {
+            return response()->json([
+                'message' => 'Device already has an open session',
+                'session' => $this->formatSessionResponse($existingSession),
+            ], 409);
+        }
+
+        // Get next session number for this store
+        $lastSession = PosSession::where('store_id', $store->id)
+            ->orderBy('session_number', 'desc')
+            ->first();
+
+        $sessionNumber = $lastSession 
+            ? (int) $lastSession->session_number + 1 
+            : 1;
+
+        $session = PosSession::create([
+            'store_id' => $store->id,
+            'pos_device_id' => $validated['pos_device_id'],
+            'user_id' => $request->user()->id,
+            'session_number' => str_pad($sessionNumber, 6, '0', STR_PAD_LEFT),
+            'status' => 'open',
+            'opened_at' => now(),
+            'opening_balance' => $validated['opening_balance'] ?? 0,
+            'opening_notes' => $validated['opening_notes'] ?? null,
+            'opening_data' => $validated['opening_data'] ?? null,
+        ]);
+
+        return response()->json([
+            'message' => 'Session opened successfully',
+            'session' => $this->formatSessionResponse($session->load(['posDevice', 'user'])),
+        ], 201);
+    }
+
+    /**
+     * Close a POS session
+     */
+    public function close(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $session = PosSession::where('id', $id)
+            ->where('store_id', $store->id)
+            ->with(['posDevice', 'user', 'charges'])
+            ->firstOrFail();
+
+        if (!$session->canBeClosed()) {
+            return response()->json([
+                'message' => 'Session cannot be closed',
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'actual_cash' => 'nullable|integer|min:0',
+            'closing_notes' => 'nullable|string|max:1000',
+            'closing_data' => 'nullable|array',
+        ]);
+
+        $session->close(
+            $validated['actual_cash'] ?? null,
+            $validated['closing_notes'] ?? null
+        );
+
+        if (isset($validated['closing_data'])) {
+            $session->closing_data = $validated['closing_data'];
+            $session->save();
+        }
+
+        return response()->json([
+            'message' => 'Session closed successfully',
+            'session' => $this->formatSessionResponse($session->fresh(['posDevice', 'user', 'charges'])),
+        ]);
+    }
+
+    /**
+     * Get a specific session
+     */
+    public function show(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $session = PosSession::where('id', $id)
+            ->where('store_id', $store->id)
+            ->with(['posDevice', 'user', 'charges'])
+            ->firstOrFail();
+
+        return response()->json([
+            'session' => $this->formatSessionResponse($session, true),
+        ]);
+    }
+
+    /**
+     * Generate X-report (current session summary)
+     */
+    public function xReport(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $session = PosSession::where('id', $id)
+            ->where('store_id', $store->id)
+            ->with(['charges', 'posDevice', 'user', 'events'])
+            ->firstOrFail();
+
+        // Log X-report event (13008)
+        \App\Models\PosEvent::create([
+            'store_id' => $store->id,
+            'pos_device_id' => $session->pos_device_id,
+            'pos_session_id' => $session->id,
+            'user_id' => $request->user()->id,
+            'event_code' => \App\Models\PosEvent::EVENT_X_REPORT,
+            'event_type' => 'report',
+            'description' => "X-report for session {$session->session_number}",
+            'occurred_at' => now(),
+        ]);
+
+        $charges = $session->charges->where('status', 'succeeded');
+        
+        $report = [
+            'session_id' => $session->id,
+            'session_number' => $session->session_number,
+            'opened_at' => $session->opened_at->toISOString(),
+            'report_generated_at' => now()->toISOString(),
+            'transactions_count' => $charges->count(),
+            'total_amount' => $charges->sum('amount'),
+            'cash_amount' => $charges->where('payment_method', 'cash')->sum('amount'),
+            'card_amount' => $charges->where('payment_method', '!=', 'cash')->sum('amount'),
+            'tip_amount' => $charges->sum('tip_amount'),
+            'by_payment_method' => $this->calculateByPaymentMethod($charges),
+            'cash_drawer_opens' => $session->events->where('event_code', '13005')->count(),
+            'nullinnslag_count' => $session->events->where('event_code', '13005')
+                ->where('event_data->nullinnslag', true)->count(),
+        ];
+
+        return response()->json([
+            'message' => 'X-report generated successfully',
+            'report' => $report,
+        ]);
+    }
+
+    /**
+     * Generate Z-report (end-of-day report, closes session)
+     */
+    public function zReport(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $session = PosSession::where('id', $id)
+            ->where('store_id', $store->id)
+            ->with(['charges', 'posDevice', 'user', 'events', 'receipts'])
+            ->firstOrFail();
+
+        if (!$session->canBeClosed()) {
+            return response()->json([
+                'message' => 'Session cannot be closed',
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'actual_cash' => 'nullable|integer|min:0',
+            'closing_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $charges = $session->charges->where('status', 'succeeded');
+
+        // Close session
+        $session->close(
+            $validated['actual_cash'] ?? null,
+            $validated['closing_notes'] ?? null
+        );
+
+        // Log Z-report event (13009)
+        \App\Models\PosEvent::create([
+            'store_id' => $store->id,
+            'pos_device_id' => $session->pos_device_id,
+            'pos_session_id' => $session->id,
+            'user_id' => $request->user()->id,
+            'event_code' => \App\Models\PosEvent::EVENT_Z_REPORT,
+            'event_type' => 'report',
+            'description' => "Z-report for session {$session->session_number}",
+            'event_data' => [
+                'actual_cash' => $session->actual_cash,
+                'cash_difference' => $session->cash_difference,
+            ],
+            'occurred_at' => now(),
+        ]);
+
+        $report = [
+            'session_id' => $session->id,
+            'session_number' => $session->session_number,
+            'opened_at' => $session->opened_at->toISOString(),
+            'closed_at' => $session->closed_at->toISOString(),
+            'opening_balance' => $session->opening_balance,
+            'expected_cash' => $session->expected_cash,
+            'actual_cash' => $session->actual_cash,
+            'cash_difference' => $session->cash_difference,
+            'transactions_count' => $charges->count(),
+            'total_amount' => $charges->sum('amount'),
+            'cash_amount' => $charges->where('payment_method', 'cash')->sum('amount'),
+            'card_amount' => $charges->where('payment_method', '!=', 'cash')->sum('amount'),
+            'tip_amount' => $charges->sum('tip_amount'),
+            'by_payment_method' => $this->calculateByPaymentMethod($charges),
+            'complete_transaction_list' => $charges->map(function ($charge) {
+                return [
+                    'id' => $charge->id,
+                    'stripe_charge_id' => $charge->stripe_charge_id,
+                    'amount' => $charge->amount,
+                    'payment_method' => $charge->payment_method,
+                    'paid_at' => $charge->paid_at?->toISOString(),
+                ];
+            }),
+        ];
+
+        return response()->json([
+            'message' => 'Z-report generated and session closed',
+            'session' => $this->formatSessionResponse($session->fresh(['posDevice', 'user', 'charges'])),
+            'report' => $report,
+        ]);
+    }
+
+    /**
+     * Calculate totals by payment method
+     */
+    protected function calculateByPaymentMethod($charges): array
+    {
+        $byMethod = [];
+        foreach ($charges as $charge) {
+            $method = $charge->payment_method ?? 'unknown';
+            if (!isset($byMethod[$method])) {
+                $byMethod[$method] = [
+                    'count' => 0,
+                    'amount' => 0,
+                ];
+            }
+            $byMethod[$method]['count']++;
+            $byMethod[$method]['amount'] += $charge->amount;
+        }
+        return $byMethod;
+    }
+
+    /**
+     * Create daily closing report
+     */
+    public function createDailyClosing(Request $request): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $validated = $request->validate([
+            'closing_date' => 'required|date',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $closingDate = $validated['closing_date'];
+
+        // Check if closing already exists for this date
+        $existingClosing = PosSessionClosing::where('store_id', $store->id)
+            ->where('closing_date', $closingDate)
+            ->first();
+
+        if ($existingClosing) {
+            return response()->json([
+                'message' => 'Daily closing already exists for this date',
+                'closing' => $this->formatClosingResponse($existingClosing),
+            ], 409);
+        }
+
+        // Get all closed sessions for this date
+        $sessions = PosSession::where('store_id', $store->id)
+            ->whereDate('closed_at', $closingDate)
+            ->where('status', 'closed')
+            ->with('charges')
+            ->get();
+
+        // Calculate totals
+        $totalSessions = $sessions->count();
+        $totalTransactions = 0;
+        $totalAmount = 0;
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalRefunds = 0;
+
+        $summaryData = [
+            'by_payment_method' => [],
+            'by_session' => [],
+        ];
+
+        foreach ($sessions as $session) {
+            $sessionTransactions = $session->charges->where('status', 'succeeded');
+            $sessionTotal = $sessionTransactions->sum('amount');
+            $sessionCash = $sessionTransactions->where('payment_method', 'cash')->sum('amount');
+            $sessionCard = $sessionTransactions->where('payment_method', '!=', 'cash')->sum('amount');
+            $sessionRefunds = $sessionTransactions->sum('amount_refunded');
+
+            $totalTransactions += $sessionTransactions->count();
+            $totalAmount += $sessionTotal;
+            $totalCash += $sessionCash;
+            $totalCard += $sessionCard;
+            $totalRefunds += $sessionRefunds;
+
+            $summaryData['by_session'][] = [
+                'session_id' => $session->id,
+                'session_number' => $session->session_number,
+                'transactions' => $sessionTransactions->count(),
+                'amount' => $sessionTotal,
+                'cash' => $sessionCash,
+                'card' => $sessionCard,
+                'refunds' => $sessionRefunds,
+            ];
+        }
+
+        // Calculate by payment method
+        foreach ($sessions as $session) {
+            foreach ($session->charges->where('status', 'succeeded') as $charge) {
+                $method = $charge->payment_method ?? 'unknown';
+                if (!isset($summaryData['by_payment_method'][$method])) {
+                    $summaryData['by_payment_method'][$method] = [
+                        'count' => 0,
+                        'amount' => 0,
+                    ];
+                }
+                $summaryData['by_payment_method'][$method]['count']++;
+                $summaryData['by_payment_method'][$method]['amount'] += $charge->amount;
+            }
+        }
+
+        $closing = PosSessionClosing::create([
+            'store_id' => $store->id,
+            'closing_date' => $closingDate,
+            'closed_by_user_id' => $request->user()->id,
+            'closed_at' => now(),
+            'total_sessions' => $totalSessions,
+            'total_transactions' => $totalTransactions,
+            'total_amount' => $totalAmount,
+            'total_cash' => $totalCash,
+            'total_card' => $totalCard,
+            'total_refunds' => $totalRefunds,
+            'currency' => 'nok',
+            'summary_data' => $summaryData,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return response()->json([
+            'message' => 'Daily closing created successfully',
+            'closing' => $this->formatClosingResponse($closing->load('closedByUser')),
+        ], 201);
+    }
+
+    /**
+     * Format session response
+     */
+    protected function formatSessionResponse(PosSession $session, bool $includeCharges = false): array
+    {
+        $data = [
+            'id' => $session->id,
+            'session_number' => $session->session_number,
+            'status' => $session->status,
+            'opened_at' => $session->opened_at->toISOString(),
+            'closed_at' => $session->closed_at?->toISOString(),
+            'opening_balance' => $session->opening_balance,
+            'expected_cash' => $session->expected_cash,
+            'actual_cash' => $session->actual_cash,
+            'cash_difference' => $session->cash_difference,
+            'opening_notes' => $session->opening_notes,
+            'closing_notes' => $session->closing_notes,
+            'pos_device' => $session->posDevice ? [
+                'id' => $session->posDevice->id,
+                'device_name' => $session->posDevice->device_name,
+            ] : null,
+            'user' => $session->user ? [
+                'id' => $session->user->id,
+                'name' => $session->user->name,
+            ] : null,
+            'transaction_count' => $session->transaction_count,
+            'total_amount' => $session->total_amount,
+        ];
+
+        if ($includeCharges) {
+            $data['charges'] = $session->charges->map(function ($charge) {
+                return [
+                    'id' => $charge->id,
+                    'stripe_charge_id' => $charge->stripe_charge_id,
+                    'amount' => $charge->amount,
+                    'currency' => $charge->currency,
+                    'status' => $charge->status,
+                    'payment_method' => $charge->payment_method,
+                    'paid_at' => $charge->paid_at?->toISOString(),
+                ];
+            });
+        }
+
+        return $data;
+    }
+
+    /**
+     * Format closing response
+     */
+    protected function formatClosingResponse(PosSessionClosing $closing): array
+    {
+        return [
+            'id' => $closing->id,
+            'closing_date' => $closing->closing_date->format('Y-m-d'),
+            'closed_at' => $closing->closed_at->toISOString(),
+            'total_sessions' => $closing->total_sessions,
+            'total_transactions' => $closing->total_transactions,
+            'total_amount' => $closing->total_amount,
+            'total_cash' => $closing->total_cash,
+            'total_card' => $closing->total_card,
+            'total_refunds' => $closing->total_refunds,
+            'currency' => $closing->currency,
+            'summary_data' => $closing->summary_data,
+            'notes' => $closing->notes,
+            'verified' => $closing->verified,
+            'closed_by_user' => $closing->closedByUser ? [
+                'id' => $closing->closedByUser->id,
+                'name' => $closing->closedByUser->name,
+            ] : null,
+            'verified_by_user' => $closing->verifiedByUser ? [
+                'id' => $closing->verifiedByUser->id,
+                'name' => $closing->verifiedByUser->name,
+            ] : null,
+            'verified_at' => $closing->verified_at?->toISOString(),
+        ];
+    }
+}

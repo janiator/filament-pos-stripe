@@ -74,6 +74,22 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * Get POS sessions for this store
+     */
+    public function posSessions()
+    {
+        return $this->hasMany(\App\Models\PosSession::class);
+    }
+
+    /**
+     * Get POS session closings for this store
+     */
+    public function posSessionClosings()
+    {
+        return $this->hasMany(\App\Models\PosSessionClosing::class);
+    }
+
+    /**
      * Get the connected charges for this store
      */
     public function connectedCharges()

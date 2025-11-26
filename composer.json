@@ -13,6 +13,8 @@
         "lanos/laravel-cashier-stripe-connect": "^1.2",
         "laravel/cashier": "^15.0",
         "laravel/framework": "^12.0",
+        "laravel/horizon": "^5.40",
+        "laravel/pulse": "^1.4",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1"
     },

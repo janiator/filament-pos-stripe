@@ -9,6 +9,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use App\Models\Store;
 use App\Filament\Resources\Shield\Roles\RoleResource;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -21,6 +22,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Support\Enums\Width;
 
 class AppPanelProvider extends PanelProvider
 {
@@ -39,6 +41,7 @@ class AppPanelProvider extends PanelProvider
             ->resources([
                 RoleResource::class, // Register before plugin so plugin detects it
             ])
+            ->maxContentWidth(Width::Full)
             ->plugin(FilamentShieldPlugin::make())
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -63,6 +66,20 @@ class AppPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+            ])
+            ->navigationItems([
+                NavigationItem::make('Horizon')
+                    ->label('Horizon')
+                    ->url('/horizon', shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-chart-bar-square')
+                    ->group('System')
+                    ->sort(100),
+                NavigationItem::make('Pulse')
+                    ->label('Pulse')
+                    ->url('/pulse', shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-heart')
+                    ->group('System')
+                    ->sort(101),
             ]);
     }
 }

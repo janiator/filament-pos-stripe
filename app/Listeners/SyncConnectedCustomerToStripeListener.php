@@ -32,8 +32,7 @@ class SyncConnectedCustomerToStripeListener
             return;
         }
 
-        $action = new UpdateConnectedCustomerToStripe();
-        $action($customer);
+        \App\Jobs\SyncConnectedCustomerToStripeJob::dispatch($customer);
     }
 }
 
