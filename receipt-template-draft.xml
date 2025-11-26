@@ -1,0 +1,77 @@
+<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
+    <feed line="1"/>
+    <logo key1="34" key2="48"/>
+    <text lang="en"/>
+    <text reverse="false" ul="false" em="false" color="color_1"/>
+    <text width="1" height="1"/>
+    <text reverse="false" ul="false" em="true" color="color_1"/>
+    <text>Visivo AS</text>
+    <feed/>
+    <text reverse="false" ul="false" em="false" color="color_1"/>
+    <text lang="en"/>
+    <text>Org.nr.: 924 345 861 MVA</text>
+    <feed/>
+    <text lang="en"/>
+    <text>Depotgata 20, 2000 Lillestrøm</text>
+    <feed line="2"/>
+    <text reverse="false" ul="false" em="true" color="color_1"/>
+    <text>SALGSKVITTERING</text>
+    <feed line="1"/>
+    <text lang="en"/>
+    <text reverse="false" ul="false" em="false" color="color_1"/>
+    <text lang="en"/>
+    <text>Kasse-ID: 01   Ansatt: ANSATT01</text>
+    <feed/>
+    <text lang="en"/>
+    <text>Transaksjons: 000123</text>
+    <feed/>
+    <text lang="en"/>
+    <text>Dato: 06.11.2025 14:23</text>
+    <feed/>
+    <text lang="en"/>
+    <text>——————————————————————————————————————————</text>
+    <feed/>
+    <text lang="en"/>
+    <feed/>
+    <text>Treboks liten        1 x 299,00   299,00</text>
+    <feed/>
+    <text lang="en"/>
+    <text>Fjellkaffe 250g      1 x 149,00   149,00</text>
+    <feed line="2"/>
+    <text lang="en"/>
+    <text>——————————————————————————————————————————</text>
+    <feed/>
+    <text reverse="false" ul="false" em="true" color="color_1"/>
+    <text>Total                         448,00 NOK</text>
+    <feed/>
+    <text>——————————————————————————————————————————</text>
+    <feed/>
+    <text lang="en"/>
+    <text reverse="false" ul="false" em="true" color="color_1"/>
+    <text>MVA-sats(Grunnlag)                   MVA</text>
+    <text reverse="false" ul="false" em="false" color="color_1"/>
+    <feed/>
+    <text>25%(358,40)                        89,60</text>
+    <text lang="en"/>
+    <feed/>
+    <text lang="en"/>
+    <feed/>
+    <text>Betalingsmiddel: Kort</text>
+    <feed/>
+    <text>Terminalnr: 112233</text>
+    <feed/>
+    <text>Visa</text>
+    <feed/>
+    <text>429942xxxx0000</text>
+    <feed/>
+    <text>Totalbeløp: NOK 448,00</text>
+    <feed line="2"/>
+    <barcode type="code128" hri="none" font="font_a" width="2" height="40">SALG-000123</barcode>
+    <feed/>
+    <text lang="en"/>
+    <text>——————————————————————————————————————————</text>
+    <text>Kontakt butikken ved spørsmål om retur og reklamasjon. Ta med kvittering.</text>
+    <feed/>
+    <feed/>
+    <text font="font_a"/>
+</epos-print>
