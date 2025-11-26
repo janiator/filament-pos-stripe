@@ -5,34 +5,39 @@
     <text reverse="false" ul="false" em="false" color="color_1"/>
     <text width="1" height="1"/>
     <text reverse="false" ul="false" em="true" color="color_1"/>
-    <text>Visivo AS</text>
+    <text>{{store_name}}</text>
     <feed/>
     <text reverse="false" ul="false" em="false" color="color_1"/>
-    <text>Org.nr.: 924 345 861 MVA</text>
+    <text>Org.nr.: {{organization_number}} MVA</text>
     <feed/>
-    <text>Depotgata 20, 2000 Lillestrøm</text>
+    <text>{{store_address}}</text>
     <feed line="2"/>
     <text reverse="false" ul="false" em="true" color="color_1"/>
     <text>RETURKVITTERING</text>
     <text reverse="false" ul="false" em="false" color="color_1"/>
     <feed line="1"/>
-    <text>Kasse-ID: 01   Ansatt: ANSATT01</text>
+    <text>Kasse-ID: {{session_number}}   Ansatt: {{cashier_name}}</text>
     <feed/>
-    <text>Transaksjons-ID: R000123</text>
+    <text>Transaksjons-ID: {{transaction_id}}</text>
     <feed/>
-    <text>Dato: 06.11.2025 15:02</text>
+    <text>Dato: {{date_time}}</text>
     <feed/>
+    {{#original_receipt_number}}
+    <text>Original kvittering: {{original_receipt_number}}</text>
+    <feed/>
+    {{/original_receipt_number}}
     <text>——————————————————————————————————————————</text>
     <feed/>
     <feed/>
-    <text>Treboks liten        1 x -299,00   -299,00</text>
+    {{#items}}
+    <text>{{name}}        {{quantity}} x -{{unit_price}}   -{{line_total}}</text>
     <feed/>
-    <text>Fjellkaffe 250g      1 x -149,00   -149,00</text>
+    {{/items}}
     <feed line="2"/>
     <text>——————————————————————————————————————————</text>
     <feed/>
     <text reverse="false" ul="false" em="true" color="color_1"/>
-    <text>Total                        -448,00 NOK</text>
+    <text>Total                        -{{total_amount}} {{currency}}</text>
     <feed/>
     <text>——————————————————————————————————————————</text>
     <feed/>
@@ -40,19 +45,25 @@
     <text>MVA-sats(Grunnlag)                   MVA</text>
     <text reverse="false" ul="false" em="false" color="color_1"/>
     <feed/>
-    <text>25%(-358,40)                       -89,60</text>
+    <text>{{vat_rate}}%(-{{vat_base}})                       -{{vat_amount}}</text>
     <feed line="2"/>
-    <text>Betalingsmiddel: Tilbakeført til kort</text>
+    <text>Betalingsmiddel: Tilbakeført til {{payment_method_display}}</text>
+    {{#terminal_number}}
     <feed/>
-    <text>Terminalnr: 112233</text>
+    <text>Terminalnr: {{terminal_number}}</text>
+    {{/terminal_number}}
+    {{#card_brand}}
     <feed/>
-    <text>Visa</text>
+    <text>{{card_brand}}</text>
+    {{/card_brand}}
+    {{#card_last4}}
     <feed/>
-    <text>429942xxxx0000</text>
+    <text>{{card_last4}}</text>
+    {{/card_last4}}
     <feed/>
-    <text>Returbeløp: NOK -448,00</text>
+    <text>Returbeløp: {{currency}} -{{total_amount}}</text>
     <feed line="2"/>
-    <barcode type="code128" hri="none" font="font_a" width="2" height="40">RETUR-R000123</barcode>
+    <barcode type="code128" hri="none" font="font_a" width="2" height="40">{{receipt_number}}</barcode>
     <feed/>
     <text>——————————————————————————————————————————</text>
     <text>Takk for besøket, velkommen igjen!</text>
@@ -60,3 +71,4 @@
     <feed/>
     <text font="font_a"/>
 </epos-print>
+

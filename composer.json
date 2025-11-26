@@ -16,7 +16,8 @@
         "laravel/horizon": "^5.40",
         "laravel/pulse": "^1.4",
         "laravel/sanctum": "^4.0",
-        "laravel/tinker": "^2.10.1"
+        "laravel/tinker": "^2.10.1",
+        "mustache/mustache": "^3.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

@@ -76,6 +76,9 @@ class Receipt extends Model
      */
     public static function generateReceiptNumber(int $storeId, string $receiptType = 'sales'): string
     {
+        $config = config('receipts.types.' . $receiptType, ['prefix' => 'X']);
+        $prefix = $config['prefix'] ?? 'X';
+
         // Get last receipt number for this store and type
         $lastReceipt = static::where('store_id', $storeId)
             ->where('receipt_type', $receiptType)
@@ -83,26 +86,25 @@ class Receipt extends Model
             ->first();
 
         if ($lastReceipt) {
-            // Extract number and increment
-            $lastNumber = (int) preg_replace('/[^0-9]/', '', $lastReceipt->receipt_number);
-            $nextNumber = $lastNumber + 1;
+            // Extract number from receipt number (format: STOREID-PREFIX-000001)
+            // Try to extract the sequential number
+            $pattern = '/' . preg_quote($storeId . '-' . $prefix . '-', '/') . '(\d+)/';
+            if (preg_match($pattern, $lastReceipt->receipt_number, $matches)) {
+                $nextNumber = (int) $matches[1] + 1;
+            } else {
+                // Fallback: try to extract any number at the end
+                if (preg_match('/(\d+)$/', $lastReceipt->receipt_number, $matches)) {
+                    $nextNumber = (int) $matches[1] + 1;
+                } else {
+                    $nextNumber = 1;
+                }
+            }
         } else {
             $nextNumber = 1;
         }
 
-        // Format: STOREID-TYPE-000001
-        $prefix = match($receiptType) {
-            'sales' => 'S',
-            'return' => 'R',
-            'copy' => 'C',
-            'steb' => 'STEB',
-            'provisional' => 'P',
-            'training' => 'T',
-            'delivery' => 'D',
-            default => 'X',
-        };
-
-        return sprintf('%s-%s-%06d', $storeId, $prefix, $nextNumber);
+        // Format: STOREID-PREFIX-000001
+        return sprintf('%d-%s-%06d', $storeId, $prefix, $nextNumber);
     }
 
     /**

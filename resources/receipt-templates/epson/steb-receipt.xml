@@ -1,0 +1,33 @@
+<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
+    <feed line="1"/>
+    <logo key1="34" key2="48"/>
+    <text lang="en"/>
+    <text reverse="false" ul="false" em="false" color="color_1"/>
+    <text width="1" height="1"/>
+    <text reverse="false" ul="false" em="true" color="color_1"/>
+    <text>{{store_name}}</text>
+    <feed/>
+    <text reverse="false" ul="false" em="false" color="color_1"/>
+    <text>Org.nr.: {{organization_number}} MVA</text>
+    <feed/>
+    <text>{{store_address}}</text>
+    <feed line="2"/>
+    <text reverse="false" ul="false" em="true" color="color_1" width="2" height="2"/>
+    <text>STEB-kvittering</text>
+    <feed line="1"/>
+    <text reverse="false" ul="false" em="false" color="color_1" width="1" height="1"/>
+    <text lang="en"/>
+    <text>Dato: {{date_time}}</text>
+    <feed/>
+    <text>Kasse-ID: {{session_number}}</text>
+    <feed/>
+    <text>——————————————————————————————————————————</text>
+    <feed/>
+    <text>STEB-kvittering generert</text>
+    <feed line="2"/>
+    <text>——————————————————————————————————————————</text>
+    <feed/>
+    <feed/>
+    <text font="font_a"/>
+</epos-print>
+

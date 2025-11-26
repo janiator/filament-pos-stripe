@@ -146,8 +146,47 @@ class ReceiptsController extends BaseApiController
             ->with(['posSession', 'charge', 'user', 'originalReceipt'])
             ->firstOrFail();
 
+        $response = $this->formatReceiptResponse($receipt);
+
+        // Include XML if available
+        if (isset($receipt->receipt_data['xml'])) {
+            $response['xml'] = $receipt->receipt_data['xml'];
+        }
+
         return response()->json([
-            'receipt' => $this->formatReceiptResponse($receipt),
+            'receipt' => $response,
+        ]);
+    }
+
+    /**
+     * Get receipt XML for printing
+     */
+    public function xml(Request $request, string $id): \Illuminate\Http\Response
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response('Store not found', 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $receipt = Receipt::where('id', $id)
+            ->where('store_id', $store->id)
+            ->firstOrFail();
+
+        // Render XML if not already rendered
+        if (!isset($receipt->receipt_data['xml'])) {
+            $templateService = app(\App\Services\ReceiptTemplateService::class);
+            $templateService->renderAndSave($receipt);
+            $receipt->refresh();
+        }
+
+        $xml = $receipt->receipt_data['xml'] ?? '';
+
+        return response($xml, 200, [
+            'Content-Type' => 'application/xml; charset=utf-8',
+            'Content-Disposition' => 'inline; filename="receipt-' . $receipt->receipt_number . '.xml"',
         ]);
     }
 

@@ -74,6 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/receipts', [\App\Http\Controllers\Api\ReceiptsController::class, 'index'])->name('api.receipts.index');
     Route::post('/receipts/generate', [\App\Http\Controllers\Api\ReceiptsController::class, 'generate'])->name('api.receipts.generate');
     Route::get('/receipts/{id}', [\App\Http\Controllers\Api\ReceiptsController::class, 'show'])->name('api.receipts.show');
+    Route::get('/receipts/{id}/xml', [\App\Http\Controllers\Api\ReceiptsController::class, 'xml'])->name('api.receipts.xml');
     Route::post('/receipts/{id}/mark-printed', [\App\Http\Controllers\Api\ReceiptsController::class, 'markPrinted'])->name('api.receipts.mark-printed');
     Route::post('/receipts/{id}/reprint', [\App\Http\Controllers\Api\ReceiptsController::class, 'reprint'])->name('api.receipts.reprint');
     

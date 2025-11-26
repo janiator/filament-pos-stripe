@@ -6,9 +6,16 @@ use App\Models\Receipt;
 use App\Models\ConnectedCharge;
 use App\Models\Store;
 use App\Models\PosSession;
+use App\Models\ConnectedProduct;
 
 class ReceiptGenerationService
 {
+    protected ReceiptTemplateService $templateService;
+
+    public function __construct(ReceiptTemplateService $templateService)
+    {
+        $this->templateService = $templateService;
+    }
     /**
      * Generate a sales receipt for a charge
      */
@@ -17,31 +24,56 @@ class ReceiptGenerationService
         $store = $charge->store;
         $session = $session ?? $charge->posSession;
 
+        // Get items from charge metadata or create default
+        $items = [];
+        if (isset($charge->metadata['items']) && is_array($charge->metadata['items'])) {
+            $items = $charge->metadata['items'];
+        } else {
+            // Try to get product from charge metadata
+            $productId = $charge->metadata['product_id'] ?? null;
+            if ($productId) {
+                $product = ConnectedProduct::find($productId);
+                if ($product) {
+                    $quantity = $charge->metadata['quantity'] ?? 1;
+                    $unitPrice = ($charge->amount / 100) / $quantity;
+                    $items[] = [
+                        'name' => $product->name,
+                        'quantity' => $quantity,
+                        'unit_price' => number_format($unitPrice, 2, ',', ' '),
+                        'line_total' => number_format($charge->amount / 100, 2, ',', ' '),
+                    ];
+                }
+            } else {
+                // Fallback: single item
+                $items[] = [
+                    'name' => $charge->description ?? 'Vare',
+                    'quantity' => 1,
+                    'unit_price' => number_format($charge->amount / 100, 2, ',', ' '),
+                    'line_total' => number_format($charge->amount / 100, 2, ',', ' '),
+                ];
+            }
+        }
+
+        $storeMetadata = is_array($store->metadata) ? $store->metadata : json_decode($store->metadata ?? '{}', true);
+
         $receiptData = [
             'store' => [
                 'name' => $store->name,
-                'address' => $store->metadata['address'] ?? '',
-                'organization_number' => $store->metadata['organization_number'] ?? '',
+                'address' => $storeMetadata['address'] ?? '',
+                'organization_number' => $storeMetadata['organization_number'] ?? '',
             ],
             'receipt_number' => Receipt::generateReceiptNumber($store->id, 'sales'),
             'date' => $charge->paid_at?->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s'),
             'transaction_id' => $charge->stripe_charge_id,
             'session_number' => $session?->session_number,
             'cashier' => $session?->user?->name ?? 'Unknown',
-            'items' => [
-                [
-                    'description' => $charge->description ?? 'Sale',
-                    'quantity' => 1,
-                    'price' => $charge->amount / 100,
-                    'total' => $charge->amount / 100,
-                ],
-            ],
+            'items' => $items,
             'subtotal' => $charge->amount / 100,
             'tax' => $this->calculateTax($charge),
             'total' => $charge->amount / 100,
             'payment_method' => $charge->payment_method,
             'payment_code' => $charge->payment_code,
-            'tip_amount' => $charge->tip_amount / 100,
+            'tip_amount' => $charge->tip_amount > 0 ? $charge->tip_amount / 100 : null,
         ];
 
         $receipt = Receipt::create([
@@ -54,6 +86,9 @@ class ReceiptGenerationService
             'receipt_data' => $receiptData,
         ]);
 
+        // Render and save XML template
+        $this->templateService->renderAndSave($receipt);
+
         return $receipt;
     }
 
@@ -65,10 +100,35 @@ class ReceiptGenerationService
         $store = $charge->store;
         $session = $charge->posSession;
 
+        // Get items from original receipt or charge
+        $items = [];
+        if (isset($originalReceipt->receipt_data['items'])) {
+            // Use original items but with negative amounts
+            foreach ($originalReceipt->receipt_data['items'] as $item) {
+                $items[] = [
+                    'name' => $item['name'] ?? $item['description'] ?? 'Vare',
+                    'quantity' => $item['quantity'] ?? 1,
+                    'unit_price' => $item['unit_price'] ?? number_format($charge->amount_refunded / 100, 2, ',', ' '),
+                    'line_total' => '-' . ($item['line_total'] ?? number_format($charge->amount_refunded / 100, 2, ',', ' ')),
+                ];
+            }
+        } else {
+            // Fallback: single item
+            $items[] = [
+                'name' => $charge->description ?? 'Retur',
+                'quantity' => 1,
+                'unit_price' => number_format($charge->amount_refunded / 100, 2, ',', ' '),
+                'line_total' => '-' . number_format($charge->amount_refunded / 100, 2, ',', ' '),
+            ];
+        }
+
+        $storeMetadata = is_array($store->metadata) ? $store->metadata : json_decode($store->metadata ?? '{}', true);
+
         $receiptData = [
             'store' => [
                 'name' => $store->name,
-                'address' => $store->metadata['address'] ?? '',
+                'address' => $storeMetadata['address'] ?? '',
+                'organization_number' => $storeMetadata['organization_number'] ?? '',
             ],
             'receipt_number' => Receipt::generateReceiptNumber($store->id, 'return'),
             'date' => now()->format('Y-m-d H:i:s'),
@@ -76,6 +136,7 @@ class ReceiptGenerationService
             'transaction_id' => $charge->stripe_charge_id,
             'refund_amount' => $charge->amount_refunded / 100,
             'original_amount' => $charge->amount / 100,
+            'items' => $items,
         ];
 
         $receipt = Receipt::create([
@@ -88,6 +149,9 @@ class ReceiptGenerationService
             'original_receipt_id' => $originalReceipt->id,
             'receipt_data' => $receiptData,
         ]);
+
+        // Render and save XML template
+        $this->templateService->renderAndSave($receipt);
 
         return $receipt;
     }
