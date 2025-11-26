@@ -1,0 +1,238 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Models\Receipt;
+use App\Models\ConnectedCharge;
+use App\Services\ReceiptGenerationService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ReceiptsController extends BaseApiController
+{
+    protected ReceiptGenerationService $receiptService;
+
+    public function __construct(ReceiptGenerationService $receiptService)
+    {
+        $this->receiptService = $receiptService;
+    }
+
+    /**
+     * List receipts for the current store
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $query = Receipt::where('store_id', $store->id)
+            ->with(['posSession', 'charge', 'user', 'originalReceipt']);
+
+        // Filter by receipt type
+        if ($request->has('receipt_type')) {
+            $query->where('receipt_type', $request->get('receipt_type'));
+        }
+
+        // Filter by session
+        if ($request->has('pos_session_id')) {
+            $query->where('pos_session_id', $request->get('pos_session_id'));
+        }
+
+        // Filter by printed status
+        if ($request->has('printed')) {
+            $query->where('printed', $request->boolean('printed'));
+        }
+
+        // Filter by date range
+        if ($request->has('from_date')) {
+            $query->whereDate('created_at', '>=', $request->get('from_date'));
+        }
+        if ($request->has('to_date')) {
+            $query->whereDate('created_at', '<=', $request->get('to_date'));
+        }
+
+        $receipts = $query->orderBy('created_at', 'desc')
+            ->paginate($request->get('per_page', 20));
+
+        return response()->json([
+            'receipts' => $receipts->getCollection()->map(function ($receipt) {
+                return $this->formatReceiptResponse($receipt);
+            }),
+            'pagination' => [
+                'current_page' => $receipts->currentPage(),
+                'last_page' => $receipts->lastPage(),
+                'per_page' => $receipts->perPage(),
+                'total' => $receipts->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Generate a receipt for a charge
+     */
+    public function generate(Request $request): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $validated = $request->validate([
+            'charge_id' => 'required|exists:connected_charges,id',
+            'receipt_type' => 'nullable|in:sales,return,copy,steb,provisional,training,delivery',
+            'pos_session_id' => 'nullable|exists:pos_sessions,id',
+        ]);
+
+        $charge = ConnectedCharge::where('id', $validated['charge_id'])
+            ->where('stripe_account_id', $store->stripe_account_id)
+            ->firstOrFail();
+
+        $session = isset($validated['pos_session_id']) 
+            ? \App\Models\PosSession::find($validated['pos_session_id'])
+            : $charge->posSession;
+
+        $receiptType = $validated['receipt_type'] ?? 'sales';
+
+        if ($receiptType === 'sales') {
+            $receipt = $this->receiptService->generateSalesReceipt($charge, $session);
+        } else {
+            // For other types, create a basic receipt
+            $receipt = Receipt::create([
+                'store_id' => $store->id,
+                'pos_session_id' => $session?->id,
+                'charge_id' => $charge->id,
+                'user_id' => $request->user()->id,
+                'receipt_number' => Receipt::generateReceiptNumber($store->id, $receiptType),
+                'receipt_type' => $receiptType,
+                'receipt_data' => [
+                    'store' => [
+                        'name' => $store->name,
+                    ],
+                    'charge_id' => $charge->stripe_charge_id,
+                    'amount' => $charge->amount / 100,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Receipt generated successfully',
+            'receipt' => $this->formatReceiptResponse($receipt->load(['posSession', 'charge', 'user'])),
+        ], 201);
+    }
+
+    /**
+     * Get a specific receipt
+     */
+    public function show(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $receipt = Receipt::where('id', $id)
+            ->where('store_id', $store->id)
+            ->with(['posSession', 'charge', 'user', 'originalReceipt'])
+            ->firstOrFail();
+
+        return response()->json([
+            'receipt' => $this->formatReceiptResponse($receipt),
+        ]);
+    }
+
+    /**
+     * Mark receipt as printed
+     */
+    public function markPrinted(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $receipt = Receipt::where('id', $id)
+            ->where('store_id', $store->id)
+            ->firstOrFail();
+
+        $receipt->markAsPrinted();
+
+        return response()->json([
+            'message' => 'Receipt marked as printed',
+            'receipt' => $this->formatReceiptResponse($receipt->load(['posSession', 'charge', 'user'])),
+        ]);
+    }
+
+    /**
+     * Reprint receipt
+     */
+    public function reprint(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $receipt = Receipt::where('id', $id)
+            ->where('store_id', $store->id)
+            ->firstOrFail();
+
+        $receipt->incrementReprint();
+
+        return response()->json([
+            'message' => 'Receipt reprinted',
+            'receipt' => $this->formatReceiptResponse($receipt->load(['posSession', 'charge', 'user'])),
+        ]);
+    }
+
+    /**
+     * Format receipt for API response
+     */
+    protected function formatReceiptResponse(Receipt $receipt): array
+    {
+        return [
+            'id' => $receipt->id,
+            'receipt_number' => $receipt->receipt_number,
+            'receipt_type' => $receipt->receipt_type,
+            'store_id' => $receipt->store_id,
+            'pos_session_id' => $receipt->pos_session_id,
+            'pos_session' => $receipt->posSession ? [
+                'id' => $receipt->posSession->id,
+                'session_number' => $receipt->posSession->session_number,
+            ] : null,
+            'charge_id' => $receipt->charge_id,
+            'charge' => $receipt->charge ? [
+                'id' => $receipt->charge->id,
+                'stripe_charge_id' => $receipt->charge->stripe_charge_id,
+                'amount' => $receipt->charge->amount,
+            ] : null,
+            'user_id' => $receipt->user_id,
+            'user' => $receipt->user ? [
+                'id' => $receipt->user->id,
+                'name' => $receipt->user->name,
+            ] : null,
+            'original_receipt_id' => $receipt->original_receipt_id,
+            'receipt_data' => $receipt->receipt_data,
+            'printed' => $receipt->printed,
+            'printed_at' => $receipt->printed_at?->toISOString(),
+            'reprint_count' => $receipt->reprint_count,
+            'created_at' => $receipt->created_at->toISOString(),
+        ];
+    }
+}

@@ -64,6 +64,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/saf-t/generate', [\App\Http\Controllers\Api\SafTController::class, 'generate'])->name('api.saf-t.generate');
     Route::get('/saf-t/content', [\App\Http\Controllers\Api\SafTController::class, 'content'])->name('api.saf-t.content');
     Route::get('/saf-t/download/{filename}', [\App\Http\Controllers\Api\SafTController::class, 'download'])->name('api.saf-t.download');
+
+    // POS Event endpoints
+    Route::get('/pos-events', [\App\Http\Controllers\Api\PosEventsController::class, 'index'])->name('api.pos-events.index');
+    Route::post('/pos-events', [\App\Http\Controllers\Api\PosEventsController::class, 'store'])->name('api.pos-events.store');
+    Route::get('/pos-events/{id}', [\App\Http\Controllers\Api\PosEventsController::class, 'show'])->name('api.pos-events.show');
+
+    // Receipt endpoints
+    Route::get('/receipts', [\App\Http\Controllers\Api\ReceiptsController::class, 'index'])->name('api.receipts.index');
+    Route::post('/receipts/generate', [\App\Http\Controllers\Api\ReceiptsController::class, 'generate'])->name('api.receipts.generate');
+    Route::get('/receipts/{id}', [\App\Http\Controllers\Api\ReceiptsController::class, 'show'])->name('api.receipts.show');
+    Route::post('/receipts/{id}/mark-printed', [\App\Http\Controllers\Api\ReceiptsController::class, 'markPrinted'])->name('api.receipts.mark-printed');
+    Route::post('/receipts/{id}/reprint', [\App\Http\Controllers\Api\ReceiptsController::class, 'reprint'])->name('api.receipts.reprint');
     
     // Note: Add more API resources here following the same pattern:
     // Route::apiResource('subscriptions', \App\Http\Controllers\Api\SubscriptionsController::class);
