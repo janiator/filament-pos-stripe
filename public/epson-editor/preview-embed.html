@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Receipt Preview</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        iframe {
+            width: 100%;
+            height: 100vh;
+            border: none;
+        }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: Arial, sans-serif;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">Loading receipt preview...</div>
+    <iframe id="editor-frame" src="/epson-editor/index.html" style="display: none;"></iframe>
+    <script>
+        // Get XML from URL parameter (base64 encoded to avoid URI issues)
+        function getXmlData() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const xmlBase64 = urlParams.get('xml');
+                if (xmlBase64) {
+                    try {
+                        // Decode base64
+                        return atob(xmlBase64);
+                    } catch(e) {
+                        console.error('Error decoding base64 XML:', e);
+                        return null;
+                    }
+                }
+            } catch(e) {
+                console.error('Error getting XML data:', e);
+            }
+            return null;
+        }
+        
+        const iframe = document.getElementById('editor-frame');
+        const xmlData = getXmlData();
+        let attempts = 0;
+        const maxAttempts = 30; // Try for 15 seconds (30 * 500ms)
+        
+        iframe.onload = function() {
+            if (xmlData) {
+                // Wait for editor to initialize
+                const tryImport = setInterval(function() {
+                    attempts++;
+                    try {
+                        const iframeWindow = iframe.contentWindow;
+                        const iframeDoc = iframe.contentDocument || iframeWindow.document;
+                        
+                        // Check if jQuery and editor are loaded
+                        if (iframeWindow.$ && iframeDoc.getElementById('import-doc')) {
+                            clearInterval(tryImport);
+                            document.getElementById('loading').style.display = 'none';
+                            iframe.style.display = 'block';
+                            
+                            // Set the XML in the import textarea
+                            iframeWindow.$('#import-doc').val(xmlData);
+                            
+                            // Call the import function (it's defined in the editor's global scope)
+                            if (iframeWindow.importDoc) {
+                                iframeWindow.importDoc();
+                            } else {
+                                // Try to trigger the import button click
+                                iframeWindow.$('#import-apply').click();
+                            }
+                            
+                            // Switch to preview tab after a short delay
+                            setTimeout(function() {
+                                iframeWindow.$('#tabs').tabs('option', 'active', 1);
+                                // Trigger preview draw
+                                if (iframeWindow.drawPreview) {
+                                    iframeWindow.drawPreview();
+                                }
+                            }, 1000);
+                        } else if (attempts >= maxAttempts) {
+                            clearInterval(tryImport);
+                            document.getElementById('loading').textContent = 'Failed to load editor. Please refresh.';
+                        }
+                    } catch(e) {
+                        if (attempts >= maxAttempts) {
+                            clearInterval(tryImport);
+                            console.error('Error loading XML:', e);
+                            document.getElementById('loading').textContent = 'Error loading preview: ' + e.message;
+                        }
+                    }
+                }, 500);
+            } else {
+                document.getElementById('loading').style.display = 'none';
+                iframe.style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html>

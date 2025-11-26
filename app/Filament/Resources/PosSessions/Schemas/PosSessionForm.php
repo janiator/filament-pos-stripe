@@ -26,7 +26,24 @@ class PosSessionForm
                         Select::make('pos_device_id')
                             ->relationship('posDevice', 'device_name')
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, $get) {
+                                // If status is open, check for existing open session
+                                if ($get('status') === 'open' && $state) {
+                                    $existingSession = \App\Models\PosSession::where('pos_device_id', $state)
+                                        ->where('status', 'open')
+                                        ->first();
+                                    
+                                    if ($existingSession) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Device has open session')
+                                            ->warning()
+                                            ->body("This device already has an open session: {$existingSession->session_number}. Please close it first.")
+                                            ->send();
+                                    }
+                                }
+                            }),
 
                         Select::make('user_id')
                             ->relationship('user', 'name')
@@ -92,7 +109,6 @@ class PosSessionForm
                             ->numeric()
                             ->disabled()
                             ->suffix('kr')
-                            ->color(fn ($state) => $state > 0 ? 'success' : ($state < 0 ? 'danger' : 'gray'))
                             ->helperText('Difference between expected and actual'),
                     ])
                     ->columns(2)

@@ -21,20 +21,31 @@ class ReceiptGenerationService
      */
     public function generateSalesReceipt(ConnectedCharge $charge, ?PosSession $session = null): Receipt
     {
-        $store = $charge->store;
         $session = $session ?? $charge->posSession;
+        
+        // Get store from session or find by stripe_account_id
+        $store = $session?->store;
+        if (!$store && $charge->stripe_account_id) {
+            $store = Store::where('stripe_account_id', $charge->stripe_account_id)->first();
+        }
+        
+        if (!$store) {
+            throw new \Exception('Cannot generate receipt: Store not found for charge');
+        }
 
         // Get items from charge metadata or create default
         $items = [];
-        if (isset($charge->metadata['items']) && is_array($charge->metadata['items'])) {
-            $items = $charge->metadata['items'];
+        $metadata = is_array($charge->metadata) ? $charge->metadata : json_decode($charge->metadata ?? '{}', true);
+        
+        if (isset($metadata['items']) && is_array($metadata['items'])) {
+            $items = $metadata['items'];
         } else {
             // Try to get product from charge metadata
-            $productId = $charge->metadata['product_id'] ?? null;
+            $productId = $metadata['product_id'] ?? null;
             if ($productId) {
                 $product = ConnectedProduct::find($productId);
                 if ($product) {
-                    $quantity = $charge->metadata['quantity'] ?? 1;
+                    $quantity = $metadata['quantity'] ?? 1;
                     $unitPrice = ($charge->amount / 100) / $quantity;
                     $items[] = [
                         'name' => $product->name,
@@ -97,8 +108,17 @@ class ReceiptGenerationService
      */
     public function generateReturnReceipt(ConnectedCharge $charge, Receipt $originalReceipt): Receipt
     {
-        $store = $charge->store;
         $session = $charge->posSession;
+        
+        // Get store from session or find by stripe_account_id
+        $store = $session?->store;
+        if (!$store && $charge->stripe_account_id) {
+            $store = Store::where('stripe_account_id', $charge->stripe_account_id)->first();
+        }
+        
+        if (!$store) {
+            throw new \Exception('Cannot generate receipt: Store not found for charge');
+        }
 
         // Get items from original receipt or charge
         $items = [];

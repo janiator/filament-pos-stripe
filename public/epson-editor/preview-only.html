@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Receipt Preview</title>
+    <link type="text/css" href="/epson-editor/css/smoothness/jquery-ui-1.8.18.custom.css" rel="stylesheet" />
+    <link type="text/css" href="/epson-editor/css/epos-print-editor.css" rel="stylesheet" />
+    <script type="text/javascript" src="/epson-editor/js/jquery-1.7.1.min.js"></script>
+    <script type="text/javascript" src="/epson-editor/js/jquery-ui-1.8.18.custom.min.js"></script>
+    <script type="text/javascript" src="/epson-editor/js/jquery.ui.touch-punch.min.js"></script>
+    <script type="text/javascript" src="/epson-editor/js/epos-2.14.0.js"></script>
+    <script type="text/javascript" src="/epson-editor/js/epos-print-editor-en.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            background: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+        .preview-container {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        #preview-paper {
+            background: white;
+            padding: 20px;
+            min-height: 200px;
+            overflow-x: auto;
+        }
+        #preview-paper canvas {
+            display: block;
+            margin: 0 auto;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="loading" id="loading">Loading receipt preview...</div>
+        <div id="preview-content" style="display: none;">
+            <h2 style="margin-top: 0; margin-bottom: 20px;">Receipt Preview</h2>
+            <div id="preview-paper">
+                <div id="preview-width">
+                    <span>512</span><br />
+                    <img src="/epson-editor/img/v.png" alt="" /><img src="/epson-editor/img/h.png" width="510" height="10" alt="" /><img src="/epson-editor/img/v.png" alt="" /><br />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden elements needed for preview functionality -->
+    <canvas class="hidden" id="epos-image" width="1" height="1"></canvas>
+    <canvas class="hidden" id="epos-logo" width="1" height="1"></canvas>
+    <canvas class="hidden" id="preview-text" width="576" height="192"></canvas>
+    <canvas class="hidden preview-line" id="preview-line" width="576" height="48"></canvas>
+    <canvas class="hidden" id="preview-page" width="576" height="2400"></canvas>
+    <canvas class="hidden" id="preview-area" width="576" height="2400"></canvas>
+    <canvas class="hidden" id="preview-rotate" width="576" height="2400"></canvas>
+    <div class="hidden preview-break"></div>
+    <div class="hidden" id="preview-info">Actual print result from the printer may differ from the preview image.</div>
+    
+    <!-- Hidden edit sequence container (needed for import) -->
+    <div class="hidden" id="edit-sequence"></div>
+    <input class="hidden" id="edit-force" type="checkbox" />
+    
+    <!-- Import dialog elements (must be visible for editor to work) -->
+    <div id="import" title="Import" style="display: none;">
+        <p>
+            Data to be import (ePOS-Print XML)<br />
+            <textarea id="import-doc" cols="30" rows="10"></textarea><br />
+            <button id="import-apply">Apply</button>
+        </p>
+        <p>
+            Information<br />
+            <textarea id="import-info" cols="30" rows="8"></textarea><br />
+        </p>
+    </div>
+    
+    <!-- Import confirmation dialog -->
+    <div id="import-confirm" title="Confirmation" style="display: none;">
+        <p>Data you are editing will be deleted. Do you want to continue?</p>
+    </div>
+    
+    <!-- Hidden setting elements (required by editor script - must match original structure) -->
+    <div class="hidden" id="setting">
+        <h3>Preview</h3>
+        <p>
+            Model, Paper width (Liner width)<br />
+            <select id="setting-model">
+                <option value="tm_t88_80" selected="selected">TM-T88 series (80mm)</option>
+                <option value="tm_t88_58">TM-T88 series (58mm)</option>
+                <option value="tm_t70_80">TM-T70 series (80mm)</option>
+                <option value="tm_t70_m8">TM-T70 series (Multi-language, 80mm)</option>
+                <option value="tm_t70_m5">TM-T70 series (Multi-language, 58mm)</option>
+                <option value="tm_t90_80">TM-T90 series (80mm)</option>
+                <option value="tm_t90_60">TM-T90 series (60mm)</option>
+                <option value="tm_t90_58">TM-T90 series (58mm)</option>
+                <option value="tm_l90_re">TM-L90 (Receipt)</option>
+                <option value="tm_l90_la">TM-L90 (Label)</option>
+                <option value="tm_p60_60">TM-P60 series (60mm)</option>
+                <option value="tm_p60_58">TM-P60 series (58mm)</option>
+                <option value="tm_p60_la">TM-P60 series (Label)</option>
+                <option value="tm_p80_48">TM-P80 series(80mm)</option>
+                <option value="tm_p80_42">TM-P80 series(80mm, 42 column mode)</option>
+                <option value="tm_p20_58">TM-P20 series(58mm)</option>
+                <option value="tm_t20_80">TM-T20 series(80mm)</option>
+                <option value="tm_t20_58">TM-T20 series(58mm)</option>
+                <option value="tm_t82_80">TM-T82 series (80mm)</option>
+                <option value="tm_t82_58">TM-T82 series (58mm)</option>
+                <option value="tm_t83_80">TM-T83 series (80mm)</option>
+                <option value="tm_t83_58">TM-T83 series (58mm)</option>
+                <option value="tm_u22_76">TM-U220 (76mm)</option>
+                <option value="tm_u22_70">TM-U220 (70mm)</option>
+                <option value="tm_u22_58">TM-U220 (58mm)</option>
+                <option value="tm_u33_76">TM-U330 (76mm)</option>
+                <option value="tm_u33_70">TM-U330 (70mm)</option>
+                <option value="tm_u33_58">TM-U330 (58mm)</option>
+                <option value="tm_h60_re">TM-H6000 series (Receipt)</option>
+                <option value="tm_m10_58">TM-m10 series (58mm)</option>
+                <option value="tm_m30_80">TM-m30 series (80mm)</option>
+                <option value="tm_m30_58">TM-m30 series (58mm)</option>
+                <option value="tm_m50_80">TM-m50 series (80mm)</option>
+                <option value="tm_m50_58">TM-m50 series (58mm)</option>
+            </select>
+            <span class="hidden">
+                <input id="setting-width" type="text" maxlength="2" size="2" value="80" />mm
+            </span>
+        </p>
+        <br />
+        <h3>Print</h3>
+        <p>
+            IP address of ePOS-Print supported printer<br />
+            <input id="setting-ipaddr" type="text" value="192.168.192.168" />
+        </p>
+        <p>
+            Device ID of the target printer<br />
+            <input id="setting-devid" type="text" value="local_printer" />
+        </p>
+        <p>
+            Print timeout (milliseconds)<br />
+            <input id="setting-timeout" type="text" value="60000" />
+        </p>
+        <p>
+            <input id="setting-status" type="checkbox" /><label for="setting-status">Monitor the status</label><br />
+            &nbsp;&nbsp;&nbsp;Drawer open status
+            <select id="setting-drawer">
+                <option value="low" selected="selected">Low</option>
+                <option value="high">High</option>
+            </select>
+        </p>
+        <p>
+            <input id="setting-jobid" type="checkbox" /><label for="setting-jobid">Use print job ID [v4.1-]</label>
+        </p>
+        <p>
+            <input id="setting-https" type="checkbox" /><label for="setting-https">Use HTTPS</label>
+        </p>
+    </div>
+
+    <!-- Load editor script AFTER all required elements are in DOM -->
+    <script type="text/javascript" src="/epson-editor/js/epos-print-editor.js"></script>
+    
+    <script>
+        // Get XML from URL parameter (base64 encoded)
+        function getXmlData() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                let xmlBase64 = urlParams.get('xml');
+                if (xmlBase64) {
+                    // URL decode first (in case it was URL-encoded)
+                    try {
+                        xmlBase64 = decodeURIComponent(xmlBase64);
+                    } catch(e) {
+                        // Already decoded or not URL-encoded, continue
+                    }
+                    
+                    // Clean up the base64 string (remove any whitespace or invalid chars)
+                    xmlBase64 = xmlBase64.replace(/\s+/g, '');
+                    
+                    // Decode base64
+                    try {
+                        const decoded = atob(xmlBase64);
+                        console.log('Decoded XML length:', decoded.length);
+                        console.log('First 200 chars of decoded XML:', decoded.substring(0, 200));
+                        return decoded;
+                    } catch(e) {
+                        console.error('Error decoding base64 XML:', e);
+                        console.error('Base64 string length:', xmlBase64.length);
+                        console.error('Base64 string (first 100 chars):', xmlBase64.substring(0, 100));
+                        return null;
+                    }
+                }
+            } catch(e) {
+                console.error('Error getting XML data:', e);
+            }
+            return null;
+        }
+
+        // Wait for editor scripts to load
+        $(document).ready(function() {
+            // Wait a bit longer for the editor script to fully initialize
+            setTimeout(function() {
+                const xmlData = getXmlData();
+                
+                if (!xmlData) {
+                    document.getElementById('loading').textContent = 'No receipt data provided.';
+                    return;
+                }
+
+                try {
+                    // Validate XML structure first
+                    try {
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
+                        const parseError = xmlDoc.querySelector('parsererror');
+                        if (parseError) {
+                            throw new Error('XML Parse Error: ' + parseError.textContent);
+                        }
+                        console.log('✓ XML is valid');
+                    } catch(e) {
+                        console.error('✗ XML validation error:', e);
+                        document.getElementById('loading').textContent = 'Invalid XML: ' + e.message;
+                        return;
+                    }
+
+                    // Set model (default to TM-m30 series 80mm) - must be done after script init
+                    const modelSelect = document.getElementById('setting-model');
+                    if (modelSelect) {
+                        modelSelect.value = 'tm_m30_80';
+                        // Trigger change event
+                        const event = new Event('change', { bubbles: true });
+                        modelSelect.dispatchEvent(event);
+                        console.log('✓ Model set to tm_m30_80');
+                    }
+
+                    // Import the XML using the editor's import function
+                    const importDoc = document.getElementById('import-doc');
+                    if (importDoc) {
+                        importDoc.value = xmlData;
+                        console.log('✓ XML set in import-doc textarea, length:', xmlData.length);
+                    } else {
+                        console.error('✗ import-doc element not found');
+                    }
+                    
+                    // Wait a bit for the editor to be ready, then import
+                    setTimeout(function() {
+                        // Set the XML in the textarea (required for importDoc to work)
+                        const importDocTextarea = document.getElementById('import-doc');
+                        if (importDocTextarea) {
+                            importDocTextarea.value = xmlData;
+                            console.log('✓ XML set in import-doc textarea, length:', xmlData.length);
+                        } else {
+                            console.error('✗ import-doc textarea not found');
+                            return;
+                        }
+                        
+                        // Call importDoc() directly (it's a global function defined in epos-print-editor.js)
+                        // This bypasses the confirmation dialog
+                        if (typeof window.importDoc === 'function') {
+                            console.log('✓ Calling importDoc() directly');
+                            try {
+                                window.importDoc();
+                                console.log('✓ importDoc() called successfully');
+                            } catch(e) {
+                                console.error('✗ Error calling importDoc():', e);
+                                document.getElementById('loading').textContent = 'Error importing XML: ' + e.message;
+                                return;
+                            }
+                        } else {
+                            console.error('✗ importDoc function not found');
+                            document.getElementById('loading').textContent = 'Editor not fully loaded. Please refresh.';
+                            return;
+                        }
+
+                        // Wait for import to complete, then draw preview
+                        // Try multiple times in case import takes longer
+                        let attempts = 0;
+                        const maxAttempts = 15;
+                        const checkImport = setInterval(function() {
+                            attempts++;
+                            const editSequence = document.getElementById('edit-sequence');
+                            const hasItems = editSequence && editSequence.children.length > 0;
+                            
+                            if (hasItems || attempts >= maxAttempts) {
+                                clearInterval(checkImport);
+                                
+                                if (hasItems) {
+                                    console.log('✓ Items imported successfully, count:', editSequence.children.length);
+                                } else {
+                                    console.warn('⚠ No items in edit-sequence after', attempts, 'attempts');
+                                }
+                                
+                                try {
+                                    // Draw the preview
+                                    if (typeof window.drawPreview === 'function') {
+                                        console.log('✓ Calling drawPreview()');
+                                        window.drawPreview();
+                                    } else {
+                                        console.error('✗ drawPreview function not found');
+                                    }
+                                    
+                                    // Show preview content
+                                    document.getElementById('loading').style.display = 'none';
+                                    document.getElementById('preview-content').style.display = 'block';
+                                } catch(e) {
+                                    console.error('✗ Error drawing preview:', e);
+                                    document.getElementById('loading').textContent = 'Error rendering preview: ' + e.message;
+                                }
+                            } else {
+                                console.log('⏳ Waiting for import... attempt', attempts);
+                            }
+                        }, 500);
+
+                    }, 500);
+
+                } catch(e) {
+                    console.error('✗ Error importing XML:', e);
+                    document.getElementById('loading').textContent = 'Error loading receipt: ' + e.message;
+                }
+            }, 1000); // Wait 1 second for editor script to initialize
+        });
+    </script>
+</body>
+</html>

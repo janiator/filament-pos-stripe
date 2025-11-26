@@ -252,22 +252,73 @@ class PosSessionsController extends BaseApiController
             'occurred_at' => now(),
         ]);
 
+        $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
         $charges = $session->charges->where('status', 'succeeded');
+        
+        $totalAmount = $charges->sum('amount');
+        $cashAmount = $charges->where('payment_method', 'cash')->sum('amount');
+        $cardAmount = $charges->where('payment_method', 'card')->sum('amount');
+        $mobileAmount = $charges->where('payment_method', 'mobile')->sum('amount');
+        $otherAmount = $totalAmount - $cashAmount - $cardAmount - $mobileAmount;
+        $totalTips = $charges->sum('tip_amount');
+        
+        // Calculate VAT (25% standard in Norway)
+        $vatRate = 0.25;
+        $vatBase = round($totalAmount / (1 + $vatRate), 0);
+        $vatAmount = $totalAmount - $vatBase;
+        
+        // Cash drawer events
+        $cashDrawerOpens = $session->events->where('event_code', \App\Models\PosEvent::EVENT_CASH_DRAWER_OPEN)->count();
+        $nullinnslagCount = $session->events->where('event_code', \App\Models\PosEvent::EVENT_CASH_DRAWER_OPEN)
+            ->where('event_data->nullinnslag', true)->count();
         
         $report = [
             'session_id' => $session->id,
             'session_number' => $session->session_number,
             'opened_at' => $session->opened_at->toISOString(),
             'report_generated_at' => now()->toISOString(),
+            'store' => [
+                'id' => $session->store->id,
+                'name' => $session->store->name,
+            ],
+            'device' => $session->posDevice ? [
+                'id' => $session->posDevice->id,
+                'name' => $session->posDevice->device_name,
+            ] : null,
+            'cashier' => $session->user ? [
+                'id' => $session->user->id,
+                'name' => $session->user->name,
+            ] : null,
+            'opening_balance' => $session->opening_balance,
             'transactions_count' => $charges->count(),
-            'total_amount' => $charges->sum('amount'),
-            'cash_amount' => $charges->where('payment_method', 'cash')->sum('amount'),
-            'card_amount' => $charges->where('payment_method', '!=', 'cash')->sum('amount'),
-            'tip_amount' => $charges->sum('tip_amount'),
+            'total_amount' => $totalAmount,
+            'vat_base' => $vatBase,
+            'vat_amount' => $vatAmount,
+            'vat_rate' => $vatRate * 100,
+            'cash_amount' => $cashAmount,
+            'card_amount' => $cardAmount,
+            'mobile_amount' => $mobileAmount,
+            'other_amount' => $otherAmount,
+            'total_tips' => $totalTips,
+            'expected_cash' => $session->calculateExpectedCash(),
             'by_payment_method' => $this->calculateByPaymentMethod($charges),
-            'cash_drawer_opens' => $session->events->where('event_code', '13005')->count(),
-            'nullinnslag_count' => $session->events->where('event_code', '13005')
-                ->where('event_data->nullinnslag', true)->count(),
+            'by_payment_code' => $charges->groupBy('payment_code')->map(function ($group) {
+                return [
+                    'code' => $group->first()->payment_code,
+                    'count' => $group->count(),
+                    'amount' => $group->sum('amount'),
+                ];
+            }),
+            'transactions_by_type' => $charges->groupBy('transaction_code')->map(function ($group) {
+                return [
+                    'code' => $group->first()->transaction_code,
+                    'count' => $group->count(),
+                    'amount' => $group->sum('amount'),
+                ];
+            }),
+            'cash_drawer_opens' => $cashDrawerOpens,
+            'nullinnslag_count' => $nullinnslagCount,
+            'receipt_count' => $session->receipts->count(),
         ];
 
         return response()->json([
@@ -305,6 +356,7 @@ class PosSessionsController extends BaseApiController
             'closing_notes' => 'nullable|string|max:1000',
         ]);
 
+        $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
         $charges = $session->charges->where('status', 'succeeded');
 
         // Close session
@@ -329,28 +381,106 @@ class PosSessionsController extends BaseApiController
             'occurred_at' => now(),
         ]);
 
+        $totalAmount = $charges->sum('amount');
+        $cashAmount = $charges->where('payment_method', 'cash')->sum('amount');
+        $cardAmount = $charges->where('payment_method', 'card')->sum('amount');
+        $mobileAmount = $charges->where('payment_method', 'mobile')->sum('amount');
+        $otherAmount = $totalAmount - $cashAmount - $cardAmount - $mobileAmount;
+        $totalTips = $charges->sum('tip_amount');
+        
+        // Calculate VAT (25% standard in Norway)
+        $vatRate = 0.25;
+        $vatBase = round($totalAmount / (1 + $vatRate), 0);
+        $vatAmount = $totalAmount - $vatBase;
+        
+        // Cash drawer events
+        $cashDrawerOpens = $session->events->where('event_code', \App\Models\PosEvent::EVENT_CASH_DRAWER_OPEN)->count();
+        $nullinnslagCount = $session->events->where('event_code', \App\Models\PosEvent::EVENT_CASH_DRAWER_OPEN)
+            ->where('event_data->nullinnslag', true)->count();
+        
+        // Event summary
+        $eventSummary = $session->events->groupBy('event_code')->map(function ($group) {
+            $firstEvent = $group->first();
+            return [
+                'code' => $firstEvent->event_code,
+                'description' => $firstEvent->event_description,
+                'count' => $group->count(),
+            ];
+        });
+        
+        // Receipt summary
+        $receiptSummary = $session->receipts->groupBy('receipt_type')->map(function ($group) {
+            return [
+                'type' => $group->first()->receipt_type,
+                'count' => $group->count(),
+            ];
+        });
+
         $report = [
             'session_id' => $session->id,
             'session_number' => $session->session_number,
             'opened_at' => $session->opened_at->toISOString(),
             'closed_at' => $session->closed_at->toISOString(),
+            'store' => [
+                'id' => $session->store->id,
+                'name' => $session->store->name,
+            ],
+            'device' => $session->posDevice ? [
+                'id' => $session->posDevice->id,
+                'name' => $session->posDevice->device_name,
+            ] : null,
+            'cashier' => $session->user ? [
+                'id' => $session->user->id,
+                'name' => $session->user->name,
+            ] : null,
             'opening_balance' => $session->opening_balance,
             'expected_cash' => $session->expected_cash,
             'actual_cash' => $session->actual_cash,
             'cash_difference' => $session->cash_difference,
+            'closing_notes' => $session->closing_notes,
             'transactions_count' => $charges->count(),
-            'total_amount' => $charges->sum('amount'),
-            'cash_amount' => $charges->where('payment_method', 'cash')->sum('amount'),
-            'card_amount' => $charges->where('payment_method', '!=', 'cash')->sum('amount'),
-            'tip_amount' => $charges->sum('tip_amount'),
+            'total_amount' => $totalAmount,
+            'vat_base' => $vatBase,
+            'vat_amount' => $vatAmount,
+            'vat_rate' => $vatRate * 100,
+            'cash_amount' => $cashAmount,
+            'card_amount' => $cardAmount,
+            'mobile_amount' => $mobileAmount,
+            'other_amount' => $otherAmount,
+            'total_tips' => $totalTips,
             'by_payment_method' => $this->calculateByPaymentMethod($charges),
+            'by_payment_code' => $charges->groupBy('payment_code')->map(function ($group) {
+                return [
+                    'code' => $group->first()->payment_code,
+                    'count' => $group->count(),
+                    'amount' => $group->sum('amount'),
+                ];
+            }),
+            'transactions_by_type' => $charges->groupBy('transaction_code')->map(function ($group) {
+                return [
+                    'code' => $group->first()->transaction_code,
+                    'count' => $group->count(),
+                    'amount' => $group->sum('amount'),
+                ];
+            }),
+            'cash_drawer_opens' => $cashDrawerOpens,
+            'nullinnslag_count' => $nullinnslagCount,
+            'receipt_count' => $session->receipts->count(),
+            'receipt_summary' => $receiptSummary,
+            'event_summary' => $eventSummary,
             'complete_transaction_list' => $charges->map(function ($charge) {
                 return [
                     'id' => $charge->id,
                     'stripe_charge_id' => $charge->stripe_charge_id,
                     'amount' => $charge->amount,
+                    'currency' => $charge->currency,
                     'payment_method' => $charge->payment_method,
+                    'payment_code' => $charge->payment_code,
+                    'transaction_code' => $charge->transaction_code,
+                    'tip_amount' => $charge->tip_amount,
+                    'description' => $charge->description,
                     'paid_at' => $charge->paid_at?->toISOString(),
+                    'created_at' => $charge->created_at->toISOString(),
                 ];
             }),
         ];

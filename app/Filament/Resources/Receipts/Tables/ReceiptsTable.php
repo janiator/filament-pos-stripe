@@ -5,10 +5,12 @@ namespace App\Filament\Resources\Receipts\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use App\Models\Receipt;
 
 class ReceiptsTable
 {
@@ -78,6 +80,16 @@ class ReceiptsTable
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
+                Action::make('preview')
+                    ->label('Preview')
+                    ->icon('heroicon-o-eye')
+                    ->modalHeading(fn (Receipt $record) => "Receipt Preview - {$record->receipt_number}")
+                    ->modalContent(fn (Receipt $record) => view('filament.resources.receipts.modals.preview', [
+                        'receipt' => $record,
+                    ]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->color('info'),
                 ViewAction::make(),
                 EditAction::make(),
             ])

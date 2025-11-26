@@ -18,10 +18,17 @@ class ConnectedChargeObserver
 
         // Log sales receipt event (13012) for successful charges
         if ($charge->status === 'succeeded' && $charge->paid) {
+            // Get store_id from pos_session or try to find via stripe_account_id
+            $storeId = $charge->posSession?->store_id;
+            if (!$storeId && $charge->stripe_account_id) {
+                $store = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
+                $storeId = $store?->id;
+            }
+            
             PosEvent::create([
-                'store_id' => $charge->store->id ?? null,
+                'store_id' => $storeId,
                 'pos_session_id' => $charge->pos_session_id,
-                'user_id' => $charge->posSession->user_id ?? null,
+                'user_id' => $charge->posSession?->user_id,
                 'related_charge_id' => $charge->id,
                 'event_code' => PosEvent::EVENT_SALES_RECEIPT,
                 'event_type' => 'transaction',
@@ -38,9 +45,9 @@ class ConnectedChargeObserver
             // Log payment method event (13016-13019)
             $paymentEventCode = SafTCodeMapper::mapPaymentMethodToEventCode($charge->payment_method);
             PosEvent::create([
-                'store_id' => $charge->store->id ?? null,
+                'store_id' => $storeId,
                 'pos_session_id' => $charge->pos_session_id,
-                'user_id' => $charge->posSession->user_id ?? null,
+                'user_id' => $charge->posSession?->user_id,
                 'related_charge_id' => $charge->id,
                 'event_code' => $paymentEventCode,
                 'event_type' => 'payment',

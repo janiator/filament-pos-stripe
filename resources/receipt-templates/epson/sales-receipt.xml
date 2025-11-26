@@ -1,88 +1,65 @@
 <epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
     <feed line="1"/>
     <logo key1="34" key2="48"/>
-    <text lang="en"/>
-    <text reverse="false" ul="false" em="false" color="color_1"/>
-    <text width="1" height="1"/>
-    <text reverse="false" ul="false" em="true" color="color_1"/>
-    <text>{{store_name}}</text>
+    <text lang="en" width="1" height="1" reverse="false" ul="false" em="true" color="color_1">{{store_name}}</text>
     <feed/>
-    <text reverse="false" ul="false" em="false" color="color_1"/>
-    <text lang="en"/>
-    <text>Org.nr.: {{organization_number}} MVA</text>
+    <text lang="en" reverse="false" ul="false" em="false" color="color_1">Org.nr.: {{organization_number}} MVA</text>
+    {{#store_address}}
     <feed/>
-    <text lang="en"/>
-    <text>{{store_address}}</text>
+    <text lang="en">{{store_address}}</text>
+    {{/store_address}}
     <feed line="2"/>
-    <text reverse="false" ul="false" em="true" color="color_1"/>
-    <text>SALGSKVITTERING</text>
+    <text lang="en" reverse="false" ul="false" em="true" color="color_1">SALGSKVITTERING</text>
     <feed line="1"/>
-    <text lang="en"/>
-    <text reverse="false" ul="false" em="false" color="color_1"/>
-    <text lang="en"/>
-    <text>Kasse-ID: {{session_number}}   Ansatt: {{cashier_name}}</text>
+    <text lang="en" reverse="false" ul="false" em="false" color="color_1">Kasse-ID: {{session_number}}   Ansatt: {{cashier_name}}</text>
     <feed/>
-    <text lang="en"/>
-    <text>Transaksjons-ID: {{transaction_id}}</text>
+    <text lang="en">Transaksjons-ID: {{transaction_id}}</text>
     <feed/>
-    <text lang="en"/>
-    <text>Dato: {{date_time}}</text>
+    <text lang="en">Dato: {{date_time}}</text>
     <feed/>
-    <text lang="en"/>
-    <text>——————————————————————————————————————————</text>
-    <feed/>
-    <text lang="en"/>
+    <text lang="en">——————————————————————————————————————————</text>
     <feed/>
     {{#items}}
-    <text>{{name}}        {{quantity}} x {{unit_price}}   {{line_total}}</text>
+    <text lang="en">{{name}}        {{quantity}} x {{unit_price}}   {{line_total}}</text>
     <feed/>
     {{/items}}
     <feed line="2"/>
-    <text lang="en"/>
-    <text>——————————————————————————————————————————</text>
+    <text lang="en">——————————————————————————————————————————</text>
     <feed/>
-    <text reverse="false" ul="false" em="true" color="color_1"/>
-    <text>Total                         {{total_amount}} {{currency}}</text>
+    <text lang="en" reverse="false" ul="false" em="true" color="color_1">Total                         {{total_amount}} {{currency}}</text>
     <feed/>
-    <text>——————————————————————————————————————————</text>
+    <text lang="en">——————————————————————————————————————————</text>
     <feed/>
-    <text lang="en"/>
-    <text reverse="false" ul="false" em="true" color="color_1"/>
-    <text>MVA-sats(Grunnlag)                   MVA</text>
-    <text reverse="false" ul="false" em="false" color="color_1"/>
+    <text lang="en" reverse="false" ul="false" em="true" color="color_1">MVA-sats(Grunnlag)                   MVA</text>
+    <text lang="en" reverse="false" ul="false" em="false" color="color_1">{{vat_rate}}%({{vat_base}})                        {{vat_amount}}</text>
     <feed/>
-    <text>{{vat_rate}}%({{vat_base}})                        {{vat_amount}}</text>
-    <text lang="en"/>
     <feed/>
-    <text lang="en"/>
-    <feed/>
-    <text>Betalingsmiddel: {{payment_method_display}}</text>
+    <text lang="en">Betalingsmiddel: {{payment_method_display}}</text>
     {{#terminal_number}}
     <feed/>
-    <text>Terminalnr: {{terminal_number}}</text>
+    <text lang="en">Terminalnr: {{terminal_number}}</text>
     {{/terminal_number}}
     {{#card_brand}}
     <feed/>
-    <text>{{card_brand}}</text>
+    <text lang="en">{{card_brand}}</text>
     {{/card_brand}}
     {{#card_last4}}
     <feed/>
-    <text>{{card_last4}}</text>
+    <text lang="en">{{card_last4}}</text>
     {{/card_last4}}
     <feed/>
-    <text>Totalbeløp: {{currency}} {{total_amount}}</text>
+    <text lang="en">Totalbeløp: {{currency}} {{total_amount}}</text>
     {{#tip_amount}}
     <feed/>
-    <text>Tips: {{currency}} {{tip_amount}}</text>
+    <text lang="en">Tips: {{currency}} {{tip_amount}}</text>
     {{/tip_amount}}
     <feed line="2"/>
     <barcode type="code128" hri="none" font="font_a" width="2" height="40">{{receipt_number}}</barcode>
     <feed/>
-    <text lang="en"/>
-    <text>——————————————————————————————————————————</text>
-    <text>Kontakt butikken ved spørsmål om retur og reklamasjon. Ta med kvittering.</text>
+    <text lang="en">——————————————————————————————————————————</text>
+    <text lang="en">Kontakt butikken ved spørsmål om retur og reklamasjon. Ta med kvittering.</text>
     <feed/>
     <feed/>
-    <text font="font_a"/>
+    <text lang="en" font="font_a"/>
 </epos-print>
 

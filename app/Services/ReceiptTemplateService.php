@@ -100,14 +100,18 @@ class ReceiptTemplateService
         $cardLast4 = null;
         $terminalNumber = null;
         
-        if ($charge && isset($charge->metadata['card_brand'])) {
-            $cardBrand = $charge->metadata['card_brand'];
-        }
-        if ($charge && isset($charge->metadata['card_last4'])) {
-            $cardLast4 = $charge->metadata['card_last4'];
-        }
-        if ($charge && isset($charge->metadata['terminal_number'])) {
-            $terminalNumber = $charge->metadata['terminal_number'];
+        if ($charge) {
+            $metadata = is_array($charge->metadata) ? $charge->metadata : json_decode($charge->metadata ?? '{}', true);
+            
+            if (isset($metadata['card_brand'])) {
+                $cardBrand = $metadata['card_brand'];
+            }
+            if (isset($metadata['card_last4'])) {
+                $cardLast4 = $metadata['card_last4'];
+            }
+            if (isset($metadata['terminal_number'])) {
+                $terminalNumber = $metadata['terminal_number'];
+            }
         }
 
         return [
