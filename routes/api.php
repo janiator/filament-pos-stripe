@@ -15,6 +15,10 @@ Route::post('/stripe/connect/webhook', StripeConnectWebhookController::class)
 // Authentication endpoints (public)
 Route::post('/auth/login', [AuthController::class, 'login'])->name('api.auth.login');
 
+// Product image serving with signed URLs (public route, secured by signature validation)
+Route::get('/products/{product}/images/{media}', [\App\Http\Controllers\Api\ProductImagesController::class, 'serve'])
+    ->name('api.products.images.serve');
+
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth endpoints

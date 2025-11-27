@@ -22,7 +22,11 @@ class SyncConnectedSubscriptionsFromStripe
         ];
 
         try {
-            if (! $store->hasStripeAccount()) {
+            // Refresh store to ensure we have the latest stripe_account_id
+            $store->refresh();
+            $stripeAccountId = $store->stripe_account_id;
+
+            if (empty($stripeAccountId) || ! $store->hasStripeAccount()) {
                 if ($notify) {
                     Notification::make()
                         ->title('Store not connected')
@@ -53,7 +57,7 @@ class SyncConnectedSubscriptionsFromStripe
             // Get subscriptions from the connected account
             $subscriptions = $stripe->subscriptions->all(
                 ['limit' => 100],
-                ['stripe_account' => $store->stripe_account_id]
+                ['stripe_account' => $stripeAccountId]
             );
 
             foreach ($subscriptions->autoPagingIterator() as $subscription) {
@@ -63,12 +67,18 @@ class SyncConnectedSubscriptionsFromStripe
                     // Get the price ID from the subscription
                     $priceId = $subscription->items->data[0]->price->id ?? null;
 
+                    // Ensure stripe_account_id is still valid
+                    if (empty($stripeAccountId)) {
+                        $result['errors'][] = "Subscription {$subscription->id}: stripe_account_id is empty (store: {$store->id})";
+                        continue;
+                    }
+
                     $data = [
                         'name' => $subscription->metadata->name ?? $subscription->id, // Use metadata name or subscription ID
                         'stripe_id' => $subscription->id,
                         'stripe_status' => $subscription->status,
                         'stripe_customer_id' => $subscription->customer,
-                        'stripe_account_id' => $store->stripe_account_id,
+                        'stripe_account_id' => $stripeAccountId, // Use refreshed value
                         'connected_price_id' => $priceId,
                         'quantity' => $subscription->items->data[0]->quantity ?? 1,
                         'trial_ends_at' => $subscription->trial_end ? date('Y-m-d H:i:s', $subscription->trial_end) : null,
@@ -82,18 +92,27 @@ class SyncConnectedSubscriptionsFromStripe
                         'metadata' => $subscription->metadata ? (array) $subscription->metadata : null,
                     ];
 
-                    $subscriptionRecord = ConnectedSubscription::updateOrCreate(
-                        [
-                            'stripe_id' => $subscription->id,
-                            'stripe_account_id' => $store->stripe_account_id,
-                        ],
-                        $data
-                    );
+                    // Double-check stripe_account_id is not null
+                    if (empty($data['stripe_account_id'])) {
+                        $result['errors'][] = "Subscription {$subscription->id}: stripe_account_id is null after data preparation";
+                        continue;
+                    }
 
-                    if ($subscriptionRecord->wasRecentlyCreated) {
-                        $result['created']++;
-                    } else {
+                    // Find by stripe_id only (since it's unique)
+                    // The same subscription might exist with a different stripe_account_id
+                    $subscriptionRecord = ConnectedSubscription::where('stripe_id', $subscription->id)->first();
+
+                    if ($subscriptionRecord) {
+                        // Update existing record - ensure stripe_account_id is set correctly
+                        $subscriptionRecord->fill($data);
+                        // Explicitly set stripe_account_id to ensure it's updated if it changed
+                        $subscriptionRecord->stripe_account_id = $stripeAccountId;
+                        $subscriptionRecord->save();
                         $result['updated']++;
+                    } else {
+                        // Create new record
+                        $subscriptionRecord = ConnectedSubscription::create($data);
+                        $result['created']++;
                     }
 
                     // Sync subscription items
@@ -164,4 +183,3 @@ class SyncConnectedSubscriptionsFromStripe
         }
     }
 }
-

@@ -113,14 +113,52 @@ class ConnectedProduct extends Model implements HasMedia
             }
         });
         
-        // Handle product deletion - archive in Stripe
+        // Handle product deletion - archive in Stripe and delete/archive variants
         static::deleting(function (ConnectedProduct $product) {
-            // Archive product in Stripe before local deletion
-            // Products that have been used cannot be deleted in Stripe, only archived
-            if ($product->stripe_product_id && $product->stripe_account_id) {
-                $deleteAction = new \App\Actions\ConnectedProducts\DeleteConnectedProductFromStripe();
-                $deleteAction($product);
+            // Capture data before deletion for queued jobs
+            $stripeProductId = $product->stripe_product_id;
+            $stripeAccountId = $product->stripe_account_id;
+            $productId = $product->id;
+            $productName = $product->name;
+            
+            // First, handle all variants
+            $variants = $product->variants()->get();
+            foreach ($variants as $variant) {
+                $variantHasBeenUsed = $variant->hasBeenUsedInPurchases();
+                
+                if ($variantHasBeenUsed) {
+                    // Archive variant instead of deleting
+                    $variant->active = false;
+                    $variant->saveQuietly();
+                    
+                    // Queue job to archive variant product in Stripe
+                    if ($variant->stripe_product_id && $variant->stripe_account_id) {
+                        \App\Jobs\DeleteVariantProductFromStripeJob::dispatch(
+                            $variant->stripe_product_id,
+                            $variant->stripe_account_id,
+                            $variant->id
+                        );
+                    }
+                } else {
+                    // Delete the variant - this will trigger the ProductVariant::deleting event
+                    // which will queue archiving the variant product in Stripe
+                    $variant->delete();
+                }
             }
+            
+            // Queue job to archive product in Stripe (always archive, never delete from Stripe)
+            // Products that have been used cannot be deleted in Stripe, only archived
+            if ($stripeProductId && $stripeAccountId) {
+                \App\Jobs\DeleteConnectedProductFromStripeJob::dispatch(
+                    $stripeProductId,
+                    $stripeAccountId,
+                    $productId,
+                    $productName
+                );
+            }
+            
+            // Note: Actual deletion prevention is handled in EditConnectedProduct page
+            // via DeleteAction::before() callback
         });
     }
     
@@ -149,6 +187,41 @@ class ConnectedProduct extends Model implements HasMedia
     {
         return $this->hasMany(ProductVariant::class, 'connected_product_id')
             ->where('stripe_account_id', $this->stripe_account_id);
+    }
+
+    /**
+     * Check if this product has been used in any purchases
+     * (subscriptions, payment links, etc.)
+     */
+    public function hasBeenUsedInPurchases(): bool
+    {
+        // Check if any prices from this product are used in subscription items
+        $prices = $this->prices()->pluck('stripe_price_id');
+        if ($prices->isNotEmpty()) {
+            $usedInSubscriptions = \App\Models\ConnectedSubscriptionItem::whereIn('connected_price', $prices)
+                ->exists();
+            
+            if ($usedInSubscriptions) {
+                return true;
+            }
+            
+            // Check if any prices are used in payment links
+            $usedInPaymentLinks = \App\Models\ConnectedPaymentLink::whereIn('stripe_price_id', $prices)
+                ->exists();
+            
+            if ($usedInPaymentLinks) {
+                return true;
+            }
+        }
+        
+        // Check if any variant prices are used
+        foreach ($this->variants as $variant) {
+            if ($variant->hasBeenUsedInPurchases()) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**

@@ -21,7 +21,11 @@ class SyncConnectedPaymentIntentsFromStripe
         ];
 
         try {
-            if (! $store->hasStripeAccount()) {
+            // Refresh store to ensure we have the latest stripe_account_id
+            $store->refresh();
+            $stripeAccountId = $store->stripe_account_id;
+
+            if (empty($stripeAccountId) || ! $store->hasStripeAccount()) {
                 if ($notify) {
                     Notification::make()
                         ->title('Store not connected')
@@ -52,16 +56,22 @@ class SyncConnectedPaymentIntentsFromStripe
             // Get payment intents from the connected account
             $paymentIntents = $stripe->paymentIntents->all(
                 ['limit' => 100],
-                ['stripe_account' => $store->stripe_account_id]
+                ['stripe_account' => $stripeAccountId]
             );
 
             foreach ($paymentIntents->autoPagingIterator() as $intent) {
                 $result['total']++;
 
                 try {
+                    // Ensure stripe_account_id is still valid
+                    if (empty($stripeAccountId)) {
+                        $result['errors'][] = "Payment Intent {$intent->id}: stripe_account_id is empty (store: {$store->id})";
+                        continue;
+                    }
+
                     $data = [
                         'stripe_id' => $intent->id,
-                        'stripe_account_id' => $store->stripe_account_id,
+                        'stripe_account_id' => $stripeAccountId, // Use refreshed value
                         'stripe_customer_id' => $intent->customer ?? null,
                         'stripe_payment_method_id' => $intent->payment_method ?? null,
                         'amount' => $intent->amount,
@@ -81,12 +91,18 @@ class SyncConnectedPaymentIntentsFromStripe
                         'succeeded_at' => $intent->status === 'succeeded' && isset($intent->created) ? date('Y-m-d H:i:s', $intent->created) : null,
                     ];
 
-                    $intentRecord = ConnectedPaymentIntent::where('stripe_id', $intent->id)
-                        ->where('stripe_account_id', $store->stripe_account_id)
-                        ->first();
+                    // Double-check stripe_account_id is not null
+                    if (empty($data['stripe_account_id'])) {
+                        $result['errors'][] = "Payment Intent {$intent->id}: stripe_account_id is null after data preparation";
+                        continue;
+                    }
+
+                    $intentRecord = ConnectedPaymentIntent::where('stripe_id', $intent->id)->first();
 
                     if ($intentRecord) {
                         $intentRecord->fill($data);
+                        // Explicitly set stripe_account_id to ensure it's updated if it changed
+                        $intentRecord->stripe_account_id = $stripeAccountId;
                         $intentRecord->save();
                         $result['updated']++;
                     } else {

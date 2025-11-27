@@ -47,6 +47,7 @@ class UpdateVariantProductToStripe
             $metadata = [
                 'source' => 'variant',
                 'parent_product_id' => (string) $product->id,
+                'parent_stripe_product_id' => $product->stripe_product_id ?? null,
                 'variant_id' => (string) $variant->id,
             ];
 

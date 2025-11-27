@@ -8,6 +8,7 @@ use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 
 class ProductsController extends BaseApiController
 {
@@ -66,7 +67,7 @@ class ProductsController extends BaseApiController
                         'description' => $product->description,
                         'type' => $product->type,
                         'active' => $product->active,
-                        'price' => null,
+                        'product_price' => null,
                         'prices' => [],
                         'images' => [],
                     ];
@@ -166,24 +167,22 @@ class ProductsController extends BaseApiController
             ];
         })->values();
 
-        // Get image URLs
+        // Get image URLs with signed URLs for security
         $images = [];
         if ($product->hasMedia('images')) {
-            $images = $product->getMedia('images')->map(function ($media) {
-                // Use current request URL if available
-                if (app()->runningInConsole() === false && request()->hasHeader('Host')) {
-                    $scheme = request()->getScheme();
-                    $host = request()->getHost();
-                    $port = request()->getPort();
-                    $baseUrl = $scheme . '://' . $host . ($port && $port != 80 && $port != 443 ? ':' . $port : '');
-                    $path = $media->getPath();
-                    $relativePath = str_replace(public_path('storage'), '', $path);
-                    return $baseUrl . '/storage' . $relativePath;
-                }
-                return $media->getUrl();
+            $images = $product->getMedia('images')->map(function ($media) use ($product) {
+                // Generate signed URL that expires in 1 hour
+                return URL::temporarySignedRoute(
+                    'api.products.images.serve',
+                    now()->addHour(),
+                    [
+                        'product' => $product->id,
+                        'media' => $media->id,
+                    ]
+                );
             })->toArray();
         } elseif ($product->images && is_array($product->images)) {
-            // Fallback to stored image URLs (from Stripe)
+            // Fallback to stored image URLs (from Stripe) - these are external URLs, keep as-is
             $images = $product->images;
         }
 
@@ -214,7 +213,7 @@ class ProductsController extends BaseApiController
                             'value' => $variant->option3_value,
                         ] : null,
                     ],
-                    'price' => [
+                    'variant_price' => [
                         'amount' => $variant->price_amount,
                         'amount_formatted' => $variant->formatted_price,
                         'currency' => strtoupper($variant->currency ?? 'NOK'),
@@ -223,7 +222,7 @@ class ProductsController extends BaseApiController
                             : null,
                         'discount_percentage' => $variant->discount_percentage,
                     ],
-                    'inventory' => [
+                    'variant_inventory' => [
                         'quantity' => $variant->inventory_quantity,
                         'in_stock' => $variant->in_stock,
                         'policy' => $variant->inventory_policy,
@@ -233,7 +232,7 @@ class ProductsController extends BaseApiController
                     'weight_grams' => $variant->weight_grams,
                     'requires_shipping' => $variant->requires_shipping,
                     'taxable' => $variant->taxable,
-                    'image_url' => $variant->image_url,
+                    'image_url' => $this->getVariantImageUrl($variant),
                 ];
             })
             ->values();
@@ -245,14 +244,14 @@ class ProductsController extends BaseApiController
         $trackingInventory = false;
 
         foreach ($variants as $variant) {
-            if ($variant['inventory']['tracked']) {
+            if ($variant['variant_inventory']['tracked']) {
                 $trackingInventory = true;
                 if ($totalInventory === null) {
                     $totalInventory = 0;
                 }
-                $totalInventory += $variant['inventory']['quantity'] ?? 0;
+                $totalInventory += $variant['variant_inventory']['quantity'] ?? 0;
                 
-                if ($variant['inventory']['in_stock']) {
+                if ($variant['variant_inventory']['in_stock']) {
                     $inStockVariants++;
                 } else {
                     $outOfStockVariants++;
@@ -270,7 +269,7 @@ class ProductsController extends BaseApiController
             'shippable' => $product->shippable ?? false,
             'url' => $product->url,
             'images' => $images,
-            'price' => $defaultPrice ? [
+            'product_price' => $defaultPrice ? [
                 'id' => $defaultPrice->stripe_price_id,
                 'amount' => $defaultPrice->unit_amount,
                 'amount_formatted' => number_format($defaultPrice->unit_amount / 100, 2, '.', ''),
@@ -279,7 +278,7 @@ class ProductsController extends BaseApiController
             'prices' => $allPrices,
             'variants' => $variants,
             'variants_count' => $variants->count(),
-            'inventory' => [
+            'product_inventory' => [
                 'tracked' => $trackingInventory,
                 'total_quantity' => $totalInventory,
                 'in_stock_variants' => $inStockVariants,
@@ -296,5 +295,27 @@ class ProductsController extends BaseApiController
             'created_at' => $product->created_at?->toISOString(),
             'updated_at' => $product->updated_at?->toISOString(),
         ];
+    }
+
+    /**
+     * Get variant image URL - generate signed URL if local, keep external URLs as-is
+     */
+    protected function getVariantImageUrl(ProductVariant $variant): ?string
+    {
+        if (!$variant->image_url) {
+            return null;
+        }
+
+        // If it's an external URL (Stripe, etc.), return as-is
+        if (filter_var($variant->image_url, FILTER_VALIDATE_URL) && 
+            !str_starts_with($variant->image_url, config('app.url')) &&
+            !str_starts_with($variant->image_url, request()->getSchemeAndHttpHost())) {
+            return $variant->image_url;
+        }
+
+        // If it's a local file path, we'd need to handle it differently
+        // For now, return as-is if it's already a URL
+        // If variants store local files in the future, we can add signed URL generation here
+        return $variant->image_url;
     }
 }

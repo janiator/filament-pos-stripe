@@ -21,7 +21,11 @@ class SyncConnectedChargesFromStripe
         ];
 
         try {
-            if (! $store->hasStripeAccount()) {
+            // Refresh store to ensure we have the latest stripe_account_id
+            $store->refresh();
+            $stripeAccountId = $store->stripe_account_id;
+
+            if (empty($stripeAccountId) || ! $store->hasStripeAccount()) {
                 if ($notify) {
                     Notification::make()
                         ->title('Store not connected')
@@ -52,16 +56,22 @@ class SyncConnectedChargesFromStripe
             // Get charges from the connected account
             $charges = $stripe->charges->all(
                 ['limit' => 100],
-                ['stripe_account' => $store->stripe_account_id]
+                ['stripe_account' => $stripeAccountId]
             );
 
             foreach ($charges->autoPagingIterator() as $charge) {
                 $result['total']++;
 
                 try {
+                    // Ensure stripe_account_id is still valid
+                    if (empty($stripeAccountId)) {
+                        $result['errors'][] = "Charge {$charge->id}: stripe_account_id is empty (store: {$store->id})";
+                        continue;
+                    }
+
                     $data = [
                         'stripe_charge_id' => $charge->id,
-                        'stripe_account_id' => $store->stripe_account_id,
+                        'stripe_account_id' => $stripeAccountId, // Use refreshed value
                         'stripe_customer_id' => $charge->customer ?? null,
                         'stripe_payment_intent_id' => $charge->payment_intent ?? null,
                         'amount' => $charge->amount,
@@ -82,15 +92,25 @@ class SyncConnectedChargesFromStripe
                         'application_fee_amount' => $charge->application_fee_amount ?? null,
                     ];
 
-                    $chargeRecord = ConnectedCharge::where('stripe_charge_id', $charge->id)
-                        ->where('stripe_account_id', $store->stripe_account_id)
-                        ->first();
+                    // Double-check stripe_account_id is not null
+                    if (empty($data['stripe_account_id'])) {
+                        $result['errors'][] = "Charge {$charge->id}: stripe_account_id is null after data preparation";
+                        continue;
+                    }
+
+                    // Find by stripe_charge_id only (since it's unique)
+                    // The same charge might exist with a different stripe_account_id
+                    $chargeRecord = ConnectedCharge::where('stripe_charge_id', $charge->id)->first();
 
                     if ($chargeRecord) {
+                        // Update existing record - ensure stripe_account_id is set correctly
                         $chargeRecord->fill($data);
+                        // Explicitly set stripe_account_id to ensure it's updated if it changed
+                        $chargeRecord->stripe_account_id = $stripeAccountId;
                         $chargeRecord->save();
                         $result['updated']++;
                     } else {
+                        // Create new record
                         ConnectedCharge::create($data);
                         $result['created']++;
                     }
@@ -146,4 +166,3 @@ class SyncConnectedChargesFromStripe
         }
     }
 }
-

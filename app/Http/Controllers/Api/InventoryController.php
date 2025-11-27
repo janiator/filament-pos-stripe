@@ -45,7 +45,7 @@ class InventoryController extends BaseApiController
             'variant' => [
                 'id' => $variant->id,
                 'sku' => $variant->sku,
-                'inventory' => [
+                'variant_inventory' => [
                     'quantity' => $variant->inventory_quantity,
                     'in_stock' => $variant->in_stock,
                     'policy' => $variant->inventory_policy,
@@ -109,7 +109,7 @@ class InventoryController extends BaseApiController
             'variant' => [
                 'id' => $variant->id,
                 'sku' => $variant->sku,
-                'inventory' => [
+                'variant_inventory' => [
                     'quantity' => $variant->inventory_quantity,
                     'in_stock' => $variant->in_stock,
                     'previous_quantity' => $currentQuantity,
@@ -170,7 +170,7 @@ class InventoryController extends BaseApiController
             'variant' => [
                 'id' => $variant->id,
                 'sku' => $variant->sku,
-                'inventory' => [
+                'variant_inventory' => [
                     'quantity' => $variant->inventory_quantity,
                     'in_stock' => $variant->in_stock,
                     'previous_quantity' => $oldQuantity,
@@ -208,7 +208,7 @@ class InventoryController extends BaseApiController
                     'sku' => $variant->sku,
                     'barcode' => $variant->barcode,
                     'variant_name' => $variant->variant_name,
-                    'inventory' => [
+                    'variant_inventory' => [
                         'quantity' => $variant->inventory_quantity,
                         'in_stock' => $variant->in_stock,
                         'policy' => $variant->inventory_policy,
@@ -218,8 +218,8 @@ class InventoryController extends BaseApiController
                 ];
             });
 
-        $totalQuantity = $variants->sum(fn($v) => $v['inventory']['quantity'] ?? 0);
-        $trackingInventory = $variants->contains(fn($v) => $v['inventory']['tracked']);
+        $totalQuantity = $variants->sum(fn($v) => $v['variant_inventory']['quantity'] ?? 0);
+        $trackingInventory = $variants->contains(fn($v) => $v['variant_inventory']['tracked']);
 
         return response()->json([
             'product' => [
@@ -231,8 +231,8 @@ class InventoryController extends BaseApiController
                 'total_quantity' => $trackingInventory ? $totalQuantity : null,
                 'tracking_inventory' => $trackingInventory,
                 'variants_count' => $variants->count(),
-                'in_stock_count' => $variants->filter(fn($v) => $v['inventory']['in_stock'])->count(),
-                'out_of_stock_count' => $variants->filter(fn($v) => !$v['inventory']['in_stock'] && $v['inventory']['tracked'])->count(),
+                'in_stock_count' => $variants->filter(fn($v) => $v['variant_inventory']['in_stock'])->count(),
+                'out_of_stock_count' => $variants->filter(fn($v) => !$v['variant_inventory']['in_stock'] && $v['variant_inventory']['tracked'])->count(),
             ],
         ]);
     }

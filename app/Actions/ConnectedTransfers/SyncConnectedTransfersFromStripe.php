@@ -21,7 +21,11 @@ class SyncConnectedTransfersFromStripe
         ];
 
         try {
-            if (! $store->hasStripeAccount()) {
+            // Refresh store to ensure we have the latest stripe_account_id
+            $store->refresh();
+            $stripeAccountId = $store->stripe_account_id;
+
+            if (empty($stripeAccountId) || ! $store->hasStripeAccount()) {
                 if ($notify) {
                     Notification::make()
                         ->title('Store not connected')
@@ -52,16 +56,22 @@ class SyncConnectedTransfersFromStripe
             // Get transfers from the connected account
             $transfers = $stripe->transfers->all(
                 ['limit' => 100],
-                ['stripe_account' => $store->stripe_account_id]
+                ['stripe_account' => $stripeAccountId]
             );
 
             foreach ($transfers->autoPagingIterator() as $transfer) {
                 $result['total']++;
 
                 try {
+                    // Ensure stripe_account_id is still valid
+                    if (empty($stripeAccountId)) {
+                        $result['errors'][] = "Transfer {$transfer->id}: stripe_account_id is empty (store: {$store->id})";
+                        continue;
+                    }
+
                     $data = [
                         'stripe_transfer_id' => $transfer->id,
-                        'stripe_account_id' => $store->stripe_account_id,
+                        'stripe_account_id' => $stripeAccountId, // Use refreshed value
                         'stripe_charge_id' => $transfer->source_transaction ?? null,
                         'stripe_payment_intent_id' => null, // Transfers don't directly link to payment intents
                         'amount' => $transfer->amount,
@@ -75,12 +85,18 @@ class SyncConnectedTransfersFromStripe
                         'reversed_amount' => $transfer->amount_reversed ?? 0,
                     ];
 
-                    $transferRecord = ConnectedTransfer::where('stripe_transfer_id', $transfer->id)
-                        ->where('stripe_account_id', $store->stripe_account_id)
-                        ->first();
+                    // Double-check stripe_account_id is not null
+                    if (empty($data['stripe_account_id'])) {
+                        $result['errors'][] = "Transfer {$transfer->id}: stripe_account_id is null after data preparation";
+                        continue;
+                    }
+
+                    $transferRecord = ConnectedTransfer::where('stripe_transfer_id', $transfer->id)->first();
 
                     if ($transferRecord) {
                         $transferRecord->fill($data);
+                        // Explicitly set stripe_account_id to ensure it's updated if it changed
+                        $transferRecord->stripe_account_id = $stripeAccountId;
                         $transferRecord->save();
                         $result['updated']++;
                     } else {

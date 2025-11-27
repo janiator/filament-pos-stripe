@@ -160,6 +160,31 @@ class ProductVariant extends Model
     }
 
     /**
+     * Check if this variant has been used in any purchases
+     * (subscriptions, payment links, etc.)
+     */
+    public function hasBeenUsedInPurchases(): bool
+    {
+        if (!$this->stripe_price_id) {
+            return false;
+        }
+        
+        // Check if price is used in subscription items
+        $usedInSubscriptions = \App\Models\ConnectedSubscriptionItem::where('connected_price', $this->stripe_price_id)
+            ->exists();
+        
+        if ($usedInSubscriptions) {
+            return true;
+        }
+        
+        // Check if price is used in payment links
+        $usedInPaymentLinks = \App\Models\ConnectedPaymentLink::where('stripe_price_id', $this->stripe_price_id)
+            ->exists();
+        
+        return $usedInPaymentLinks;
+    }
+
+    /**
      * Boot the model and set up event listeners
      */
     protected static function booted(): void
@@ -231,24 +256,12 @@ class ProductVariant extends Model
         // Archive variant product in Stripe when deleted
         static::deleting(function (ProductVariant $variant) {
             if ($variant->stripe_product_id && $variant->stripe_account_id) {
-                // Archive product in Stripe (can't delete if used)
-                $secret = config('cashier.secret') ?? config('services.stripe.secret');
-                if ($secret) {
-                    try {
-                        $stripe = new \Stripe\StripeClient($secret);
-                        $stripe->products->update(
-                            $variant->stripe_product_id,
-                            ['active' => false],
-                            ['stripe_account' => $variant->stripe_account_id]
-                        );
-                    } catch (\Throwable $e) {
-                        \Log::warning('Failed to archive variant product in Stripe', [
-                            'variant_id' => $variant->id,
-                            'stripe_product_id' => $variant->stripe_product_id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
+                // Queue job to archive product in Stripe (can't delete if used)
+                \App\Jobs\DeleteVariantProductFromStripeJob::dispatch(
+                    $variant->stripe_product_id,
+                    $variant->stripe_account_id,
+                    $variant->id
+                );
             }
         });
     }

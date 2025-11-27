@@ -2,14 +2,19 @@
 
 namespace App\Filament\Resources\ConnectedProducts\RelationManagers;
 
+use App\Filament\Resources\ConnectedProducts\Actions\BulkCreateVariantsAction;
 use App\Models\ProductVariant;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Forms\Components\Grid;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -22,140 +27,225 @@ class VariantsRelationManager extends RelationManager
 
     protected static ?string $title = 'Variants';
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        // Convert cents to decimal for display
+        if (isset($data['price_amount'])) {
+            $data['price_decimal'] = $data['price_amount'] / 100;
+        }
+        if (isset($data['compare_at_price_amount'])) {
+            $data['compare_at_price_decimal'] = $data['compare_at_price_amount'] / 100;
+        }
+        return $data;
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // Convert decimal to cents for storage
+        if (isset($data['price_decimal'])) {
+            $data['price_amount'] = (int) round($data['price_decimal'] * 100);
+            unset($data['price_decimal']);
+        }
+        if (isset($data['compare_at_price_decimal'])) {
+            if ($data['compare_at_price_decimal'] !== null && $data['compare_at_price_decimal'] !== '') {
+                $data['compare_at_price_amount'] = (int) round($data['compare_at_price_decimal'] * 100);
+            } else {
+                $data['compare_at_price_amount'] = null;
+            }
+            unset($data['compare_at_price_decimal']);
+        }
+        
+        // Ensure stripe_account_id is set
+        if (!isset($data['stripe_account_id'])) {
+            $data['stripe_account_id'] = $this->ownerRecord->stripe_account_id;
+        }
+        
+        return $data;
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
             ->columns(2)
             ->components([
-                Grid::make(3)
+                Section::make('Variant Options')
                     ->schema([
-                        TextInput::make('option1_name')
-                            ->label('Option 1 Name')
-                            ->placeholder('e.g., Size')
-                            ->maxLength(255),
+                        Grid::make(3)
+                            ->schema([
+                                TextInput::make('option1_name')
+                                    ->label('Option 1 Name')
+                                    ->placeholder('e.g., Size')
+                                    ->maxLength(255),
 
-                        TextInput::make('option1_value')
-                            ->label('Option 1 Value')
-                            ->placeholder('e.g., Large')
-                            ->maxLength(255),
+                                TextInput::make('option1_value')
+                                    ->label('Option 1 Value')
+                                    ->placeholder('e.g., Large')
+                                    ->maxLength(255),
 
-                        TextInput::make('option2_name')
-                            ->label('Option 2 Name')
-                            ->placeholder('e.g., Color')
-                            ->maxLength(255),
+                                TextInput::make('option2_name')
+                                    ->label('Option 2 Name')
+                                    ->placeholder('e.g., Color')
+                                    ->maxLength(255),
 
-                        TextInput::make('option2_value')
-                            ->label('Option 2 Value')
-                            ->placeholder('e.g., Red')
-                            ->maxLength(255),
+                                TextInput::make('option2_value')
+                                    ->label('Option 2 Value')
+                                    ->placeholder('e.g., Red')
+                                    ->maxLength(255),
 
-                        TextInput::make('option3_name')
-                            ->label('Option 3 Name')
-                            ->placeholder('e.g., Material')
-                            ->maxLength(255),
+                                TextInput::make('option3_name')
+                                    ->label('Option 3 Name')
+                                    ->placeholder('e.g., Material')
+                                    ->maxLength(255),
 
-                        TextInput::make('option3_value')
-                            ->label('Option 3 Value')
-                            ->placeholder('e.g., Cotton')
-                            ->maxLength(255),
-                    ]),
+                                TextInput::make('option3_value')
+                                    ->label('Option 3 Value')
+                                    ->placeholder('e.g., Cotton')
+                                    ->maxLength(255),
+                            ]),
+                    ])
+                    ->collapsible(),
 
-                Grid::make(2)
+                Section::make('Pricing')
                     ->schema([
-                        TextInput::make('sku')
-                            ->label('SKU')
-                            ->maxLength(255)
-                            ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule) {
-                                return $rule->where('stripe_account_id', $this->ownerRecord->stripe_account_id);
-                            }),
+                        Grid::make(3)
+                            ->schema([
+                                TextInput::make('price_decimal')
+                                    ->label('Price')
+                                    ->numeric()
+                                    ->prefix(fn ($get) => strtoupper($get('currency') ?? 'NOK'))
+                                    ->helperText('Enter price in decimal format (e.g., 99.99)')
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                        // Convert decimal to cents
+                                        if ($state !== null && $state !== '') {
+                                            $set('price_amount', (int) round($state * 100));
+                                        }
+                                    })
+                                    ->default(fn ($record) => $record ? $record->price_amount / 100 : null),
 
-                        TextInput::make('barcode')
-                            ->label('Barcode')
-                            ->maxLength(255),
-                    ]),
+                                TextInput::make('compare_at_price_decimal')
+                                    ->label('Compare At Price')
+                                    ->numeric()
+                                    ->prefix(fn ($get) => strtoupper($get('currency') ?? 'NOK'))
+                                    ->helperText('Original price for showing discounts')
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, $set) {
+                                        // Convert decimal to cents
+                                        if ($state !== null && $state !== '') {
+                                            $set('compare_at_price_amount', (int) round($state * 100));
+                                        } else {
+                                            $set('compare_at_price_amount', null);
+                                        }
+                                    })
+                                    ->default(fn ($record) => $record && $record->compare_at_price_amount ? $record->compare_at_price_amount / 100 : null)
+                                    ->visible(fn ($get) => $get('price_decimal') > 0),
 
-                Grid::make(3)
-                    ->schema([
+                                Select::make('currency')
+                                    ->label('Currency')
+                                    ->options([
+                                        'nok' => 'NOK',
+                                        'usd' => 'USD',
+                                        'eur' => 'EUR',
+                                    ])
+                                    ->default('nok')
+                                    ->required()
+                                    ->live(),
+                            ]),
+
+                        // Hidden fields for actual storage (in cents)
                         TextInput::make('price_amount')
-                            ->label('Price (in cents)')
-                            ->numeric()
-                            ->required()
-                            ->helperText('Enter price in smallest currency unit (e.g., 5999 for 59.99 NOK)'),
+                            ->hidden()
+                            ->dehydrated(),
 
                         TextInput::make('compare_at_price_amount')
-                            ->label('Compare At Price (in cents)')
-                            ->numeric()
-                            ->minValue(0)
-                            ->helperText('Original price for showing discounts (e.g., 7999 for 79.99 NOK)')
-                            ->visible(fn ($record) => $record && $record->price_amount),
+                            ->hidden()
+                            ->dehydrated(),
+                    ])
+                    ->collapsible(),
 
-                        Select::make('currency')
-                            ->label('Currency')
-                            ->options([
-                                'nok' => 'NOK',
-                                'usd' => 'USD',
-                                'eur' => 'EUR',
-                            ])
-                            ->default('nok')
-                            ->required(),
-                    ]),
-
-                Grid::make(2)
+                Section::make('Identification')
                     ->schema([
-                        TextInput::make('weight_grams')
-                            ->label('Weight (grams)')
-                            ->numeric(),
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('sku')
+                                    ->label('SKU')
+                                    ->maxLength(255)
+                                    ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule) {
+                                        return $rule->where('stripe_account_id', $this->ownerRecord->stripe_account_id);
+                                    }),
 
-                TextInput::make('inventory_quantity')
-                    ->label('Inventory Quantity')
-                    ->numeric()
-                    ->minValue(0)
-                    ->helperText('Leave empty if not tracking inventory')
-                    ->live()
-                    ->afterStateUpdated(function ($state, $set) {
-                        // Auto-update in_stock based on quantity
-                        if ($state !== null && $state > 0) {
-                            // This will be handled by the model's in_stock accessor
-                        }
-                    }),
-                    ]),
+                                TextInput::make('barcode')
+                                    ->label('Barcode')
+                                    ->maxLength(255),
+                            ]),
+                    ])
+                    ->collapsible(),
 
-                Grid::make(2)
+                Section::make('Inventory')
                     ->schema([
-                        Select::make('inventory_policy')
-                            ->label('Inventory Policy')
-                            ->options([
-                                'deny' => 'Deny (prevent sales when out of stock)',
-                                'continue' => 'Continue (allow backorders)',
-                            ])
-                            ->default('deny'),
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('inventory_quantity')
+                                    ->label('Inventory Quantity')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->helperText('Leave empty if not tracking inventory')
+                                    ->live(),
 
-                        TextInput::make('inventory_management')
-                            ->label('Inventory Management')
-                            ->placeholder('e.g., shopify')
-                            ->maxLength(255),
-                    ]),
+                                Select::make('inventory_policy')
+                                    ->label('Inventory Policy')
+                                    ->options([
+                                        'deny' => 'Deny (prevent sales when out of stock)',
+                                        'continue' => 'Continue (allow backorders)',
+                                    ])
+                                    ->default('deny'),
 
-                Grid::make(3)
+                                TextInput::make('inventory_management')
+                                    ->label('Inventory Management')
+                                    ->placeholder('e.g., shopify')
+                                    ->maxLength(255)
+                                    ->columnSpan(2),
+                            ]),
+                    ])
+                    ->collapsible(),
+
+                Section::make('Physical Properties')
                     ->schema([
-                        Toggle::make('requires_shipping')
-                            ->label('Requires Shipping')
-                            ->default(true),
+                        Grid::make(3)
+                            ->schema([
+                                TextInput::make('weight_grams')
+                                    ->label('Weight (grams)')
+                                    ->numeric()
+                                    ->helperText('Enter weight in grams'),
 
-                        Toggle::make('taxable')
-                            ->label('Taxable')
-                            ->default(true),
+                                Toggle::make('requires_shipping')
+                                    ->label('Requires Shipping')
+                                    ->default(true),
 
-                        Toggle::make('active')
-                            ->label('Active')
-                            ->default(true),
-                    ]),
+                                Toggle::make('taxable')
+                                    ->label('Taxable')
+                                    ->default(true),
+                            ]),
+                    ])
+                    ->collapsible(),
 
-                TextInput::make('image_url')
-                    ->label('Variant Image URL')
-                    ->url()
-                    ->maxLength(255)
-                    ->helperText('URL to variant-specific image'),
+                Section::make('Settings')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                Toggle::make('active')
+                                    ->label('Active')
+                                    ->default(true),
+
+                                TextInput::make('image_url')
+                                    ->label('Variant Image URL')
+                                    ->url()
+                                    ->maxLength(255)
+                                    ->helperText('URL to variant-specific image'),
+                            ]),
+                    ])
+                    ->collapsible(),
             ]);
     }
 
@@ -167,7 +257,8 @@ class VariantsRelationManager extends RelationManager
                     ->label('Variant')
                     ->badge()
                     ->color('primary')
-                    ->searchable(['option1_value', 'option2_value', 'option3_value']),
+                    ->searchable(['option1_value', 'option2_value', 'option3_value'])
+                    ->description(fn ($record) => $record->sku ? "SKU: {$record->sku}" : null),
 
                 TextColumn::make('formatted_price')
                     ->label('Price')
@@ -191,18 +282,6 @@ class VariantsRelationManager extends RelationManager
                     ->color('danger')
                     ->toggleable(),
 
-                TextColumn::make('sku')
-                    ->label('SKU')
-                    ->searchable()
-                    ->copyable()
-                    ->toggleable(),
-
-                TextColumn::make('barcode')
-                    ->label('Barcode')
-                    ->searchable()
-                    ->copyable()
-                    ->toggleable(),
-
                 TextColumn::make('inventory_quantity')
                     ->label('Stock')
                     ->formatStateUsing(function ($state, $record) {
@@ -221,11 +300,6 @@ class VariantsRelationManager extends RelationManager
                 IconColumn::make('in_stock')
                     ->label('In Stock')
                     ->boolean()
-                    ->toggleable(),
-
-                TextColumn::make('weight_grams')
-                    ->label('Weight')
-                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 1000, 2) . ' kg' : '-')
                     ->toggleable(),
 
                 IconColumn::make('active')
@@ -260,6 +334,14 @@ class VariantsRelationManager extends RelationManager
                     ->trueLabel('In stock only')
                     ->falseLabel('Out of stock only'),
             ])
+            ->headerActions([
+                BulkCreateVariantsAction::make(),
+            ])
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
+                DeleteAction::make(),
+            ])
             ->defaultSort('price_amount')
             ->bulkActions([
                 BulkActionGroup::make([
@@ -268,4 +350,3 @@ class VariantsRelationManager extends RelationManager
             ]);
     }
 }
-

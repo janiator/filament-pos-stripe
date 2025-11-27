@@ -21,7 +21,11 @@ class SyncConnectedPaymentLinksFromStripe
         ];
 
         try {
-            if (! $store->hasStripeAccount()) {
+            // Refresh store to ensure we have the latest stripe_account_id
+            $store->refresh();
+            $stripeAccountId = $store->stripe_account_id;
+
+            if (empty($stripeAccountId) || ! $store->hasStripeAccount()) {
                 if ($notify) {
                     Notification::make()
                         ->title('Store not connected')
@@ -54,13 +58,19 @@ class SyncConnectedPaymentLinksFromStripe
             // We'll need to get all payment links and filter by metadata or store them with account_id in metadata
             $paymentLinks = $stripe->paymentLinks->all(
                 ['limit' => 100],
-                ['stripe_account' => $store->stripe_account_id]
+                ['stripe_account' => $stripeAccountId]
             );
 
             foreach ($paymentLinks->autoPagingIterator() as $paymentLink) {
                 $result['total']++;
 
                 try {
+                    // Ensure stripe_account_id is still valid
+                    if (empty($stripeAccountId)) {
+                        $result['errors'][] = "Payment Link {$paymentLink->id}: stripe_account_id is empty (store: {$store->id})";
+                        continue;
+                    }
+
                     // Get the first line item's price if available
                     $priceId = null;
                     if (isset($paymentLink->line_items->data[0])) {
@@ -70,7 +80,7 @@ class SyncConnectedPaymentLinksFromStripe
 
                     $data = [
                         'stripe_payment_link_id' => $paymentLink->id,
-                        'stripe_account_id' => $store->stripe_account_id,
+                        'stripe_account_id' => $stripeAccountId, // Use refreshed value
                         'stripe_price_id' => $priceId,
                         'name' => $paymentLink->metadata?->name ?? null,
                         'description' => null, // Payment links don't have direct description
@@ -84,12 +94,18 @@ class SyncConnectedPaymentLinksFromStripe
                         'metadata' => $paymentLink->metadata ? (array) $paymentLink->metadata : null,
                     ];
 
-                    $paymentLinkRecord = ConnectedPaymentLink::where('stripe_payment_link_id', $paymentLink->id)
-                        ->where('stripe_account_id', $store->stripe_account_id)
-                        ->first();
+                    // Double-check stripe_account_id is not null
+                    if (empty($data['stripe_account_id'])) {
+                        $result['errors'][] = "Payment Link {$paymentLink->id}: stripe_account_id is null after data preparation";
+                        continue;
+                    }
+
+                    $paymentLinkRecord = ConnectedPaymentLink::where('stripe_payment_link_id', $paymentLink->id)->first();
 
                     if ($paymentLinkRecord) {
                         $paymentLinkRecord->fill($data);
+                        // Explicitly set stripe_account_id to ensure it's updated if it changed
+                        $paymentLinkRecord->stripe_account_id = $stripeAccountId;
                         $paymentLinkRecord->save();
                         $result['updated']++;
                     } else {

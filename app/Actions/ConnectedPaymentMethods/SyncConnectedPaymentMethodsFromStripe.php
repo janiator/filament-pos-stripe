@@ -21,7 +21,11 @@ class SyncConnectedPaymentMethodsFromStripe
         ];
 
         try {
-            if (! $store->hasStripeAccount()) {
+            // Refresh store to ensure we have the latest stripe_account_id
+            $store->refresh();
+            $stripeAccountId = $store->stripe_account_id;
+
+            if (empty($stripeAccountId) || ! $store->hasStripeAccount()) {
                 if ($notify) {
                     Notification::make()
                         ->title('Store not connected')
@@ -52,7 +56,7 @@ class SyncConnectedPaymentMethodsFromStripe
             // Get all customers for this account, then get their payment methods
             $customers = $stripe->customers->all(
                 ['limit' => 100],
-                ['stripe_account' => $store->stripe_account_id]
+                ['stripe_account' => $stripeAccountId]
             );
 
             foreach ($customers->autoPagingIterator() as $customer) {
@@ -60,19 +64,25 @@ class SyncConnectedPaymentMethodsFromStripe
                     // Get payment methods for this customer
                     $paymentMethods = $stripe->paymentMethods->all(
                         ['customer' => $customer->id, 'type' => 'card'],
-                        ['stripe_account' => $store->stripe_account_id]
+                        ['stripe_account' => $stripeAccountId]
                     );
 
                     foreach ($paymentMethods->autoPagingIterator() as $paymentMethod) {
                         $result['total']++;
 
                         try {
+                            // Ensure stripe_account_id is still valid
+                            if (empty($stripeAccountId)) {
+                                $result['errors'][] = "Payment Method {$paymentMethod->id}: stripe_account_id is empty (store: {$store->id})";
+                                continue;
+                            }
+
                             $card = $paymentMethod->card ?? null;
                             $billing = $paymentMethod->billing_details ?? null;
 
                             $data = [
                                 'stripe_payment_method_id' => $paymentMethod->id,
-                                'stripe_account_id' => $store->stripe_account_id,
+                                'stripe_account_id' => $stripeAccountId, // Use refreshed value
                                 'stripe_customer_id' => $customer->id,
                                 'type' => $paymentMethod->type,
                                 'card_brand' => $card->brand ?? null,
@@ -86,13 +96,19 @@ class SyncConnectedPaymentMethodsFromStripe
                                 'metadata' => $paymentMethod->metadata ? (array) $paymentMethod->metadata : null,
                             ];
 
-                            $paymentMethodRecord = ConnectedPaymentMethod::where('stripe_payment_method_id', $paymentMethod->id)
-                                ->where('stripe_account_id', $store->stripe_account_id)
-                                ->first();
+                            // Double-check stripe_account_id is not null before creating
+                            if (empty($data['stripe_account_id'])) {
+                                $result['errors'][] = "Payment Method {$paymentMethod->id}: stripe_account_id is null after data preparation";
+                                continue;
+                            }
+
+                            $paymentMethodRecord = ConnectedPaymentMethod::where('stripe_payment_method_id', $paymentMethod->id)->first();
 
                             if ($paymentMethodRecord) {
                                 $paymentMethodRecord->fill($data);
-                                $paymentMethodRecord->save();
+                        // Explicitly set stripe_account_id to ensure it's updated if it changed
+                        $paymentMethodRecord->stripe_account_id = $stripeAccountId;
+                        $paymentMethodRecord->save();
                                 $result['updated']++;
                             } else {
                                 ConnectedPaymentMethod::create($data);

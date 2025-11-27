@@ -17,7 +17,7 @@ class ConnectedProductsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['store']))
+            ->modifyQueryUsing(fn ($query) => $query->with(['store', 'prices', 'variants']))
             ->columns([
                 TextColumn::make('name')
                     ->label('Name')
@@ -38,12 +38,38 @@ class ConnectedProductsTable
                     ->boolean()
                     ->sortable(),
 
-                TextColumn::make('prices_count')
-                    ->label('Prices')
-                    ->counts('prices')
+                TextColumn::make('price')
+                    ->label('Price')
+                    ->badge()
+                    ->color('success')
+                    ->formatStateUsing(function ($state, ConnectedProduct $record) {
+                        if (!$state) {
+                            // Try to get from default_price
+                            if ($record->default_price && $record->stripe_account_id) {
+                                $defaultPrice = \App\Models\ConnectedPrice::where('stripe_price_id', $record->default_price)
+                                    ->where('stripe_account_id', $record->stripe_account_id)
+                                    ->first();
+                                
+                                if ($defaultPrice && $defaultPrice->unit_amount) {
+                                    $currency = strtoupper($defaultPrice->currency ?? 'NOK');
+                                    return number_format($defaultPrice->unit_amount / 100, 2, '.', '') . ' ' . $currency;
+                                }
+                            }
+                            return '-';
+                        }
+                        
+                        $currency = strtoupper($record->currency ?? 'NOK');
+                        // Price is already in decimal format from the accessor
+                        return number_format((float) $state, 2, '.', '') . ' ' . $currency;
+                    }),
+
+                TextColumn::make('variants_count')
+                    ->label('Variants')
+                    ->counts('variants')
                     ->badge()
                     ->color('info')
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => $state ?: '0'),
 
                 TextColumn::make('type')
                     ->label('Type')
