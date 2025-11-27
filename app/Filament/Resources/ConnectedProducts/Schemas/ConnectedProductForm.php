@@ -373,6 +373,154 @@ class ConnectedProductForm
                                     ->collapsed(true)
                                     ->visibleOn('edit'),
 
+                                // Product Metadata Section (Shopify fields, SEO, etc.)
+                                Section::make('Product Metadata')
+                                    ->description('Additional metadata and Shopify fields. These sync to Stripe as metadata.')
+                                    ->schema([
+                                        KeyValue::make('product_meta')
+                                            ->label('Product Metadata')
+                                            ->keyLabel('Key')
+                                            ->valueLabel('Value')
+                                            ->helperText('Custom metadata fields. Common Shopify fields: vendor, tags, handle, category. All values sync to Stripe metadata.')
+                                            ->columnSpanFull()
+                                            ->addable(true)
+                                            ->deletable(true)
+                                            ->reorderable(false)
+                                            ->default([
+                                                'source' => 'manual',
+                                            ])
+                                            ->formatStateUsing(function ($state) {
+                                                if (is_array($state)) {
+                                                    return $state;
+                                                }
+                                                if (is_string($state)) {
+                                                    return json_decode($state, true) ?? [];
+                                                }
+                                                return [];
+                                            })
+                                            ->dehydrateStateUsing(function ($state) {
+                                                if (!is_array($state)) {
+                                                    return [];
+                                                }
+                                                // Filter out empty keys/values
+                                                return array_filter($state, function ($value, $key) {
+                                                    return !empty($key) && $value !== null && $value !== '';
+                                                }, ARRAY_FILTER_USE_BOTH);
+                                            }),
+
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('product_meta.vendor')
+                                                    ->label('Vendor')
+                                                    ->maxLength(255)
+                                                    ->helperText('Product vendor/brand name')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['vendor'] = $state;
+                                                        } else {
+                                                            unset($meta['vendor']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    })
+                                                    ->formatStateUsing(fn ($state, $record) => $record?->product_meta['vendor'] ?? null),
+
+                                                TextInput::make('product_meta.tags')
+                                                    ->label('Tags')
+                                                    ->maxLength(255)
+                                                    ->helperText('Comma-separated tags (e.g., "Golf, Equipment, Titleist")')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['tags'] = $state;
+                                                        } else {
+                                                            unset($meta['tags']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    })
+                                                    ->formatStateUsing(fn ($state, $record) => $record?->product_meta['tags'] ?? null),
+                                            ])
+                                            ->columnSpanFull(),
+
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('product_meta.handle')
+                                                    ->label('Handle (Slug)')
+                                                    ->maxLength(255)
+                                                    ->helperText('URL-friendly product handle (e.g., "golf-club-set")')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['handle'] = $state;
+                                                        } else {
+                                                            unset($meta['handle']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    })
+                                                    ->formatStateUsing(fn ($state, $record) => $record?->product_meta['handle'] ?? null),
+
+                                                TextInput::make('product_meta.category')
+                                                    ->label('Category')
+                                                    ->maxLength(255)
+                                                    ->helperText('Product category (e.g., "Sporting Goods > Golf > Clubs")')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['category'] = $state;
+                                                        } else {
+                                                            unset($meta['category']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    })
+                                                    ->formatStateUsing(fn ($state, $record) => $record?->product_meta['category'] ?? null),
+                                            ])
+                                            ->columnSpanFull(),
+
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('product_meta.seo_title')
+                                                    ->label('SEO Title')
+                                                    ->maxLength(255)
+                                                    ->helperText('SEO meta title')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['seo_title'] = $state;
+                                                        } else {
+                                                            unset($meta['seo_title']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    })
+                                                    ->formatStateUsing(fn ($state, $record) => $record?->product_meta['seo_title'] ?? null),
+
+                                                Textarea::make('product_meta.seo_description')
+                                                    ->label('SEO Description')
+                                                    ->maxLength(320)
+                                                    ->rows(3)
+                                                    ->helperText('SEO meta description (max 320 characters)')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['seo_description'] = $state;
+                                                        } else {
+                                                            unset($meta['seo_description']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    })
+                                                    ->formatStateUsing(fn ($state, $record) => $record?->product_meta['seo_description'] ?? null),
+                                            ])
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(true)
+                                    ->visibleOn('edit'),
+
                                 // System Information Section
                                 Section::make('System Information')
                                     ->description('Technical details')

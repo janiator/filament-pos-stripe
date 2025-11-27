@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\ConnectedProduct;
 use App\Models\ConnectedPrice;
+use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class ProductsController extends BaseApiController
 {
@@ -185,6 +187,79 @@ class ProductsController extends BaseApiController
             $images = $product->images;
         }
 
+        // Get variants with inventory
+        $variants = ProductVariant::where('connected_product_id', $product->id)
+            ->where('stripe_account_id', $product->stripe_account_id)
+            ->where('active', true)
+            ->get()
+            ->map(function ($variant) use ($product) {
+                return [
+                    'id' => $variant->id,
+                    'stripe_product_id' => $variant->stripe_product_id, // Each variant is a separate Stripe Product
+                    'stripe_price_id' => $variant->stripe_price_id,
+                    'sku' => $variant->sku,
+                    'barcode' => $variant->barcode,
+                    'variant_name' => $variant->variant_name,
+                    'options' => [
+                        'option1' => $variant->option1_name ? [
+                            'name' => $variant->option1_name,
+                            'value' => $variant->option1_value,
+                        ] : null,
+                        'option2' => $variant->option2_name ? [
+                            'name' => $variant->option2_name,
+                            'value' => $variant->option2_value,
+                        ] : null,
+                        'option3' => $variant->option3_name ? [
+                            'name' => $variant->option3_name,
+                            'value' => $variant->option3_value,
+                        ] : null,
+                    ],
+                    'price' => [
+                        'amount' => $variant->price_amount,
+                        'amount_formatted' => $variant->formatted_price,
+                        'currency' => strtoupper($variant->currency ?? 'NOK'),
+                        'compare_at_price' => $variant->compare_at_price_amount 
+                            ? number_format($variant->compare_at_price_amount / 100, 2, '.', '') 
+                            : null,
+                        'discount_percentage' => $variant->discount_percentage,
+                    ],
+                    'inventory' => [
+                        'quantity' => $variant->inventory_quantity,
+                        'in_stock' => $variant->in_stock,
+                        'policy' => $variant->inventory_policy,
+                        'management' => $variant->inventory_management,
+                        'tracked' => $variant->inventory_quantity !== null,
+                    ],
+                    'weight_grams' => $variant->weight_grams,
+                    'requires_shipping' => $variant->requires_shipping,
+                    'taxable' => $variant->taxable,
+                    'image_url' => $variant->image_url,
+                ];
+            })
+            ->values();
+
+        // Calculate total inventory if tracking
+        $totalInventory = null;
+        $inStockVariants = 0;
+        $outOfStockVariants = 0;
+        $trackingInventory = false;
+
+        foreach ($variants as $variant) {
+            if ($variant['inventory']['tracked']) {
+                $trackingInventory = true;
+                if ($totalInventory === null) {
+                    $totalInventory = 0;
+                }
+                $totalInventory += $variant['inventory']['quantity'] ?? 0;
+                
+                if ($variant['inventory']['in_stock']) {
+                    $inStockVariants++;
+                } else {
+                    $outOfStockVariants++;
+                }
+            }
+        }
+
         return [
             'id' => $product->id,
             'stripe_product_id' => $product->stripe_product_id,
@@ -202,10 +277,21 @@ class ProductsController extends BaseApiController
                 'currency' => strtoupper($defaultPrice->currency ?? 'NOK'),
             ] : null,
             'prices' => $allPrices,
+            'variants' => $variants,
+            'variants_count' => $variants->count(),
+            'inventory' => [
+                'tracked' => $trackingInventory,
+                'total_quantity' => $totalInventory,
+                'in_stock_variants' => $inStockVariants,
+                'out_of_stock_variants' => $outOfStockVariants,
+                'all_in_stock' => $trackingInventory ? ($outOfStockVariants === 0) : null,
+            ],
             'tax_code' => $product->tax_code,
             'unit_label' => $product->unit_label,
             'statement_descriptor' => $product->statement_descriptor,
-            'package_dimensions' => $product->package_dimensions,
+            'package_dimensions' => is_array($product->package_dimensions) 
+                ? json_encode($product->package_dimensions) 
+                : (string) ($product->package_dimensions ?? ''),
             'product_meta' => $product->product_meta,
             'created_at' => $product->created_at?->toISOString(),
             'updated_at' => $product->updated_at?->toISOString(),

@@ -143,6 +143,15 @@ class ConnectedProduct extends Model implements HasMedia
     }
 
     /**
+     * Get the variants for this product
+     */
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class, 'connected_product_id')
+            ->where('stripe_account_id', $this->stripe_account_id);
+    }
+
+    /**
      * Register media collections for product images
      */
     public function registerMediaCollections(): void

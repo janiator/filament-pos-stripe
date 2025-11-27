@@ -161,28 +161,33 @@ class ReceiptsController extends BaseApiController
     /**
      * Get receipt XML for printing
      */
-    public function xml(Request $request, string $id): \Illuminate\Http\Response
+    public function xml(Request $request, string $id): \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
     {
         $store = $this->getTenantStore($request);
         
         if (!$store) {
-            return response('Store not found', 404);
+            return response()->json(['message' => 'Store not found'], 404);
         }
 
         $this->authorizeTenant($request, $store);
 
+        // First check if receipt exists
         $receipt = Receipt::where('id', $id)
-            ->where('store_id', $store->id)
-            ->firstOrFail();
+            ->with(['store', 'charge', 'posSession', 'user', 'originalReceipt'])
+            ->first();
 
-        // Render XML if not already rendered
-        if (!isset($receipt->receipt_data['xml'])) {
-            $templateService = app(\App\Services\ReceiptTemplateService::class);
-            $templateService->renderAndSave($receipt);
-            $receipt->refresh();
+        if (!$receipt) {
+            return response()->json(['message' => 'Receipt not found'], 404);
         }
 
-        $xml = $receipt->receipt_data['xml'] ?? '';
+        // Check if receipt belongs to the store
+        if ($receipt->store_id !== $store->id) {
+            return response()->json(['message' => 'Receipt does not belong to this store'], 403);
+        }
+
+        // Always render fresh XML using renderReceipt()
+        $templateService = app(\App\Services\ReceiptTemplateService::class);
+        $xml = $templateService->renderReceipt($receipt);
 
         return response($xml, 200, [
             'Content-Type' => 'application/xml; charset=utf-8',

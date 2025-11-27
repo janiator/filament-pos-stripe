@@ -170,49 +170,66 @@
     <script type="text/javascript" src="/epson-editor/js/epos-print-editor.js"></script>
     
     <script>
-        // Get XML from URL parameter (base64 encoded)
-        function getXmlData() {
+        // Get receipt ID from URL parameter
+        function getReceiptId() {
             try {
                 const urlParams = new URLSearchParams(window.location.search);
-                let xmlBase64 = urlParams.get('xml');
-                if (xmlBase64) {
-                    // URL decode first (in case it was URL-encoded)
-                    try {
-                        xmlBase64 = decodeURIComponent(xmlBase64);
-                    } catch(e) {
-                        // Already decoded or not URL-encoded, continue
-                    }
-                    
-                    // Clean up the base64 string (remove any whitespace or invalid chars)
-                    xmlBase64 = xmlBase64.replace(/\s+/g, '');
-                    
-                    // Decode base64
-                    try {
-                        const decoded = atob(xmlBase64);
-                        console.log('Decoded XML length:', decoded.length);
-                        console.log('First 200 chars of decoded XML:', decoded.substring(0, 200));
-                        return decoded;
-                    } catch(e) {
-                        console.error('Error decoding base64 XML:', e);
-                        console.error('Base64 string length:', xmlBase64.length);
-                        console.error('Base64 string (first 100 chars):', xmlBase64.substring(0, 100));
-                        return null;
-                    }
-                }
+                return urlParams.get('receipt_id') || urlParams.get('id');
             } catch(e) {
-                console.error('Error getting XML data:', e);
+                console.error('Error getting receipt ID:', e);
             }
             return null;
+        }
+
+        // Fetch XML from web endpoint (uses session-based auth)
+        async function fetchXmlData(receiptId) {
+            try {
+                const response = await fetch(`/receipts/${receiptId}/xml`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/xml',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'include', // Include cookies for session-based authentication
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const xml = await response.text();
+                console.log('Fetched XML length:', xml.length);
+                console.log('First 200 chars of XML:', xml.substring(0, 200));
+                return xml;
+            } catch(e) {
+                console.error('Error fetching XML:', e);
+                throw e;
+            }
         }
 
         // Wait for editor scripts to load
         $(document).ready(function() {
             // Wait a bit longer for the editor script to fully initialize
-            setTimeout(function() {
-                const xmlData = getXmlData();
+            setTimeout(async function() {
+                const receiptId = getReceiptId();
+                
+                if (!receiptId) {
+                    document.getElementById('loading').textContent = 'No receipt ID provided. Add ?receipt_id=1 to the URL.';
+                    return;
+                }
+
+                let xmlData;
+                try {
+                    document.getElementById('loading').textContent = 'Loading receipt XML...';
+                    xmlData = await fetchXmlData(receiptId);
+                } catch(e) {
+                    document.getElementById('loading').textContent = 'Error loading receipt: ' + e.message;
+                    console.error('Failed to fetch XML:', e);
+                    return;
+                }
                 
                 if (!xmlData) {
-                    document.getElementById('loading').textContent = 'No receipt data provided.';
+                    document.getElementById('loading').textContent = 'No receipt data received.';
                     return;
                 }
 
@@ -242,84 +259,444 @@
                         console.log('✓ Model set to tm_m30_80');
                     }
 
-                    // Import the XML using the editor's import function
-                    const importDoc = document.getElementById('import-doc');
-                    if (importDoc) {
-                        importDoc.value = xmlData;
-                        console.log('✓ XML set in import-doc textarea, length:', xmlData.length);
-                    } else {
-                        console.error('✗ import-doc element not found');
+                    // Custom import function that creates DOM structure directly
+                    // This bypasses the need for edit-left templates
+                    function importXmlToEditSequence(xmlString) {
+                        const editSequence = document.getElementById('edit-sequence');
+                        if (!editSequence) {
+                            throw new Error('edit-sequence element not found');
+                        }
+                        
+                        // Clear existing items
+                        editSequence.innerHTML = '';
+                        
+                        // Parse XML
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+                        const parseError = xmlDoc.querySelector('parsererror');
+                        if (parseError) {
+                            throw new Error('XML Parse Error: ' + parseError.textContent);
+                        }
+                        
+                        const eposPrint = xmlDoc.querySelector('epos-print');
+                        if (!eposPrint) {
+                            throw new Error('No epos-print element found');
+                        }
+                        
+                        // Handle force attribute
+                        const editForce = document.getElementById('edit-force');
+                        if (editForce) {
+                            if (eposPrint.getAttribute('force') === 'true' || eposPrint.getAttribute('force') === '1') {
+                                editForce.checked = true;
+                            } else {
+                                editForce.checked = false;
+                            }
+                        }
+                        
+                        // Get all elements to process
+                        const elements = xmlDoc.querySelectorAll('epos-print > *, epos-print > page > *');
+                        
+                        elements.forEach(function(element) {
+                            const tagName = element.tagName.toLowerCase();
+                            let li;
+                            
+                            switch(tagName) {
+                                case 'text':
+                                    // Handle text state attributes first (these are separate elements)
+                                    if (element.hasAttribute('align')) {
+                                        const alignLi = document.createElement('li');
+                                        alignLi.className = 'epos-text-align edit-icon ui-state-default';
+                                        const alignInput = document.createElement('input');
+                                        alignInput.className = 'attr-text-align';
+                                        alignInput.type = 'hidden';
+                                        alignInput.value = element.getAttribute('align');
+                                        alignLi.appendChild(alignInput);
+                                        editSequence.appendChild(alignLi);
+                                    }
+                                    
+                                    if (element.hasAttribute('linespc')) {
+                                        const linespcLi = document.createElement('li');
+                                        linespcLi.className = 'epos-text-linespc edit-icon ui-state-default';
+                                        const linespcInput = document.createElement('input');
+                                        linespcInput.className = 'attr-text-linespc';
+                                        linespcInput.type = 'hidden';
+                                        linespcInput.value = element.getAttribute('linespc');
+                                        linespcLi.appendChild(linespcInput);
+                                        editSequence.appendChild(linespcLi);
+                                    }
+                                    
+                                    if (element.hasAttribute('rotate')) {
+                                        const rotateLi = document.createElement('li');
+                                        rotateLi.className = 'epos-text-rotate edit-icon ui-state-default';
+                                        const rotateInput = document.createElement('input');
+                                        rotateInput.className = 'attr-text-rotate';
+                                        rotateInput.type = 'checkbox';
+                                        rotateInput.checked = element.getAttribute('rotate') === 'true' || element.getAttribute('rotate') === '1';
+                                        rotateLi.appendChild(rotateInput);
+                                        editSequence.appendChild(rotateLi);
+                                    }
+                                    
+                                    // Handle text size if specified
+                                    if (element.hasAttribute('width') || element.hasAttribute('height')) {
+                                        const sizeLi = document.createElement('li');
+                                        sizeLi.className = 'epos-text-size edit-icon ui-state-default';
+                                        const widthInput = document.createElement('input');
+                                        widthInput.className = 'attr-text-width';
+                                        widthInput.type = 'hidden';
+                                        widthInput.value = element.getAttribute('width') || '1';
+                                        const heightInput = document.createElement('input');
+                                        heightInput.className = 'attr-text-height';
+                                        heightInput.type = 'hidden';
+                                        heightInput.value = element.getAttribute('height') || '1';
+                                        sizeLi.appendChild(widthInput);
+                                        sizeLi.appendChild(heightInput);
+                                        editSequence.appendChild(sizeLi);
+                                    }
+                                    
+                                    // Handle text style if specified
+                                    if (element.hasAttribute('reverse') || element.hasAttribute('ul') || element.hasAttribute('em')) {
+                                        const styleLi = document.createElement('li');
+                                        styleLi.className = 'epos-text-style edit-icon ui-state-default';
+                                        const reverseInput = document.createElement('input');
+                                        reverseInput.className = 'attr-text-reverse';
+                                        reverseInput.type = 'checkbox';
+                                        reverseInput.checked = element.getAttribute('reverse') === 'true' || element.getAttribute('reverse') === '1';
+                                        const ulInput = document.createElement('input');
+                                        ulInput.className = 'attr-text-ul';
+                                        ulInput.type = 'checkbox';
+                                        ulInput.checked = element.getAttribute('ul') === 'true' || element.getAttribute('ul') === '1';
+                                        const emInput = document.createElement('input');
+                                        emInput.className = 'attr-text-em';
+                                        emInput.type = 'checkbox';
+                                        emInput.checked = element.getAttribute('em') === 'true' || element.getAttribute('em') === '1';
+                                        styleLi.appendChild(reverseInput);
+                                        styleLi.appendChild(ulInput);
+                                        styleLi.appendChild(emInput);
+                                        editSequence.appendChild(styleLi);
+                                    }
+                                    
+                                    // Create the actual text element
+                                    li = document.createElement('li');
+                                    li.className = 'epos-text edit-icon ui-state-default';
+                                    const textInput = document.createElement('input');
+                                    textInput.className = 'attr-text-data';
+                                    textInput.type = 'text'; // Use 'text' instead of 'hidden' - jQuery .val() works better
+                                    textInput.style.display = 'none'; // Hide it visually instead
+                                    
+                                    // Get text content - handle both textContent and innerText for compatibility
+                                    let textContent = '';
+                                    if (element.textContent !== undefined) {
+                                        textContent = element.textContent;
+                                    } else if (element.innerText !== undefined) {
+                                        textContent = element.innerText;
+                                    } else if (element.firstChild && element.firstChild.nodeValue) {
+                                        textContent = element.firstChild.nodeValue;
+                                    }
+                                    
+                                    // Trim and clean up the text
+                                    textContent = textContent.trim();
+                                    textInput.value = textContent;
+                                    
+                                    // Debug: log text content (first 50 chars) for non-empty text
+                                    if (textContent.length > 0) {
+                                        console.log('  Text element:', JSON.stringify(textContent.substring(0, 50)));
+                                    }
+                                    li.appendChild(textInput);
+                                    editSequence.appendChild(li);
+                                    break;
+                                    
+                                case 'feed':
+                                    const feedLi = document.createElement('li');
+                                    feedLi.className = 'epos-feed-line edit-icon ui-state-default';
+                                    const feedInput = document.createElement('input');
+                                    feedInput.className = 'attr-feed-line';
+                                    feedInput.type = 'hidden';
+                                    feedInput.value = element.getAttribute('line') || '1';
+                                    feedLi.appendChild(feedInput);
+                                    editSequence.appendChild(feedLi);
+                                    break;
+                                    
+                                case 'logo':
+                                    const logoLi = document.createElement('li');
+                                    logoLi.className = 'epos-logo edit-icon ui-state-default';
+                                    
+                                    // Create img element - required by drawPreview()
+                                    // The drawIcon function expects an img element that's already loaded
+                                    const logoImg = document.createElement('img');
+                                    logoImg.alt = 'logo';
+                                    
+                                    // Try to use the logo from the epos-logo canvas first
+                                    const logoCanvas = document.getElementById('epos-logo');
+                                    if (logoCanvas && logoCanvas.width > 1 && logoCanvas.height > 1) {
+                                        // Canvas is initialized, use it
+                                        logoImg.src = logoCanvas.toDataURL();
+                                    } else {
+                                        // Create a simple placeholder image using canvas
+                                        const placeholderCanvas = document.createElement('canvas');
+                                        placeholderCanvas.width = 32;
+                                        placeholderCanvas.height = 32;
+                                        const ctx = placeholderCanvas.getContext('2d');
+                                        // Draw a simple logo placeholder (square with border)
+                                        ctx.strokeStyle = '#000';
+                                        ctx.lineWidth = 2;
+                                        ctx.strokeRect(4, 4, 24, 24);
+                                        ctx.fillStyle = '#000';
+                                        ctx.fillRect(8, 8, 16, 16);
+                                        logoImg.src = placeholderCanvas.toDataURL();
+                                    }
+                                    
+                                    logoLi.appendChild(logoImg);
+                                    
+                                    const logoKey1Input = document.createElement('input');
+                                    logoKey1Input.className = 'attr-logo-key1';
+                                    logoKey1Input.type = 'hidden';
+                                    logoKey1Input.value = element.getAttribute('key1') || '34';
+                                    const logoKey2Input = document.createElement('input');
+                                    logoKey2Input.className = 'attr-logo-key2';
+                                    logoKey2Input.type = 'hidden';
+                                    logoKey2Input.value = element.getAttribute('key2') || '48';
+                                    logoLi.appendChild(logoKey1Input);
+                                    logoLi.appendChild(logoKey2Input);
+                                    editSequence.appendChild(logoLi);
+                                    break;
+                                    
+                                case 'cut':
+                                    const cutLi = document.createElement('li');
+                                    cutLi.className = 'epos-cut edit-icon ui-state-default';
+                                    const cutTypeInput = document.createElement('input');
+                                    cutTypeInput.className = 'attr-cut-type';
+                                    cutTypeInput.type = 'hidden';
+                                    cutTypeInput.value = element.getAttribute('type') || 'feed';
+                                    cutLi.appendChild(cutTypeInput);
+                                    editSequence.appendChild(cutLi);
+                                    break;
+                                    
+                                // Add more cases as needed for other elements
+                            }
+                        });
+                        
+                        console.log('✓ Imported', editSequence.children.length, 'elements into edit-sequence');
+                        return editSequence.children.length;
                     }
                     
                     // Wait a bit for the editor to be ready, then import
                     setTimeout(function() {
-                        // Set the XML in the textarea (required for importDoc to work)
-                        const importDocTextarea = document.getElementById('import-doc');
-                        if (importDocTextarea) {
-                            importDocTextarea.value = xmlData;
-                            console.log('✓ XML set in import-doc textarea, length:', xmlData.length);
-                        } else {
-                            console.error('✗ import-doc textarea not found');
-                            return;
-                        }
-                        
-                        // Call importDoc() directly (it's a global function defined in epos-print-editor.js)
-                        // This bypasses the confirmation dialog
-                        if (typeof window.importDoc === 'function') {
-                            console.log('✓ Calling importDoc() directly');
-                            try {
-                                window.importDoc();
-                                console.log('✓ importDoc() called successfully');
-                            } catch(e) {
-                                console.error('✗ Error calling importDoc():', e);
-                                document.getElementById('loading').textContent = 'Error importing XML: ' + e.message;
+                        try {
+                            console.log('✓ Starting custom XML import');
+                            const itemCount = importXmlToEditSequence(xmlData);
+                            
+                            console.log('✓ Import complete. Item count:', itemCount);
+                            
+                            // Debug: Log what was created
+                            const editSequence = document.getElementById('edit-sequence');
+                            if (editSequence) {
+                                console.log('✓ edit-sequence element found');
+                                console.log('✓ edit-sequence children:', editSequence.children.length);
+                                console.log('✓ edit-sequence HTML:', editSequence.innerHTML.substring(0, 500));
+                                
+                                // Check if jQuery can find the elements
+                                if (typeof $ !== 'undefined') {
+                                    const jqElements = $('#edit-sequence li');
+                                    console.log('✓ jQuery found', jqElements.length, 'li elements');
+                                    jqElements.each(function(index) {
+                                        console.log('  Element', index, ':', $(this).attr('class'));
+                                    });
+                                }
+                            } else {
+                                console.error('✗ edit-sequence element not found!');
+                            }
+                            
+                            if (itemCount === 0) {
+                                console.warn('⚠ No items imported from XML');
+                                document.getElementById('loading').textContent = 'No items found in XML.';
                                 return;
                             }
-                        } else {
-                            console.error('✗ importDoc function not found');
-                            document.getElementById('loading').textContent = 'Editor not fully loaded. Please refresh.';
-                            return;
-                        }
-
-                        // Wait for import to complete, then draw preview
-                        // Try multiple times in case import takes longer
-                        let attempts = 0;
-                        const maxAttempts = 15;
-                        const checkImport = setInterval(function() {
-                            attempts++;
-                            const editSequence = document.getElementById('edit-sequence');
-                            const hasItems = editSequence && editSequence.children.length > 0;
                             
-                            if (hasItems || attempts >= maxAttempts) {
-                                clearInterval(checkImport);
+                            // Wait for any images to load, then draw preview
+                            const logoImages = editSequence ? editSequence.querySelectorAll('img') : [];
+                            let imagesToLoad = logoImages.length;
+                            console.log('✓ Found', imagesToLoad, 'logo images to load');
+                            
+                            if (imagesToLoad === 0) {
+                                // No images to wait for, draw immediately
+                                drawPreviewNow();
+                            } else {
+                                // Wait for all images to load
+                                logoImages.forEach(function(img) {
+                                    if (img.complete) {
+                                        imagesToLoad--;
+                                        if (imagesToLoad === 0) {
+                                            drawPreviewNow();
+                                        }
+                                    } else {
+                                        img.onload = function() {
+                                            imagesToLoad--;
+                                            if (imagesToLoad === 0) {
+                                                drawPreviewNow();
+                                            }
+                                        };
+                                        img.onerror = function() {
+                                            // Image failed to load, but continue anyway
+                                            imagesToLoad--;
+                                            if (imagesToLoad === 0) {
+                                                drawPreviewNow();
+                                            }
+                                        };
+                                    }
+                                });
                                 
-                                if (hasItems) {
-                                    console.log('✓ Items imported successfully, count:', editSequence.children.length);
-                                } else {
-                                    console.warn('⚠ No items in edit-sequence after', attempts, 'attempts');
-                                }
-                                
+                                // Timeout fallback - draw after 2 seconds even if images haven't loaded
+                                setTimeout(function() {
+                                    if (imagesToLoad > 0) {
+                                        console.warn('⚠ Some images did not load, drawing preview anyway');
+                                        imagesToLoad = 0;
+                                        drawPreviewNow();
+                                    }
+                                }, 2000);
+                            }
+                            
+                            function drawPreviewNow() {
                                 try {
+                                    // Verify elements are still there before drawing
+                                    const editSequence = document.getElementById('edit-sequence');
+                                    if (!editSequence || editSequence.children.length === 0) {
+                                        console.error('✗ No elements in edit-sequence before drawPreview');
+                                        document.getElementById('loading').textContent = 'No elements to preview.';
+                                        return;
+                                    }
+                                    
+                                    console.log('✓ About to call drawPreview with', editSequence.children.length, 'elements');
+                                    
+                                    // Make sure preview-content is visible BEFORE drawing (some functions might check visibility)
+                                    const previewContent = document.getElementById('preview-content');
+                                    const previewPaper = document.getElementById('preview-paper');
+                                    
+                                    // Clear any existing canvas elements
+                                    if (previewPaper) {
+                                        const existingCanvases = previewPaper.querySelectorAll('canvas');
+                                        console.log('✓ Clearing', existingCanvases.length, 'existing canvas elements');
+                                        existingCanvases.forEach(canvas => canvas.remove());
+                                    }
+                                    
+                                    // Ensure font variable is set (required by drawChar)
+                                    // The font variable should be defined in epos-print-editor-en.js
+                                    if (typeof font === 'undefined' && typeof window.font === 'undefined') {
+                                        // Fallback if font variable not loaded
+                                        window.font = '"Courier New", monospace';
+                                        console.log('✓ Set font variable to:', window.font);
+                                    } else if (typeof font !== 'undefined') {
+                                        // Make sure it's accessible globally
+                                        window.font = font;
+                                        console.log('✓ Font variable available:', window.font);
+                                    }
+                                    
                                     // Draw the preview
                                     if (typeof window.drawPreview === 'function') {
                                         console.log('✓ Calling drawPreview()');
                                         window.drawPreview();
+                                        
+                                        // Check if preview was actually drawn
+                                        const canvasElements = previewPaper ? previewPaper.querySelectorAll('canvas') : [];
+                                        console.log('✓ Preview drawn. Canvas elements:', canvasElements.length);
+                                        
+                                        // Verify canvas elements have content
+                                        if (canvasElements.length > 0) {
+                                            let canvasesWithContent = 0;
+                                            canvasElements.forEach((canvas, index) => {
+                                                if (canvas.width > 0 && canvas.height > 0) {
+                                                    const ctx = canvas.getContext('2d');
+                                                    const imageData = ctx.getImageData(0, 0, Math.min(canvas.width, 10), Math.min(canvas.height, 10));
+                                                    const hasContent = imageData.data.some((val, i) => i % 4 !== 3 && val !== 0); // Check if any pixel is not transparent
+                                                    if (hasContent) {
+                                                        canvasesWithContent++;
+                                                    }
+                                                    if (index < 3) {
+                                                        console.log('  Canvas', index, ':', canvas.width, 'x', canvas.height, hasContent ? 'has content' : 'empty');
+                                                    }
+                                                }
+                                            });
+                                            console.log('✓ Canvases with content:', canvasesWithContent, 'of', canvasElements.length);
+                                            
+                                            // Debug: Check text input values that jQuery should be reading
+                                            if (typeof $ !== 'undefined') {
+                                                const textElements = $('#edit-sequence .epos-text');
+                                                console.log('✓ jQuery found', textElements.length, 'epos-text elements');
+                                                textElements.each(function(index) {
+                                                    if (index < 5) {
+                                                        const textValue = $(this).find('.attr-text-data').val();
+                                                        console.log('  Text element', index, 'value:', JSON.stringify(textValue ? textValue.substring(0, 30) : ''));
+                                                    }
+                                                });
+                                            }
+                                            
+                                            // If no canvases have content, there might be an issue
+                                            if (canvasesWithContent === 0 && canvasElements.length > 0) {
+                                                console.warn('⚠ All canvas elements appear to be empty - preview may not render correctly');
+                                                console.warn('⚠ This might indicate that text data is not being read correctly by drawPreview()');
+                                            }
+                                        }
+                                        
+                                        // Always show preview content, even if empty (for debugging)
+                                        document.getElementById('loading').style.display = 'none';
+                                        if (previewContent) {
+                                            previewContent.style.display = 'block';
+                                        }
+                                        
+                                        // If no canvas content, show a message
+                                        if (canvasElements.length === 0) {
+                                            console.warn('⚠ No canvas elements were created');
+                                            const previewPaper = document.getElementById('preview-paper');
+                                            if (previewPaper) {
+                                                previewPaper.innerHTML += '<p style="color: #999; padding: 20px; text-align: center;">No preview content generated. Check console for details.</p>';
+                                            }
+                                        } else if (canvasElements.length > 0) {
+                                            // Check if any canvas has visible content
+                                            let hasVisibleContent = false;
+                                            canvasElements.forEach((canvas) => {
+                                                if (canvas.width > 0 && canvas.height > 0) {
+                                                    try {
+                                                        const ctx = canvas.getContext('2d');
+                                                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                                        const hasContent = imageData.data.some((val, i) => i % 4 !== 3 && val !== 0);
+                                                        if (hasContent) {
+                                                            hasVisibleContent = true;
+                                                        }
+                                                    } catch(e) {
+                                                        // Ignore errors
+                                                    }
+                                                }
+                                            });
+                                            
+                                            if (!hasVisibleContent) {
+                                                console.warn('⚠ Canvas elements exist but appear to be empty');
+                                                const previewPaper = document.getElementById('preview-paper');
+                                                if (previewPaper) {
+                                                    previewPaper.innerHTML += '<p style="color: #999; padding: 20px; text-align: center;">Preview canvases created but appear empty. Check console for details.</p>';
+                                                }
+                                            }
+                                        }
                                     } else {
                                         console.error('✗ drawPreview function not found');
+                                        document.getElementById('loading').textContent = 'Preview function not available.';
+                                        document.getElementById('loading').style.display = 'block';
                                     }
-                                    
-                                    // Show preview content
-                                    document.getElementById('loading').style.display = 'none';
-                                    document.getElementById('preview-content').style.display = 'block';
                                 } catch(e) {
                                     console.error('✗ Error drawing preview:', e);
+                                    console.error('✗ Stack trace:', e.stack);
                                     document.getElementById('loading').textContent = 'Error rendering preview: ' + e.message;
+                                    document.getElementById('loading').style.display = 'block';
+                                    // Still try to show preview content
+                                    const previewContent = document.getElementById('preview-content');
+                                    if (previewContent) {
+                                        previewContent.style.display = 'block';
+                                    }
                                 }
-                            } else {
-                                console.log('⏳ Waiting for import... attempt', attempts);
                             }
-                        }, 500);
-
+                            
+                        } catch(e) {
+                            console.error('✗ Error importing XML:', e);
+                            document.getElementById('loading').textContent = 'Error importing XML: ' + e.message;
+                        }
                     }, 500);
 
                 } catch(e) {

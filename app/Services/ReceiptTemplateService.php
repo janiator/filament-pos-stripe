@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Receipt;
+use App\Models\ReceiptTemplate;
 use App\Models\ConnectedCharge;
 use App\Models\Store;
 use App\Models\PosSession;
@@ -25,18 +26,63 @@ class ReceiptTemplateService
      */
     public function renderReceipt(Receipt $receipt): string
     {
-        $templateName = $this->getTemplateName($receipt->receipt_type);
+        $templateType = $receipt->receipt_type;
+        $storeId = $receipt->store_id;
+        
+        // Try to get template from database first (store-specific or global)
+        $template = $this->getTemplate($storeId, $templateType);
+        
+        // If no database template, fall back to file
+        if (!$template) {
+            $template = $this->getTemplateFromFile($templateType);
+        }
+        
+        $data = $this->prepareReceiptData($receipt);
+        
+        // Use Mustache to render the template
+        $xml = $this->mustache->render($template, $data);
+        
+        // Sanitize XML: Remove invalid <line> elements that cause schema errors
+        $xml = $this->sanitizeXml($xml);
+        
+        return $xml;
+    }
+
+    /**
+     * Sanitize XML by removing invalid elements that cause schema errors
+     */
+    protected function sanitizeXml(string $xml): string
+    {
+        // Remove <line> elements - they're not properly supported in ePOS-Print XML schema
+        // and cause SchemaError. Use text dashes instead.
+        $xml = preg_replace('/<line[^>]*\/?>/i', '', $xml);
+        
+        return $xml;
+    }
+
+    /**
+     * Get template from database (store-specific or global)
+     */
+    protected function getTemplate(?int $storeId, string $templateType): ?string
+    {
+        $receiptTemplate = ReceiptTemplate::getTemplate($storeId, $templateType);
+        
+        return $receiptTemplate?->content;
+    }
+
+    /**
+     * Get template from file (fallback)
+     */
+    protected function getTemplateFromFile(string $templateType): string
+    {
+        $templateName = $this->getTemplateName($templateType);
         $templatePath = $this->templatePath . '/' . $templateName;
         
         if (!File::exists($templatePath)) {
             throw new \RuntimeException("Receipt template not found: {$templatePath}");
         }
         
-        $template = File::get($templatePath);
-        $data = $this->prepareReceiptData($receipt);
-        
-        // Use Mustache to render the template
-        return $this->mustache->render($template, $data);
+        return File::get($templatePath);
     }
 
     /**

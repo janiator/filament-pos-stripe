@@ -80,16 +80,6 @@ class ReceiptsTable
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
-                Action::make('preview')
-                    ->label('Preview')
-                    ->icon('heroicon-o-eye')
-                    ->modalHeading(fn (Receipt $record) => "Receipt Preview - {$record->receipt_number}")
-                    ->modalContent(fn (Receipt $record) => view('filament.resources.receipts.modals.preview', [
-                        'receipt' => $record,
-                    ]))
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Close')
-                    ->color('info'),
                 ViewAction::make(),
                 EditAction::make(),
             ])

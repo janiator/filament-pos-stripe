@@ -74,4 +74,5 @@
     <feed/>
     <feed/>
     <text font="font_a"/>
+    <cut type="feed"/>
 </epos-print>

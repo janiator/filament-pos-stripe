@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ConnectedProducts;
 
 use App\Filament\Resources\ConnectedProducts\Pages\CreateConnectedProduct;
 use App\Filament\Resources\ConnectedProducts\Pages\EditConnectedProduct;
+use App\Filament\Resources\ConnectedProducts\Pages\ImportShopifyCsv;
 use App\Filament\Resources\ConnectedProducts\Pages\ListConnectedProducts;
 use App\Filament\Resources\ConnectedProducts\Schemas\ConnectedProductForm;
 use App\Filament\Resources\ConnectedProducts\Schemas\ConnectedProductInfolist;
@@ -67,6 +68,7 @@ class ConnectedProductResource extends Resource
     public static function getRelations(): array
     {
         return [
+            \App\Filament\Resources\ConnectedProducts\RelationManagers\VariantsRelationManager::class,
             \App\Filament\Resources\ConnectedProducts\RelationManagers\PricesRelationManager::class,
         ];
     }
@@ -77,6 +79,7 @@ class ConnectedProductResource extends Resource
             'index' => ListConnectedProducts::route('/'),
             'create' => CreateConnectedProduct::route('/create'),
             'edit' => EditConnectedProduct::route('/{record}/edit'),
+            'import-shopify-csv' => ImportShopifyCsv::route('/import-shopify-csv'),
         ];
     }
 }

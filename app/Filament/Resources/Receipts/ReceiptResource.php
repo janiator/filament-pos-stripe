@@ -58,6 +58,7 @@ class ReceiptResource extends Resource
             'index' => ListReceipts::route('/'),
             'create' => CreateReceipt::route('/create'),
             'edit' => EditReceipt::route('/{record}/edit'),
+            'preview' => \App\Filament\Resources\Receipts\Pages\ViewReceiptPreview::route('/{record}/preview'),
         ];
     }
 }

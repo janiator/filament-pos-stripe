@@ -24,6 +24,58 @@ Route::middleware(['auth', 'web'])->group(function () {
             'Content-Disposition' => "attachment; filename=\"receipt-{$receipt->receipt_number}.xml\"",
         ]);
     })->name('receipts.xml');
+    
+    // Receipt preview route (embedded in Filament)
+    Route::get('/receipts/{id}/preview', function ($id) {
+        $receipt = \App\Models\Receipt::with(['store', 'charge', 'posSession', 'user', 'originalReceipt'])
+            ->findOrFail($id);
+        
+        // Verify user has access to this receipt's store
+        $user = auth()->user();
+        if (!$user) {
+            abort(401, 'Unauthenticated');
+        }
+        
+        // Check if user can access the store (super admin or store member)
+        $store = $receipt->store;
+        $isSuperAdmin = $user->hasRole('super_admin');
+        $hasStoreAccess = $user->stores()->where('stores.id', $store->id)->exists();
+        
+        if (!$isSuperAdmin && !$hasStoreAccess) {
+            abort(403, 'You do not have access to this receipt');
+        }
+        
+        // Redirect to the preview-only page with receipt ID
+        return redirect('/epson-editor/preview-only.html?receipt_id=' . $receipt->id);
+    })->name('receipts.preview');
+    
+    // Simple receipt XML route for preview (no tenant in URL)
+    Route::get('/receipts/{id}/xml', function ($id) {
+        $receipt = \App\Models\Receipt::with(['store', 'charge', 'posSession', 'user', 'originalReceipt'])
+            ->findOrFail($id);
+        
+        // Verify user has access to this receipt's store
+        $user = auth()->user();
+        if (!$user) {
+            abort(401, 'Unauthenticated');
+        }
+        
+        // Check if user can access the store (super admin or store member)
+        $store = $receipt->store;
+        $isSuperAdmin = $user->hasRole('super_admin');
+        $hasStoreAccess = $user->stores()->where('stores.id', $store->id)->exists();
+        
+        if (!$isSuperAdmin && !$hasStoreAccess) {
+            abort(403, 'You do not have access to this receipt');
+        }
+        
+        $xml = app(\App\Services\ReceiptTemplateService::class)->renderReceipt($receipt);
+        
+        return response($xml, 200, [
+            'Content-Type' => 'application/xml; charset=utf-8',
+            'Content-Disposition' => 'inline; filename="receipt-' . $receipt->receipt_number . '.xml"',
+        ]);
+    })->name('receipts.xml.simple');
 });
 
 // Dummy login route to prevent "Route [login] not defined" errors

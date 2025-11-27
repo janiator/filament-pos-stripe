@@ -75,4 +75,13 @@ class ConnectedPrice extends Model
         return $count . $interval;
     }
 
+    /**
+     * Get the variant associated with this price
+     */
+    public function variant(): ?\Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ProductVariant::class, 'stripe_price_id', 'stripe_price_id')
+            ->where('stripe_account_id', $this->stripe_account_id);
+    }
+
 }

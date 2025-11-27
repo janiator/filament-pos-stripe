@@ -49,4 +49,12 @@ class PosDevice extends Model
     {
         return $this->hasMany(TerminalLocation::class);
     }
+
+    /**
+     * Get receipt printers associated with this POS device
+     */
+    public function receiptPrinters(): HasMany
+    {
+        return $this->hasMany(ReceiptPrinter::class);
+    }
 }

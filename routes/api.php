@@ -60,6 +60,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('customers', \App\Http\Controllers\Api\CustomersController::class);
     Route::apiResource('products', \App\Http\Controllers\Api\ProductsController::class)->only(['index', 'show']);
     
+    // Inventory management endpoints
+    Route::get('/products/{product}/inventory', [\App\Http\Controllers\Api\InventoryController::class, 'getProductInventory'])->name('api.products.inventory');
+    Route::put('/variants/{variant}/inventory', [\App\Http\Controllers\Api\InventoryController::class, 'updateVariant'])->name('api.variants.inventory.update');
+    Route::post('/variants/{variant}/inventory/adjust', [\App\Http\Controllers\Api\InventoryController::class, 'adjustInventory'])->name('api.variants.inventory.adjust');
+    Route::post('/variants/{variant}/inventory/set', [\App\Http\Controllers\Api\InventoryController::class, 'setInventory'])->name('api.variants.inventory.set');
+    Route::post('/inventory/bulk-update', [\App\Http\Controllers\Api\InventoryController::class, 'bulkUpdate'])->name('api.inventory.bulk-update');
+    
     // SAF-T endpoints (Kassasystemforskriften compliance)
     Route::post('/saf-t/generate', [\App\Http\Controllers\Api\SafTController::class, 'generate'])->name('api.saf-t.generate');
     Route::get('/saf-t/content', [\App\Http\Controllers\Api\SafTController::class, 'content'])->name('api.saf-t.content');
