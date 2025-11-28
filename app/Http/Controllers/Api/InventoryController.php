@@ -44,12 +44,12 @@ class InventoryController extends BaseApiController
         return response()->json([
             'variant' => [
                 'id' => $variant->id,
-                'sku' => $variant->sku,
+                'sku' => $variant->sku ?? null,
                 'variant_inventory' => [
-                    'quantity' => $variant->inventory_quantity,
-                    'in_stock' => $variant->in_stock,
-                    'policy' => $variant->inventory_policy,
-                    'management' => $variant->inventory_management,
+                    'quantity' => $variant->inventory_quantity ?? null,
+                    'in_stock' => $variant->in_stock ?? true,
+                    'policy' => $variant->inventory_policy ?? null,
+                    'management' => $variant->inventory_management ?? null,
                     'tracked' => $variant->inventory_quantity !== null,
                 ],
             ],
@@ -108,10 +108,10 @@ class InventoryController extends BaseApiController
         return response()->json([
             'variant' => [
                 'id' => $variant->id,
-                'sku' => $variant->sku,
+                'sku' => $variant->sku ?? null,
                 'variant_inventory' => [
-                    'quantity' => $variant->inventory_quantity,
-                    'in_stock' => $variant->in_stock,
+                    'quantity' => $variant->inventory_quantity ?? null,
+                    'in_stock' => $variant->in_stock ?? true,
                     'previous_quantity' => $currentQuantity,
                     'adjustment' => $adjustment,
                 ],
@@ -169,10 +169,10 @@ class InventoryController extends BaseApiController
         return response()->json([
             'variant' => [
                 'id' => $variant->id,
-                'sku' => $variant->sku,
+                'sku' => $variant->sku ?? null,
                 'variant_inventory' => [
-                    'quantity' => $variant->inventory_quantity,
-                    'in_stock' => $variant->in_stock,
+                    'quantity' => $variant->inventory_quantity ?? null,
+                    'in_stock' => $variant->in_stock ?? true,
                     'previous_quantity' => $oldQuantity,
                 ],
             ],
@@ -205,14 +205,14 @@ class InventoryController extends BaseApiController
             ->map(function ($variant) {
                 return [
                     'id' => $variant->id,
-                    'sku' => $variant->sku,
-                    'barcode' => $variant->barcode,
-                    'variant_name' => $variant->variant_name,
+                    'sku' => $variant->sku ?? null,
+                    'barcode' => $variant->barcode ?? null,
+                    'variant_name' => $variant->variant_name ?? 'Default',
                     'variant_inventory' => [
-                        'quantity' => $variant->inventory_quantity,
-                        'in_stock' => $variant->in_stock,
-                        'policy' => $variant->inventory_policy,
-                        'management' => $variant->inventory_management,
+                        'quantity' => $variant->inventory_quantity ?? null,
+                        'in_stock' => $variant->in_stock ?? true,
+                        'policy' => $variant->inventory_policy ?? null,
+                        'management' => $variant->inventory_management ?? null,
                         'tracked' => $variant->inventory_quantity !== null,
                     ],
                 ];

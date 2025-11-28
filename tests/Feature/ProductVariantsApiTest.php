@@ -82,7 +82,7 @@ class ProductVariantsApiTest extends TestCase
                         'id',
                         'sku',
                         'variant_name',
-                        'options',
+                        'variant_options',
                         'price' => [
                             'amount',
                             'amount_formatted',
@@ -224,17 +224,22 @@ class ProductVariantsApiTest extends TestCase
         $response->assertStatus(200);
         $variantData = collect($response->json('product.variants'))->first();
         
-        $this->assertNotNull($variantData['options']['option1']);
-        $this->assertEquals('Size', $variantData['options']['option1']['name']);
-        $this->assertEquals('Large', $variantData['options']['option1']['value']);
+        // Variant options should now be an array
+        $this->assertIsArray($variantData['variant_options']);
+        $this->assertCount(3, $variantData['variant_options']);
         
-        $this->assertNotNull($variantData['options']['option2']);
-        $this->assertEquals('Color', $variantData['options']['option2']['name']);
-        $this->assertEquals('Red', $variantData['options']['option2']['value']);
+        // Find options by name
+        $sizeOption = collect($variantData['variant_options'])->firstWhere('name', 'Size');
+        $this->assertNotNull($sizeOption);
+        $this->assertEquals('Large', $sizeOption['value']);
         
-        $this->assertNotNull($variantData['options']['option3']);
-        $this->assertEquals('Material', $variantData['options']['option3']['name']);
-        $this->assertEquals('Cotton', $variantData['options']['option3']['value']);
+        $colorOption = collect($variantData['variant_options'])->firstWhere('name', 'Color');
+        $this->assertNotNull($colorOption);
+        $this->assertEquals('Red', $colorOption['value']);
+        
+        $materialOption = collect($variantData['variant_options'])->firstWhere('name', 'Material');
+        $this->assertNotNull($materialOption);
+        $this->assertEquals('Cotton', $materialOption['value']);
     }
 }
 

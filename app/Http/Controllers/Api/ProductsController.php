@@ -60,16 +60,35 @@ class ProductsController extends BaseApiController
                         'trace' => $e->getTraceAsString(),
                     ]);
                     // Return minimal product data if transformation fails
+                    // Ensure consistent structure even on error
                     return [
                         'id' => $product->id,
-                        'stripe_product_id' => $product->stripe_product_id,
-                        'name' => $product->name,
-                        'description' => $product->description,
-                        'type' => $product->type,
-                        'active' => $product->active,
+                        'stripe_product_id' => $product->stripe_product_id ?? null,
+                        'name' => $product->name ?? '',
+                        'description' => $product->description ?? null,
+                        'type' => $product->type ?? 'service',
+                        'active' => $product->active ?? false,
+                        'shippable' => $product->shippable ?? false,
+                        'url' => $product->url ?? null,
+                        'images' => [],
                         'product_price' => null,
                         'prices' => [],
-                        'images' => [],
+                        'variants' => [],
+                        'variants_count' => 0,
+                        'product_inventory' => [
+                            'tracked' => false,
+                            'total_quantity' => null,
+                            'in_stock_variants' => 0,
+                            'out_of_stock_variants' => 0,
+                            'all_in_stock' => null,
+                        ],
+                        'tax_code' => $product->tax_code ?? null,
+                        'unit_label' => $product->unit_label ?? null,
+                        'statement_descriptor' => $product->statement_descriptor ?? null,
+                        'package_dimensions' => null,
+                        'product_meta' => $product->product_meta ?? null,
+                        'created_at' => $product->created_at?->toISOString(),
+                        'updated_at' => $product->updated_at?->toISOString(),
                     ];
                 }
             });
@@ -192,46 +211,59 @@ class ProductsController extends BaseApiController
             ->where('active', true)
             ->get()
             ->map(function ($variant) use ($product) {
+                // Ensure consistent price amount (always integer, 0 if null)
+                $priceAmount = $variant->price_amount ?? 0;
+                $currency = strtoupper($variant->currency ?? 'NOK');
+                
+                // Format price consistently (never return 'N/A')
+                $amountFormatted = $priceAmount > 0 
+                    ? number_format($priceAmount / 100, 2, '.', '') 
+                    : '0.00';
+                
+                // Format compare_at_price consistently
+                $compareAtPriceFormatted = null;
+                if ($variant->compare_at_price_amount && $variant->compare_at_price_amount > 0) {
+                    $compareAtPriceFormatted = number_format($variant->compare_at_price_amount / 100, 2, '.', '');
+                }
+                
                 return [
                     'id' => $variant->id,
-                    'stripe_product_id' => $variant->stripe_product_id, // Each variant is a separate Stripe Product
-                    'stripe_price_id' => $variant->stripe_price_id,
-                    'sku' => $variant->sku,
-                    'barcode' => $variant->barcode,
-                    'variant_name' => $variant->variant_name,
-                    'options' => [
-                        'option1' => $variant->option1_name ? [
+                    'stripe_product_id' => $variant->stripe_product_id ?? null,
+                    'stripe_price_id' => $variant->stripe_price_id ?? null,
+                    'sku' => $variant->sku ?? null,
+                    'barcode' => $variant->barcode ?? null,
+                    'variant_name' => $variant->variant_name ?? 'Default',
+                    'variant_options' => array_values(array_filter([
+                        $variant->option1_name ? [
                             'name' => $variant->option1_name,
-                            'value' => $variant->option1_value,
+                            'value' => $variant->option1_value ?? '',
                         ] : null,
-                        'option2' => $variant->option2_name ? [
+                        $variant->option2_name ? [
                             'name' => $variant->option2_name,
-                            'value' => $variant->option2_value,
+                            'value' => $variant->option2_value ?? '',
                         ] : null,
-                        'option3' => $variant->option3_name ? [
+                        $variant->option3_name ? [
                             'name' => $variant->option3_name,
-                            'value' => $variant->option3_value,
+                            'value' => $variant->option3_value ?? '',
                         ] : null,
-                    ],
+                    ], fn($option) => $option !== null)),
                     'variant_price' => [
-                        'amount' => $variant->price_amount,
-                        'amount_formatted' => $variant->formatted_price,
-                        'currency' => strtoupper($variant->currency ?? 'NOK'),
-                        'compare_at_price' => $variant->compare_at_price_amount 
-                            ? number_format($variant->compare_at_price_amount / 100, 2, '.', '') 
-                            : null,
-                        'discount_percentage' => $variant->discount_percentage,
+                        'amount' => $priceAmount,
+                        'amount_formatted' => $amountFormatted,
+                        'currency' => $currency,
+                        'compare_at_price' => $compareAtPriceFormatted,
+                        'discount_percentage' => $variant->discount_percentage ?? null,
                     ],
                     'variant_inventory' => [
-                        'quantity' => $variant->inventory_quantity,
-                        'in_stock' => $variant->in_stock,
-                        'policy' => $variant->inventory_policy,
-                        'management' => $variant->inventory_management,
+                        'quantity' => $variant->inventory_quantity ?? null,
+                        'in_stock' => $variant->in_stock ?? true,
+                        'policy' => $variant->inventory_policy ?? null,
+                        'management' => $variant->inventory_management ?? null,
                         'tracked' => $variant->inventory_quantity !== null,
                     ],
-                    'weight_grams' => $variant->weight_grams,
-                    'requires_shipping' => $variant->requires_shipping,
-                    'taxable' => $variant->taxable,
+                    'weight_grams' => $variant->weight_grams ?? null,
+                    'requires_shipping' => $variant->requires_shipping ?? false,
+                    'taxable' => $variant->taxable ?? false,
                     'image_url' => $this->getVariantImageUrl($variant),
                 ];
             })
@@ -259,15 +291,25 @@ class ProductsController extends BaseApiController
             }
         }
 
+        // Format package_dimensions consistently
+        $packageDimensions = null;
+        if ($product->package_dimensions) {
+            if (is_array($product->package_dimensions)) {
+                $packageDimensions = json_encode($product->package_dimensions);
+            } else {
+                $packageDimensions = (string) $product->package_dimensions;
+            }
+        }
+
         return [
             'id' => $product->id,
-            'stripe_product_id' => $product->stripe_product_id,
-            'name' => $product->name,
-            'description' => $product->description,
-            'type' => $product->type,
-            'active' => $product->active,
+            'stripe_product_id' => $product->stripe_product_id ?? null,
+            'name' => $product->name ?? '',
+            'description' => $product->description ?? null,
+            'type' => $product->type ?? 'service',
+            'active' => $product->active ?? false,
             'shippable' => $product->shippable ?? false,
-            'url' => $product->url,
+            'url' => $product->url ?? null,
             'images' => $images,
             'product_price' => $defaultPrice ? [
                 'id' => $defaultPrice->stripe_price_id,
@@ -285,13 +327,11 @@ class ProductsController extends BaseApiController
                 'out_of_stock_variants' => $outOfStockVariants,
                 'all_in_stock' => $trackingInventory ? ($outOfStockVariants === 0) : null,
             ],
-            'tax_code' => $product->tax_code,
-            'unit_label' => $product->unit_label,
-            'statement_descriptor' => $product->statement_descriptor,
-            'package_dimensions' => is_array($product->package_dimensions) 
-                ? json_encode($product->package_dimensions) 
-                : (string) ($product->package_dimensions ?? ''),
-            'product_meta' => $product->product_meta,
+            'tax_code' => $product->tax_code ?? null,
+            'unit_label' => $product->unit_label ?? null,
+            'statement_descriptor' => $product->statement_descriptor ?? null,
+            'package_dimensions' => $packageDimensions,
+            'product_meta' => $product->product_meta ?? null,
             'created_at' => $product->created_at?->toISOString(),
             'updated_at' => $product->updated_at?->toISOString(),
         ];
