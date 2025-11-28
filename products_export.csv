@@ -1,0 +1,736 @@
+Handle,Title,Body (HTML),Vendor,Product Category,Type,Tags,Published,Option1 Name,Option1 Value,Option1 Linked To,Option2 Name,Option2 Value,Option2 Linked To,Option3 Name,Option3 Value,Option3 Linked To,Variant SKU,Variant Grams,Variant Inventory Tracker,Variant Inventory Policy,Variant Fulfillment Service,Variant Price,Variant Compare At Price,Variant Requires Shipping,Variant Taxable,Unit Price Total Measure,Unit Price Total Measure Unit,Unit Price Base Measure,Unit Price Base Measure Unit,Variant Barcode,Image Src,Image Position,Image Alt Text,Gift Card,SEO Title,SEO Description,Google Shopping / Google Product Category,Google Shopping / Gender,Google Shopping / Age Group,Google Shopping / MPN,Google Shopping / Condition,Google Shopping / Custom Product,Google Shopping / Custom Label 0,Google Shopping / Custom Label 1,Google Shopping / Custom Label 2,Google Shopping / Custom Label 3,Google Shopping / Custom Label 4,Kjønn (product.metafields.custom.kj_nn),Kursholder (product.metafields.custom.kursholder),Kurstype (product.metafields.custom.kurstype),Google: Custom Product (product.metafields.mm-google-shopping.custom_product),Aldersgruppe (product.metafields.shopify.age-group),Klubb undersett (product.metafields.shopify.club-subset),Klubbtype (product.metafields.shopify.club-type),Farge (product.metafields.shopify.color-pattern),Golfballtype (product.metafields.shopify.golf-ball-type),Håndside (product.metafields.shopify.hand-side),Materiale (product.metafields.shopify.material),Skofunksjoner (product.metafields.shopify.shoe-features),Skostørrelse (product.metafields.shopify.shoe-size),Målkjønn (product.metafields.shopify.target-gender),Komplimentære produkter (product.metafields.shopify--discovery--product_recommendation.complementary_products),Relaterte produkter (product.metafields.shopify--discovery--product_recommendation.related_products),Innstillinger for relaterte produkter (product.metafields.shopify--discovery--product_recommendation.related_products_display),Søk i produktboostinger (product.metafields.shopify--discovery--product_search_boost.queries),Variant Image,Variant Weight Unit,Variant Tax Code,Cost per item,Status
+scotty-cameron-super-select-newport,Scotty Cameron Super Select,"<p><strong>Scotty Cameron Super Select Newport Plus</strong><span> </span>er en imponerende golfputter som kombinerer stil, presisjon og ytelse. La oss utforske denne putteren nærmere:</p>
+<ul>
+<li>
+<p><strong>Design og Formål</strong>:</p>
+<ul>
+<li>
+<strong>Newport Plus</strong><span> </span>har en<span> </span><strong>innovativ, litt bredere profil</strong><span> </span>enn standard bladputtere. Dette gir en unik og selvsikker visning fra adressen og øker<span> </span><strong>MOI</strong><span> </span>(motstand mot vridning) samtidig som den bevarer det klassiske utseendet og rene alignmentet assosiert med bladputtere.</li>
+<li>Den har en<span> </span><strong>multimateriell konstruksjon</strong><span> </span>som kombinerer 303 rustfritt stål med en presisjonsfrest 6061 flykropp i aluminium. Dette gir riktig vektfordeling, balanse og følelse.</li>
+</ul>
+</li>
+</ul>",Titleist,Sporting Goods > Outdoor Recreation > Golf > Golf Clubs,Utstyr,"Golfkøller, Scotty, Scotty Cameron",true,Størrelse,"33""",,Stil,Newport,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/1_aaf2d055-51bb-4835-a30e-ba947c356dc1.jpg?v=1710752488,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,active
+scotty-cameron-super-select-newport,,,,,,,,,"34""",,,Newport,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,'196665255036,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/scotty_cameron_ss_newport_plus_2.webp?v=1710752488,2,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"35""",,,Newport,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,'196665255043,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/scotty_cameron_ss_newport_plus_3.webp?v=1710752488,3,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"33""",,,Newport 2,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/DEB43EE6-9557-47EE-BAD7-31D42D1234C0.jpg?v=1713526183,4,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"33""",,,Newport plus,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"33""",,,Newport 2 plus,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"33""",,,Squareback 2,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"33""",,,Fastback 1.5,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"34""",,,Newport 2,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,'196665255098,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"34""",,,Newport plus,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,'196665255067,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"34""",,,Newport 2 plus,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"34""",,,Squareback 2,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"34""",,,Fastback 1.5,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,'196665255180,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"35""",,,Newport 2,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,'196665255104,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"35""",,,Newport plus,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"35""",,,Newport 2 plus,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,'196665255135,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"35""",,,Squareback 2,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,'196665255319,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"35""",,,Fastback 1.5,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"33""",,,Fastback,,,,,,0.0,shopify,deny,manual,5999.00,,true,true,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"34""",,,Fastback,,,,,,0.0,shopify,deny,manual,5999.00,,true,true,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-super-select-newport,,,,,,,,,"35""",,,Fastback,,,,,"",0.0,shopify,deny,manual,5999.00,,true,true,,,,,'196665967175,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3650.00,
+scotty-cameron-phantom-7-5,"Scotty Cameron Phantom X 7,5 - 35""","<p><strong>Scotty Cameron Phantom 7.5</strong><span> </span>er en imponerende golfputter som kombinerer stil, presisjon og ytelse. Her er noen detaljer om denne putteren:</p>
+<ul>
+<li>
+<p><strong>Design og Konstruksjon</strong>:</p>
+<ul>
+<li>Phantom X 7.5 har en<span> </span><strong>vingskåret mallet-design</strong><span> </span>som gir en unik estetikk.</li>
+<li>Den har en<span> </span><strong>liten skrå hals</strong><span> </span>(også kalt “jet neck”) for å fremme en liten<span> </span><strong>toe flow</strong><span> </span>i putting-slaget.</li>
+<li>Putterhodet er laget av<span> </span><strong>solid rustfritt stål</strong>, og sålen/flangen er presisjonsfrest i<span> </span><strong>aluminium</strong>.</li>
+<li>Den har en elegant,<span> </span><strong>matt finish</strong><span> </span>som minimerer refleksjoner.</li>
+<li>Grafikken er raffinert og tiltalende.</li>
+<li>Grepet er<span> </span><strong>Pistolero Plus</strong>, som gir god følelse og kontroll.</li>
+</ul>
+</li>
+<li>
+<p><strong>Egenskaper</strong>:</p>
+<ul>
+<li>
+<strong>Allsidig allround-ytelse</strong>: Phantom X 7.5 gir god balanse mellom lengde og kontroll.</li>
+<li>
+<strong>Høy MOI</strong>: Den har høy motstand mot vridning takket være vingene og vekten plassert bakover.</li>
+<li>
+<strong>Presis alignment</strong>: Lange hvite siktelinjer på flangen og en svart linje på toppen gir selvsikker alignment.</li>
+<li>
+<strong>Tilpasningsmuligheter</strong>: Du kan justere lengde, loft og lie etter dine preferanser.</li>
+<li>
+<strong>Vektfordeling</strong>: Vingformen gir mulighet for mer vekt bakover og rundt kanten.</li>
+</ul>
+</li>
+<li>
+<p><strong>Spesifikasjoner</strong>:</p>
+<ul>
+<li>
+<strong>Loft</strong>: 3.5º</li>
+<li>
+<strong>Lie</strong>: 70º</li>
+<li>
+<strong>Lengde</strong>: Tilgjengelig i 33"", 34"" og 35""</li>
+<li>
+<strong>Hode-materiale</strong>: Rustfritt stål (303) med aluminiums såle/flange</li>
+<li>
+<strong>Offset</strong>: 3/4</li>
+<li>
+<strong>Grep</strong>: Pistolero Plus</li>
+<li>
+<strong>Vekter</strong>: 2 x 20 gram (33""), 2 x 15 gram (34""), 2 x 10 gram (35"")</li>
+</ul>
+</li>
+</ul>
+<br>",Titleist,Sporting Goods > Outdoor Recreation > Golf > Golf Clubs,Utstyr,Golfkøller,true,Title,Default Title,,,,,,,,"",0.0,shopify,deny,manual,4999.00,,true,true,,,,,'706843129051,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/3_fbdc8035-930b-4581-8766-f3e711a0ccc9.jpg?v=1710756003,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3000.00,active
+scotty-cameron-phantom-7-5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/1_75d22b20-e728-4573-b4df-85d5a6382a02.jpg?v=1710756006,2,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+scotty-cameron-phantom-7-5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/2_4812eb18-fea2-4a50-997d-8425807aa471.jpg?v=1710756007,3,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+scotty-cameron-phantom-x5,"Scotty Cameron Phantom X 5.5 - 34""","<p><strong>Scotty Cameron Phantom X 5</strong><span> </span>er en imponerende golfputter som kombinerer stil, presisjon og ytelse. Denne putteren er designet for spillere som foretrekker en mallet-putter med estetikken til en tradisjonell bladputter. Her er noen detaljer om denne modellen:</p>
+<ul>
+<li>
+<p><strong>Design og Konstruksjon</strong>:</p>
+<ul>
+<li>Phantom X 5 har et<span> </span><strong>vingeskåret mallet-design</strong><span> </span>som gir en unik estetikk.</li>
+<li>Den har en<span> </span><strong>liten skrå hals</strong><span> </span>(også kjent som “jet neck”) for å fremme en liten<span> </span><strong>toe flow</strong><span> </span>i putting-slaget.</li>
+<li>Putterhodet er laget av<span> </span><strong>solid rustfritt stål</strong>, og sålen/flangen er presisjonsfrest i<span> </span><strong>aluminium</strong>.</li>
+<li>Den har en elegant,<span> </span><strong>matt finish</strong><span> </span>som minimerer refleksjoner.</li>
+<li>Grafikken er raffinert og tiltalende.</li>
+<li>Grepet er<span> </span><strong>Pistolero Plus</strong>, som gir god følelse og kontroll.</li>
+</ul>
+</li>
+<li>
+<p><strong>Egenskaper</strong>:</p>
+<ul>
+<li>
+<strong>Allsidig allround-ytelse</strong>: Phantom X 5 gir god balanse mellom lengde og kontroll.</li>
+<li>
+<strong>Høy MOI</strong>: Den har høy motstand mot vridning takket være vingene og vekten plassert bakover.</li>
+<li>
+<strong>Presis alignment</strong>: Lange hvite siktelinjer på flangen og en svart linje på toppen gir selvsikker alignment.</li>
+<li>
+<strong>Tilpasningsmuligheter</strong>: Du kan justere lengde, loft og lie etter dine preferanser.</li>
+<li>
+<strong>Vektfordeling</strong>: Vingformen gir mulighet for mer vekt bakover og rundt kanten.</li>
+</ul>
+</li>
+<li>
+<p><strong>Spesifikasjoner</strong>:</p>
+<ul>
+<li>
+<strong>Loft</strong>: 3.5º</li>
+<li>
+<strong>Lie</strong>: 70º</li>
+<li>
+<strong>Lengde</strong>: Tilgjengelig i 33"", 34"" og 35""</li>
+<li>
+<strong>Hode-materiale</strong>: Rustfritt stål (303) med aluminiums såle/flange</li>
+<li>
+<strong>Offset</strong>: 3/4</li>
+<li>
+<strong>Grep</strong>: Pistolero Plus</li>
+<li>
+<strong>Vekter</strong>: 2 x 20 gram (33""), 2 x 15 gram (34""), 2 x 10 gram (35"")</li>
+</ul>
+</li>
+</ul>
+<span data-mce-fragment=""1"">Scotty Cameron er født fra validering og suksess på de verdensomspennende tourene og har designet en helt ny Phantom X-linje, som leverer en rekke av de mest ettertraktede hodeformene og skaft-konfigurasjoner som gir maksimal ytelse til ivrige golfere. Putterne har et nytt teksturert Pistol Plus-grep, ny grafikk og førsteklasses styling. Tour-foretrukket flatekonstruksjon i 303 rustfritt stål går gjennom til nesten alle modellene. X 5 har det mest forespurte mallet-designet på touren. Med et nytt vingedesign og proppet med teknologi er dette en av de mest stabile og tilgivelige putterene fra Scotty Cameron. Putteren leveres med en small slant ""jet"" hals.</span>",Titleist,Sporting Goods > Outdoor Recreation > Golf > Golf Clubs,Utstyr,Golfkøller,true,Size,"34""",,,,,,,,"",0.0,shopify,deny,manual,4999.00,,true,true,,,,,'706843128955,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/1_6cab3c0e-8f52-4d92-a678-3dbdcdaedb43.jpg?v=1710752208,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3000.00,active
+scotty-cameron-phantom-x5,,,,,,,,,"35""",,,,,,,,"",0.0,shopify,deny,manual,4999.00,,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/2_ccda9f99-cb14-4daa-b5cb-6369fc8464ec.jpg?v=1710752208,2,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3000.00,
+scotty-cameron-phantom-x5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/3_eb78fc26-84ed-40f9-83ff-4c7161aba308.jpg?v=1710752208,3,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+scotty-cameron-phantom-x11,"Scotty Cameron Phantom X 11 - 33""","<p><strong>Scotty Cameron Phantom X 11</strong><span> </span>er en imponerende golfputter som kombinerer stil, presisjon og ytelse. Her er noen detaljer om denne putteren:</p>
+<ul>
+<li>
+<p><strong>Design og Konstruksjon</strong>:</p>
+<ul>
+<li>Phantom X 11 har en<span> </span><strong>vingskåret mallet-design</strong><span> </span>som gir en unik estetikk.</li>
+<li>Den har en<span> </span><strong>liten skrå hals</strong><span> </span>(også kalt “jet neck”) for å fremme en liten<span> </span><strong>toe flow</strong><span> </span>i putting-slaget.</li>
+<li>Putterhodet er laget av<span> </span><strong>solid rustfritt stål</strong>, og sålen/flangen er presisjonsfrest i<span> </span><strong>aluminium</strong>.</li>
+<li>Den har en elegant,<span> </span><strong>matt finish</strong><span> </span>som minimerer refleksjoner.</li>
+<li>Grafikken er raffinert og tiltalende.</li>
+<li>Grepet er<span> </span><strong>Pistolero Plus</strong>, som gir god følelse og kontroll.</li>
+</ul>
+</li>
+<li>
+<p><strong>Egenskaper</strong>:</p>
+<ul>
+<li>
+<strong>Allsidig allround-ytelse</strong>: Phantom X 11 gir god balanse mellom lengde og kontroll.</li>
+<li>
+<strong>Høy MOI</strong>: Den har høy motstand mot vridning takket være vingene og vekten plassert bakover.</li>
+<li>
+<strong>Presis alignment</strong>: Lange hvite siktelinjer på flangen og en svart linje på toppen gir selvsikker alignment.</li>
+<li>
+<strong>Tilpasningsmuligheter</strong>: Du kan justere lengde, loft og lie etter dine preferanser.</li>
+<li>
+<strong>Vektfordeling</strong>: Vingformen gir mulighet for mer vekt bakover og rundt kanten.</li>
+</ul>
+</li>
+<li>
+<p><strong>Spesifikasjoner</strong>:</p>
+<ul>
+<li>
+<strong>Loft</strong>: 3.5º</li>
+<li>
+<strong>Lie</strong>: 70º</li>
+<li>
+<strong>Lengde</strong>: Tilgjengelig i 33"", 34"" og 35""</li>
+<li>
+<strong>Hode-materiale</strong>: Rustfritt stål (303) med aluminiums såle/flange</li>
+<li>
+<strong>Offset</strong>: 3/4</li>
+<li>
+<strong>Grep</strong>: Pistolero Plus</li>
+<li>
+<strong>Vekter</strong>: 2 x 20 gram (33""), 2 x 15 gram (34""), 2 x 10 gram (35"")</li>
+</ul>
+</li>
+</ul>
+<span data-mce-fragment=""1"">Scotty Cameron er født fra validering og suksess på de verdensomspennende tourene og har designet en helt ny Phantom X-linje, som leverer en rekke av de mest ettertraktede hodeformene og skaft-konfigurasjoner som gir maksimal ytelse til ivrige golfere. Putterne har et nytt teksturert Pistol Plus-grep, ny grafikk og førsteklasses styling. Tour-foretrukket flatekonstruksjon i 303 rustfritt stål går gjennom til nesten alle modellene. X 11 er et nytskudd i Phantom serie og tilbyr en near-face balanced mallet med unik profil og ypperlig sikting. Putteren leveres med et single mid-bend skaft.</span>",Titleist,Sporting Goods > Outdoor Recreation > Golf > Golf Clubs,Utstyr,Golfkøller,true,Title,Default Title,,,,,,,,"",0.0,shopify,deny,manual,4999.00,,true,true,,,,,'706843129129,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/scotty11.jpg?v=1708447484,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3000.00,active
+scotty-cameron-phantom-x11,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/1_e10f77b5-344a-4e27-b5fd-8f2549007a76.jpg?v=1710755923,2,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+scotty-cameron-phantom-x11,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/2_f3ba99f1-a771-4cc8-bef4-82dc75723204.jpg?v=1710755923,3,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+odessey-dfx-dubbel-wide-34,Odessey DFX dubbel wide,"<p><strong>Odyssey DFX Double Wide</strong><span> </span>er en putter som er utviklet for å hjelpe deg med å forbedre puttingen din. Her er noen viktige detaljer om denne modellen:</p>
+<ul>
+<li>
+<strong>Modell:</strong><span> </span>Odyssey DFX Double Wide</li>
+<li>
+<strong>Lengde:</strong><span> </span>34 tommer (86,36 cm)</li>
+<li>
+<strong>Design:</strong><span> </span>Dette er en<span> </span><strong>bladputter</strong><span> </span>med en noe større form enn vanlig, noe som gir ekstra støtte og stabilitet under putting.</li>
+<li>
+<strong>Vektfordeling:</strong><span> </span>Denne putteren er<span> </span><strong>face balanced</strong>, noe som betyr at den passer best for spillere som foretrekker en jevn følelse og rulling på greenen.</li>
+<li>
+<strong>Mykere innsats:</strong><span> </span>DFX-serien har en mykere innsats enn den legendariske White Hot-serien, noe som gir en behagelig følelse ved putting.</li>
+</ul>",Callaway,,Utstyr,Golfkøller,true,Size,"34""",,,,,,,,"",0.0,shopify,deny,manual,1849.00,,true,true,,,,,'194518342575,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/3_2c6cfada-433b-4166-bd6a-c0a723d08c87.jpg?v=1710752071,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,750.00,active
+odessey-dfx-dubbel-wide-34,,,,,,,,,"35""",,,,,,,,"",0.0,shopify,deny,manual,1849.00,,true,true,,,,,'194518342599,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,750.00,
+odessey-rossie-34,"Odessey ROSSIE  34""","<p><strong>Odyssey DFX Rossie OS</strong><span> </span>er en smidig<span> </span><strong>midmallet-putter</strong><span> </span>med mye tilgivende egenskaper.<span> </span><a rel=""noopener"" data-citationid=""63423952-29f1-70dc-fa01-af32a97f1dac-5-group"" class=""tooltip-target"" href=""https://www.bing.com/aclick?ld=e8O5AvDO8je3arDt-cyGUK4TVUCUyXp1U9my33__r1c1tC840Q451o1s0gHfppvpQzzR6w_-w_XQ7CAMe83ePnTkQq3c-CH5inCDow-iOA8psJR4fF7h5lgT77AJKjJBkfRMpJ4W89GG0nQLXpReaosml2eft4JbbKV-xkpxbUtKOMnrvt&amp;u=aHR0cHMlM2ElMmYlMmZ3d3cuZWJheS5jb20lMmZzY2glMmZpLmh0bWwlM2Zfbmt3JTNkcm9zc2llJTI1MjBwdXR0ZXJzJTI2bm9yb3ZlciUzZDElMjZta2V2dCUzZDElMjZta3JpZCUzZDcxMS0zNDAwMi0xMzA3OC0wJTI2bWtjaWQlM2QyJTI2bWtzY2lkJTNkMTAyJTI2a2V5d29yZCUzZHJvc3NpZSUyNTIwcHV0dGVycyUyNmNybHAlM2RfJTI2TVRfSUQlM2QlMjZnZW9faWQlM2QlMjZybHNhdGFyZ2V0JTNka3dkLTc3MDM0NzA5NDU4ODEwJTNhbG9jLTEzOSUyNmFkcG9zJTNkJTI2ZGV2aWNlJTNkYyUyNm1rdHlwZSUzZCUyNmxvYyUzZDE0NTA1NyUyNnBvaSUzZCUyNmFiY0lkJTNkJTI2Y21wZ24lM2QzOTU0MDI3MzYlMjZzaXRlbG5rJTNkJTI2YWRncm91cGlkJTNkMTIzMjU1Mjc0MTczNDAzOSUyNm5ldHdvcmslM2RvJTI2bWF0Y2h0eXBlJTNkcCUyNm1zY2xraWQlM2RkNzY0ZjdlNjg0YjUxOTU5NzE2NzkyMDFiMzZiOTcwMg&amp;rlid=d764f7e684b5195971679201b36b9702"" target=""_blank"" h=""ID=SERP.9999_96,55131.1,Ads"">Den er<span> </span><strong>face balanced-vektet</strong>, noe som passer best for spillere med en rett puttebevegelse</a><a rel=""noopener"" aria-label=""1: face balanced-vektet"" data-citationid=""63423952-29f1-70dc-fa01-af32a97f1dac-5"" class=""ac-anchor sup-target"" href=""https://www.dormy.com/nb/merker/odyssey/dfx-rossie-os-03005a028"" h=""ID=discoverbing,5015.1"" target=""_blank""><sup class=""citation-sup"">1</sup></a>. Her er noen detaljer om denne putteren:</p>
+<ul>
+<li>
+<strong>Modell:</strong><span> </span>Odyssey DFX Rossie OS</li>
+<li>
+<strong>Lengde:</strong><span> </span>34 tommer (86,36 cm)</li>
+<li>
+<strong>Design:</strong><span> </span>Rossie OS har en<span> </span><strong>rund mallet-form</strong><span> </span>med en kort slant hosel og<span> </span><strong>bold alignment lines</strong><span> </span>for enkel justering av puttingen.</li>
+<li>
+<strong>Innlegg:</strong><span> </span>DFX-innlegget er Odysseys mykeste noensinne, 20 % mykere enn White Hot, og gir en jevn følelse og god rulling på greenen.</li>
+<li>
+<strong>Helsvart finish:</strong><span> </span>Putteren har en førsteklasses svart finish som gir den et elegant og diskré utseende fra hodet til innlegget.</li>
+</ul>",Callaway,,Utstyr,Golfkøller,true,Title,Default Title,,,,,,,,"",0.0,shopify,deny,manual,1849.00,,true,true,,,,,'194518342834,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/4_141cac74-cb20-4443-b18a-e6a2ada827ed.jpg?v=1710752080,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,750.00,active
+odessey-dfx-7-os-35,Odessey DFX 7 OS,"<p><strong>Odyssey DFX #7 OS</strong><span> </span>er en smidig<span> </span><strong>midmallet-putter</strong><span> </span>med mye tilgivende egenskaper. Den er face balanced-vektet, noe som passer best for spillere med en rett puttebevegelse.<span> </span>Her er noen detaljer om denne putteren:</p>
+<ul>
+<li>
+<strong>Modell:</strong><span> </span>Odyssey DFX #7 OS</li>
+<li>
+<strong>Lengde:</strong> 33, 34, 35 tommer</li>
+<li>
+<strong>Design:</strong><span> </span>DFX #7 OS har en<span> </span><strong>rund mallet-form</strong><span> </span>med en kort slant hosel og<span> </span><strong>bold alignment lines</strong><span> </span>for enkel justering av puttingen.</li>
+<li>
+<strong>Innlegg:</strong><span> </span>DFX-innlegget er Odysseys mykeste noensinne, 20 % mykere enn White Hot, og gir en jevn følelse og god rulling på greenen.</li>
+<li>
+<strong>Helsvart finish:</strong><span> </span>Putteren har en førsteklasses svart finish som gir den et elegant og diskré utseende fra hodet til innlegget.</li>
+</ul>",Callaway,,Utstyr,Golfkøller,true,Størrelse,"34""",,,,,,,,"",0.0,shopify,deny,manual,1849.00,,true,true,,,,,'194518343091,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/2_d1196e7c-f473-4c17-a4ac-4491d8eb9cd8.jpg?v=1710752063,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,750.00,active
+odessey-dfx-7-os-35,,,,,,,,,"35""",,,,,,,,"",0.0,shopify,deny,manual,1849.00,,true,true,,,,,'194518343114,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,750.00,
+odessey-dfx-1-ch-os,Odessey DFX #1 CH OS,"<p><strong>Odyssey DFX #1 CH OS</strong><span> </span>er en smidig<span> </span><strong>bladputter</strong><span> </span>med mye tilgivende egenskaper. Den er face balanced-vektet, noe som passer best for spillere med en rett puttebevegelse. <span>﻿</span>Her er noen detaljer om denne putteren:</p>
+<ul>
+<li>
+<strong>Modell:</strong><span> </span>Odyssey DFX #1 CH OS</li>
+<li>
+<strong>Lengde:</strong><span> </span>34 tommer (86,36 cm)</li>
+<li>
+<strong>Design:</strong><span> </span>DFX #1 CH OS har en klassisk bladform med en kort slant hosel og<span> </span><strong>bold alignment lines</strong><span> </span>for enkel justering av puttingen.</li>
+<li>
+<strong>Innlegg:</strong><span> </span>DFX-innlegget er Odysseys mykeste noensinne, 20 % mykere enn White Hot, og gir en jevn følelse og god rulling på greenen.</li>
+<li>
+<strong>Helsvart finish:</strong><span> </span>Putteren har en førsteklasses svart finish som gir den et elegant og diskré utseende fra hodet til innlegget.</li>
+</ul>",Callaway,,Utstyr,Golfkøller,true,Size,"34""",,,,,,,,"",0.0,shopify,deny,manual,1699.00,,true,true,,,,,'194518342575,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/1_5aec2081-f10f-43eb-af74-de96d8a096c3.jpg?v=1710752056,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,700.00,active
+odessey-dfx-1-ch-os,,,,,,,,,"35""",,,,,,,,"",0.0,shopify,deny,manual,1699.00,,true,true,,,,,'194518342599,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,700.00,
+titleist-tsi2-links-10-grader-driver,Titleist TSi2 links 10 grader driver,"<p><strong>Titleist TSi2</strong>-driveren er designet for spillere som søker<span> </span><strong>utrolig hastighet</strong><span> </span>og<span> </span><strong>presisjon</strong><span> </span>over hele slagflaten. Her er noen viktige detaljer om denne modellen:</p>
+<ul>
+<li>
+<strong>Modell:</strong><span> </span>Titleist TSi2</li>
+<li>
+<strong>Hodestørrelse:</strong><span> </span>460 cc</li>
+<li>
+<strong>Tilgjengelige lofter:</strong><span> </span>9.0°, 10.0°, 11.0°</li>
+</ul>
+<p>Andre spesifikasjoner:</p>
+<ul>
+<li>
+<strong>Chassis:</strong><span> </span>TSi2 har et<span> </span><strong>Speed Chassis</strong><span> </span>laget av<span> </span><strong>ultratynt titan</strong>.</li>
+<li>
+<strong>Innlegg:</strong><span> </span>DFX-innlegget er mykere enn det legendariske White Hot-innlegget, noe som gir en jevn følelse og god rulling på greenen.</li>
+<li>
+<strong>Justerbar hosel:</strong><span> </span><strong>SureFit Hosel</strong><span> </span>gir muligheten til å tilpasse loft og lie uavhengig av hverandre.</li>
+<li>
+<strong>Skaftalternativer:</strong><span> </span>Flere alternativer, inkludert Kuro Kage Black DC, Tensei AV Blue RAW, HZRDUS Smoke Black RDX, Tensei AV White Raw og Premium Tour AD-serien.</li>
+</ul>",Titleist,,Utstyr,Golfkøller,true,Title,Default Title,,,,,,,,"",0.0,shopify,deny,manual,4499.00,,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/3_261e94f6-20f7-41ad-8bd8-fd5bb8da1a24.jpg?v=1710752534,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,active
+titleist-tsi2-links-16-5-grader-fairwaywood,"Titleist TSi2 links 16,5 grader fairwaywood","<p><strong>Titleist TSi2</strong>-fairwaywooden er designet for å gi<span> </span><strong>utrolig hastighet</strong><span> </span>og<span> </span><strong>presisjon</strong><span> </span>over hele slagflaten. Her er noen viktige detaljer om denne modellen:</p>
+<ul>
+<li>
+<strong>Modell:</strong><span> </span>Titleist TSi2</li>
+<li>
+<strong>Tilgjengelige lofter:</strong><span> </span>16,5° og andre alternativer</li>
+</ul>
+<p>Andre spesifikasjoner:</p>
+<ul>
+<li>
+<strong>ARC-teknologi:</strong><span> </span>TSi2 har den fjerde generasjonen av<span> </span><strong>ARC-teknologi</strong>, som gir større fleksibilitet over slagflaten ved treff og raskere ballhastigheter.</li>
+<li>
+<strong>Lavt tyngdepunkt:</strong><span> </span>Dette bidrar til enklere lansering og tilgivelse.</li>
+<li>
+<strong>Utseende:</strong><span> </span>TSi2 har en klassisk Titleist-form og en moderne TSi-justeringsstempel på kronen.</li>
+<li>
+<strong>Tilgivelse:</strong><span> </span>TSi2 er en av de mest tilgivende fairwaywoodene på markedet.</li>
+<li>
+<strong>Konsistent ballbane og spinn:</strong><span> </span>TSi2 gir forutsigbare resultater.</li>
+</ul>",Titleist,,Utstyr,Golfkøller,true,Title,Default Title,,,,,,,,,0.0,shopify,deny,manual,2795.00,,true,true,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/TSI2fairwaywood.jpg?v=1710924772,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,active
+titleist-tsr1-driver-12-grader,Titleist TSR1 Driver 12 grader,"<p><strong>Titleist TSR1 Driver</strong><span> </span>er en<span> </span><strong>ultralett</strong><span> </span>driver designet for golfere med<span> </span><strong>moderat svinghastighet</strong>. La oss utforske noen viktige detaljer om denne driveren:</p>
+<ul>
+<li>
+<strong>Modell:</strong><span> </span>Titleist TSR1</li>
+<li>
+<strong>Hodestørrelse:</strong><span> </span>460 cc</li>
+<li>
+<strong>Tilgjengelige loft:</strong><span> </span>9.0°, 10.0°, 12.0°</li>
+</ul>
+<p>Andre spesifikasjoner:</p>
+<ul>
+<li>
+<strong>Ultralett konfigurasjon:</strong><span> </span>TSR1 er strategisk utformet for å være så lett som mulig uten å ofre maksimal lansering og lengde.</li>
+<li>
+<strong>Multi-Plateau Variable Face Thickness (VFT) design:</strong><span> </span>Denne konstruksjonen gir en stor sweet spot over hele slagflaten, noe som gir fantastisk tilgivelse og ballhastighet.</li>
+<li>
+<strong>Sentrert tyngdepunkt (CG):</strong><span> </span>TSR1 har et dypt tyngdepunkt som er nesten perfekt sentrert mot slagflaten, noe som gir høyere lansering og eksepsjonell ballhastighet.</li>
+<li>
+<strong>SureFit Hosel-justerbarhet:</strong><span> </span>Perfekt tilpasning for optimal ytelse.</li>
+<li>
+<strong>MMT™ SPEEDMESH-skaft:</strong><span> </span>Ultralett hastighet med fokusert stabilitet og energioverføring ved treff.</li>
+</ul>",Titleist,Sporting Goods > Outdoor Recreation > Golf,Utstyr,Golfkøller,true,Title,Default Title,,,,,,,,"",0.0,shopify,deny,manual,5850.00,,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/Designutennavn_33.jpg?v=1710752619,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,active
+titleist-tsr2-driver-10-grader,Titleist TSR2 Driver 10 grader,"<p><strong>Titleist TSR2 Driver</strong><span> </span>er en<span> </span><strong>ultralett</strong><span> </span>driver designet for golfere med<span> </span><strong>moderat svinghastighet</strong>. Den kombinerer en<span> </span><strong>slankere form</strong><span> </span>med<span> </span><strong>økt hastighet</strong><span> </span>over hele slagflaten. Her er noen nøkkeldetaljer om denne driveren:</p>
+<ul>
+<li>
+<strong>Modell:</strong><span> </span>Titleist TSR2</li>
+<li>
+<strong>Hodestørrelse:</strong><span> </span>460 cc</li>
+<li>
+<strong>Tilgjengelige lofter:</strong><span> </span>9.0°, 10.0°, 11.0°</li>
+</ul>
+<p>Andre spesifikasjoner:</p>
+<ul>
+<li>
+<strong>Multi-Plateau Variable Face Thickness Design:</strong><span> </span>Denne konstruksjonen gir en nesten konstant CT (karakteristisk tid) over hele treffflaten. Uansett om du treffer midt i eller utenfor sweetspot, gir det fantastisk tilgivelse og ballhastighet.</li>
+<li>
+<strong>Optimalisert hastighet og stabilitet:</strong><span> </span>TSR2 har en CG (tyngdepunkt) som er både lavere og mer fremover for økt ballhastighet, samtidig som lansering og spinn forbedres.</li>
+<li>
+<strong>SureFit-justerbarhet:</strong><span> </span>Perfekt tilpasning for optimal ytelse.</li>
+<li>
+<strong>Premium skaftalternativer:</strong><span> </span>Velg mellom ulike høytytende skaft fra anerkjente produsenter.</li>
+</ul>",Titleist,Sporting Goods > Outdoor Recreation > Golf,Utstyr,Golfkøller,true,Title,Default Title,,,,,,,,,0.0,shopify,deny,manual,5350.00,,true,true,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/7_a66c1173-990a-44e9-b618-d58a64d6d2a4.jpg?v=1710752579,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,active
+titleist-tsr3-driver-9-grader,Titleist TSR3 Driver 9 grader,"<p><strong>Titleist TSR2 Driver</strong><span> </span>er en<span> </span><strong>ultralett</strong><span> </span>driver designet for golfere med<span> </span><strong>moderat svinghastighet</strong>. Den kombinerer en<span> </span><strong>slankere form</strong><span> </span>med<span> </span><strong>økt hastighet</strong><span> </span>over hele slagflaten. Her er noen nøkkeldetaljer om denne driveren:</p>
+<ul>
+<li>
+<strong>Modell:</strong><span> </span>Titleist TSR2</li>
+<li>
+<strong>Hodestørrelse:</strong><span> </span>460 cc</li>
+<li>
+<strong>Tilgjengelige lofter:</strong><span> </span>9.0°, 10.0°, 11.0°</li>
+<li>
+<a data-citationid=""51816bae-d2d9-60f6-9ab9-29186af43e2d-16-group"" class=""tooltip-target"" href=""https://www.titleist.com/product/tsr2-driver/657C.html"" h=""ID=discoverbing,5015.1""><strong>Pris:</strong><span> </span>$599<span> </span></a><a rel=""noopener"" aria-label=""1: Pris:"" data-citationid=""51816bae-d2d9-60f6-9ab9-29186af43e2d-16"" class=""ac-anchor sup-target"" href=""https://www.titleist.com/product/tsr2-driver/657C.html"" h=""ID=discoverbing,5015.1"" target=""_blank""><sup class=""citation-sup"">1</sup></a>.</li>
+</ul>
+<p>Andre spesifikasjoner:</p>
+<ul>
+<li>
+<strong>Multi-Plateau Variable Face Thickness Design:</strong><span> </span>Denne konstruksjonen gir en nesten konstant CT (karakteristisk tid) over hele treffflaten. Uansett om du treffer midt i eller utenfor sweetspot, gir det fantastisk tilgivelse og ballhastighet.</li>
+<li>
+<strong>Optimalisert Speed &amp; Stability:</strong><span> </span>CG (tyngdepunkt) har blitt flyttet både lavere og mer fremover for å øke ballhastigheten samtidig som lansering og spinn forbedres.</li>
+<li>
+<strong>SureFit-justerbarhet:</strong><span> </span>En driver som passer bedre, presterer bedre. SureFit-systemet gir en fitter muligheten til å matche TSR2s ytelse til behovene til hver enkelt spiller, slik at du kan oppnå renere og mer konsistent kontakt.</li>
+<li>
+<strong>Eksepsjonelle tilpasnings alternativer:</strong><span> </span>De utvalgte aksjene for TSR representerer et komplett spekter av høytytende alternativer fra anerkjente produsenter. Hver spiller og svingprofil kan tilpasses til en ideell match.</li>
+</ul>",Titleist,Sporting Goods > Outdoor Recreation > Golf,Utstyr,Golfkøller,true,Title,Default Title,,,,,,,,,0.0,shopify,deny,manual,5750.00,6499.00,true,true,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/TitleistTSR3driver.jpg?v=1710925228,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,3815.00,active
+titleist-tsr1-wood,Titleist TSR1 wood,"<div class=""m-section-header"" data-mce-fragment=""1"">
+<p class=""section-label"" data-mce-fragment=""1"">TSR1 FAIRWAY</p>
+<h2 class=""ext-h1"" data-mce-fragment=""1""><a href=""https://www.titleist.com/locator?searchtype=fit"" data-mce-fragment=""1"" data-mce-href=""https://www.titleist.com/locator?searchtype=fit"">ULTRA-LIGHTWEIGHT SPEED &amp; LAUNCH</a></h2>
+</div>
+<p data-mce-fragment=""1""><span data-mce-fragment=""1"">The optimized, lightweight configuration of Titleist TSR1 Fairways makes it easier to generate more speed. A new open hosel construction allows CG to shift lower and deeper for easier launch and more forgiveness.</span></p>
+<p data-mce-fragment=""1""><span data-mce-fragment=""1""><strong data-mce-fragment=""1"">Benefits</strong></span></p>
+<ul data-mce-fragment=""1"">
+<li data-mce-fragment=""1"">Maximized Launch &amp; Distance</li>
+<li data-mce-fragment=""1"">Exceptional Forgiveness</li>
+<li data-mce-fragment=""1"">Player-Preferred Shape, Sound &amp; Feel</li>
+</ul>
+<p data-mce-fragment=""1""><span data-mce-fragment=""1""><strong data-mce-fragment=""1"">Features</strong></span></p>
+<ul data-mce-fragment=""1"">
+<li data-mce-fragment=""1"">Ultra-Lightweight Configuration</li>
+<li data-mce-fragment=""1"">Low, Face-Centered CG (Center of Gravity)</li>
+<li data-mce-fragment=""1"">High-Strength Carpenter Stainless Steel</li>
+<li data-mce-fragment=""1"">SureFit Adjustability</li>
+</ul>",Titleist,Sporting Goods > Outdoor Recreation > Golf,Utstyr,Golfkøller,true,Grader,15,,,,,,,,"",0.0,shopify,deny,manual,3299.00,3599.00,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/Titleist-TSR1-Fairway-Wood1-768x522.jpg?v=1710924979,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,active
+titleist-tsr1-wood,,,,,,,,,18,,,,,,,,"",0.0,shopify,deny,manual,3299.00,3599.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,
+titleist-tsr1-wood,,,,,,,,,20,,,,,,,,"",0.0,shopify,deny,manual,3299.00,3599.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,
+titleist-tsr1-wood,,,,,,,,,23,,,,,,,,"",0.0,shopify,deny,manual,3299.00,3599.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,
+kopi-av-titleist-tsr2-wood,Titleist TSR2 wood,"<div class=""m-section-header"" data-mce-fragment=""1"">
+<div class=""m-section-header"">
+<p class=""section-label"">TSR2 FAIRWAY</p>
+<h2 class=""ext-h1""><a href=""https://www.titleist.com/locator?searchtype=fit"">HIGH, FAR, FORGIVING</a></h2>
+</div>
+<p><span>Go low to get more. Titleist TSR2 Fairways feature our lowest CG ever for speed and launch without creating excessive backspin. A new Open Hosel Construction contributes to a powerful new sound and feel that make TSR2 an instant favorite for many players.</span></p>
+<p><span><strong>Benefits</strong></span></p>
+<ul>
+<li><span>High, Consistent Flight</span></li>
+<li>Exceptional Forgiveness</li>
+<li>Optimized Speed</li>
+<li>Player-Preferred Shape, Sound &amp; Feel</li>
+</ul>
+<p><span><strong>Features</strong></span></p>
+<ul>
+<li>Ultra-Low, Face-Centered CG (Center of Gravity)</li>
+<li>Open Hosel Construction</li>
+<li>High-Strength Carpenter Stainless Steel</li>
+<li>SureFit Adjustability</li>
+</ul>
+</div>
+<ul data-mce-fragment=""1""></ul>",Titleist,Sporting Goods > Outdoor Recreation > Golf,Utstyr,Golfkøller,true,Grader,15,,,,,,,,"",0.0,shopify,deny,manual,3399.00,3599.00,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/Titleist-TSR1-Fairway-Wood1-768x522_b6b4c931-6ee2-46f2-bbf8-064173dee523.jpg?v=1710925142,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,active
+kopi-av-titleist-tsr2-wood,,,,,,,,,16.5,,,,,,,,"",0.0,shopify,deny,manual,3399.00,3599.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,
+kopi-av-titleist-tsr2-wood,,,,,,,,,18,,,,,,,,"",0.0,shopify,deny,manual,3399.00,3599.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,
+kopi-av-titleist-tsr2-wood,,,,,,,,,21,,,,,,,,"",0.0,shopify,deny,manual,3399.00,3599.00,true,true,,,,,'3000849840656443108583,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,
+titleist-tsr3-wood,Titleist TSR3 wood,"<div class=""m-section-header"" data-mce-fragment=""1"">
+<div class=""m-section-header"">
+<p class=""section-label"">TSR3 FAIRWAY</p>
+<h2 class=""ext-h1""><a href=""https://www.titleist.com/locator?searchtype=fit"">PRECISION-TUNED PERFORMANCE</a></h2>
+</div>
+<p><span>Dial in your performance with the ultimate in adjustability. TSR3 Fairways feature a new, easier to adjust 5-position SureFit Adjustable CG Track System that offers both a wider adjustment range and greater precision. A deeper CG improves accuracy.</span></p>
+<p><span><strong>Benefits</strong></span></p>
+<ul>
+<li><span>Exceptional Versatility</span></li>
+<li><span>Precise Flight Control</span></li>
+<li>Improved Accuracy</li>
+<li>Player-Preferred Shape, Sound &amp; Feel</li>
+</ul>
+<p><span><strong>Features</strong></span></p>
+<ul>
+<li>Performance-Tuned Adjustability</li>
+<li>Low, Face-Centered CG (Center of Gravity)</li>
+<li>High-Strength Carpenter Stainless Steel</li>
+<li>SureFit Adjustability</li>
+</ul>
+</div>
+<ul data-mce-fragment=""1""></ul>",Titleist,Sporting Goods > Outdoor Recreation > Golf,Utstyr,Golfkøller,true,grader,13.5,,,,,,,,"",0.0,shopify,deny,manual,3399.00,3599.00,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/tsr3_fairway_face.-x1000.png?v=1710925386,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,active
+titleist-tsr3-wood,,,,,,,,,15,,,,,,,,"",0.0,shopify,deny,manual,3399.00,3599.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,
+titleist-tsr3-wood,,,,,,,,,16.5,,,,,,,,"",0.0,shopify,deny,manual,3399.00,3599.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,
+titleist-tsr3-wood,,,,,,,,,18,,,,,,,,"",0.0,shopify,deny,manual,3399.00,3599.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2105.00,
+titleist-tsr2-hybrid,Titleist TSR2 Hybrid,"<div class=""m-section-header"" data-mce-fragment=""1"">
+<p class=""section-label"" data-mce-fragment=""1"">TSR2 HYBRID</p>
+<h2 class=""ext-h1"" data-mce-fragment=""1""><a href=""https://www.titleist.com/locator?searchtype=fit"" data-mce-fragment=""1"" data-mce-href=""https://www.titleist.com/locator?searchtype=fit"">FORGIVING SPEED &amp; PERFORMANCE</a></h2>
+</div>
+<p data-mce-fragment=""1""><span data-mce-fragment=""1"">Built to be trusted. Every improvement to the TSR2 Hybrid – from the extended blade length to the deeper CG to the refined sole shape – is designed to make it an even more forgiving, faster feeling, long-distance performer ready to come through in the clutch.</span></p>
+<p data-mce-fragment=""1""><span data-mce-fragment=""1""><strong data-mce-fragment=""1"">Benefits</strong></span></p>
+<ul data-mce-fragment=""1"">
+<li data-mce-fragment=""1"">High Launch &amp; Long Distance</li>
+<li data-mce-fragment=""1"">Exceptional Forgiveness</li>
+<li data-mce-fragment=""1"">Enhanced Turf Interaction</li>
+<li data-mce-fragment=""1"">Player-Preferred Sound &amp; Feel</li>
+</ul>
+<p data-mce-fragment=""1""><span data-mce-fragment=""1""><strong data-mce-fragment=""1"">Features</strong></span></p>
+<ul data-mce-fragment=""1"">
+<li data-mce-fragment=""1"">Longer Blade Length</li>
+<li data-mce-fragment=""1"">Deep &amp; Low CG (Center of Gravity)</li>
+<li data-mce-fragment=""1"">Sole Relief Pockets</li>
+<li data-mce-fragment=""1"">SureFit Adjustability</li>
+</ul>",Titleist,,Utstyr,Golfkøller,true,Grader,24,,,,,,,,"",0.0,shopify,deny,manual,2999.00,,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/Titleist-TSR2-Hybrid-Review-2-1536x1075.jpg?v=1710925070,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,active
+titleist-tsr2-hybrid,,,,,,,,,21,,,,,,,,"",0.0,shopify,deny,manual,2999.00,,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,
+titleist-t100-jernsett-5-pw-stal,Titleist T100 jernsett 5-PW (stål),"<div class=""m-section-header"" data-mce-fragment=""1"">
+<p class=""section-label"" data-mce-fragment=""1"">T100 IRONS</p>
+<h2 class=""ext-h1"" data-mce-fragment=""1""><a href=""https://www.titleist.com/locator?searchtype=fit"" data-mce-fragment=""1"" data-mce-href=""https://www.titleist.com/locator?searchtype=fit"">THE MODERN TOUR IRON</a></h2>
+</div>
+<p data-mce-fragment=""1""><span data-mce-fragment=""1""></span><span data-mce-fragment=""1"">Feel is essential for the best players in the game. The refined, fully forged dual-cavity construction of Titleist T100 produces a more solid feel at impact, while the precision CNC face milling process leads to more consistent contact for greater control.</span></p>
+<p data-mce-fragment=""1""><strong data-mce-fragment=""1"">Features</strong><br data-mce-fragment=""1""></p>
+<ul data-mce-fragment=""1"">
+<li data-mce-fragment=""1"">Enhanced Feel</li>
+<li data-mce-fragment=""1"">Refined Construction</li>
+<li data-mce-fragment=""1"">Vokey-Influenced Variable Bounce Sole</li>
+<li data-mce-fragment=""1"">Dual D18 Tungsten Weighting</li>
+</ul>",Titleist,,Utstyr,Golfkøller,true,Skaft,AMT White S-300,,,,,,,,"",0.0,shopify,continue,manual,12599.00,13980.00,true,true,,,,,'196665405561,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/Tserien.jpg?v=1710924410,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,8070.00,active
+titleist-t100-jernsett-5-pw-stal,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/EC46437F-FF9F-47E9-BE6A-D15C6265EE43.jpg?v=1711018985,2,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+titleist-t100-jernsett-5-pw-stal,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/DC898BDB-A8E7-4AF3-9C3A-140E0B1E9D97.jpg?v=1711018984,3,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+titleist-t150-jernsett-5-pw-stal,Titleist T150 jernsett 5-PW (stål),"<div class=""m-section-header"" data-mce-fragment=""1"">
+<div class=""m-section-header"">
+<p class=""section-label"">T150 IRONS</p>
+<h2 class=""ext-h1""><a href=""https://www.titleist.com/locator?searchtype=fit"">THE FASTER TOUR IRON</a></h2>
+</div>
+<p><span>Inspired by the player’s performance and feel of <a href=""/product/t100/554C.html"" data-mce-href=""/product/t100/554C.html"">T100</a> but forged into a more confidence-inducing shape, T150 is a modern Tour iron with dialed-up speed for players seeking a little more distance.</span></p>
+<p><span></span><strong>Features</strong><br></p>
+<ul>
+<li>Enhanced Feel</li>
+<li>Player-Refined Shape</li>
+<li>Vokey-Influenced Variable Bounce Sole</li>
+<li>Dual D18 Tungsten Weighting</li>
+</ul>
+</div>
+<ul data-mce-fragment=""1""></ul>",Titleist,,Utstyr,Golfkøller,true,Skaft,PROJECT X LZ 6.0 120g,,,,,,,,"",0.0,shopify,continue,manual,13999.00,,true,true,,,,,'196665405622,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/Tserien_3552fc1a-9855-496b-99db-0129ee59f866.jpg?v=1710924433,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,active
+titleist-t150-jernsett-5-pw-stal,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/5E739034-20D0-4160-8F5E-A7E9E6480384.jpg?v=1711019014,2,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+titleist-t200-jernsett-5-pw-stal,Titleist T200 jernsett 5-PW (stål),"<div class=""m-section-header"" data-mce-fragment=""1"">
+<div class=""m-section-header"">
+<p class=""section-label"">T200 IRONS</p>
+<h2 class=""ext-h1""><a href=""https://www.titleist.com/locator?searchtype=fit"">THE TOUR'S DISTANCE IRON</a></h2>
+</div>
+<p><span>With the new T200 irons, distance has never felt so good. Built with a forged face, hollow-body construction and shaped by Tour technologies, it delivers incredible launch and forgiveness in a pure player’s design.</span></p>
+<p><span></span><strong>Features</strong><br></p>
+<ul>
+<li>Enhanced Feel</li>
+<li>Player-Validated Shape<br>
+</li>
+<li>Vokey-Influenced Variable Bounce Sole</li>
+<li>Dual D18 Tungsten Weighting</li>
+</ul>
+</div>
+<ul data-mce-fragment=""1""></ul>",Titleist,,Utstyr,Golfkøller,true,Skaft,AMT Black S-300,,,,,,,,"",0.0,shopify,continue,manual,12599.00,,true,true,,,,,'196665405684,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/Tserien_35d15fa9-32db-4e4e-b46f-96da6e2a0245.jpg?v=1710924461,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,active
+titleist-t200-jernsett-5-pw-stal,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/0530C97E-AA5E-46F9-ADB1-FD9E1CC0D030.jpg?v=1711019033,2,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+titleist-t350-jernsett-5-pw-stal,Titleist T-serien enkelt køller single clubs,"<p>T350, T200, T150, T100 serien. Her selges enkelt køller</p>",Titleist,,Utstyr,Golfkøller,true,Skaft,Stål,,,,,,,,"",0.0,shopify,continue,manual,2330.00,,true,true,,,,,'196665405769,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/Tserien_70ab2151-40cd-45cc-9f8a-d79466d735d9.jpg?v=1710924484,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,active
+titleist-t350-jernsett-5-pw-stal,,,,,,,,,Graphite,,,,,,,,"",0.0,shopify,continue,manual,2500.00,,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/565F1D3A-D29F-440A-B338-C40B6BFD9694.jpg?v=1711018944,2,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,
+titleist-vokey-wedge-sm8,Titleist Vokey Wedge SM8,"<p class=""section-label text-red"" data-mce-fragment=""1"">OPTIMAL SHOT VERSATILITY</p>
+<h2 class=""ext-h1"" data-mce-fragment=""1"">SM8 LOFT, BOUNCE &amp; GRIND OPTIONS</h2>
+<p data-mce-fragment=""1""><span class=""TextRun SCXW159850319 BCX0"" data-contrast=""none"" data-mce-fragment=""1""><span class=""NormalTextRun SCXW159850319 BCX0"" data-mce-fragment=""1"">Vokey SM8 wedges feature the most complete lineup of loft, bounce, and grind combinations.<span data-mce-fragment=""1""> </span></span></span><span class=""TextRun SCXW159850319 BCX0"" data-contrast=""none"" data-mce-fragment=""1""><span class=""SpellingError SCXW159850319 BCX0"" data-mce-fragment=""1"">Vokey</span></span><span class=""TextRun SCXW159850319 BCX0"" data-contrast=""none"" data-mce-fragment=""1""><span class=""NormalTextRun SCXW159850319 BCX0"" data-mce-fragment=""1""><span data-mce-fragment=""1""> </span>wedges are labeled with loft first, followed by effective bounce and grind. All SM8 wedges are available in both right hand and left hand and all finishes.</span></span><span class=""EOP SCXW159850319 BCX0"" data-ccp-props='{""134233279"":true,""201341983"":0,""335559739"":0,""335559740"":240}' data-mce-fragment=""1""> </span></p>",Titleist,Uncategorized,Utstyr,Golfkøller,true,Varianter,60 grader 14K Graphite,,,,,,,,"",0.0,shopify,deny,manual,1499.00,,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/sm8_tc_wedge_ext1.600x600.jpg?v=1710924103,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,active
+titleist-vokey-wedge-sm8,,,,,,,,,56 grader 14F Graphite,,,,,,,,"",0.0,shopify,deny,manual,1499.00,,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,
+titleist-vokey-wedge-sm9,Titleist Vokey Wedge SM9,"<p class=""section-label text-red"" data-mce-fragment=""1"">OPTIMAL SHOT VERSATILITY</p>
+<h2 class=""ext-h1"" data-mce-fragment=""1"">SM9 LOFT, BOUNCE &amp; GRIND OPTIONS</h2>
+<p data-mce-fragment=""1""><span class=""TextRun SCXW159850319 BCX0"" data-contrast=""none"" data-mce-fragment=""1""><span class=""NormalTextRun SCXW159850319 BCX0"" data-mce-fragment=""1"">Vokey SM9 wedges feature the most complete lineup of loft, bounce, and grind combinations.<span data-mce-fragment=""1""> </span></span></span><span class=""TextRun SCXW159850319 BCX0"" data-contrast=""none"" data-mce-fragment=""1""><span class=""SpellingError SCXW159850319 BCX0"" data-mce-fragment=""1"">Vokey</span></span><span class=""TextRun SCXW159850319 BCX0"" data-contrast=""none"" data-mce-fragment=""1""><span class=""NormalTextRun SCXW159850319 BCX0"" data-mce-fragment=""1""><span data-mce-fragment=""1""> </span>wedges are labeled with loft first, followed by effective bounce and grind. All SM9 wedges are available in both right hand and left hand and all finishes.</span></span><span class=""EOP SCXW159850319 BCX0"" data-ccp-props='{""134233279"":true,""201341983"":0,""335559739"":0,""335559740"":240}' data-mce-fragment=""1""> </span></p>",Titleist,Uncategorized,Utstyr,Golfkøller,true,Varianter,50 grader 12 F Graphite,,,,,,,,"",0.0,shopify,deny,manual,1499.00,,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/sm9-section3-grinds-1.jpg?v=1710843215,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,active
+titleist-vokey-wedge-sm9,,,,,,,,,60 grader 14 K Graphite,,,,,,,,"",0.0,shopify,deny,manual,1499.00,,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,
+titleist-vokey-wedge-sm10,Titleist Vokey Wedge SM10 stål eller graphite,"<div class=""m-section-header"">
+<h3 class=""ql-block"" data-block-id=""block-03874054-3279-4a22-99a8-7a78798d052d"">KAMPANJE</h3>
+<div class=""ql-block"" data-block-id=""block-03874054-3279-4a22-99a8-7a78798d052d"">1stk = 1899/stk</div>
+<div class=""ql-block"" data-block-id=""block-5add2ce8-1c01-4f7e-b49d-b3e6ed5e9d28"">2stk = 1799/stk</div>
+<div class=""ql-block"" data-block-id=""block-56465c96-08fa-4b85-a72d-fc08f4f42a1d"">3stk = 1699/stk</div>
+<div class=""ql-block"" data-block-id=""block-56465c96-08fa-4b85-a72d-fc08f4f42a1d""></div>
+<div class=""ql-block"" data-block-id=""block-56465c96-08fa-4b85-a72d-fc08f4f42a1d"">Om produktet:</div>
+<div class=""ql-block"" data-block-id=""block-56465c96-08fa-4b85-a72d-fc08f4f42a1d""></div>
+<p class=""section-label"">VOKEY DESIGN® SM10 WEDGES</p>
+<p class=""ext-h1""><a href=""https://www.titleist.com/locator?searchtype=fit"">SHARPEN YOUR SHORT GAME</a></p>
+</div>
+<p>Adding Vokey Design SM10 Wedges to your bag opens a world of scoring opportunities. Between the crisp contact, optimal flighting, incredible spin – and those magical Bob Vokey grinds – they give you everything you need to grow your short game skill. From the simple to the sensational, SM10 are made to make great shots happen.</p>",Titleist,Uncategorized,Utstyr,Golfkøller,true,Varianter,Graphite,,Hånd,Høyre,,Loft,46.10 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,active
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,48.10 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,2,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,50.08 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,50.12 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,52.08 F,,"",0.0,shopify,continue,manual,1999.00,2399.00,true,true,,,,,'196665575998,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,52.12 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,54.08 M,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,54.10 S,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,54.12 D,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,54.14 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,56.08 M,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,56.10 S,,"",0.0,shopify,continue,manual,1999.00,2399.00,true,true,,,,,'196665576049,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,56.12 D,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,56.14 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,false,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,58.04 T,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,58.08 M,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,58.10 S,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,58.12 D,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,58.14 K,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,60.04 T,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,60.08 M,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,60.10 S,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,60.12 D,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,60.14 K,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Høyre,,,62.08 M,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,46.10 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,48.10 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,50.08 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,50.12 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,52.08 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,52.12 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,54.08 M,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,54.10 S,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,54.12 D,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,54.14 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,56.08 M,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,56.10 S,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,56.12 D,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,56.14 F,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,58.04 T,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,58.08 M,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,58.10 S,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,58.12 D,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,58.14 K,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,60.04 T,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,60.08 M,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,60.10 S,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,60.12 D,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,60.14 K,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Graphite,,,Venstre,,,62.08 M,,"",0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/SM10wedge.jpg?v=1712930597,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,46.10 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,1300.00,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,48.10 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,50.08 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,50.12 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516557,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,52.08 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516571,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,52.12 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516595,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,54.08 M,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,54.10 S,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516793,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,54.12 D,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516410,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,54.14 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516618,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,56.08 M,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516717,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,56.10 S,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516816,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,56.12 D,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516434,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,56.14 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516632,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,58.04 T,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516878,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,58.08 M,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516731,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,58.10 S,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516830,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,58.12 D,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516458,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,58.14 K,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516656,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,60.04 T,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516892,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,60.08 M,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516755,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,60.10 S,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516854,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,60.12 D,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516472,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,60.14 K,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516670,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Høyre,,,62.08 M,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516779,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,46.10 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,48.10 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,50.08 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516113,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,50.12 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,52.08 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,52.12 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,54.08 M,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,54.10 S,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,54.12 D,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,54.14 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,56.08 M,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,56.10 S,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,56.12 D,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,56.14 F,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516151,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,58.04 T,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,58.08 M,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,58.10 S,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,58.12 D,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,58.14 K,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,60.04 T,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,60.08 M,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,60.10 S,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,60.12 D,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516076,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,60.14 K,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+titleist-vokey-wedge-sm10,,,,,,,,,Stål,,,Venstre,,,62.08 M,,"",0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/852C_01.jpg?v=1721304543,kg,,,
+olyo-cs-18-helset-inkl-7-sw-dr-w-h_putter-og-bag,Olyo CS/18 Helset inkl. 7-SW-DR-W-H_Putter og bag,"<span data-mce-fragment=""1"">CS18 fra Norske Olyo er noen ekstremt lettspilte golfkøller. Dette er perfekte golfkøller for ferske golfere, men også ypperlig for den gjennomsnittlige spilleren. CS18 golfsettet er i kategorien Super Game Improver. Det vil si at golfkøllene har store hoder med et stort treffpunkt. Dette gjør golfkøllene meget lettspilte. Settet inneholder Driver, 5-Wood, Hybrid, 7-Jern, 8-Jern, 9-Jern, Pitchingwedge, Sandwedge, Putter og Bærebag.</span>",Chrisco,Sporting Goods > Outdoor Recreation > Golf > Golf Club Sets,Utstyr,"Bagger, Golfkøller",true,Skaft,Stål,,,,,,,,"",0.0,shopify,deny,manual,3999.00,5199.00,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/Olyojernsett.png?v=1710846705,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2499.00,active
+olyo-cs-18-helset-inkl-7-sw-dr-w-h_putter-og-bag,,,,,,,,,Graphite dame,,,,,,,,"",0.0,shopify,deny,manual,3999.00,5199.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2499.00,
+olyo-cs-18-helset-inkl-7-sw-dr-w-h_putter-og-bag,,,,,,,,,Graphite dame Links,,,,,,,,"",0.0,shopify,deny,manual,3999.00,5199.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2499.00,
+olyo-cs-18-helset-inkl-7-sw-dr-w-h_putter-og-bag,,,,,,,,,Graphite herre,,,,,,,,"",0.0,shopify,deny,manual,3999.00,5199.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2499.00,
+olyo-cs-18-helset-inkl-7-sw-dr-w-h_putter-og-bag,,,,,,,,,Stål en tomme forlenget,,,,,,,,"",0.0,shopify,deny,manual,4499.00,5999.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,2499.00,
+titleist-t200-graphite-5-pw,Titleist T200 Graphite 5-PW,"<div class=""m-section-header"" data-mce-fragment=""1"">
+<div class=""m-section-header"">
+<p class=""section-label"">T200 GRAPHITE</p>
+<h2 class=""ext-h1""><a href=""https://www.titleist.com/locator?searchtype=fit"">THE TOUR'S DISTANCE GRAPHITE</a></h2>
+</div>
+<p><span>With the new T200 irons, distance has never felt so good. Built with a forged face, hollow-body construction and shaped by Tour technologies, it delivers incredible launch and forgiveness in a pure player’s design.</span></p>
+<p><span></span><strong>Features</strong><br></p>
+<ul>
+<li>Enhanced Feel</li>
+<li>Player-Validated Shape<br>
+</li>
+<li>Vokey-Influenced Variable Bounce Sole</li>
+<li>Dual D18 Tungsten Weighting</li>
+</ul>
+</div>
+<ul data-mce-fragment=""1""></ul>",Titleist,,Utstyr,Golfkøller,true,Title,Default Title,,,,,,,,,0.0,shopify,continue,manual,15000.00,,true,true,,,,,'196665405684,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/Tserien_b6828992-263f-422a-882f-4f7d18f622f6.jpg?v=1714477871,1,"",false,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,,active
+titleist-t200-graphite-5-pw,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/0530C97E-AA5E-46F9-ADB1-FD9E1CC0D030_a6aab3a1-ee52-4f23-a005-32bcf0307b0d.jpg?v=1714477871,2,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+titleist-vokey-wedge-sm10-nickel-finish,Titleist Vokey Wedge SM10 Nickel Finish,"<div class=""m-section-header"">
+<h3 class=""ql-block"" data-block-id=""block-03874054-3279-4a22-99a8-7a78798d052d"">KAMPANJE</h3>
+<div class=""ql-block"" data-block-id=""block-03874054-3279-4a22-99a8-7a78798d052d"">1stk = 1899/stk</div>
+<div class=""ql-block"" data-block-id=""block-5add2ce8-1c01-4f7e-b49d-b3e6ed5e9d28"">2stk = 1799/stk</div>
+<div class=""ql-block"" data-block-id=""block-56465c96-08fa-4b85-a72d-fc08f4f42a1d"">3stk = 1699/stk</div>
+<div class=""ql-block"" data-block-id=""block-56465c96-08fa-4b85-a72d-fc08f4f42a1d""></div>
+<div class=""ql-block"" data-block-id=""block-56465c96-08fa-4b85-a72d-fc08f4f42a1d"">Om produktet:</div>
+<div class=""ql-block"" data-block-id=""block-56465c96-08fa-4b85-a72d-fc08f4f42a1d""></div>
+<p class=""section-label"">VOKEY DESIGN® SM10 WEDGES</p>
+<p class=""ext-h1""><a href=""https://www.titleist.com/locator?searchtype=fit"">SHARPEN YOUR SHORT GAME</a></p>
+</div>
+<p>Adding Vokey Design SM10 Wedges to your bag opens a world of scoring opportunities. Between the crisp contact, optimal flighting, incredible spin – and those magical Bob Vokey grinds – they give you everything you need to grow your short game skill. From the simple to the sensational, SM10 are made to make great shots happen.</p>",Titleist,Sporting Goods > Outdoor Recreation > Golf > Golf Clubs,Utstyr,Golfkøller,true,Varianter,Graphite,,Hånd,Høyre,,Loft,46.10 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,,https://cdn.shopify.com/s/files/1/0680/4255/5650/files/D7A675E3-09CB-49EA-A3AB-C3AE3840F46B.jpg?v=1742210788,1,"",false,,,988,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,active
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,48.10 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",https://cdn.shopify.com/s/files/1/0680/4255/5650/files/25DA0840-0487-4C8A-8FA2-A10F5697B99A.jpg?v=1742210788,2,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,50.08 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,50.12 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,52.08 F,,,0.0,shopify,continue,manual,1999.00,2399.00,true,true,,,,,'196665575998,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,52.12 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,54.08 M,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,54.10 S,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,54.12 D,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,54.14 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,56.08 M,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,56.10 S,,,0.0,shopify,continue,manual,1999.00,2399.00,true,true,,,,,'196665576049,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,56.12 D,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,56.14 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,58.04 T,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,58.08 M,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,58.10 S,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,58.12 D,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,58.14 K,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,60.04 T,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,60.08 M,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,60.10 S,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,60.12 D,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,60.14 K,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Høyre,,,62.08 M,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,46.10 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,48.10 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,50.08 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,50.12 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,52.08 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,52.12 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,54.08 M,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,54.10 S,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,54.12 D,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,54.14 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,56.08 M,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,56.10 S,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,56.12 D,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,56.14 F,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,58.04 T,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,58.08 M,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,58.10 S,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,58.12 D,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,58.14 K,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,60.04 T,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,60.08 M,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,60.10 S,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,60.12 D,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,60.14 K,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Graphite,,,Venstre,,,62.08 M,,,0.0,shopify,continue,manual,1899.00,2200.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,46.10 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,48.10 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,50.08 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,50.12 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516557,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,52.08 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516571,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,52.12 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516595,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,54.08 M,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,54.10 S,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516793,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,54.12 D,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,54.14 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,56.08 M,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516717,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,56.10 S,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516816,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,56.12 D,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,56.14 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516632,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,58.04 T,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516878,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,58.08 M,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,58.10 S,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516830,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,58.12 D,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,58.14 K,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516656,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,60.04 T,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516892,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,60.08 M,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516755,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,60.10 S,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,60.12 D,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,60.14 K,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Høyre,,,62.08 M,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516779,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,46.10 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,48.10 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,50.08 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516113,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,50.12 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,52.08 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,52.12 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,54.08 M,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,54.10 S,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,54.12 D,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,54.14 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,56.08 M,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,56.10 S,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,56.12 D,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,56.14 F,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,58.04 T,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,58.08 M,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,58.10 S,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,58.12 D,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,58.14 K,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,60.04 T,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,60.08 M,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,60.10 S,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,60.12 D,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,'196665516076,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,60.14 K,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,
+titleist-vokey-wedge-sm10-nickel-finish,,,,,,,,,Stål,,,Venstre,,,62.08 M,,,0.0,shopify,continue,manual,1899.00,2100.00,true,true,,,,,"",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,kg,,1200.00,

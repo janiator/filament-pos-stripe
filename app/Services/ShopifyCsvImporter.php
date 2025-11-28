@@ -36,25 +36,28 @@ class ShopifyCsvImporter
         // Normalize headers (trim whitespace)
         $headers = array_map('trim', $headers);
 
-        $products = [];
-        $currentProduct = null;
-
+        // Store all rows for two-pass processing
+        $rows = [];
         while (($row = fgetcsv($handle)) !== false) {
             if (count($row) !== count($headers)) {
                 continue; // Skip malformed rows
             }
+            $rows[] = array_combine($headers, $row);
+        }
+        fclose($handle);
 
-            $data = array_combine($headers, $row);
-            
-            // Get product handle (unique identifier)
-            $productHandle = $data['Handle'] ?? null;
-            if (!$productHandle) {
+        $products = [];
+
+        // PASS 1: Create all main products (rows with Title)
+        foreach ($rows as $data) {
+            $productHandle = trim($data['Handle'] ?? '');
+            if (empty($productHandle)) {
                 continue; // Skip rows without handle
             }
 
-            // If this is a new product (has Title), start a new product
+            // Only process rows with Title (main products)
             if (!empty($data['Title'])) {
-                $currentProduct = [
+                $products[$productHandle] = [
                     'handle' => $productHandle,
                     'title' => $data['Title'],
                     'body_html' => $data['Body (HTML)'] ?? '',
@@ -64,132 +67,145 @@ class ShopifyCsvImporter
                     'published' => ($data['Published'] ?? 'false') === 'true',
                     'images' => [],
                     'variants' => [],
+                    'variant_count' => 0,
+                    'variant_min_price' => null,
+                    'variant_max_price' => null,
                 ];
 
-                // Collect images
-                if (!empty($data['Image Src'])) {
-                    $currentProduct['images'][] = [
-                        'src' => $data['Image Src'],
-                        'position' => (int) ($data['Image Position'] ?? 1),
-                        'alt' => $data['Image Alt Text'] ?? '',
-                    ];
-                }
-
-                $products[$productHandle] = $currentProduct;
-                // Make sure currentProduct is a reference to the array element
-                $currentProduct = &$products[$productHandle];
-            } else {
-                // If no Title but we have a handle, this might be a variant row for an existing product
-                // Update currentProduct to point to the existing product in the array
-                if (isset($products[$productHandle])) {
-                    $currentProduct = &$products[$productHandle];
-                }
-            }
-
-            // Add variant if we have a product (either current or from array) and variant data
-            // Check if Variant Price exists and is not empty (trim whitespace)
-            $variantPrice = trim($data['Variant Price'] ?? '');
-            if (!empty($variantPrice)) {
-                // Make sure we have the product - check array if currentProduct is null
-                if (!$currentProduct && isset($products[$productHandle])) {
-                    $currentProduct = &$products[$productHandle];
-                }
-                
-                // Ensure we're working with the array directly - product must exist
-                if (isset($products[$productHandle])) {
-                    // Ensure currentProduct is a reference to the array element
-                    if (!$currentProduct || $currentProduct !== $products[$productHandle]) {
-                        $currentProduct = &$products[$productHandle];
-                    }
-                    // Parse inventory fields
-                    $inventoryQuantity = null;
-                    $inventoryPolicy = 'deny';
-                    if (!empty($data['Variant Inventory Tracker']) && $data['Variant Inventory Tracker'] !== 'shopify') {
-                        // If inventory tracker is not shopify, we might not track inventory
-                        $inventoryQuantity = null;
-                    } elseif (isset($data['Variant Inventory Qty'])) {
-                        // Some CSV exports use "Variant Inventory Qty" instead
-                        $inventoryQuantity = !empty($data['Variant Inventory Qty']) ? (int) $data['Variant Inventory Qty'] : null;
-                    }
-                    
-                    if (!empty($data['Variant Inventory Policy'])) {
-                        $inventoryPolicy = strtolower(trim($data['Variant Inventory Policy']));
-                        if (!in_array($inventoryPolicy, ['deny', 'continue'])) {
-                            $inventoryPolicy = 'deny';
-                        }
-                    }
-                    
-                    $variant = [
-                        'option1_name' => $data['Option1 Name'] ?? '',
-                        'option1_value' => $data['Option1 Value'] ?? '',
-                        'option2_name' => $data['Option2 Name'] ?? '',
-                        'option2_value' => $data['Option2 Value'] ?? '',
-                        'option3_name' => $data['Option3 Name'] ?? '',
-                        'option3_value' => $data['Option3 Value'] ?? '',
-                        'sku' => $data['Variant SKU'] ?? '',
-                        'price' => $data['Variant Price'] ?? '',
-                        'compare_at_price' => $data['Variant Compare At Price'] ?? '',
-                        'barcode' => $data['Variant Barcode'] ?? '',
-                        'grams' => (int) ($data['Variant Grams'] ?? 0),
-                        'requires_shipping' => ($data['Variant Requires Shipping'] ?? 'true') === 'true',
-                        'taxable' => ($data['Variant Taxable'] ?? 'true') === 'true',
-                        'image' => $data['Variant Image'] ?? '',
-                        'inventory_quantity' => $inventoryQuantity,
-                        'inventory_policy' => $inventoryPolicy,
-                        'inventory_management' => !empty($data['Variant Inventory Tracker']) ? $data['Variant Inventory Tracker'] : null,
-                    ];
-
-                    // Add variant image if different from main product images
-                    if (!empty($variant['image'])) {
-                        $currentProduct['images'][] = [
-                            'src' => $variant['image'],
-                            'position' => count($currentProduct['images']) + 1,
-                            'alt' => $data['Image Alt Text'] ?? '',
-                        ];
-                    }
-
-                    // Add variant to the product's variants array
-                    // Since currentProduct is a reference, we can use either
-                    $products[$productHandle]['variants'][] = $variant;
-                    
-                    // Debug logging
-                    Log::debug('Added variant to product', [
-                        'handle' => $productHandle,
-                        'variant_price' => $variant['price'],
-                        'variant_options' => [
-                            'option1' => $variant['option1_value'] ?? null,
-                            'option2' => $variant['option2_value'] ?? null,
-                            'option3' => $variant['option3_value'] ?? null,
-                        ],
-                        'total_variants_for_product' => count($products[$productHandle]['variants']),
-                    ]);
-                } else {
-                    Log::warning('Could not add variant - product not found', [
-                        'handle' => $productHandle,
-                        'variant_price' => $variantPrice,
-                        'products_keys' => array_keys($products),
-                    ]);
-                }
-            }
-
-            // Collect additional images from subsequent rows
-            if (!empty($data['Image Src']) && empty($data['Title'])) {
-                // Make sure we have the product - check array if currentProduct is null
-                if (!$currentProduct && isset($products[$productHandle])) {
-                    $currentProduct = &$products[$productHandle];
-                }
-                
-                if ($currentProduct) {
+                // Collect main product image
+                $mainImageSrc = trim($data['Image Src'] ?? '');
+                if (!empty($mainImageSrc)) {
                     $products[$productHandle]['images'][] = [
-                        'src' => $data['Image Src'],
-                        'position' => (int) ($data['Image Position'] ?? count($products[$productHandle]['images']) + 1),
-                        'alt' => $data['Image Alt Text'] ?? '',
+                        'src' => $mainImageSrc,
+                        'position' => (int) ($data['Image Position'] ?? 1),
+                        'alt' => trim($data['Image Alt Text'] ?? ''),
                     ];
                 }
             }
         }
 
-        fclose($handle);
+        // PASS 2: Add all variants to existing products (rows with Variant Price)
+        foreach ($rows as $data) {
+            $productHandle = trim($data['Handle'] ?? '');
+            if (empty($productHandle)) {
+                continue; // Skip rows without handle
+            }
+
+            // Skip if product doesn't exist (shouldn't happen in well-formed CSV)
+            if (!isset($products[$productHandle])) {
+                continue;
+            }
+
+            // Check if this row has variant data
+            $variantPrice = trim($data['Variant Price'] ?? '');
+            $title = trim($data['Title'] ?? '');
+            $imageSrc = trim($data['Image Src'] ?? '');
+            
+            if (empty($variantPrice)) {
+                // No variant price - this is either an image-only row or a row with no data
+                // Image-only rows: Have Image Src but no Title and no Variant Price
+                if (!empty($imageSrc) && empty($title)) {
+                    $products[$productHandle]['images'][] = [
+                        'src' => $imageSrc,
+                        'position' => (int) ($data['Image Position'] ?? count($products[$productHandle]['images']) + 1),
+                        'alt' => trim($data['Image Alt Text'] ?? ''),
+                    ];
+                    
+                    Log::debug('Added additional image to product', [
+                        'handle' => $productHandle,
+                        'product_title' => $products[$productHandle]['title'] ?? 'N/A',
+                        'image_src' => $imageSrc,
+                        'image_position' => $data['Image Position'] ?? null,
+                    ]);
+                }
+                continue; // Skip rows without variant data
+            }
+
+            // Parse inventory fields
+            $inventoryQuantity = null;
+            $inventoryPolicy = 'deny';
+            if (!empty($data['Variant Inventory Tracker']) && $data['Variant Inventory Tracker'] !== 'shopify') {
+                // If inventory tracker is not shopify, we might not track inventory
+                $inventoryQuantity = null;
+            } elseif (isset($data['Variant Inventory Qty'])) {
+                // Some CSV exports use "Variant Inventory Qty" instead
+                $inventoryQuantity = !empty($data['Variant Inventory Qty']) ? (int) $data['Variant Inventory Qty'] : null;
+            }
+            
+            if (!empty($data['Variant Inventory Policy'])) {
+                $inventoryPolicy = strtolower(trim($data['Variant Inventory Policy']));
+                if (!in_array($inventoryPolicy, ['deny', 'continue'])) {
+                    $inventoryPolicy = 'deny';
+                }
+            }
+            
+            $priceValue = $variantPrice;
+            // Normalize price for summary (float)
+            $priceNumeric = is_numeric($priceValue) ? (float) $priceValue : null;
+
+            $variant = [
+                'option1_name' => $data['Option1 Name'] ?? '',
+                'option1_value' => $data['Option1 Value'] ?? '',
+                'option2_name' => $data['Option2 Name'] ?? '',
+                'option2_value' => $data['Option2 Value'] ?? '',
+                'option3_name' => $data['Option3 Name'] ?? '',
+                'option3_value' => $data['Option3 Value'] ?? '',
+                'sku' => $data['Variant SKU'] ?? '',
+                'price' => $variantPrice,
+                'compare_at_price' => $data['Variant Compare At Price'] ?? '',
+                'barcode' => $data['Variant Barcode'] ?? '',
+                'grams' => (int) ($data['Variant Grams'] ?? 0),
+                'requires_shipping' => ($data['Variant Requires Shipping'] ?? 'true') === 'true',
+                'taxable' => ($data['Variant Taxable'] ?? 'true') === 'true',
+                'image' => $data['Variant Image'] ?? '',
+                'inventory_quantity' => $inventoryQuantity,
+                'inventory_policy' => $inventoryPolicy,
+                'inventory_management' => !empty($data['Variant Inventory Tracker']) ? $data['Variant Inventory Tracker'] : null,
+            ];
+
+            // Add variant image if different from main product images
+            $variantImage = trim($variant['image'] ?? '');
+            if (!empty($variantImage)) {
+                $products[$productHandle]['images'][] = [
+                    'src' => $variantImage,
+                    'position' => count($products[$productHandle]['images']) + 1,
+                    'alt' => trim($data['Image Alt Text'] ?? ''),
+                ];
+                
+                Log::debug('Added variant image to product', [
+                    'handle' => $productHandle,
+                    'product_title' => $products[$productHandle]['title'] ?? 'N/A',
+                    'variant_image' => $variantImage,
+                ]);
+            }
+
+            // Add variant to the product's variants array
+            $products[$productHandle]['variants'][] = $variant;
+
+            // Track summary data
+            $products[$productHandle]['variant_count']++;
+            if ($priceNumeric !== null) {
+                if ($products[$productHandle]['variant_min_price'] === null || $priceNumeric < $products[$productHandle]['variant_min_price']) {
+                    $products[$productHandle]['variant_min_price'] = $priceNumeric;
+                }
+                if ($products[$productHandle]['variant_max_price'] === null || $priceNumeric > $products[$productHandle]['variant_max_price']) {
+                    $products[$productHandle]['variant_max_price'] = $priceNumeric;
+                }
+            }
+            
+            // Debug logging
+            Log::info('Added variant to product', [
+                'handle' => $productHandle,
+                'product_title' => $products[$productHandle]['title'] ?? 'N/A',
+                'variant_price' => $variant['price'],
+                'variant_options' => [
+                    'option1' => $variant['option1_value'] ?? null,
+                    'option2' => $variant['option2_value'] ?? null,
+                    'option3' => $variant['option3_value'] ?? null,
+                ],
+                'total_variants_for_product' => $products[$productHandle]['variant_count'],
+            ]);
+        }
 
         // Sort images by position
         foreach ($products as &$product) {
@@ -207,13 +223,31 @@ class ShopifyCsvImporter
             });
             $product['images'] = array_values($product['images']);
         }
+        unset($product);
 
-        // Debug: Log variant counts per product
+        // Debug: Log variant counts and image counts per product
         foreach ($products as $handle => $product) {
-            Log::debug('Product variant count', [
+            $variantCount = $product['variant_count'] ?? count($product['variants'] ?? []);
+            $imageCount = count($product['images'] ?? []);
+            Log::info('Product parsed from CSV', [
                 'handle' => $handle,
                 'title' => $product['title'] ?? 'N/A',
-                'variant_count' => count($product['variants'] ?? []),
+                'variant_count' => $variantCount,
+                'image_count' => $imageCount,
+                'images' => array_map(function($img) {
+                    return [
+                        'src' => $img['src'] ?? null,
+                        'position' => $img['position'] ?? null,
+                    ];
+                }, $product['images'] ?? []),
+                'variants' => array_map(function($v) {
+                    return [
+                        'price' => $v['price'] ?? null,
+                        'option1' => $v['option1_value'] ?? null,
+                        'option2' => $v['option2_value'] ?? null,
+                        'option3' => $v['option3_value'] ?? null,
+                    ];
+                }, $product['variants'] ?? []),
             ]);
         }
         
@@ -235,9 +269,33 @@ class ShopifyCsvImporter
         $imported = 0;
         $skipped = 0;
         $errors = 0;
+        $errorDetails = [];
+        $totalProducts = count($products);
 
-        foreach ($products as $productData) {
+        Log::info('Starting product import', [
+            'total_products' => $totalProducts,
+            'stripe_account_id' => $stripeAccountId,
+        ]);
+
+        foreach ($products as $index => $productData) {
+            $productIndex = $index + 1;
+            Log::info("Processing product {$productIndex}/{$totalProducts}", [
+                'product_title' => $productData['title'] ?? 'Unknown',
+                'product_handle' => $productData['handle'] ?? 'Unknown',
+            ]);
+            
             try {
+                // Skip products without title or handle
+                if (empty($productData['title']) || empty($productData['handle'])) {
+                    Log::warning('Skipping product - missing title or handle', [
+                        'title' => $productData['title'] ?? null,
+                        'handle' => $productData['handle'] ?? null,
+                        'product_index' => $productIndex,
+                    ]);
+                    $errors++;
+                    continue;
+                }
+                
                 // Check if product already exists (by name)
                 $existing = ConnectedProduct::where('name', $productData['title'])
                     ->where('stripe_account_id', $stripeAccountId)
@@ -251,6 +309,10 @@ class ShopifyCsvImporter
                     $skipped++;
                     continue;
                 }
+
+                // Determine if this is a single or variable product
+                $variants = $productData['variants'] ?? [];
+                $isVariable = count($variants) > 1;
 
                 // Create product
                 $product = new ConnectedProduct([
@@ -269,29 +331,40 @@ class ShopifyCsvImporter
                     ],
                 ]);
 
-                // Create product in Stripe first
-                $createAction = new CreateConnectedProductInStripe();
+                // Create product in Stripe for both single and variable products
+                // Variable products need a main product ID too (even though only variants are used for pricing)
+                $createAction = app(CreateConnectedProductInStripe::class);
                 $stripeProductId = $createAction($product);
 
                 if (!$stripeProductId) {
                     Log::error('Failed to create product in Stripe', [
                         'name' => $productData['title'],
+                        'is_variable' => $isVariable,
                     ]);
                     $errors++;
                     continue;
                 }
 
                 $product->stripe_product_id = $stripeProductId;
+
                 $product->save();
 
                 // Download and add images
                 if (!empty($productData['images'])) {
-                    $this->downloadAndAddImages($product, $productData['images']);
+                    try {
+                        $this->downloadAndAddImages($product, $productData['images']);
+                    } catch (\Exception $e) {
+                        // Log but don't fail the import if image download fails
+                        Log::warning('Failed to download some images for product', [
+                            'product' => $productData['title'],
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
 
                 // Upload images to Stripe
                 if ($product->hasMedia('images')) {
-                    $uploadAction = new UploadProductImagesToStripe();
+                    $uploadAction = app(UploadProductImagesToStripe::class);
                     $imageUrls = $uploadAction($product);
                     if (!empty($imageUrls)) {
                         $product->images = $imageUrls;
@@ -300,10 +373,10 @@ class ShopifyCsvImporter
                 }
 
                 // Create prices and variants
-                $variants = $productData['variants'] ?? [];
                 Log::info('Processing product variants', [
                     'product' => $productData['title'],
                     'variant_count' => count($variants),
+                    'is_variable' => $isVariable,
                     'variants' => $variants,
                 ]);
                 
@@ -314,12 +387,40 @@ class ShopifyCsvImporter
                         'product_data' => $productData,
                     ]);
                 } else {
-                    // Create separate Stripe Product and Price for each variant
+                    // For variable products: Create separate Stripe Product and Price for each variant
+                    // For single products: Don't create variants in Stripe (main product already created)
                     $firstPriceId = null;
                     $firstPriceAmount = null; // Track first variant's price in cents
                     $firstCurrency = 'nok'; // Track first variant's currency
-                    foreach ($variants as $variantData) {
+                    
+                    Log::info('Starting variant import loop', [
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'total_variants_to_process' => count($variants),
+                        'is_variable' => $isVariable,
+                    ]);
+                    
+                    $variantsProcessed = 0;
+                    $variantsCreated = 0;
+                    $variantsUpdated = 0;
+                    
+                    foreach ($variants as $index => $variantData) {
+                        $variantsProcessed++;
+                        
+                        Log::debug('Processing variant', [
+                            'product_id' => $product->id,
+                            'variant_index' => $index,
+                            'variant_price' => $variantData['price'] ?? null,
+                            'variant_sku' => $variantData['sku'] ?? null,
+                            'option1' => $variantData['option1_value'] ?? null,
+                            'option2' => $variantData['option2_value'] ?? null,
+                            'option3' => $variantData['option3_value'] ?? null,
+                        ]);
+                        
                         if (empty($variantData['price'])) {
+                            Log::debug('Skipping variant - no price', [
+                                'variant_index' => $index,
+                            ]);
                             continue;
                         }
 
@@ -332,13 +433,46 @@ class ShopifyCsvImporter
                         $sku = !empty(trim($variantData['sku'] ?? '')) ? trim($variantData['sku']) : null;
                         
                         // Check if variant with same product, account, and options already exists
-                        // This prevents duplicates when SKU is null
-                        $existingVariant = \App\Models\ProductVariant::where('connected_product_id', $product->id)
-                            ->where('stripe_account_id', $stripeAccountId)
-                            ->where('option1_value', $variantData['option1_value'] ?? null)
-                            ->where('option2_value', $variantData['option2_value'] ?? null)
-                            ->where('option3_value', $variantData['option3_value'] ?? null)
-                            ->first();
+                        // Use SKU if available, otherwise use option values
+                        $existingVariant = null;
+                        if ($sku) {
+                            // If SKU is provided, use it for lookup (more reliable)
+                            $existingVariant = \App\Models\ProductVariant::where('connected_product_id', $product->id)
+                                ->where('stripe_account_id', $stripeAccountId)
+                                ->where('sku', $sku)
+                                ->first();
+                        }
+                        
+                        // If not found by SKU, try option values
+                        if (!$existingVariant) {
+                            $query = \App\Models\ProductVariant::where('connected_product_id', $product->id)
+                                ->where('stripe_account_id', $stripeAccountId);
+                            
+                            // Build query with proper null handling
+                            $option1 = $variantData['option1_value'] ?? null;
+                            $option2 = $variantData['option2_value'] ?? null;
+                            $option3 = $variantData['option3_value'] ?? null;
+                            
+                            if ($option1 !== null && $option1 !== '') {
+                                $query->where('option1_value', $option1);
+                            } else {
+                                $query->whereNull('option1_value');
+                            }
+                            
+                            if ($option2 !== null && $option2 !== '') {
+                                $query->where('option2_value', $option2);
+                            } else {
+                                $query->whereNull('option2_value');
+                            }
+                            
+                            if ($option3 !== null && $option3 !== '') {
+                                $query->where('option3_value', $option3);
+                            } else {
+                                $query->whereNull('option3_value');
+                            }
+                            
+                            $existingVariant = $query->first();
+                        }
                         
                         // Create or update variant record
                         if ($existingVariant) {
@@ -370,16 +504,26 @@ class ShopifyCsvImporter
                                 ],
                             ]);
                             $variant->saveQuietly();
+                            
+                            $variantsUpdated++;
+                            Log::info('Updated existing variant', [
+                                'variant_id' => $variant->id,
+                                'product_id' => $product->id,
+                                'option1' => $variantData['option1_value'] ?? null,
+                                'option2' => $variantData['option2_value'] ?? null,
+                                'option3' => $variantData['option3_value'] ?? null,
+                                'variants_processed' => $variantsProcessed,
+                            ]);
                         } else {
-                            // Create new variant - use updateOrCreate with SKU to handle unique constraint
-                            // If SKU is null, PostgreSQL allows multiple nulls in unique constraint
-                            $variant = \App\Models\ProductVariant::updateOrCreate(
-                                [
+                            // Create new variant - use withoutEvents to prevent automatic Stripe creation
+                            // We'll handle Stripe creation manually based on product type
+                            $variant = \App\Models\ProductVariant::withoutEvents(function () use (
+                                $product, $stripeAccountId, $sku, $variantData, $priceAmount
+                            ) {
+                                return \App\Models\ProductVariant::create([
                                     'connected_product_id' => $product->id,
                                     'stripe_account_id' => $stripeAccountId,
-                                    'sku' => $sku, // Can be null
-                                ],
-                                [
+                                    'sku' => $sku,
                                     'barcode' => $variantData['barcode'] ?? null,
                                     'option1_name' => $variantData['option1_name'] ?? null,
                                     'option1_value' => $variantData['option1_value'] ?? null,
@@ -402,59 +546,99 @@ class ShopifyCsvImporter
                                     'metadata' => [
                                         'source' => 'shopify',
                                     ],
-                                ]
-                            );
-                        }
-
-                        // Create Stripe Product for this variant
-                        $createVariantProductAction = new \App\Actions\ConnectedProducts\CreateVariantProductInStripe();
-                        $variantStripeProductId = $createVariantProductAction($variant);
-
-                        if (!$variantStripeProductId) {
-                            Log::warning('Failed to create Stripe product for variant', [
+                                ]);
+                            });
+                            
+                            $variantsCreated++;
+                            Log::info('Created new variant', [
                                 'variant_id' => $variant->id,
-                                'sku' => $variant->sku,
+                                'product_id' => $product->id,
+                                'option1' => $variantData['option1_value'] ?? null,
+                                'option2' => $variantData['option2_value'] ?? null,
+                                'option3' => $variantData['option3_value'] ?? null,
+                                'sku' => $sku,
+                                'is_variable' => $isVariable,
+                                'variants_processed' => $variantsProcessed,
+                                'variants_created' => $variantsCreated,
                             ]);
-                            continue;
                         }
 
-                        // Create Stripe Price for this variant product
-                        $createPriceAction = new CreateConnectedPriceInStripe();
-                        $priceId = $createPriceAction(
-                            $variantStripeProductId, // Use variant's Stripe product ID
-                            $stripeAccountId,
-                            $priceAmount,
-                            'nok',
-                            [
-                                'nickname' => $variant->variant_name,
-                                'metadata' => [
-                                    'source' => 'shopify-variant',
-                                    'variant_id' => (string) $variant->id,
-                                    'sku' => $variantData['sku'] ?? '',
-                                    'barcode' => $variantData['barcode'] ?? '',
-                                ],
-                            ]
-                        );
+                        // For variable products: Create Stripe Product and Price for each variant
+                        // For single products: Don't create variant in Stripe, just set main product price
+                        if ($isVariable) {
+                            // Create Stripe Product for this variant
+                            $createVariantProductAction = app(\App\Actions\ConnectedProducts\CreateVariantProductInStripe::class);
+                            $variantStripeProductId = $createVariantProductAction($variant);
 
-                        if ($priceId) {
-                            if (!$firstPriceId) {
-                                $firstPriceId = $priceId;
-                                $firstPriceAmount = $priceAmount; // Store first variant's price in cents
-                                $firstCurrency = 'nok'; // Store first variant's currency
+                            if (!$variantStripeProductId) {
+                                Log::warning('Failed to create Stripe product for variant', [
+                                    'variant_id' => $variant->id,
+                                    'sku' => $variant->sku,
+                                ]);
+                                continue;
                             }
 
-                            // Update variant with Stripe IDs
-                            $variant->stripe_product_id = $variantStripeProductId;
-                            $variant->stripe_price_id = $priceId;
-                            $variant->saveQuietly();
-                            
-                            // Note: ConnectedPrice doesn't have product_variant_id column
-                            // The relationship is: ProductVariant -> stripe_price_id -> ConnectedPrice
+                            // Create Stripe Price for this variant product
+                            $createPriceAction = app(CreateConnectedPriceInStripe::class);
+                            $priceId = $createPriceAction(
+                                $variantStripeProductId, // Use variant's Stripe product ID
+                                $stripeAccountId,
+                                $priceAmount,
+                                'nok',
+                                [
+                                    'nickname' => $variant->variant_name,
+                                    'metadata' => [
+                                        'source' => 'shopify-variant',
+                                        'variant_id' => (string) $variant->id,
+                                        'sku' => $variantData['sku'] ?? '',
+                                        'barcode' => $variantData['barcode'] ?? '',
+                                    ],
+                                ]
+                            );
+
+                            if ($priceId) {
+                                // Update variant with Stripe IDs
+                                $variant->stripe_product_id = $variantStripeProductId;
+                                $variant->stripe_price_id = $priceId;
+                                $variant->saveQuietly();
+                            }
+                        } else {
+                            // Single product: Create price for main product (not variant)
+                            if (!$firstPriceId && $product->stripe_product_id) {
+                                $createPriceAction = app(CreateConnectedPriceInStripe::class);
+                                $priceId = $createPriceAction(
+                                    $product->stripe_product_id,
+                                    $stripeAccountId,
+                                    $priceAmount,
+                                    'nok',
+                                    [
+                                        'nickname' => $product->name,
+                                        'metadata' => [
+                                            'source' => 'shopify',
+                                        ],
+                                    ]
+                                );
+
+                                if ($priceId) {
+                                    $firstPriceId = $priceId;
+                                    $firstPriceAmount = $priceAmount;
+                                    $firstCurrency = 'nok';
+                                }
+                            }
                         }
                     }
 
-                    // Set main product price from first variant
-                    if ($firstPriceId && $firstPriceAmount) {
+                    Log::info('Finished variant import loop', [
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'variants_processed' => $variantsProcessed,
+                        'variants_created' => $variantsCreated,
+                        'variants_updated' => $variantsUpdated,
+                        'total_variants_in_array' => count($variants),
+                    ]);
+                    
+                    // Set main product price from first variant (only for single products)
+                    if (!$isVariable && $firstPriceId && $firstPriceAmount) {
                         // Set default_price (Stripe price ID)
                         if (empty($product->default_price)) {
                             $product->default_price = $firstPriceId;
@@ -486,19 +670,51 @@ class ShopifyCsvImporter
                 }
 
                 $imported++;
+                Log::info("Successfully imported product {$productIndex}/{$totalProducts}", [
+                    'product_title' => $productData['title'] ?? 'Unknown',
+                    'imported_count' => $imported,
+                ]);
             } catch (\Exception $e) {
+                $productTitle = $productData['title'] ?? 'Unknown';
+                $errorMessage = "Product '{$productTitle}': {$e->getMessage()}";
+                $errorDetails[] = $errorMessage;
                 Log::error('Error importing product', [
                     'product' => $productData['title'] ?? 'Unknown',
+                    'product_index' => $productIndex,
                     'error' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
                 ]);
                 $errors++;
+                // Continue to next product instead of stopping
+            } catch (\Throwable $e) {
+                $productTitle = $productData['title'] ?? 'Unknown';
+                $errorMessage = "Product '{$productTitle}': {$e->getMessage()}";
+                $errorDetails[] = $errorMessage;
+                Log::error('Fatal error importing product', [
+                    'product' => $productData['title'] ?? 'Unknown',
+                    'product_index' => $productIndex,
+                    'error' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]);
+                $errors++;
+                // Continue to next product instead of stopping
             }
         }
+
+        Log::info('Finished product import', [
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'total_products' => $totalProducts,
+            'error_details' => $errorDetails,
+        ]);
 
         return [
             'imported' => $imported,
             'skipped' => $skipped,
-            'errors' => $errors,
+            'errors' => $errorDetails,
         ];
     }
 
@@ -507,6 +723,15 @@ class ShopifyCsvImporter
      */
     protected function downloadAndAddImages(ConnectedProduct $product, array $images): void
     {
+        // Skip image downloads in test environment to avoid timeouts
+        if (app()->environment('testing')) {
+            Log::info('Skipping image downloads in test environment', [
+                'product_id' => $product->id,
+                'image_count' => count($images),
+            ]);
+            return;
+        }
+        
         foreach ($images as $imageData) {
             try {
                 $imageUrl = $imageData['src'] ?? null;

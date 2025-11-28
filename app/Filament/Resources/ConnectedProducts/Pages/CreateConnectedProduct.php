@@ -25,8 +25,8 @@ class CreateConnectedProduct extends CreateRecord
             }
         }
 
-        // Sync price if set
-        if ($product->price && $product->stripe_product_id && $product->stripe_account_id) {
+        // Sync price if set (only for single products, variable products use variant prices)
+        if (!$product->isVariable() && $product->price && $product->stripe_product_id && $product->stripe_account_id) {
             $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice();
             $syncPriceAction($product);
         }

@@ -27,6 +27,14 @@ class VariantsRelationManager extends RelationManager
 
     protected static ?string $title = 'Variants';
 
+    /**
+     * Only show variants relation manager for variable products
+     */
+    public function canView(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return $record instanceof \App\Models\ConnectedProduct && $record->isVariable();
+    }
+
     protected function mutateFormDataBeforeFill(array $data): array
     {
         // Convert cents to decimal for display

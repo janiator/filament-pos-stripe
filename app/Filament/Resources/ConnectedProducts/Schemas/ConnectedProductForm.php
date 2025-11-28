@@ -184,6 +184,43 @@ class ConnectedProductForm
                                                     ->default(true),
                                             ])
                                             ->columnSpanFull(),
+
+                                        Select::make('product_type')
+                                            ->label('Product Structure')
+                                            ->options([
+                                                'single' => 'Single Product (no variants)',
+                                                'variable' => 'Variable Product (has variants)',
+                                                'auto' => 'Auto-detect from variants',
+                                            ])
+                                            ->default('auto')
+                                            ->helperText('Single: Only main product in Stripe. Variable: Only variants in Stripe (no main product). Auto: Detected from variant count.')
+                                            ->formatStateUsing(function ($state, $record) {
+                                                if ($state) {
+                                                    return $state;
+                                                }
+                                                if ($record) {
+                                                    // Check if manually set in metadata
+                                                    $meta = $record->product_meta ?? [];
+                                                    if (isset($meta['product_type'])) {
+                                                        return $meta['product_type'];
+                                                    }
+                                                    // Auto-detect
+                                                    return $record->isVariable() ? 'variable' : 'single';
+                                                }
+                                                return 'auto';
+                                            })
+                                            ->afterStateUpdated(function ($state, $set, $get, $record) {
+                                                // Store in metadata
+                                                $meta = $get('product_meta') ?? [];
+                                                if ($state && $state !== 'auto') {
+                                                    $meta['product_type'] = $state;
+                                                } else {
+                                                    unset($meta['product_type']);
+                                                }
+                                                $set('product_meta', $meta);
+                                            })
+                                            ->dehydrated(false)
+                                            ->columnSpanFull(),
                                     ])
                                     ->collapsible()
                                     ->collapsed(false)

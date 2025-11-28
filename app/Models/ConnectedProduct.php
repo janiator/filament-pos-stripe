@@ -97,8 +97,12 @@ class ConnectedProduct extends Model implements HasMedia
     protected static function booted(): void
     {
         static::saved(function (ConnectedProduct $product) {
+            // For variable products: Only sync product details, not prices (variants handle pricing)
+            // For single products: Sync both product details and prices
+            
             // Sync price if it changed (only on update, create is handled in afterCreate hook)
-            if (!$product->wasRecentlyCreated && ($product->wasChanged('price') || $product->wasChanged('currency'))) {
+            // Only sync prices for single products
+            if (!$product->isVariable() && !$product->wasRecentlyCreated && ($product->wasChanged('price') || $product->wasChanged('currency'))) {
                 if ($product->price && $product->stripe_product_id && $product->stripe_account_id) {
                     $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice();
                     $syncPriceAction($product);
@@ -106,7 +110,7 @@ class ConnectedProduct extends Model implements HasMedia
             }
             
             // Use saved event to ensure it fires for both create and update
-            // Only sync product details on update (not create)
+            // Sync product details for both single and variable products (but not prices for variable)
             if (!$product->wasRecentlyCreated) {
                 $listener = new \App\Listeners\SyncConnectedProductToStripeListener();
                 $listener->handle($product);
@@ -187,6 +191,41 @@ class ConnectedProduct extends Model implements HasMedia
     {
         return $this->hasMany(ProductVariant::class, 'connected_product_id')
             ->where('stripe_account_id', $this->stripe_account_id);
+    }
+
+    /**
+     * Check if this is a variable product (has 2+ variants)
+     * Variable products: Main product should NOT be created in Stripe, only variants
+     * Single products: Only main product should be created in Stripe, no variants
+     * 
+     * Can be manually set via product_meta['product_type'] = 'variable' or 'single'
+     * If 'auto', it will be detected from variant count
+     */
+    public function isVariable(): bool
+    {
+        // Check if manually set in metadata
+        $meta = $this->product_meta ?? [];
+        if (isset($meta['product_type'])) {
+            return $meta['product_type'] === 'variable';
+        }
+        
+        // Auto-detect: Variable products must have 2 or more variants
+        // Single products have 0 or 1 variant
+        return $this->variants()->count() >= 2;
+    }
+
+    /**
+     * Check if this is a single product (0 or 1 variant)
+     */
+    public function isSingle(): bool
+    {
+        // Check if manually set in metadata
+        $meta = $this->product_meta ?? [];
+        if (isset($meta['product_type'])) {
+            return $meta['product_type'] === 'single';
+        }
+        
+        return !$this->isVariable();
     }
 
     /**

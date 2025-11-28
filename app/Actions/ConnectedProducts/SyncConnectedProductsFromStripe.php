@@ -56,8 +56,12 @@ class SyncConnectedProductsFromStripe
             $stripe = new StripeClient($secret);
 
             // Get products from the connected account
+            // Only fetch active products (exclude archived products)
             $products = $stripe->products->all(
-                ['limit' => 100],
+                [
+                    'limit' => 100,
+                    'active' => true, // Only sync active products, skip archived ones
+                ],
                 ['stripe_account' => $stripeAccountId]
             );
 

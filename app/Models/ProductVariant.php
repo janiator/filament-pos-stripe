@@ -190,7 +190,28 @@ class ProductVariant extends Model
     protected static function booted(): void
     {
         // Create Stripe product when variant is created
+        // Only create in Stripe for variable products (where parent product has 2+ variants)
         static::created(function (ProductVariant $variant) {
+            // Check if parent product is variable - only variable products should have variants in Stripe
+            // A product is variable if it has 2+ variants (this variant + existing ones)
+            $product = $variant->product;
+            if (!$product) {
+                return;
+            }
+
+            // Count existing variants (including this one that was just created)
+            $variantCount = $product->variants()->count();
+            
+            // Only create variant in Stripe if product is variable (2+ variants)
+            if ($variantCount < 2) {
+                \Illuminate\Support\Facades\Log::info('Skipping Stripe creation for variant - parent product is not variable', [
+                    'variant_id' => $variant->id,
+                    'product_id' => $product->id,
+                    'variant_count' => $variantCount,
+                ]);
+                return;
+            }
+
             if (!$variant->stripe_product_id && $variant->stripe_account_id) {
                 $createVariantProductAction = app(\App\Actions\ConnectedProducts\CreateVariantProductInStripe::class);
                 $stripeProductId = $createVariantProductAction($variant);

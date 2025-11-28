@@ -28,32 +28,37 @@
                                 @endif
                             </td>
                             <td class="px-4 py-2">
-                                {{ count($product['variants'] ?? []) }} variant(s)
+                                {{ $product['variant_count'] ?? count($product['variants'] ?? []) }} variant(s)
                             </td>
                             <td class="px-4 py-2">
                                 @php
-                                    $variants = $product['variants'] ?? [];
-                                    // Parse prices from variant data - price is stored as string like "5999.00"
-                                    $prices = [];
-                                    foreach ($variants as $variant) {
-                                        if (!empty($variant['price'])) {
-                                            // Price is stored as string, convert to float
-                                            $price = is_numeric($variant['price']) ? (float)$variant['price'] : null;
-                                            if ($price !== null && $price > 0) {
-                                                $prices[] = $price;
+                                    $minPrice = $product['variant_min_price'] ?? null;
+                                    $maxPrice = $product['variant_max_price'] ?? null;
+
+                                    if ($minPrice !== null && $maxPrice !== null) {
+                                        $formattedMin = number_format((float) $minPrice, 2, ',', ' ');
+                                        $formattedMax = number_format((float) $maxPrice, 2, ',', ' ');
+                                        echo ((float) $minPrice === (float) $maxPrice)
+                                            ? $formattedMin . ' NOK'
+                                            : $formattedMin . ' - ' . $formattedMax . ' NOK';
+                                    } else {
+                                        // Fallback to calculating from variants array if summary missing
+                                        $variants = $product['variants'] ?? [];
+                                        $prices = [];
+                                        foreach ($variants as $variant) {
+                                            if (!empty($variant['price']) && is_numeric($variant['price'])) {
+                                                $prices[] = (float) $variant['price'];
                                             }
                                         }
-                                    }
-                                    
-                                    if (!empty($prices)) {
-                                        $minPrice = min($prices);
-                                        $maxPrice = max($prices);
-                                        // Format with thousands separator
-                                        $formattedMin = number_format($minPrice, 2, ',', ' ');
-                                        $formattedMax = number_format($maxPrice, 2, ',', ' ');
-                                        echo $minPrice === $maxPrice ? $formattedMin . ' NOK' : $formattedMin . ' - ' . $formattedMax . ' NOK';
-                                    } else {
-                                        echo 'N/A';
+                                        if (!empty($prices)) {
+                                            $formattedMin = number_format(min($prices), 2, ',', ' ');
+                                            $formattedMax = number_format(max($prices), 2, ',', ' ');
+                                            echo (min($prices) === max($prices))
+                                                ? $formattedMin . ' NOK'
+                                                : $formattedMin . ' - ' . $formattedMax . ' NOK';
+                                        } else {
+                                            echo 'N/A';
+                                        }
                                     }
                                 @endphp
                             </td>
