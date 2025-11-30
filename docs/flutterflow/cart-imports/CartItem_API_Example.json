@@ -1,0 +1,18 @@
+{
+  "cart_item_id": "550e8400-e29b-41d4-a716-446655440000",
+  "cart_item_product_id": "prod_123",
+  "cart_item_variant_id": "var_456",
+  "cart_item_product_name": "Coffee",
+  "cart_item_product_image_url": "https://example.com/images/coffee.jpg",
+  "cart_item_unit_price": 5000,
+  "cart_item_quantity": 2,
+  "cart_item_original_price": 5000,
+  "cart_item_discount_amount": 500,
+  "cart_item_discount_reason": "Manager override",
+  "cart_item_article_group_code": "01",
+  "cart_item_product_code": "COFFEE001",
+  "cart_item_metadata": {
+    "notes": "Extra hot"
+  }
+}
+

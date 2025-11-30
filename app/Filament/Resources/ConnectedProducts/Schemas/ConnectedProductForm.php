@@ -94,6 +94,22 @@ class ConnectedProductForm
                     ])
                     ->visibleOn('create'),
 
+                TextInput::make('compare_at_price_decimal')
+                    ->label('Compare at Price')
+                    ->numeric()
+                    ->step(0.01)
+                    ->prefix('kr')
+                    ->helperText('Original price before discount (optional)')
+                    ->visibleOn('create')
+                    ->dehydrated(false)
+                    ->afterStateUpdated(function ($state, $set) {
+                        if ($state !== null && $state !== '') {
+                            $set('compare_at_price_amount', (int) round($state * 100));
+                        } else {
+                            $set('compare_at_price_amount', null);
+                        }
+                    }),
+
                 // Product images
                 SpatieMediaLibraryFileUpload::make('images')
                     ->label('Product Images')
@@ -329,6 +345,22 @@ class ConnectedProductForm
                                                     ->helperText('Currency for this product'),
                                             ])
                                             ->columnSpanFull(),
+
+                                        TextInput::make('compare_at_price_decimal')
+                                            ->label('Compare at Price')
+                                            ->numeric()
+                                            ->step(0.01)
+                                            ->prefix(fn ($record) => $record && $record->currency ? strtoupper($record->currency) : 'kr')
+                                            ->helperText('Original price before discount (optional). Shows discount percentage if set.')
+                                            ->default(fn ($record) => $record && $record->compare_at_price_amount ? $record->compare_at_price_amount / 100 : null)
+                                            ->dehydrated(false)
+                                            ->afterStateUpdated(function ($state, $set) {
+                                                if ($state !== null && $state !== '') {
+                                                    $set('compare_at_price_amount', (int) round($state * 100));
+                                                } else {
+                                                    $set('compare_at_price_amount', null);
+                                                }
+                                            }),
 
                                         TextInput::make('default_price')
                                             ->label('Default Price ID')

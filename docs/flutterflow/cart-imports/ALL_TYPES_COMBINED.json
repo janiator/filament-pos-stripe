@@ -1,0 +1,212 @@
+{
+  "customDataTypes": [
+    {
+      "name": "CartItem",
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "required": true,
+          "defaultValue": null
+        },
+        {
+          "name": "productId",
+          "type": "String",
+          "required": true,
+          "defaultValue": null
+        },
+        {
+          "name": "variantId",
+          "type": "String",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "productName",
+          "type": "String",
+          "required": true,
+          "defaultValue": null
+        },
+        {
+          "name": "productImageUrl",
+          "type": "String",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "unitPrice",
+          "type": "int",
+          "required": true,
+          "defaultValue": 0
+        },
+        {
+          "name": "quantity",
+          "type": "int",
+          "required": true,
+          "defaultValue": 1
+        },
+        {
+          "name": "originalPrice",
+          "type": "int",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "discountAmount",
+          "type": "int",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "discountReason",
+          "type": "String",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "articleGroupCode",
+          "type": "String",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "productCode",
+          "type": "String",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "metadata",
+          "type": "JSON",
+          "required": false,
+          "defaultValue": null
+        }
+      ]
+    },
+    {
+      "name": "CartDiscount",
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "required": true,
+          "defaultValue": null
+        },
+        {
+          "name": "type",
+          "type": "String",
+          "required": true,
+          "defaultValue": null
+        },
+        {
+          "name": "couponId",
+          "type": "String",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "couponCode",
+          "type": "String",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "required": true,
+          "defaultValue": null
+        },
+        {
+          "name": "amount",
+          "type": "int",
+          "required": true,
+          "defaultValue": 0
+        },
+        {
+          "name": "percentage",
+          "type": "double",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "reason",
+          "type": "String",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "requiresApproval",
+          "type": "bool",
+          "required": true,
+          "defaultValue": false
+        }
+      ]
+    },
+    {
+      "name": "ShoppingCart",
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "required": true,
+          "defaultValue": null
+        },
+        {
+          "name": "posSessionId",
+          "type": "String",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "items",
+          "type": "List<CartItem>",
+          "required": true,
+          "defaultValue": []
+        },
+        {
+          "name": "discounts",
+          "type": "List<CartDiscount>",
+          "required": true,
+          "defaultValue": []
+        },
+        {
+          "name": "tipAmount",
+          "type": "int",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "customerId",
+          "type": "String",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "customerName",
+          "type": "String",
+          "required": false,
+          "defaultValue": null
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "required": true,
+          "defaultValue": null
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime",
+          "required": true,
+          "defaultValue": null
+        },
+        {
+          "name": "metadata",
+          "type": "JSON",
+          "required": false,
+          "defaultValue": null
+        }
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,66 @@
+{
+  "name": "ShoppingCart",
+  "fields": [
+    {
+      "name": "id",
+      "type": "String",
+      "required": true,
+      "defaultValue": null
+    },
+    {
+      "name": "posSessionId",
+      "type": "String",
+      "required": false,
+      "defaultValue": null
+    },
+    {
+      "name": "items",
+      "type": "List<CartItem>",
+      "required": true,
+      "defaultValue": []
+    },
+    {
+      "name": "discounts",
+      "type": "List<CartDiscount>",
+      "required": true,
+      "defaultValue": []
+    },
+    {
+      "name": "tipAmount",
+      "type": "int",
+      "required": false,
+      "defaultValue": null
+    },
+    {
+      "name": "customerId",
+      "type": "String",
+      "required": false,
+      "defaultValue": null
+    },
+    {
+      "name": "customerName",
+      "type": "String",
+      "required": false,
+      "defaultValue": null
+    },
+    {
+      "name": "createdAt",
+      "type": "DateTime",
+      "required": true,
+      "defaultValue": null
+    },
+    {
+      "name": "updatedAt",
+      "type": "DateTime",
+      "required": true,
+      "defaultValue": null
+    },
+    {
+      "name": "metadata",
+      "type": "JSON",
+      "required": false,
+      "defaultValue": null
+    }
+  ]
+}
+

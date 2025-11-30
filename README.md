@@ -1,59 +1,110 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# POS Stripe Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel backend for a Point of Sale (POS) system with Stripe integration, compliant with Norwegian Kassasystemforskriften regulations.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- ✅ POS Session Management
+- ✅ Transaction Processing (Stripe Terminal)
+- ✅ Electronic Journal (Audit Log)
+- ✅ SAF-T Export (Norwegian Tax Compliance)
+- ✅ Receipt Generation
+- ✅ Product & Inventory Management
+- ✅ Multi-tenant Store Management
+- ✅ FlutterFlow Frontend Integration
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Quick Start
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+See the [Quick Start Guide](./docs/setup/QUICK_START.md) for setup instructions.
 
-## Learning Laravel
+## Documentation
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+All documentation is organized in the [`docs/`](./docs/) directory:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 📚 Documentation Index
 
-## Laravel Sponsors
+- **[Documentation Index](./docs/README.md)** - Complete documentation overview
+- **[Quick Start Guide](./docs/setup/QUICK_START.md)** - Get started quickly
+- **[POS Backend Implementation](./docs/implementation/POS_BACKEND_IMPLEMENTATION_SUMMARY.md)** - Backend overview
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 🔒 Compliance
 
-### Premium Partners
+- **[Kassasystemforskriften Compliance](./docs/compliance/KASSASYSTEMFORSKRIFTEN_COMPLIANCE.md)** - Legal compliance requirements
+- **[POS Audit Log Requirements](./docs/compliance/POS_AUDIT_LOG_REQUIREMENTS.md)** - Audit logging requirements
+- **[SAF-T Implementation](./docs/saf-t/SAF_T_IMPLEMENTATION_PLAN.md)** - Tax compliance
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 📱 Frontend Integration
 
-## Contributing
+- **[FlutterFlow Implementation Guide](./docs/flutterflow/FLUTTERFLOW_IMPLEMENTATION_GUIDE.md)** - Complete FlutterFlow setup
+- **[FlutterFlow Cart Data Structure](./docs/flutterflow/FLUTTERFLOW_CART_DATA_STRUCTURE.md)** - Shopping cart structure
+- **[FlutterFlow Custom Actions](./docs/flutterflow/custom-actions/)** - Code examples
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 🏗️ Architecture
 
-## Code of Conduct
+- **[POS Device Architecture](./docs/implementation/POS_DEVICE_ARCHITECTURE.md)** - Device integration
+- **[POS Session Management](./docs/implementation/POS_SESSION_MANAGEMENT.md)** - Session system
+- **[Product Variants & Inventory](./docs/features/PRODUCT_VARIANTS_AND_INVENTORY_IMPLEMENTATION.md)** - Product system
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Project Structure
 
-## Security Vulnerabilities
+```
+├── app/
+│   ├── Actions/          # Business logic actions
+│   ├── Http/            # API controllers
+│   ├── Models/          # Eloquent models
+│   ├── Services/        # Service classes
+│   └── Filament/        # Admin panel resources
+├── docs/                # All documentation
+│   ├── compliance/      # Legal compliance docs
+│   ├── implementation/  # Implementation guides
+│   ├── flutterflow/     # FlutterFlow integration
+│   ├── saf-t/          # SAF-T documentation
+│   ├── setup/          # Setup guides
+│   └── features/       # Feature documentation
+├── routes/
+│   └── api.php         # API routes
+└── database/
+    └── migrations/     # Database migrations
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Requirements
+
+- PHP 8.2+
+- Laravel 11
+- MySQL/PostgreSQL
+- Stripe Account
+- Herd (for local development)
+
+## Installation
+
+1. Clone the repository
+2. Install dependencies: `composer install`
+3. Copy `.env.example` to `.env` and configure
+4. Run migrations: `php artisan migrate`
+5. See [Quick Start Guide](./docs/setup/QUICK_START.md) for detailed setup
+
+## API Documentation
+
+API specification available in `api-spec.yaml`. Main endpoints:
+
+- `/api/pos-sessions` - POS session management
+- `/api/pos-devices` - Device registration
+- `/api/charges` - Transaction processing
+- `/api/products` - Product management
+- `/api/saf-t/generate` - SAF-T export
+
+## Compliance
+
+This system is designed to comply with:
+- **Kassasystemforskriften** (FOR-2015-12-18-1616) - Norwegian cash register regulation
+- **SAF-T Cash Register** - Norwegian tax authority requirements
+
+See [Compliance Documentation](./docs/compliance/) for details.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Proprietary - All rights reserved
+
+---
+
+For complete documentation, see the [Documentation Index](./docs/README.md).

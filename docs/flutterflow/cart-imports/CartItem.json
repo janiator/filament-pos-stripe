@@ -1,0 +1,84 @@
+{
+  "name": "CartItem",
+  "fields": [
+    {
+      "name": "id",
+      "type": "String",
+      "required": true,
+      "defaultValue": null
+    },
+    {
+      "name": "productId",
+      "type": "String",
+      "required": true,
+      "defaultValue": null
+    },
+    {
+      "name": "variantId",
+      "type": "String",
+      "required": false,
+      "defaultValue": null
+    },
+    {
+      "name": "productName",
+      "type": "String",
+      "required": true,
+      "defaultValue": null
+    },
+    {
+      "name": "productImageUrl",
+      "type": "String",
+      "required": false,
+      "defaultValue": null
+    },
+    {
+      "name": "unitPrice",
+      "type": "int",
+      "required": true,
+      "defaultValue": 0
+    },
+    {
+      "name": "quantity",
+      "type": "int",
+      "required": true,
+      "defaultValue": 1
+    },
+    {
+      "name": "originalPrice",
+      "type": "int",
+      "required": false,
+      "defaultValue": null
+    },
+    {
+      "name": "discountAmount",
+      "type": "int",
+      "required": false,
+      "defaultValue": null
+    },
+    {
+      "name": "discountReason",
+      "type": "String",
+      "required": false,
+      "defaultValue": null
+    },
+    {
+      "name": "articleGroupCode",
+      "type": "String",
+      "required": false,
+      "defaultValue": null
+    },
+    {
+      "name": "productCode",
+      "type": "String",
+      "required": false,
+      "defaultValue": null
+    },
+    {
+      "name": "metadata",
+      "type": "JSON",
+      "required": false,
+      "defaultValue": null
+    }
+  ]
+}
+

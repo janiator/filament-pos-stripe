@@ -1,0 +1,12 @@
+{
+  "cart_discount_id": "660e8400-e29b-41d4-a716-446655440001",
+  "cart_discount_type": "coupon",
+  "cart_discount_coupon_id": "coupon_789",
+  "cart_discount_coupon_code": "SUMMER2024",
+  "cart_discount_description": "Summer Sale Discount",
+  "cart_discount_amount": 2000,
+  "cart_discount_percentage": 10.0,
+  "cart_discount_reason": null,
+  "cart_discount_requires_approval": false
+}
+

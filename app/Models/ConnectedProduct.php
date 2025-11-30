@@ -32,6 +32,7 @@ class ConnectedProduct extends Model implements HasMedia
         'default_price',
         'price',
         'currency',
+        'compare_at_price_amount',
         'article_group_code',
         'product_code',
     ];
@@ -42,6 +43,7 @@ class ConnectedProduct extends Model implements HasMedia
         'product_meta' => 'array',
         'package_dimensions' => 'array',
         'shippable' => 'boolean',
+        'compare_at_price_amount' => 'integer',
     ];
 
     /**
@@ -294,5 +296,39 @@ class ConnectedProduct extends Model implements HasMedia
                 return $media->getUrl();
             })
             ->toArray();
+    }
+
+    /**
+     * Get discount percentage if compare_at_price is set
+     */
+    public function getDiscountPercentageAttribute(): ?float
+    {
+        if (!$this->compare_at_price_amount) {
+            return null;
+        }
+
+        // Get current price amount
+        $priceAmount = null;
+        if ($this->price) {
+            $priceAmount = (int) round((float) str_replace(',', '.', $this->price) * 100);
+        } elseif ($this->default_price && $this->stripe_account_id) {
+            $defaultPrice = ConnectedPrice::where('stripe_price_id', $this->default_price)
+                ->where('stripe_account_id', $this->stripe_account_id)
+                ->first();
+            
+            if ($defaultPrice && $defaultPrice->unit_amount) {
+                $priceAmount = $defaultPrice->unit_amount;
+            }
+        }
+
+        if (!$priceAmount || $priceAmount <= 0) {
+            return null;
+        }
+
+        if ($this->compare_at_price_amount <= $priceAmount) {
+            return null;
+        }
+
+        return round((($this->compare_at_price_amount - $priceAmount) / $this->compare_at_price_amount) * 100, 1);
     }
 }

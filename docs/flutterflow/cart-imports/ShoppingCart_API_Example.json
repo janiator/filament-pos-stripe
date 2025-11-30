@@ -1,0 +1,61 @@
+{
+  "cart_id": "770e8400-e29b-41d4-a716-446655440002",
+  "cart_pos_session_id": "123",
+  "cart_items": [
+    {
+      "cart_item_id": "550e8400-e29b-41d4-a716-446655440000",
+      "cart_item_product_id": "prod_123",
+      "cart_item_variant_id": "var_456",
+      "cart_item_product_name": "Coffee",
+      "cart_item_product_image_url": "https://example.com/images/coffee.jpg",
+      "cart_item_unit_price": 5000,
+      "cart_item_quantity": 2,
+      "cart_item_original_price": 5000,
+      "cart_item_discount_amount": 500,
+      "cart_item_discount_reason": "Manager override",
+      "cart_item_article_group_code": "01",
+      "cart_item_product_code": "COFFEE001",
+      "cart_item_metadata": {
+        "notes": "Extra hot"
+      }
+    },
+    {
+      "cart_item_id": "550e8400-e29b-41d4-a716-446655440003",
+      "cart_item_product_id": "prod_124",
+      "cart_item_variant_id": null,
+      "cart_item_product_name": "Sandwich",
+      "cart_item_product_image_url": "https://example.com/images/sandwich.jpg",
+      "cart_item_unit_price": 12000,
+      "cart_item_quantity": 1,
+      "cart_item_original_price": null,
+      "cart_item_discount_amount": null,
+      "cart_item_discount_reason": null,
+      "cart_item_article_group_code": "02",
+      "cart_item_product_code": "SANDWICH001",
+      "cart_item_metadata": null
+    }
+  ],
+  "cart_discounts": [
+    {
+      "cart_discount_id": "660e8400-e29b-41d4-a716-446655440001",
+      "cart_discount_type": "coupon",
+      "cart_discount_coupon_id": "coupon_789",
+      "cart_discount_coupon_code": "SUMMER2024",
+      "cart_discount_description": "Summer Sale Discount",
+      "cart_discount_amount": 2000,
+      "cart_discount_percentage": 10.0,
+      "cart_discount_reason": null,
+      "cart_discount_requires_approval": false
+    }
+  ],
+  "cart_tip_amount": 500,
+  "cart_customer_id": "cust_123",
+  "cart_customer_name": "John Doe",
+  "cart_created_at": "2025-11-30T10:00:00.000Z",
+  "cart_updated_at": "2025-11-30T10:15:00.000Z",
+  "cart_metadata": {
+    "source": "pos_app",
+    "device_id": "device_456"
+  }
+}
+

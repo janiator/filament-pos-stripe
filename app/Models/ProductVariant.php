@@ -160,6 +160,24 @@ class ProductVariant extends Model
     }
 
     /**
+     * Get applicable automatic discount
+     */
+    public function getApplicableDiscount(?string $customerId = null, int $quantity = 1, int $cartTotal = 0): ?\App\Models\Discount
+    {
+        $discountService = app(\App\Services\DiscountService::class);
+        return $discountService->getBestDiscount($this, $customerId, $quantity, $cartTotal);
+    }
+
+    /**
+     * Get discounted price information
+     */
+    public function getDiscountedPrice(?string $customerId = null, int $quantity = 1, int $cartTotal = 0): array
+    {
+        $discountService = app(\App\Services\DiscountService::class);
+        return $discountService->calculateDiscountedPrice($this, null, $customerId, $quantity, $cartTotal);
+    }
+
+    /**
      * Check if this variant has been used in any purchases
      * (subscriptions, payment links, etc.)
      */

@@ -155,6 +155,22 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * Get the discounts for this store
+     */
+    public function discounts()
+    {
+        return $this->hasMany(\App\Models\Discount::class);
+    }
+
+    /**
+     * Get the coupons for this store
+     */
+    public function coupons()
+    {
+        return $this->hasMany(\App\Models\Coupon::class);
+    }
+
+    /**
      * Get the users that belong to this store (tenant)
      */
     public function users(): BelongsToMany

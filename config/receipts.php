@@ -82,6 +82,10 @@ return [
             'prefix' => 'D',
             'label' => 'Utleveringskvittering',
         ],
+        'correction' => [
+            'prefix' => 'CORR',
+            'label' => 'Korrigeringskvittering',
+        ],
     ],
 ];
 

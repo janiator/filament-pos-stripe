@@ -41,6 +41,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/pos-devices/{id}', [\App\Http\Controllers\Api\PosDevicesController::class, 'update'])->name('api.pos-devices.update');
     Route::patch('/pos-devices/{id}', [\App\Http\Controllers\Api\PosDevicesController::class, 'update'])->name('api.pos-devices.patch');
     Route::post('/pos-devices/{id}/heartbeat', [\App\Http\Controllers\Api\PosDevicesController::class, 'heartbeat'])->name('api.pos-devices.heartbeat');
+    Route::post('/pos-devices/{id}/start', [\App\Http\Controllers\Api\PosDevicesController::class, 'start'])->name('api.pos-devices.start');
+    Route::post('/pos-devices/{id}/shutdown', [\App\Http\Controllers\Api\PosDevicesController::class, 'shutdown'])->name('api.pos-devices.shutdown');
+    Route::post('/pos-devices/{id}/cash-drawer/open', [\App\Http\Controllers\Api\PosDevicesController::class, 'openCashDrawer'])->name('api.pos-devices.cash-drawer.open');
+    Route::post('/pos-devices/{id}/cash-drawer/close', [\App\Http\Controllers\Api\PosDevicesController::class, 'closeCashDrawer'])->name('api.pos-devices.cash-drawer.close');
 
     // POS Session endpoints (Kassasystemforskriften compliance)
     Route::get('/pos-sessions', [\App\Http\Controllers\Api\PosSessionsController::class, 'index'])->name('api.pos-sessions.index');
@@ -80,6 +84,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pos-events', [\App\Http\Controllers\Api\PosEventsController::class, 'index'])->name('api.pos-events.index');
     Route::post('/pos-events', [\App\Http\Controllers\Api\PosEventsController::class, 'store'])->name('api.pos-events.store');
     Route::get('/pos-events/{id}', [\App\Http\Controllers\Api\PosEventsController::class, 'show'])->name('api.pos-events.show');
+
+    // POS Transaction endpoints
+    Route::post('/pos-transactions/charges/{chargeId}/void', [\App\Http\Controllers\Api\PosTransactionsController::class, 'void'])->name('api.pos-transactions.void');
+    Route::post('/pos-transactions/correction-receipt', [\App\Http\Controllers\Api\PosTransactionsController::class, 'correctionReceipt'])->name('api.pos-transactions.correction-receipt');
 
     // Receipt endpoints
     Route::get('/receipts', [\App\Http\Controllers\Api\ReceiptsController::class, 'index'])->name('api.receipts.index');

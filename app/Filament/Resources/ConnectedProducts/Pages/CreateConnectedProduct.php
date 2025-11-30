@@ -10,6 +10,21 @@ class CreateConnectedProduct extends CreateRecord
 {
     protected static string $resource = ConnectedProductResource::class;
 
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        // Handle compare_at_price_decimal conversion
+        if (isset($data['compare_at_price_decimal'])) {
+            if ($data['compare_at_price_decimal'] !== null && $data['compare_at_price_decimal'] !== '') {
+                $data['compare_at_price_amount'] = (int) round($data['compare_at_price_decimal'] * 100);
+            } else {
+                $data['compare_at_price_amount'] = null;
+            }
+            unset($data['compare_at_price_decimal']);
+        }
+
+        return $data;
+    }
+
     protected function afterCreate(): void
     {
         $product = $this->record;

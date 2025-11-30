@@ -8,6 +8,13 @@ info:
     - User authentication and authorization
     - Store management
     - Customer management
+    - POS device registration and management
+    - POS session management (Kassasystemforskriften compliance)
+    - POS event logging (audit trail)
+    - POS transaction operations (void, correction)
+    - Receipt generation and management
+    - Product and inventory management
+    - SAF-T file generation (Norwegian tax compliance)
     - Terminal operations (connection tokens and payment intents)
 
     All endpoints (except login and webhooks) require Bearer token authentication.
@@ -34,6 +41,20 @@ tags:
     description: Customer management operations
   - name: POS Devices
     description: POS device registration and management (vendor-agnostic)
+  - name: POS Sessions
+    description: POS session management (Kassasystemforskriften compliance)
+  - name: POS Events
+    description: POS event logging (audit trail)
+  - name: POS Transactions
+    description: POS transaction operations (void, correction)
+  - name: Receipts
+    description: Receipt generation and management
+  - name: Products
+    description: Product management for POS
+  - name: Inventory
+    description: Inventory management operations
+  - name: SAF-T
+    description: SAF-T file generation (Norwegian tax compliance)
   - name: Terminals
     description: Terminal locations and readers management (Stripe-specific)
   - name: Webhooks
@@ -707,6 +728,1672 @@ paths:
           description: Device not found
         '422':
           description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-devices/{id}/start:
+    post:
+      tags:
+        - POS Devices
+      summary: Log application start
+      description: Log POS application start event (13001) for audit trail compliance
+      operationId: logApplicationStart
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Application start logged successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Application start logged successfully
+                  device:
+                    $ref: '#/components/schemas/PosDevice'
+                  current_session:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: integer
+                      session_number:
+                        type: string
+        '404':
+          description: Device not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-devices/{id}/shutdown:
+    post:
+      tags:
+        - POS Devices
+      summary: Log application shutdown
+      description: Log POS application shutdown event (13002) for audit trail compliance
+      operationId: logApplicationShutdown
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Application shutdown logged successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Application shutdown logged successfully
+                  device:
+                    $ref: '#/components/schemas/PosDevice'
+        '404':
+          description: Device not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-devices/{id}/cash-drawer/open:
+    post:
+      tags:
+        - POS Devices
+      summary: Open cash drawer
+      description: Log cash drawer open event (13005). Supports nullinnslag (drawer open without sale) - mandatory per Kassasystemforskriften § 2-2
+      operationId: openCashDrawer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pos_session_id:
+                  type: integer
+                  nullable: true
+                  description: POS session ID (auto-detected if not provided)
+                related_charge_id:
+                  type: integer
+                  nullable: true
+                  description: Charge ID if drawer opened with sale
+                nullinnslag:
+                  type: boolean
+                  nullable: true
+                  description: True if drawer opened without sale (mandatory to log per § 2-2)
+                  example: false
+                reason:
+                  type: string
+                  nullable: true
+                  maxLength: 500
+                  description: Reason for nullinnslag (if applicable)
+      responses:
+        '200':
+          description: Cash drawer open logged successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cash drawer open logged successfully
+                  event:
+                    type: object
+                    properties:
+                      nullinnslag:
+                        type: boolean
+                      session_id:
+                        type: integer
+                        nullable: true
+        '400':
+          description: Active session required for nullinnslag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Device not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-devices/{id}/cash-drawer/close:
+    post:
+      tags:
+        - POS Devices
+      summary: Close cash drawer
+      description: Log cash drawer close event (13006) for audit trail compliance
+      operationId: closeCashDrawer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pos_session_id:
+                  type: integer
+                  nullable: true
+                  description: POS session ID (auto-detected if not provided)
+      responses:
+        '200':
+          description: Cash drawer close logged successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cash drawer close logged successfully
+        '404':
+          description: Device not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-sessions:
+    get:
+      tags:
+        - POS Sessions
+      summary: List POS sessions
+      description: Get all POS sessions for the current store
+      operationId: listPosSessions
+      parameters:
+        - name: status
+          in: query
+          description: Filter by status (open, closed, abandoned)
+          required: false
+          schema:
+            type: string
+            enum: [open, closed, abandoned]
+        - name: date
+          in: query
+          description: Filter by opening date (YYYY-MM-DD)
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: pos_device_id
+          in: query
+          description: Filter by POS device ID
+          required: false
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of POS sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PosSession'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Store not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-sessions/current:
+    get:
+      tags:
+        - POS Sessions
+      summary: Get current open session
+      description: Get the current open session for a POS device
+      operationId: getCurrentPosSession
+      parameters:
+        - name: pos_device_id
+          in: query
+          required: true
+          description: POS device ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Current session information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: '#/components/schemas/PosSession'
+                    nullable: true
+        '404':
+          description: Store not found or no open session
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-sessions/open:
+    post:
+      tags:
+        - POS Sessions
+      summary: Open POS session
+      description: Open a new POS session. Automatically logs event 13020 (Session opened)
+      operationId: openPosSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pos_device_id
+              properties:
+                pos_device_id:
+                  type: integer
+                  description: POS device ID
+                  example: 1
+                opening_balance:
+                  type: integer
+                  nullable: true
+                  description: Opening cash balance in øre
+                  minimum: 0
+                  example: 0
+                opening_notes:
+                  type: string
+                  nullable: true
+                  maxLength: 1000
+                  description: Opening notes
+                opening_data:
+                  type: object
+                  nullable: true
+                  description: Additional opening data
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Session opened successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Session opened successfully
+                  session:
+                    $ref: '#/components/schemas/PosSession'
+        '409':
+          description: Device already has an open session
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Device already has an open session
+                  session:
+                    $ref: '#/components/schemas/PosSession'
+        '404':
+          description: Store or device not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-sessions/{id}:
+    get:
+      tags:
+        - POS Sessions
+      summary: Get POS session
+      description: Get a specific POS session with all details
+      operationId: getPosSession
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Session information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: '#/components/schemas/PosSession'
+        '404':
+          description: Session not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags:
+        - POS Sessions
+      summary: Close POS session
+      description: Close a POS session. Automatically logs event 13021 (Session closed)
+      operationId: closePosSession
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                actual_cash:
+                  type: integer
+                  nullable: true
+                  description: Actual cash count in øre
+                  minimum: 0
+                closing_notes:
+                  type: string
+                  nullable: true
+                  maxLength: 1000
+                  description: Closing notes
+                closing_data:
+                  type: object
+                  nullable: true
+                  description: Additional closing data
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Session closed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Session closed successfully
+                  session:
+                    $ref: '#/components/schemas/PosSession'
+        '400':
+          description: Session cannot be closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Session not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-sessions/{id}/x-report:
+    post:
+      tags:
+        - POS Sessions
+      summary: Generate X-report
+      description: Generate X-report (daily sales report) for current session. Logs event 13008. Does NOT close session.
+      operationId: generateXReport
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: X-report generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: X-report generated successfully
+                  report:
+                    $ref: '#/components/schemas/XReport'
+        '404':
+          description: Session not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-sessions/{id}/z-report:
+    post:
+      tags:
+        - POS Sessions
+      summary: Generate Z-report
+      description: Generate Z-report (end-of-day report) and close session. Logs events 13009 and 13021.
+      operationId: generateZReport
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                actual_cash:
+                  type: integer
+                  nullable: true
+                  description: Actual cash count in øre
+                  minimum: 0
+                closing_notes:
+                  type: string
+                  nullable: true
+                  maxLength: 1000
+                  description: Closing notes
+      responses:
+        '200':
+          description: Z-report generated and session closed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Z-report generated and session closed
+                  session:
+                    $ref: '#/components/schemas/PosSession'
+                  report:
+                    $ref: '#/components/schemas/ZReport'
+        '400':
+          description: Session cannot be closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Session not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-sessions/daily-closing:
+    post:
+      tags:
+        - POS Sessions
+      summary: Create daily closing report
+      description: Create a daily closing report for a specific date
+      operationId: createDailyClosing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - closing_date
+              properties:
+                closing_date:
+                  type: string
+                  format: date
+                  description: Date for daily closing (YYYY-MM-DD)
+                  example: "2025-11-30"
+                notes:
+                  type: string
+                  nullable: true
+                  maxLength: 1000
+                  description: Closing notes
+      responses:
+        '201':
+          description: Daily closing created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Daily closing created successfully
+                  closing:
+                    $ref: '#/components/schemas/PosSessionClosing'
+        '409':
+          description: Daily closing already exists for this date
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Daily closing already exists for this date
+                  closing:
+                    $ref: '#/components/schemas/PosSessionClosing'
+        '404':
+          description: Store not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-events:
+    get:
+      tags:
+        - POS Events
+      summary: List POS events
+      description: Get paginated list of POS events (audit log) for the current store
+      operationId: listPosEvents
+      parameters:
+        - name: event_code
+          in: query
+          description: Filter by event code (e.g., 13012, 13020)
+          required: false
+          schema:
+            type: string
+        - name: event_type
+          in: query
+          description: Filter by event type
+          required: false
+          schema:
+            type: string
+            enum: [application, user, drawer, report, transaction, payment, session, other]
+        - name: pos_session_id
+          in: query
+          description: Filter by POS session ID
+          required: false
+          schema:
+            type: integer
+        - name: from_date
+          in: query
+          description: Filter from date (YYYY-MM-DD)
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          description: Filter to date (YYYY-MM-DD)
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of POS events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PosEvent'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Store not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags:
+        - POS Events
+      summary: Create POS event
+      description: Manually create a POS event (for events not auto-logged)
+      operationId: createPosEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - event_code
+                - event_type
+              properties:
+                pos_device_id:
+                  type: integer
+                  nullable: true
+                  description: POS device ID
+                pos_session_id:
+                  type: integer
+                  nullable: true
+                  description: POS session ID
+                event_code:
+                  type: string
+                  description: SAF-T event code (PredefinedBasicID-13)
+                  example: "13012"
+                event_type:
+                  type: string
+                  enum: [application, user, drawer, report, transaction, payment, session, other]
+                  description: Event type category
+                description:
+                  type: string
+                  nullable: true
+                  maxLength: 1000
+                  description: Human-readable description
+                related_charge_id:
+                  type: integer
+                  nullable: true
+                  description: Related charge ID (for transaction events)
+                event_data:
+                  type: object
+                  nullable: true
+                  description: Additional event-specific data
+                  additionalProperties: true
+                occurred_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                  description: When event occurred (defaults to now)
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Event created successfully
+                  event:
+                    $ref: '#/components/schemas/PosEvent'
+        '404':
+          description: Store or related resource not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-events/{id}:
+    get:
+      tags:
+        - POS Events
+      summary: Get POS event
+      description: Get a specific POS event by ID
+      operationId: getPosEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Event information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  event:
+                    $ref: '#/components/schemas/PosEvent'
+        '404':
+          description: Event not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-transactions/charges/{chargeId}/void:
+    post:
+      tags:
+        - POS Transactions
+      summary: Void transaction
+      description: Void a transaction (cancel before completion). Logs event 13014.
+      operationId: voidTransaction
+      parameters:
+        - name: chargeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  nullable: true
+                  maxLength: 500
+                  description: Reason for void
+                pos_session_id:
+                  type: integer
+                  nullable: true
+                  description: POS session ID (auto-detected if not provided)
+      responses:
+        '200':
+          description: Transaction voided successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Transaction voided successfully
+                  charge:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      stripe_charge_id:
+                        type: string
+                      amount:
+                        type: integer
+                      voided:
+                        type: boolean
+                        example: true
+        '400':
+          description: Cannot void a charge that has already been refunded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Charge not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-transactions/correction-receipt:
+    post:
+      tags:
+        - POS Transactions
+      summary: Create correction receipt
+      description: Create a correction receipt for errors. Logs event 13015.
+      operationId: createCorrectionReceipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pos_session_id
+                - correction_type
+                - description
+              properties:
+                pos_session_id:
+                  type: integer
+                  description: POS session ID
+                related_charge_id:
+                  type: integer
+                  nullable: true
+                  description: Related charge ID (if applicable)
+                correction_type:
+                  type: string
+                  enum: [price_correction, item_correction, payment_correction, other]
+                  description: Type of correction
+                original_amount:
+                  type: integer
+                  nullable: true
+                  description: Original amount in øre
+                  minimum: 0
+                corrected_amount:
+                  type: integer
+                  nullable: true
+                  description: Corrected amount in øre
+                  minimum: 0
+                description:
+                  type: string
+                  maxLength: 1000
+                  description: Description of correction
+                correction_data:
+                  type: object
+                  nullable: true
+                  description: Additional correction data
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Correction receipt created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Correction receipt created successfully
+                  event:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      event_code:
+                        type: string
+                        example: "13015"
+                      description:
+                        type: string
+                  receipt:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      receipt_number:
+                        type: string
+                      receipt_type:
+                        type: string
+                        example: correction
+        '404':
+          description: Store or session not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipts:
+    get:
+      tags:
+        - Receipts
+      summary: List receipts
+      description: Get paginated list of receipts for the current store
+      operationId: listReceipts
+      parameters:
+        - name: receipt_type
+          in: query
+          description: Filter by receipt type
+          required: false
+          schema:
+            type: string
+            enum: [sales, return, copy, steb, provisional, training, delivery, correction]
+        - name: pos_session_id
+          in: query
+          description: Filter by POS session ID
+          required: false
+          schema:
+            type: integer
+        - name: printed
+          in: query
+          description: Filter by printed status
+          required: false
+          schema:
+            type: boolean
+        - name: from_date
+          in: query
+          description: Filter from date (YYYY-MM-DD)
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          description: Filter to date (YYYY-MM-DD)
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of receipts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  receipts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Receipt'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Store not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipts/generate:
+    post:
+      tags:
+        - Receipts
+      summary: Generate receipt
+      description: Generate a receipt for a charge
+      operationId: generateReceipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - charge_id
+              properties:
+                charge_id:
+                  type: integer
+                  description: Charge ID
+                receipt_type:
+                  type: string
+                  nullable: true
+                  enum: [sales, return, copy, steb, provisional, training, delivery]
+                  description: Receipt type (defaults to sales)
+                pos_session_id:
+                  type: integer
+                  nullable: true
+                  description: POS session ID (auto-detected from charge if not provided)
+      responses:
+        '201':
+          description: Receipt generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Receipt generated successfully
+                  receipt:
+                    $ref: '#/components/schemas/Receipt'
+        '404':
+          description: Store or charge not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipts/{id}:
+    get:
+      tags:
+        - Receipts
+      summary: Get receipt
+      description: Get a specific receipt by ID
+      operationId: getReceipt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Receipt information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  receipt:
+                    $ref: '#/components/schemas/Receipt'
+        '404':
+          description: Receipt not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipts/{id}/xml:
+    get:
+      tags:
+        - Receipts
+      summary: Get receipt XML
+      description: Get receipt in XML format (for printing)
+      operationId: getReceiptXml
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Receipt XML
+          content:
+            application/xml:
+              schema:
+                type: string
+        '404':
+          description: Receipt not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipts/{id}/mark-printed:
+    post:
+      tags:
+        - Receipts
+      summary: Mark receipt as printed
+      description: Mark a receipt as printed
+      operationId: markReceiptPrinted
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Receipt marked as printed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Receipt marked as printed
+                  receipt:
+                    $ref: '#/components/schemas/Receipt'
+        '404':
+          description: Receipt not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipts/{id}/reprint:
+    post:
+      tags:
+        - Receipts
+      summary: Reprint receipt
+      description: Reprint a receipt (increments reprint count)
+      operationId: reprintReceipt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Receipt reprinted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Receipt reprinted
+                  receipt:
+                    $ref: '#/components/schemas/Receipt'
+        '404':
+          description: Receipt not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /products:
+    get:
+      tags:
+        - Products
+      summary: List products
+      description: Get paginated list of active products for POS
+      operationId: listProducts
+      parameters:
+        - name: search
+          in: query
+          description: Search term (name or description)
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Filter by product type
+          required: false
+          schema:
+            type: string
+        - name: per_page
+          in: query
+          description: Number of items per page (max 100)
+          required: false
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  product:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Store not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get product
+      description: Get a specific product with variants and inventory
+      operationId: getProduct
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Product information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  product:
+                    $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /products/{product}/images/{media}:
+    get:
+      tags:
+        - Products
+      summary: Serve product image
+      description: Serve product image with signed URL (public endpoint, secured by signature)
+      operationId: serveProductImage
+      security: []
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: media
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product image
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Product or image not found
+        '403':
+          description: Invalid signature
+
+  /products/{product}/inventory:
+    get:
+      tags:
+        - Inventory
+      summary: Get product inventory
+      description: Get inventory information for a product and all its variants
+      operationId: getProductInventory
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Product inventory information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  product_id:
+                    type: integer
+                  tracked:
+                    type: boolean
+                  total_quantity:
+                    type: integer
+                    nullable: true
+                  in_stock_variants:
+                    type: integer
+                  out_of_stock_variants:
+                    type: integer
+                  all_in_stock:
+                    type: boolean
+                    nullable: true
+                  variants:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        sku:
+                          type: string
+                          nullable: true
+                        inventory:
+                          type: object
+                          properties:
+                            quantity:
+                              type: integer
+                              nullable: true
+                            in_stock:
+                              type: boolean
+                            policy:
+                              type: string
+                              nullable: true
+                            tracked:
+                              type: boolean
+        '404':
+          description: Product not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /variants/{variant}/inventory:
+    put:
+      tags:
+        - Inventory
+      summary: Update variant inventory
+      description: Update inventory settings for a product variant
+      operationId: updateVariantInventory
+      parameters:
+        - name: variant
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                inventory_quantity:
+                  type: integer
+                  nullable: true
+                  minimum: 0
+                  description: Inventory quantity
+                inventory_policy:
+                  type: string
+                  nullable: true
+                  enum: [deny, continue]
+                  description: Inventory policy
+                inventory_management:
+                  type: string
+                  nullable: true
+                  maxLength: 255
+                  description: Inventory management system
+      responses:
+        '200':
+          description: Variant inventory updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  variant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      sku:
+                        type: string
+                        nullable: true
+                      variant_inventory:
+                        type: object
+                        properties:
+                          quantity:
+                            type: integer
+                            nullable: true
+                          in_stock:
+                            type: boolean
+                          policy:
+                            type: string
+                            nullable: true
+                          management:
+                            type: string
+                            nullable: true
+                          tracked:
+                            type: boolean
+        '404':
+          description: Variant not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /variants/{variant}/inventory/adjust:
+    post:
+      tags:
+        - Inventory
+      summary: Adjust inventory
+      description: Add or subtract from inventory quantity
+      operationId: adjustInventory
+      parameters:
+        - name: variant
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+                  description: Amount to adjust (positive to add, negative to subtract)
+                  example: -5
+                reason:
+                  type: string
+                  nullable: true
+                  maxLength: 255
+                  description: Reason for adjustment
+                note:
+                  type: string
+                  nullable: true
+                  maxLength: 1000
+                  description: Additional notes
+      responses:
+        '200':
+          description: Inventory adjusted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Inventory adjusted successfully
+                  variant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      inventory_quantity:
+                        type: integer
+                        nullable: true
+        '404':
+          description: Variant not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /variants/{variant}/inventory/set:
+    post:
+      tags:
+        - Inventory
+      summary: Set inventory quantity
+      description: Set inventory quantity to a specific value
+      operationId: setInventory
+      parameters:
+        - name: variant
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 0
+                  description: New inventory quantity
+                  example: 100
+                reason:
+                  type: string
+                  nullable: true
+                  maxLength: 255
+                  description: Reason for setting quantity
+      responses:
+        '200':
+          description: Inventory quantity set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Inventory quantity set successfully
+                  variant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      inventory_quantity:
+                        type: integer
+                        nullable: true
+        '404':
+          description: Variant not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /inventory/bulk-update:
+    post:
+      tags:
+        - Inventory
+      summary: Bulk update inventory
+      description: Update inventory for multiple variants at once
+      operationId: bulkUpdateInventory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - updates
+              properties:
+                updates:
+                  type: array
+                  description: Array of inventory updates
+                  items:
+                    type: object
+                    required:
+                      - variant_id
+                    properties:
+                      variant_id:
+                        type: integer
+                        description: Variant ID
+                      inventory_quantity:
+                        type: integer
+                        nullable: true
+                        minimum: 0
+                      inventory_policy:
+                        type: string
+                        nullable: true
+                        enum: [deny, continue]
+                      inventory_management:
+                        type: string
+                        nullable: true
+                        maxLength: 255
+      responses:
+        '200':
+          description: Bulk update completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Bulk update completed
+                  updated:
+                    type: integer
+                    description: Number of variants updated
+                  failed:
+                    type: integer
+                    description: Number of variants that failed to update
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /saf-t/generate:
+    post:
+      tags:
+        - SAF-T
+      summary: Generate SAF-T file
+      description: Generate and store a SAF-T Cash Register file for a date range
+      operationId: generateSafT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - from_date
+                - to_date
+              properties:
+                from_date:
+                  type: string
+                  format: date
+                  description: Start date (YYYY-MM-DD)
+                  example: "2025-11-01"
+                to_date:
+                  type: string
+                  format: date
+                  description: End date (YYYY-MM-DD, must be >= from_date)
+                  example: "2025-11-30"
+      responses:
+        '201':
+          description: SAF-T file generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: SAF-T file generated successfully
+                  filename:
+                    type: string
+                    example: SAF-T_store-slug_2025-11-01_2025-11-30.xml
+                  download_url:
+                    type: string
+                    format: uri
+                    example: https://pos.visivo.no/api/saf-t/download/SAF-T_store-slug_2025-11-01_2025-11-30.xml
+                  size:
+                    type: integer
+                    description: File size in bytes
+                  from_date:
+                    type: string
+                    format: date
+                  to_date:
+                    type: string
+                    format: date
+        '404':
+          description: Store not found
+        '422':
+          description: Validation error
+        '500':
+          description: Failed to generate SAF-T file
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /saf-t/content:
+    get:
+      tags:
+        - SAF-T
+      summary: Get SAF-T XML content
+      description: Get SAF-T XML content directly (returns XML file)
+      operationId: getSafTContent
+      parameters:
+        - name: from_date
+          in: query
+          required: true
+          description: Start date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          required: true
+          description: End date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: SAF-T XML content
+          content:
+            application/xml:
+              schema:
+                type: string
+          headers:
+            Content-Disposition:
+              description: Attachment filename
+              schema:
+                type: string
+        '404':
+          description: Store not found
+        '422':
+          description: Validation error
+        '500':
+          description: Failed to generate SAF-T file
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /saf-t/download/{filename}:
+    get:
+      tags:
+        - SAF-T
+      summary: Download SAF-T file
+      description: Download a previously generated SAF-T file
+      operationId: downloadSafT
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          example: SAF-T_store-slug_2025-11-01_2025-11-30.xml
+      responses:
+        '200':
+          description: SAF-T XML file download
+          content:
+            application/xml:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Unauthorized access to this file
+        '404':
+          description: File not found
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -1526,6 +3213,577 @@ components:
           type: integer
           example: 15
 
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          example: 1
+        last_page:
+          type: integer
+          example: 10
+        per_page:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 200
+
+    PosSession:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        store_id:
+          type: integer
+          example: 1
+        pos_device_id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 1
+        session_number:
+          type: string
+          description: Zero-padded 6-digit session number
+          example: "000001"
+        status:
+          type: string
+          enum: [open, closed, abandoned]
+          example: open
+        opening_balance:
+          type: integer
+          description: Opening cash balance in øre
+          example: 0
+        expected_cash:
+          type: integer
+          nullable: true
+          description: Expected cash amount in øre
+        actual_cash:
+          type: integer
+          nullable: true
+          description: Actual cash count in øre
+        cash_difference:
+          type: integer
+          nullable: true
+          description: Cash difference in øre
+        opening_notes:
+          type: string
+          nullable: true
+        closing_notes:
+          type: string
+          nullable: true
+        opening_data:
+          type: object
+          nullable: true
+          additionalProperties: true
+        closing_data:
+          type: object
+          nullable: true
+          additionalProperties: true
+        opened_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+        pos_device:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            device_name:
+              type: string
+        user:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        charges_count:
+          type: integer
+          nullable: true
+        total_sales:
+          type: integer
+          nullable: true
+          description: Total sales in øre
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PosEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        store_id:
+          type: integer
+          example: 1
+        pos_device_id:
+          type: integer
+          nullable: true
+        pos_device:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            device_name:
+              type: string
+        pos_session_id:
+          type: integer
+          nullable: true
+        pos_session:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            session_number:
+              type: string
+        user_id:
+          type: integer
+          nullable: true
+        user:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        event_code:
+          type: string
+          description: SAF-T event code (PredefinedBasicID-13)
+          example: "13012"
+        event_type:
+          type: string
+          enum: [application, user, drawer, report, transaction, payment, session, other]
+          example: transaction
+        description:
+          type: string
+          nullable: true
+        event_description:
+          type: string
+          nullable: true
+          description: Human-readable event description
+        related_charge_id:
+          type: integer
+          nullable: true
+        event_data:
+          type: object
+          nullable: true
+          additionalProperties: true
+        occurred_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    XReport:
+      type: object
+      properties:
+        session_id:
+          type: integer
+        session_number:
+          type: string
+        opened_at:
+          type: string
+          format: date-time
+        report_generated_at:
+          type: string
+          format: date-time
+        store:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        device:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        cashier:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        opening_balance:
+          type: integer
+        transactions_count:
+          type: integer
+        total_amount:
+          type: integer
+          description: Total amount in øre
+        vat_base:
+          type: integer
+          description: VAT base amount in øre
+        vat_amount:
+          type: integer
+          description: VAT amount in øre
+        vat_rate:
+          type: number
+          description: VAT rate percentage
+        cash_amount:
+          type: integer
+        card_amount:
+          type: integer
+        mobile_amount:
+          type: integer
+        other_amount:
+          type: integer
+        total_tips:
+          type: integer
+        cash_drawer_opens:
+          type: integer
+        nullinnslag_count:
+          type: integer
+
+    ZReport:
+      type: object
+      properties:
+        session_id:
+          type: integer
+        session_number:
+          type: string
+        opened_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+        report_generated_at:
+          type: string
+          format: date-time
+        store:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        device:
+          type: object
+          nullable: true
+        cashier:
+          type: object
+          nullable: true
+        opening_balance:
+          type: integer
+        expected_cash:
+          type: integer
+          nullable: true
+        actual_cash:
+          type: integer
+          nullable: true
+        cash_difference:
+          type: integer
+          nullable: true
+        transactions_count:
+          type: integer
+        total_amount:
+          type: integer
+        vat_base:
+          type: integer
+        vat_amount:
+          type: integer
+        vat_rate:
+          type: number
+        cash_amount:
+          type: integer
+        card_amount:
+          type: integer
+        mobile_amount:
+          type: integer
+        other_amount:
+          type: integer
+        total_tips:
+          type: integer
+        cash_drawer_opens:
+          type: integer
+        nullinnslag_count:
+          type: integer
+
+    PosSessionClosing:
+      type: object
+      properties:
+        id:
+          type: integer
+        store_id:
+          type: integer
+        closing_date:
+          type: string
+          format: date
+        notes:
+          type: string
+          nullable: true
+        sessions_count:
+          type: integer
+        total_sales:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    Receipt:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        store_id:
+          type: integer
+          example: 1
+        pos_session_id:
+          type: integer
+          nullable: true
+        charge_id:
+          type: integer
+          nullable: true
+        user_id:
+          type: integer
+          nullable: true
+        receipt_number:
+          type: string
+          example: "SAL-000001"
+        receipt_type:
+          type: string
+          enum: [sales, return, copy, steb, provisional, training, delivery, correction]
+          example: sales
+        receipt_data:
+          type: object
+          description: Receipt data (store info, items, totals, etc.)
+          additionalProperties: true
+        printed:
+          type: boolean
+          example: false
+        printed_at:
+          type: string
+          format: date-time
+          nullable: true
+        reprint_count:
+          type: integer
+          example: 0
+        pos_session:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            session_number:
+              type: string
+        charge:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            stripe_charge_id:
+              type: string
+            amount:
+              type: integer
+        user:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        stripe_product_id:
+          type: string
+          nullable: true
+          example: prod_123
+        name:
+          type: string
+          example: Coffee
+        description:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [service, good]
+          example: good
+        active:
+          type: boolean
+          example: true
+        shippable:
+          type: boolean
+          example: false
+        url:
+          type: string
+          nullable: true
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: Array of image URLs (signed URLs for security)
+        product_price:
+          type: object
+          nullable: true
+          description: Default/active price
+          properties:
+            id:
+              type: string
+            amount:
+              type: integer
+              description: Price in øre
+            amount_formatted:
+              type: string
+            currency:
+              type: string
+            type:
+              type: string
+            is_default:
+              type: boolean
+        prices:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              amount:
+                type: integer
+              amount_formatted:
+                type: string
+              currency:
+                type: string
+              type:
+                type: string
+              is_default:
+                type: boolean
+        variants:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              stripe_product_id:
+                type: string
+                nullable: true
+              stripe_price_id:
+                type: string
+                nullable: true
+              sku:
+                type: string
+                nullable: true
+              barcode:
+                type: string
+                nullable: true
+              variant_name:
+                type: string
+              variant_options:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    value:
+                      type: string
+              price_amount:
+                type: integer
+                description: Price in øre
+              price_amount_formatted:
+                type: string
+              compare_at_price_amount:
+                type: integer
+                nullable: true
+              compare_at_price_amount_formatted:
+                type: string
+                nullable: true
+              currency:
+                type: string
+              variant_inventory:
+                type: object
+                properties:
+                  quantity:
+                    type: integer
+                    nullable: true
+                  in_stock:
+                    type: boolean
+                  policy:
+                    type: string
+                    nullable: true
+                  management:
+                    type: string
+                    nullable: true
+                  tracked:
+                    type: boolean
+        variants_count:
+          type: integer
+        product_inventory:
+          type: object
+          properties:
+            tracked:
+              type: boolean
+            total_quantity:
+              type: integer
+              nullable: true
+            in_stock_variants:
+              type: integer
+            out_of_stock_variants:
+              type: integer
+            all_in_stock:
+              type: boolean
+              nullable: true
+        tax_code:
+          type: string
+          nullable: true
+        unit_label:
+          type: string
+          nullable: true
+        statement_descriptor:
+          type: string
+          nullable: true
+        package_dimensions:
+          type: object
+          nullable: true
+        product_meta:
+          type: object
+          nullable: true
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
     ErrorResponse:
       type: object
       properties:
@@ -1541,6 +3799,25 @@ components:
           example:
             email:
               - The email field is required.
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: The given data was invalid.
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            email:
+              - The email field is required.
+              - The email must be a valid email address.
+            password:
+              - The password field is required.
 
   responses:
     UnauthorizedError:

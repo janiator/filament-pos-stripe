@@ -42,6 +42,35 @@ class AuthController extends Controller
             $token = $user->createToken('mobile-app')->plainTextToken;
             $currentStore = $user->currentStore();
 
+            // Log employee login event (13003) if store exists
+            if ($currentStore) {
+                // Get current session if exists (from request or find active session)
+                $posDeviceId = $request->input('pos_device_id');
+                $currentSession = null;
+                
+                if ($posDeviceId) {
+                    $currentSession = \App\Models\PosSession::where('store_id', $currentStore->id)
+                        ->where('pos_device_id', $posDeviceId)
+                        ->where('status', 'open')
+                        ->first();
+                }
+
+                \App\Models\PosEvent::create([
+                    'store_id' => $currentStore->id,
+                    'pos_device_id' => $posDeviceId,
+                    'pos_session_id' => $currentSession?->id,
+                    'user_id' => $user->id,
+                    'event_code' => \App\Models\PosEvent::EVENT_EMPLOYEE_LOGIN,
+                    'event_type' => 'user',
+                    'description' => "Employee {$user->name} logged in",
+                    'event_data' => [
+                        'user_email' => $user->email,
+                        'device_id' => $posDeviceId,
+                    ],
+                    'occurred_at' => now(),
+                ]);
+            }
+
             return response()->json([
                 'user' => [
                     'id' => $user->id,
@@ -108,8 +137,40 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $currentStore = $user->currentStore();
+
+        // Log employee logout event (13004) if store exists
+        if ($currentStore) {
+            // Get current session if exists (from request or find active session)
+            $posDeviceId = $request->input('pos_device_id');
+            $currentSession = null;
+            
+            if ($posDeviceId) {
+                $currentSession = \App\Models\PosSession::where('store_id', $currentStore->id)
+                    ->where('pos_device_id', $posDeviceId)
+                    ->where('status', 'open')
+                    ->first();
+            }
+
+            \App\Models\PosEvent::create([
+                'store_id' => $currentStore->id,
+                'pos_device_id' => $posDeviceId,
+                'pos_session_id' => $currentSession?->id,
+                'user_id' => $user->id,
+                'event_code' => \App\Models\PosEvent::EVENT_EMPLOYEE_LOGOUT,
+                'event_type' => 'user',
+                'description' => "Employee {$user->name} logged out",
+                'event_data' => [
+                    'user_email' => $user->email,
+                    'device_id' => $posDeviceId,
+                ],
+                'occurred_at' => now(),
+            ]);
+        }
+
         // Revoke the current token
-        $request->user()->currentAccessToken()->delete();
+        $user->currentAccessToken()->delete();
 
         return response()->json([
             'message' => 'Logged out successfully',

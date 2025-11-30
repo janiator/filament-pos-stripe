@@ -63,6 +63,28 @@ class ConnectedProductsTable
                         return number_format((float) $state, 2, '.', '') . ' ' . $currency;
                     }),
 
+                TextColumn::make('compare_at_price_amount')
+                    ->label('Compare at Price')
+                    ->badge()
+                    ->color('gray')
+                    ->formatStateUsing(function ($state, ConnectedProduct $record) {
+                        if (!$state) {
+                            return '-';
+                        }
+                        $currency = strtoupper($record->currency ?? 'NOK');
+                        return number_format($state / 100, 2, '.', '') . ' ' . $currency;
+                    })
+                    ->toggleable(),
+
+                TextColumn::make('discount_percentage')
+                    ->label('Discount')
+                    ->badge()
+                    ->color('danger')
+                    ->formatStateUsing(function ($state) {
+                        return $state ? $state . '%' : '-';
+                    })
+                    ->toggleable(),
+
                 TextColumn::make('variants_count')
                     ->label('Variants')
                     ->counts('variants')
