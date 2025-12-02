@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PosSessions;
 
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\PosSessions\Pages\CreatePosSession;
 use App\Filament\Resources\PosSessions\Pages\EditPosSession;
 use App\Filament\Resources\PosSessions\Pages\ListPosSessions;
@@ -16,7 +17,12 @@ use Filament\Tables\Table;
 
 class PosSessionResource extends Resource
 {
+    use HasTenantScopedQuery;
+
     protected static ?string $model = PosSession::class;
+
+    // Disable automatic tenant scoping - we'll handle it manually via trait
+    protected static ?string $tenantOwnershipRelationshipName = null;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

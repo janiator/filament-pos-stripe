@@ -49,8 +49,12 @@ tags:
     description: POS transaction operations (void, correction)
   - name: Receipts
     description: Receipt generation and management
+  - name: Purchases
+    description: POS purchase processing with multiple payment methods
   - name: Products
     description: Product management for POS
+  - name: Collections
+    description: Product collections/categories management
   - name: Inventory
     description: Inventory management operations
   - name: SAF-T
@@ -983,11 +987,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  session:
-                    $ref: '#/components/schemas/PosSession'
-                    nullable: true
+                $ref: '#/components/schemas/PosSessionWithCharges'
         '404':
           description: Store not found or no open session
         '401':
@@ -1023,12 +1023,22 @@ paths:
                   type: string
                   nullable: true
                   maxLength: 1000
-                  description: Opening notes
+                  description: Free-text notes for session opening (e.g., shift information, initial observations, cashier notes). Human-readable text field for cashiers/managers to document session start.
+                  example: "Morning shift - Starting with 500 kr in drawer"
                 opening_data:
                   type: object
                   nullable: true
-                  description: Additional opening data
+                  description: Additional opening metadata (device info, app version, location, etc.). Flexible object for storing any additional session opening data.
                   additionalProperties: true
+                  example:
+                    app_version: "1.2.3"
+                    device_battery_level: 85
+                    device_storage_available: 1024000000
+                    location:
+                      latitude: 59.9139
+                      longitude: 10.7522
+                    network_type: "wifi"
+                    timestamp: "2025-02-12T16:01:37.000Z"
       responses:
         '201':
           description: Session opened successfully
@@ -1066,7 +1076,7 @@ paths:
       tags:
         - POS Sessions
       summary: Get POS session
-      description: Get a specific POS session with all details
+      description: Get a specific POS session with all details including charges
       operationId: getPosSession
       parameters:
         - name: id
@@ -1083,7 +1093,7 @@ paths:
                 type: object
                 properties:
                   session:
-                    $ref: '#/components/schemas/PosSession'
+                    $ref: '#/components/schemas/PosSessionWithCharges'
         '404':
           description: Session not found
         '401':
@@ -1117,7 +1127,8 @@ paths:
                   type: string
                   nullable: true
                   maxLength: 1000
-                  description: Closing notes
+                  description: Free-text notes for session closing (e.g., cash discrepancies, end-of-shift observations, issues encountered). Human-readable text field for cashiers/managers to document session end.
+                  example: "End of shift - Cash difference: 25.00 NOK (over)"
                 closing_data:
                   type: object
                   nullable: true
@@ -1207,7 +1218,8 @@ paths:
                   type: string
                   nullable: true
                   maxLength: 1000
-                  description: Closing notes
+                  description: Free-text notes for session closing (e.g., cash discrepancies, end-of-shift observations, issues encountered). Human-readable text field for cashiers/managers to document session end.
+                  example: "End of shift - Cash difference: 25.00 NOK (over)"
       responses:
         '200':
           description: Z-report generated and session closed
@@ -1837,6 +1849,336 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /purchases/payment-methods:
+    get:
+      tags:
+        - Purchases
+      summary: Get available payment methods
+      description: Get list of enabled payment methods for the current store
+      operationId: getPaymentMethods
+      responses:
+        '200':
+          description: List of payment methods
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PaymentMethod'
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /purchases:
+    post:
+      tags:
+        - Purchases
+      summary: Complete purchase (single or split payment)
+      description: |
+        Process a complete POS purchase with single or split payment methods.
+        
+        **Single Payment:** Include `payment_method_code` in request body.
+        **Split Payment:** Include `payments` array in request body.
+        
+        This endpoint:
+        1. Validates the cart and payment method(s)
+        2. Processes payment(s) based on method (cash, Stripe, etc.)
+        3. Creates ConnectedCharge record(s)
+        4. Generates a receipt (single receipt for split payments)
+        5. Logs POS events for kassasystemforskriften compliance
+        6. Updates POS session totals
+        7. Opens cash drawer for cash payments
+        8. Automatically prints receipt (if configured)
+        
+        For Stripe payments, the payment intent must already be created and confirmed.
+        Include the payment_intent_id in the metadata.
+      operationId: createPurchase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  description: Single payment request
+                  required:
+                    - pos_session_id
+                    - payment_method_code
+                    - cart
+                  properties:
+                    pos_session_id:
+                      type: integer
+                      description: ID of the active POS session
+                      example: 1
+                    payment_method_code:
+                      type: string
+                      description: Code of the payment method (e.g., "cash", "card", "card_present")
+                      example: cash
+                - type: object
+                  description: Split payment request
+                  required:
+                    - pos_session_id
+                    - payments
+                    - cart
+                  properties:
+                    pos_session_id:
+                      type: integer
+                      description: ID of the active POS session
+                      example: 1
+                    payments:
+                      type: array
+                      description: Array of payment methods and amounts
+                      minItems: 1
+                      items:
+                        type: object
+                        required:
+                          - payment_method_code
+                          - amount
+                        properties:
+                          payment_method_code:
+                            type: string
+                            example: cash
+                          amount:
+                            type: integer
+                            description: Payment amount in minor units (øre)
+                            minimum: 1
+                            example: 5000
+                          metadata:
+                            type: object
+                            description: Payment-specific metadata (e.g., payment_intent_id for Stripe)
+                            example:
+                              payment_intent_id: pi_xxx
+              properties:
+                cart:
+                  type: object
+                  required:
+                    - items
+                    - total
+                  properties:
+                    items:
+                      type: array
+                      minItems: 1
+                      items:
+                        type: object
+                        required:
+                          - product_id
+                          - quantity
+                          - unit_price
+                        properties:
+                          product_id:
+                            type: integer
+                            example: 123
+                          variant_id:
+                            type: integer
+                            nullable: true
+                            example: 456
+                          quantity:
+                            type: integer
+                            minimum: 1
+                            example: 2
+                          unit_price:
+                            type: integer
+                            description: Price per unit in minor units (øre)
+                            minimum: 0
+                            example: 5000
+                          discount_amount:
+                            type: integer
+                            description: Discount amount per unit in minor units
+                            default: 0
+                            example: 500
+                          tax_rate:
+                            type: number
+                            description: Tax rate (e.g., 0.25 for 25%)
+                            default: 0
+                            example: 0.25
+                          tax_inclusive:
+                            type: boolean
+                            description: Whether price includes tax
+                            default: true
+                            example: true
+                    discounts:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                            enum: [prosent, verdi, ingen]
+                            example: prosent
+                          amount:
+                            type: integer
+                            description: Discount amount in minor units
+                            example: 1000
+                          percentage:
+                            type: number
+                            nullable: true
+                            description: Discount percentage (0-100)
+                            example: 10
+                          reason:
+                            type: string
+                            nullable: true
+                            example: Kundeklubb
+                    tip_amount:
+                      type: integer
+                      description: Tip amount in minor units
+                      default: 0
+                      example: 0
+                    customer_id:
+                      type: string
+                      nullable: true
+                      description: Customer ID (Stripe customer ID)
+                      example: cus_xxx
+                    customer_name:
+                      type: string
+                      nullable: true
+                      example: John Doe
+                    subtotal:
+                      type: integer
+                      description: Subtotal in minor units (before discounts and tax)
+                      example: 10000
+                    total_discounts:
+                      type: integer
+                      description: Total discount amount in minor units
+                      example: 1000
+                    total_tax:
+                      type: integer
+                      description: Total tax amount in minor units
+                      example: 2000
+                    total:
+                      type: integer
+                      description: Total amount in minor units
+                      minimum: 1
+                      example: 11000
+                    currency:
+                      type: string
+                      description: Currency code (ISO 3-letter)
+                      default: nok
+                      example: nok
+                metadata:
+                  type: object
+                  description: Additional metadata
+                  properties:
+                    payment_intent_id:
+                      type: string
+                      description: Stripe payment intent ID (required for Stripe payments)
+                      example: pi_xxx
+                    cashier_name:
+                      type: string
+                      example: John Doe
+                    device_id:
+                      type: integer
+                      example: 1
+                    description:
+                      type: string
+                      example: Purchase description
+      responses:
+        '201':
+          description: Purchase completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      charge:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 123
+                          stripe_charge_id:
+                            type: string
+                            nullable: true
+                            example: ch_xxx
+                          amount:
+                            type: integer
+                            example: 11000
+                          currency:
+                            type: string
+                            example: nok
+                          status:
+                            type: string
+                            example: succeeded
+                          payment_method:
+                            type: string
+                            example: cash
+                          paid_at:
+                            type: string
+                            format: date-time
+                            example: "2025-12-01T10:30:00Z"
+                      receipt:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 456
+                          receipt_number:
+                            type: string
+                            example: "1-S-000001"
+                          receipt_type:
+                            type: string
+                            example: sales
+                      pos_event:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 789
+                          event_code:
+                            type: string
+                            example: "13012"
+                          transaction_code:
+                            type: string
+                            example: "11001"
+        '422':
+          description: Validation error or business rule violation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Payment method is not enabled
+                  errors:
+                    type: object
+        '403':
+          description: Unauthorized access to POS session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: POS session or payment method not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /products:
     get:
       tags:
@@ -1857,6 +2199,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: collection_id
+          in: query
+          description: Filter by collection ID
+          required: false
+          schema:
+            type: integer
         - name: per_page
           in: query
           description: Number of items per page (max 100)
@@ -2004,6 +2352,88 @@ paths:
                               type: boolean
         '404':
           description: Product not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /collections:
+    get:
+      tags:
+        - Collections
+      summary: List collections
+      description: Get paginated list of collections
+      operationId: listCollections
+      parameters:
+        - name: search
+          in: query
+          description: Search term (name or description)
+          required: false
+          schema:
+            type: string
+        - name: active
+          in: query
+          description: Filter by active status (defaults to true)
+          required: false
+          schema:
+            type: boolean
+        - name: per_page
+          in: query
+          description: Number of items per page (max 100)
+          required: false
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: List of collections
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  collections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Collection'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Store not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /collections/{id}:
+    get:
+      tags:
+        - Collections
+      summary: Get collection
+      description: Get a specific collection with its products
+      operationId: getCollection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Collection information with products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  collection:
+                    allOf:
+                      - $ref: '#/components/schemas/Collection'
+                      - type: object
+                        properties:
+                          products:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Product'
+        '404':
+          description: Collection not found
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -3271,9 +3701,13 @@ components:
         opening_notes:
           type: string
           nullable: true
+          description: Free-text notes for session opening (e.g., shift information, initial observations, cashier notes)
+          maxLength: 1000
         closing_notes:
           type: string
           nullable: true
+          description: Free-text notes for session closing (e.g., cash discrepancies, end-of-shift observations, issues encountered)
+          maxLength: 1000
         opening_data:
           type: object
           nullable: true
@@ -3289,7 +3723,7 @@ components:
           type: string
           format: date-time
           nullable: true
-        pos_device:
+        session_device:
           type: object
           nullable: true
           properties:
@@ -3297,7 +3731,7 @@ components:
               type: integer
             device_name:
               type: string
-        user:
+        session_user:
           type: object
           nullable: true
           properties:
@@ -3305,19 +3739,57 @@ components:
               type: integer
             name:
               type: string
-        charges_count:
+        transaction_count:
           type: integer
-          nullable: true
-        total_sales:
+          description: Number of successful transactions
+          example: 5
+        total_amount:
           type: integer
-          nullable: true
-          description: Total sales in øre
+          description: Total amount in øre
+          example: 150000
         created_at:
           type: string
           format: date-time
         updated_at:
           type: string
           format: date-time
+
+    PosSessionWithCharges:
+      allOf:
+        - $ref: '#/components/schemas/PosSession'
+        - type: object
+          properties:
+            session_charges:
+              type: array
+              items:
+                $ref: '#/components/schemas/SessionCharge'
+
+    SessionCharge:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 101
+        stripe_charge_id:
+          type: string
+          example: "ch_1234567890abcdef"
+        amount:
+          type: integer
+          description: Amount in øre
+          example: 50000
+        currency:
+          type: string
+          example: "nok"
+        status:
+          type: string
+          example: "succeeded"
+        payment_method:
+          type: string
+          example: "card"
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
 
     PosEvent:
       type: object
@@ -3615,6 +4087,72 @@ components:
           type: string
           format: date-time
 
+    PaymentMethod:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        store_id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          description: Display name
+          example: Kontant
+        code:
+          type: string
+          description: Internal code
+          example: cash
+        provider:
+          type: string
+          enum: [stripe, cash, other]
+          example: cash
+        provider_method:
+          type: string
+          nullable: true
+          description: Provider-specific method (e.g., "card_present" for Stripe)
+          example: card_present
+        enabled:
+          type: boolean
+          example: true
+        pos_suitable:
+          type: boolean
+          description: Whether this payment method is suitable for physical POS
+          example: true
+        sort_order:
+          type: integer
+          example: 0
+        background_color:
+          type: string
+          nullable: true
+          description: Accent background color for the payment method button (hex with alpha, e.g., #4C4B39EF)
+          example: "#4C4B39EF"
+        icon_color:
+          type: string
+          nullable: true
+          description: Color for the payment method icon (hex, e.g., #272b3d)
+          example: "#272b3d"
+        saf_t_payment_code:
+          type: string
+          nullable: true
+          description: SAF-T payment code (PredefinedBasicID-12)
+          example: "12001"
+        saf_t_event_code:
+          type: string
+          nullable: true
+          description: SAF-T event code (PredefinedBasicID-13)
+          example: "13016"
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
     Product:
       type: object
       properties:
@@ -3770,10 +4308,65 @@ components:
         statement_descriptor:
           type: string
           nullable: true
+        collections:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              handle:
+                type: string
+                nullable: true
+          description: Collections this product belongs to
         package_dimensions:
           type: object
           nullable: true
         product_meta:
+          type: object
+          nullable: true
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Collection:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Summer Collection
+        description:
+          type: string
+          nullable: true
+          example: Products for summer season
+        handle:
+          type: string
+          nullable: true
+          example: summer-collection
+        image_url:
+          type: string
+          nullable: true
+          format: uri
+        active:
+          type: boolean
+          example: true
+        sort_order:
+          type: integer
+          example: 0
+        products_count:
+          type: integer
+          description: Number of products in this collection
+          example: 15
+        metadata:
           type: object
           nullable: true
           additionalProperties: true

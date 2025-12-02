@@ -17,23 +17,71 @@ class PosEventForm
         return $schema
             ->components([
                 Select::make('store_id')
-                    ->relationship('store', 'name')
+                    ->relationship('store', 'name', modifyQueryUsing: function ($query) {
+                        try {
+                            $tenant = \Filament\Facades\Filament::getTenant();
+                            if ($tenant && $tenant->slug !== 'visivo-admin') {
+                                $query->where('stores.id', $tenant->id);
+                            }
+                        } catch (\Throwable $e) {
+                            // Fallback if Filament facade not available
+                        }
+                    })
                     ->required()
+                    ->default(fn () => \Filament\Facades\Filament::getTenant()?->id)
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->visible(function () {
+                        try {
+                            $tenant = \Filament\Facades\Filament::getTenant();
+                            return $tenant && $tenant->slug === 'visivo-admin';
+                        } catch (\Throwable $e) {
+                            return false;
+                        }
+                    })
+                    ->disabled(fn ($record) => $record !== null),
 
                 Select::make('pos_device_id')
-                    ->relationship('posDevice', 'device_name')
+                    ->relationship('posDevice', 'device_name', modifyQueryUsing: function ($query) {
+                        try {
+                            $tenant = \Filament\Facades\Filament::getTenant();
+                            if ($tenant && $tenant->slug !== 'visivo-admin') {
+                                $query->where('pos_devices.store_id', $tenant->id);
+                            }
+                        } catch (\Throwable $e) {
+                            // Fallback if Filament facade not available
+                        }
+                    })
                     ->searchable()
                     ->preload(),
 
                 Select::make('pos_session_id')
-                    ->relationship('posSession', 'session_number')
+                    ->relationship('posSession', 'session_number', modifyQueryUsing: function ($query) {
+                        try {
+                            $tenant = \Filament\Facades\Filament::getTenant();
+                            if ($tenant && $tenant->slug !== 'visivo-admin') {
+                                $query->where('pos_sessions.store_id', $tenant->id);
+                            }
+                        } catch (\Throwable $e) {
+                            // Fallback if Filament facade not available
+                        }
+                    })
                     ->searchable()
                     ->preload(),
 
                 Select::make('user_id')
-                    ->relationship('user', 'name')
+                    ->relationship('user', 'name', modifyQueryUsing: function ($query) {
+                        try {
+                            $tenant = \Filament\Facades\Filament::getTenant();
+                            if ($tenant && $tenant->slug !== 'visivo-admin') {
+                                $query->whereHas('stores', function ($q) use ($tenant) {
+                                    $q->where('stores.id', $tenant->id);
+                                });
+                            }
+                        } catch (\Throwable $e) {
+                            // Fallback if Filament facade not available
+                        }
+                    })
                     ->searchable()
                     ->preload(),
 

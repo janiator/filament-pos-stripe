@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Receipts;
 
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\Receipts\Pages\CreateReceipt;
 use App\Filament\Resources\Receipts\Pages\EditReceipt;
 use App\Filament\Resources\Receipts\Pages\ListReceipts;
@@ -16,7 +17,12 @@ use Filament\Tables\Table;
 
 class ReceiptResource extends Resource
 {
+    use HasTenantScopedQuery;
+
     protected static ?string $model = Receipt::class;
+
+    // Disable automatic tenant scoping - we'll handle it manually via trait
+    protected static ?string $tenantOwnershipRelationshipName = null;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

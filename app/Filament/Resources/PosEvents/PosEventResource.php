@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PosEvents;
 
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\PosEvents\Pages\CreatePosEvent;
 use App\Filament\Resources\PosEvents\Pages\EditPosEvent;
 use App\Filament\Resources\PosEvents\Pages\ListPosEvents;
@@ -16,7 +17,12 @@ use Filament\Tables\Table;
 
 class PosEventResource extends Resource
 {
+    use HasTenantScopedQuery;
+
     protected static ?string $model = PosEvent::class;
+
+    // Disable automatic tenant scoping - we'll handle it manually via trait
+    protected static ?string $tenantOwnershipRelationshipName = null;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

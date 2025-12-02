@@ -84,13 +84,12 @@ class PosSessionsController extends BaseApiController
         if (!$session) {
             return response()->json([
                 'message' => 'No open session found',
-                'session' => null,
-            ]);
+            ], 404);
         }
 
-        return response()->json([
-            'session' => $this->formatSessionResponse($session, true),
-        ]);
+        return response()->json(
+            $this->formatSessionResponse($session, true)
+        );
     }
 
     /**
@@ -642,11 +641,11 @@ class PosSessionsController extends BaseApiController
             'cash_difference' => $session->cash_difference,
             'opening_notes' => $session->opening_notes,
             'closing_notes' => $session->closing_notes,
-            'pos_device' => $session->posDevice ? [
+            'session_device' => $session->posDevice ? [
                 'id' => $session->posDevice->id,
                 'device_name' => $session->posDevice->device_name,
             ] : null,
-            'user' => $session->user ? [
+            'session_user' => $session->user ? [
                 'id' => $session->user->id,
                 'name' => $session->user->name,
             ] : null,
@@ -655,7 +654,7 @@ class PosSessionsController extends BaseApiController
         ];
 
         if ($includeCharges) {
-            $data['charges'] = $session->charges->map(function ($charge) {
+            $data['session_charges'] = $session->charges->map(function ($charge) {
                 return [
                     'id' => $charge->id,
                     'stripe_charge_id' => $charge->stripe_charge_id,

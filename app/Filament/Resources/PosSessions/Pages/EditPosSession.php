@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\PosSessions\Pages;
 
 use App\Filament\Resources\PosSessions\PosSessionResource;
-use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditPosSession extends EditRecord
@@ -13,7 +12,7 @@ class EditPosSession extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            // POS sessions should not be deletable for audit trail compliance
         ];
     }
 }
