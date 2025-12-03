@@ -75,7 +75,7 @@ class PosTransactionsController extends BaseApiController
         // Update charge metadata to mark as voided
         $metadata = $charge->metadata ?? [];
         $metadata['voided'] = true;
-        $metadata['voided_at'] = now()->toIso8601String();
+        $metadata['voided_at'] = $this->formatDateTimeOslo(now());
         $metadata['voided_by'] = $request->user()->id;
         $metadata['void_reason'] = $validated['reason'] ?? null;
         $charge->metadata = $metadata;

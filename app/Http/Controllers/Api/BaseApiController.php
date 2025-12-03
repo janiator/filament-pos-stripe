@@ -66,4 +66,19 @@ abstract class BaseApiController extends BaseController
             abort(403, 'You do not have access to this tenant.');
         }
     }
+
+    /**
+     * Format a date/time in Oslo timezone for API responses
+     * 
+     * @param \Illuminate\Support\Carbon|\DateTime|null $dateTime
+     * @return string|null ISO 8601 formatted string in Oslo timezone
+     */
+    protected function formatDateTimeOslo($dateTime): ?string
+    {
+        if (!$dateTime) {
+            return null;
+        }
+
+        return $dateTime->setTimezone('Europe/Oslo')->toIso8601String();
+    }
 }

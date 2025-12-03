@@ -239,6 +239,13 @@ class PosSessionsController extends BaseApiController
             ->with(['charges', 'posDevice', 'user', 'events'])
             ->firstOrFail();
 
+        // X-reports should only be generated for open sessions per kassasystemforskriften § 2-8-2
+        if ($session->status !== 'open') {
+            return response()->json([
+                'message' => 'X-report can only be generated for open sessions. Use Z-report for closed sessions.',
+            ], 400);
+        }
+
         // Log X-report event (13008)
         \App\Models\PosEvent::create([
             'store_id' => $store->id,
@@ -274,8 +281,8 @@ class PosSessionsController extends BaseApiController
         $report = [
             'session_id' => $session->id,
             'session_number' => $session->session_number,
-            'opened_at' => $session->opened_at->toISOString(),
-            'report_generated_at' => now()->toISOString(),
+            'opened_at' => $this->formatDateTimeOslo($session->opened_at),
+            'report_generated_at' => $this->formatDateTimeOslo(now()),
             'store' => [
                 'id' => $session->store->id,
                 'name' => $session->store->name,
@@ -418,8 +425,8 @@ class PosSessionsController extends BaseApiController
         $report = [
             'session_id' => $session->id,
             'session_number' => $session->session_number,
-            'opened_at' => $session->opened_at->toISOString(),
-            'closed_at' => $session->closed_at->toISOString(),
+            'opened_at' => $this->formatDateTimeOslo($session->opened_at),
+            'closed_at' => $this->formatDateTimeOslo($session->closed_at),
             'store' => [
                 'id' => $session->store->id,
                 'name' => $session->store->name,
@@ -478,8 +485,8 @@ class PosSessionsController extends BaseApiController
                     'transaction_code' => $charge->transaction_code,
                     'tip_amount' => $charge->tip_amount,
                     'description' => $charge->description,
-                    'paid_at' => $charge->paid_at?->toISOString(),
-                    'created_at' => $charge->created_at->toISOString(),
+                    'paid_at' => $this->formatDateTimeOslo($charge->paid_at),
+                    'created_at' => $this->formatDateTimeOslo($charge->created_at),
                 ];
             }),
         ];
@@ -633,8 +640,8 @@ class PosSessionsController extends BaseApiController
             'id' => $session->id,
             'session_number' => $session->session_number,
             'status' => $session->status,
-            'opened_at' => $session->opened_at->toISOString(),
-            'closed_at' => $session->closed_at?->toISOString(),
+            'opened_at' => $this->formatDateTimeOslo($session->opened_at),
+            'closed_at' => $this->formatDateTimeOslo($session->closed_at),
             'opening_balance' => $session->opening_balance,
             'expected_cash' => $session->expected_cash,
             'actual_cash' => $session->actual_cash,
@@ -662,7 +669,7 @@ class PosSessionsController extends BaseApiController
                     'currency' => $charge->currency,
                     'status' => $charge->status,
                     'payment_method' => $charge->payment_method,
-                    'paid_at' => $charge->paid_at?->toISOString(),
+                    'paid_at' => $this->formatDateTimeOslo($charge->paid_at),
                 ];
             });
         }
@@ -678,7 +685,7 @@ class PosSessionsController extends BaseApiController
         return [
             'id' => $closing->id,
             'closing_date' => $closing->closing_date->format('Y-m-d'),
-            'closed_at' => $closing->closed_at->toISOString(),
+            'closed_at' => $this->formatDateTimeOslo($closing->closed_at),
             'total_sessions' => $closing->total_sessions,
             'total_transactions' => $closing->total_transactions,
             'total_amount' => $closing->total_amount,
@@ -697,7 +704,7 @@ class PosSessionsController extends BaseApiController
                 'id' => $closing->verifiedByUser->id,
                 'name' => $closing->verifiedByUser->name,
             ] : null,
-            'verified_at' => $closing->verified_at?->toISOString(),
+            'verified_at' => $this->formatDateTimeOslo($closing->verified_at),
         ];
     }
 }

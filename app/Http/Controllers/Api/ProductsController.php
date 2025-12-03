@@ -44,6 +44,14 @@ class ProductsController extends BaseApiController
                 $query->where('type', $request->get('type'));
             }
 
+            // Filter by collection if provided
+            if ($request->has('collection_id')) {
+                $collectionId = $request->get('collection_id');
+                $query->whereHas('collections', function ($q) use ($collectionId) {
+                    $q->where('collections.id', $collectionId);
+                });
+            }
+
             // Get paginated results
             $perPage = min($request->get('per_page', 50), 100); // Max 100 per page
             $products = $query->orderBy('name')
@@ -87,8 +95,8 @@ class ProductsController extends BaseApiController
                         'statement_descriptor' => $product->statement_descriptor ?? null,
                         'package_dimensions' => null,
                         'product_meta' => $product->product_meta ?? null,
-                        'created_at' => $product->created_at?->toISOString(),
-                        'updated_at' => $product->updated_at?->toISOString(),
+                        'created_at' => $this->formatDateTimeOslo($product->created_at),
+                        'updated_at' => $this->formatDateTimeOslo($product->updated_at),
                     ];
                 }
             });
@@ -140,7 +148,7 @@ class ProductsController extends BaseApiController
     /**
      * Transform product for POS display
      */
-    protected function transformProductForPos(ConnectedProduct $product): array
+    public function transformProductForPos(ConnectedProduct $product): array
     {
         // Get default/active price
         $defaultPrice = null;
@@ -204,6 +212,15 @@ class ProductsController extends BaseApiController
             // Fallback to stored image URLs (from Stripe) - these are external URLs, keep as-is
             $images = $product->images;
         }
+
+        // Get collections
+        $collections = $product->collections()->get()->map(function ($collection) {
+            return [
+                'id' => $collection->id,
+                'name' => $collection->name,
+                'handle' => $collection->handle,
+            ];
+        })->values();
 
         // Get variants with inventory
         $variants = ProductVariant::where('connected_product_id', $product->id)
@@ -332,8 +349,9 @@ class ProductsController extends BaseApiController
             'statement_descriptor' => $product->statement_descriptor ?? null,
             'package_dimensions' => $packageDimensions,
             'product_meta' => $product->product_meta ?? null,
-            'created_at' => $product->created_at?->toISOString(),
-            'updated_at' => $product->updated_at?->toISOString(),
+            'collections' => $collections,
+            'created_at' => $this->formatDateTimeOslo($product->created_at),
+            'updated_at' => $this->formatDateTimeOslo($product->updated_at),
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PosSessions\Tables;
 
+use App\Filament\Resources\PosSessions\PosSessionResource;
 use App\Models\PosSession;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -28,7 +29,6 @@ class PosSessionsTable
                     ->color(fn (string $state): string => match ($state) {
                         'open' => 'success',
                         'closed' => 'gray',
-                        'abandoned' => 'warning',
                         default => 'gray',
                     })
                     ->sortable(),
@@ -68,13 +68,14 @@ class PosSessionsTable
                     ->options([
                         'open' => 'Open',
                         'closed' => 'Closed',
-                        'abandoned' => 'Abandoned',
                     ]),
             ])
             ->defaultSort('opened_at', 'desc')
+            ->recordUrl(fn ($record) => PosSessionResource::getUrl('view', ['record' => $record]))
             ->recordActions([
                 ViewAction::make(),
-                EditAction::make(),
+                EditAction::make()
+                    ->visible(fn (PosSession $record): bool => $record->status !== 'closed'),
                 Action::make('close')
                     ->label('Close Session')
                     ->icon('heroicon-o-lock-closed')

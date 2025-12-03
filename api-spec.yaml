@@ -13,6 +13,7 @@ info:
     - POS event logging (audit trail)
     - POS transaction operations (void, correction)
     - Receipt generation and management
+    - Receipt printer configuration and management
     - Product and inventory management
     - SAF-T file generation (Norwegian tax compliance)
     - Terminal operations (connection tokens and payment intents)
@@ -49,6 +50,8 @@ tags:
     description: POS transaction operations (void, correction)
   - name: Receipts
     description: Receipt generation and management
+  - name: Receipt Printers
+    description: Receipt printer configuration and management
   - name: Purchases
     description: POS purchase processing with multiple payment methods
   - name: Products
@@ -1849,6 +1852,458 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /receipt-printers:
+    get:
+      tags:
+        - Receipt Printers
+      summary: List receipt printers
+      description: Get all receipt printers for the current store
+      operationId: listReceiptPrinters
+      responses:
+        '200':
+          description: List of receipt printers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  printers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReceiptPrinter'
+        '404':
+          description: Store not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    post:
+      tags:
+        - Receipt Printers
+      summary: Create receipt printer
+      description: Create a new receipt printer for the current store
+      operationId: createReceiptPrinter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - printer_type
+                - connection_type
+              properties:
+                name:
+                  type: string
+                  example: Main Counter Printer
+                printer_type:
+                  type: string
+                  enum: [epson, star, generic]
+                  example: epson
+                printer_model:
+                  type: string
+                  nullable: true
+                  example: TM-m30III
+                paper_width:
+                  type: string
+                  enum: [80, 58]
+                  default: '80'
+                  example: '80'
+                connection_type:
+                  type: string
+                  enum: [network, usb, bluetooth]
+                  example: network
+                ip_address:
+                  type: string
+                  format: ipv4
+                  nullable: true
+                  example: 192.168.1.100
+                port:
+                  type: integer
+                  minimum: 1
+                  maximum: 65535
+                  default: 9100
+                  example: 9100
+                device_id:
+                  type: string
+                  nullable: true
+                  default: local_printer
+                  example: local_printer
+                use_https:
+                  type: boolean
+                  default: false
+                  example: false
+                timeout:
+                  type: integer
+                  minimum: 1000
+                  maximum: 300000
+                  default: 60000
+                  example: 60000
+                is_active:
+                  type: boolean
+                  default: true
+                  example: true
+                monitor_status:
+                  type: boolean
+                  default: false
+                  example: false
+                drawer_open_level:
+                  type: string
+                  enum: [low, high]
+                  default: low
+                  example: low
+                use_job_id:
+                  type: boolean
+                  default: false
+                  example: false
+                pos_device_id:
+                  type: integer
+                  nullable: true
+                  description: Optional POS device to associate with this printer
+                printer_metadata:
+                  type: object
+                  nullable: true
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Receipt printer created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Receipt printer created successfully
+                  printer:
+                    $ref: '#/components/schemas/ReceiptPrinter'
+        '404':
+          description: Store not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipt-printers/{id}:
+    get:
+      tags:
+        - Receipt Printers
+      summary: Get receipt printer
+      description: Get a specific receipt printer by ID
+      operationId: getReceiptPrinter
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Receipt printer information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  printer:
+                    $ref: '#/components/schemas/ReceiptPrinter'
+        '404':
+          description: Receipt printer not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    put:
+      tags:
+        - Receipt Printers
+      summary: Update receipt printer
+      description: Update a receipt printer
+      operationId: updateReceiptPrinter
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Main Counter Printer
+                printer_type:
+                  type: string
+                  enum: [epson, star, generic]
+                  example: epson
+                printer_model:
+                  type: string
+                  nullable: true
+                  example: TM-m30III
+                paper_width:
+                  type: string
+                  enum: [80, 58]
+                  example: '80'
+                connection_type:
+                  type: string
+                  enum: [network, usb, bluetooth]
+                  example: network
+                ip_address:
+                  type: string
+                  format: ipv4
+                  nullable: true
+                  example: 192.168.1.100
+                port:
+                  type: integer
+                  minimum: 1
+                  maximum: 65535
+                  example: 9100
+                device_id:
+                  type: string
+                  nullable: true
+                  example: local_printer
+                use_https:
+                  type: boolean
+                  example: false
+                timeout:
+                  type: integer
+                  minimum: 1000
+                  maximum: 300000
+                  example: 60000
+                is_active:
+                  type: boolean
+                  example: true
+                monitor_status:
+                  type: boolean
+                  example: false
+                drawer_open_level:
+                  type: string
+                  enum: [low, high]
+                  example: low
+                use_job_id:
+                  type: boolean
+                  example: false
+                pos_device_id:
+                  type: integer
+                  nullable: true
+                printer_metadata:
+                  type: object
+                  nullable: true
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Receipt printer updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Receipt printer updated successfully
+                  printer:
+                    $ref: '#/components/schemas/ReceiptPrinter'
+        '404':
+          description: Receipt printer not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    patch:
+      tags:
+        - Receipt Printers
+      summary: Update receipt printer (partial)
+      description: Partially update a receipt printer
+      operationId: patchReceiptPrinter
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                printer_type:
+                  type: string
+                  enum: [epson, star, generic]
+                printer_model:
+                  type: string
+                  nullable: true
+                paper_width:
+                  type: string
+                  enum: [80, 58]
+                connection_type:
+                  type: string
+                  enum: [network, usb, bluetooth]
+                ip_address:
+                  type: string
+                  format: ipv4
+                  nullable: true
+                port:
+                  type: integer
+                  minimum: 1
+                  maximum: 65535
+                device_id:
+                  type: string
+                  nullable: true
+                use_https:
+                  type: boolean
+                timeout:
+                  type: integer
+                  minimum: 1000
+                  maximum: 300000
+                is_active:
+                  type: boolean
+                monitor_status:
+                  type: boolean
+                drawer_open_level:
+                  type: string
+                  enum: [low, high]
+                use_job_id:
+                  type: boolean
+                pos_device_id:
+                  type: integer
+                  nullable: true
+                printer_metadata:
+                  type: object
+                  nullable: true
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Receipt printer updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Receipt printer updated successfully
+                  printer:
+                    $ref: '#/components/schemas/ReceiptPrinter'
+        '404':
+          description: Receipt printer not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    delete:
+      tags:
+        - Receipt Printers
+      summary: Delete receipt printer
+      description: Delete a receipt printer
+      operationId: deleteReceiptPrinter
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Receipt printer deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Receipt printer deleted successfully
+        '404':
+          description: Receipt printer not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipt-printers/{id}/test-connection:
+    post:
+      tags:
+        - Receipt Printers
+      summary: Test printer connection
+      description: Test network connection to a receipt printer
+      operationId: testReceiptPrinterConnection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Connection test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connected:
+                    type: boolean
+                    example: true
+                  printer_id:
+                    type: integer
+                    example: 1
+                  ip_address:
+                    type: string
+                    example: 192.168.1.100
+                  port:
+                    type: integer
+                    example: 9100
+                  error:
+                    type: string
+                    nullable: true
+                    example: null
+        '400':
+          description: Printer is not active or not a network printer
+        '404':
+          description: Receipt printer not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipt-printers/{id}/test-print:
+    post:
+      tags:
+        - Receipt Printers
+      summary: Send test print
+      description: Send a test print to a receipt printer
+      operationId: testReceiptPrinterPrint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Test print result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Test print sent successfully
+                  error:
+                    type: string
+                    nullable: true
+                    example: null
+        '400':
+          description: Printer is not active or not a network printer
+        '404':
+          description: Receipt printer not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /purchases/payment-methods:
     get:
       tags:
@@ -3564,6 +4019,55 @@ components:
                 nullable: true
               readers_count:
                 type: integer
+        receipt_printers_count:
+          type: integer
+          example: 1
+          description: Number of receipt printers attached to this device
+        default_printer_id:
+          type: integer
+          nullable: true
+          example: 1
+          description: ID of the default receipt printer for this POS device (set via Filament admin)
+        receipt_printers:
+          type: array
+          description: List of receipt printers attached to this POS device
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+              name:
+                type: string
+                example: Main Counter Printer
+              printer_type:
+                type: string
+                enum: [epson, star, generic]
+                example: epson
+              printer_model:
+                type: string
+                nullable: true
+                example: TM-m30III
+              connection_type:
+                type: string
+                enum: [network, usb, bluetooth]
+                example: network
+              ip_address:
+                type: string
+                format: ipv4
+                nullable: true
+                example: 192.168.1.100
+              port:
+                type: integer
+                example: 9100
+              is_active:
+                type: boolean
+                example: true
+              epos_url:
+                type: string
+                nullable: true
+                description: ePOS-Print service URL (for network printers)
+                example: http://192.168.1.100/cgi-bin/epos/service.cgi?devid=local_printer&timeout=60000
         created_at:
           type: string
           format: date-time
@@ -4080,6 +4584,89 @@ components:
               type: integer
             name:
               type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ReceiptPrinter:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Main Counter Printer
+        printer_type:
+          type: string
+          enum: [epson, star, generic]
+          example: epson
+        printer_model:
+          type: string
+          nullable: true
+          example: TM-m30III
+        paper_width:
+          type: string
+          enum: [80, 58]
+          example: '80'
+        connection_type:
+          type: string
+          enum: [network, usb, bluetooth]
+          example: network
+        ip_address:
+          type: string
+          format: ipv4
+          nullable: true
+          example: 192.168.1.100
+        port:
+          type: integer
+          example: 9100
+        device_id:
+          type: string
+          example: local_printer
+        use_https:
+          type: boolean
+          example: false
+        timeout:
+          type: integer
+          example: 60000
+        is_active:
+          type: boolean
+          example: true
+        monitor_status:
+          type: boolean
+          example: false
+        drawer_open_level:
+          type: string
+          enum: [low, high]
+          example: low
+        use_job_id:
+          type: boolean
+          example: false
+        printer_metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        pos_device:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            device_name:
+              type: string
+        epos_url:
+          type: string
+          nullable: true
+          description: ePOS-Print service URL (for network printers)
+          example: http://192.168.1.100/cgi-bin/epos/service.cgi?devid=local_printer&timeout=60000
         created_at:
           type: string
           format: date-time

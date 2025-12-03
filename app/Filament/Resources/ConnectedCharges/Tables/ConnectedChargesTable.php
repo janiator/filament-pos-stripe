@@ -124,9 +124,8 @@ class ConnectedChargesTable
             ])
             ->defaultSort('created_at', 'desc')
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                // Bulk delete removed for kassasystemforskriften compliance (§ 2-6)
+                // Transactions cannot be deleted per Norwegian cash register regulations
             ]);
     }
 }

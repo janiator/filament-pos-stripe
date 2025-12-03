@@ -48,7 +48,7 @@ class StoreTerminalPaymentIntentController extends Controller
                 'amount'               => $validated['amount'],
                 'currency'             => $currency,
                 'payment_method_types' => ['card_present'],
-                'capture_method'       => 'manual', // Terminal flow: create → collect → capture
+                'capture_method'       => 'automatic', // Terminal flow: create → collect → capture
             ];
 
             if (! empty($validated['description'])) {

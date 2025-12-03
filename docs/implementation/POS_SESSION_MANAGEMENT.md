@@ -11,7 +11,7 @@ Represents a cash register session (kassesesjon).
 
 **Key Fields:**
 - `session_number`: Sequential session number per store (e.g., "000001")
-- `status`: `open`, `closed`, or `abandoned`
+- `status`: `open` or `closed`
 - `opened_at`: When the session was opened
 - `closed_at`: When the session was closed
 - `opening_balance`: Starting cash balance in cents
@@ -58,7 +58,7 @@ Now includes `pos_session_id` to link transactions to sessions.
 List all sessions for the current store.
 
 **Query Parameters:**
-- `status`: Filter by status (`open`, `closed`, `abandoned`)
+- `status`: Filter by status (`open`, `closed`)
 - `date`: Filter by opening date
 - `pos_device_id`: Filter by device
 - `per_page`: Pagination (default: 20)
@@ -274,5 +274,4 @@ final response = await api.call(
 2. **Session Verification**: Add verification workflow for sessions
 3. **Reporting**: Add Filament admin interface for viewing sessions
 4. **Automatic Session Linking**: Auto-link charges to current session
-5. **Session Timeouts**: Handle abandoned sessions
 

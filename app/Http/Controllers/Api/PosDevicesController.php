@@ -24,7 +24,7 @@ class PosDevicesController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         $devices = PosDevice::where('store_id', $store->id)
-            ->with(['terminalLocations.terminalReaders'])
+            ->with(['terminalLocations.terminalReaders', 'receiptPrinters'])
             ->orderBy('device_name')
             ->get();
 
@@ -97,7 +97,7 @@ class PosDevicesController extends BaseApiController
 
         $device = PosDevice::where('id', $id)
             ->where('store_id', $store->id)
-            ->with(['terminalLocations.terminalReaders'])
+            ->with(['terminalLocations.terminalReaders', 'receiptPrinters'])
             ->firstOrFail();
 
         return response()->json([
@@ -440,7 +440,7 @@ class PosDevicesController extends BaseApiController
                 'serial_number' => $device->serial_number,
             ],
             'device_status' => $device->device_status,
-            'last_seen_at' => $device->last_seen_at?->toIso8601String(),
+            'last_seen_at' => $this->formatDateTimeOslo($device->last_seen_at),
             'device_metadata' => $device->device_metadata,
             'terminal_locations_count' => $device->terminalLocations->count(),
             'terminal_locations' => $device->terminalLocations->map(function ($location) {
@@ -451,8 +451,23 @@ class PosDevicesController extends BaseApiController
                     'readers_count' => $location->terminalReaders->count(),
                 ];
             }),
-            'created_at' => $device->created_at->toIso8601String(),
-            'updated_at' => $device->updated_at->toIso8601String(),
+            'receipt_printers_count' => $device->receiptPrinters->count(),
+            'default_printer_id' => $device->default_printer_id,
+            'receipt_printers' => $device->receiptPrinters->map(function ($printer) {
+                return [
+                    'id' => $printer->id,
+                    'name' => $printer->name,
+                    'printer_type' => $printer->printer_type,
+                    'printer_model' => $printer->printer_model,
+                    'connection_type' => $printer->connection_type,
+                    'ip_address' => $printer->ip_address,
+                    'port' => $printer->port,
+                    'is_active' => $printer->is_active,
+                    'epos_url' => $printer->isNetworkPrinter() ? $printer->epos_url : null,
+                ];
+            }),
+            'created_at' => $this->formatDateTimeOslo($device->created_at),
+            'updated_at' => $this->formatDateTimeOslo($device->updated_at),
         ];
     }
 }

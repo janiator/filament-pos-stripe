@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Receipts\Pages;
 
 use App\Filament\Resources\Receipts\ReceiptResource;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListReceipts extends ListRecords
@@ -13,7 +12,7 @@ class ListReceipts extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            // Receipts should only be created by action triggers according to kassasystemforskriften
         ];
     }
 }

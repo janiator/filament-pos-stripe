@@ -32,17 +32,17 @@ class ConnectedPaymentMethodResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Payment Method';
+        return 'Customer Payment Method';
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Payment Methods';
+        return 'Customer Payment Methods';
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Payment Methods';
+        return 'Customer Payment Methods';
     }
 
     public static function getNavigationGroup(): ?string

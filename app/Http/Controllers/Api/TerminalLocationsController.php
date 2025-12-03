@@ -57,8 +57,8 @@ class TerminalLocationsController extends BaseApiController
                             'status' => $reader->status,
                         ];
                     }),
-                    'created_at' => $location->created_at->toIso8601String(),
-                    'updated_at' => $location->updated_at->toIso8601String(),
+                    'created_at' => $this->formatDateTimeOslo($location->created_at),
+                    'updated_at' => $this->formatDateTimeOslo($location->updated_at),
                 ];
             }),
         ]);

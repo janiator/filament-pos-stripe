@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ConnectedCharge extends Model
 {
@@ -77,6 +78,14 @@ class ConnectedCharge extends Model
     public function posSession(): BelongsTo
     {
         return $this->belongsTo(PosSession::class);
+    }
+
+    /**
+     * Get the receipt for this charge
+     */
+    public function receipt(): HasOne
+    {
+        return $this->hasOne(Receipt::class, 'charge_id');
     }
 
     public function getFormattedAmountAttribute(): string

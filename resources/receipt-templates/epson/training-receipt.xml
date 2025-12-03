@@ -1,4 +1,4 @@
-<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
+<?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
     <feed line="1"/>
     <logo key1="34" key2="48"/>
     <text lang="en"/>
@@ -35,5 +35,6 @@
     <feed/>
     <feed/>
     <text font="font_a"/>
-</epos-print>
+    <cut type="feed"/>
+</epos-print></s:Body></s:Envelope>
 

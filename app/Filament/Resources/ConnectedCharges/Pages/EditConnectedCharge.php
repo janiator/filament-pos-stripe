@@ -15,7 +15,8 @@ class EditConnectedCharge extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+            // DeleteAction removed for kassasystemforskriften compliance (§ 2-6)
+            // Transactions cannot be deleted per Norwegian cash register regulations
         ];
     }
 

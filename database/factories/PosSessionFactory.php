@@ -22,7 +22,7 @@ class PosSessionFactory extends Factory
      */
     public function definition(): array
     {
-        $status = fake()->randomElement(['open', 'closed', 'abandoned']);
+        $status = fake()->randomElement(['open', 'closed']);
         $openedAt = fake()->dateTimeBetween('-1 week', 'now');
         
         return [

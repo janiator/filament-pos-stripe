@@ -40,7 +40,7 @@ class PosSessionForm
                                     return false;
                                 }
                             })
-                            ->disabled(fn ($record) => $record !== null),
+                            ->disabled(fn ($record) => $record !== null || ($record && $record->status === 'closed')),
 
                         Select::make('pos_device_id')
                             ->relationship('posDevice', 'device_name', modifyQueryUsing: function ($query) {
@@ -57,6 +57,7 @@ class PosSessionForm
                             ->searchable()
                             ->preload()
                             ->reactive()
+                            ->disabled(fn ($record) => $record && $record->status === 'closed')
                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                 // If status is open, check for existing open session
                                 if ($get('status') === 'open' && $state) {
@@ -90,7 +91,8 @@ class PosSessionForm
                             ->label('Cashier')
                             ->searchable()
                             ->preload()
-                            ->default(fn () => auth()->id()),
+                            ->default(fn () => auth()->id())
+                            ->disabled(fn ($record) => $record && $record->status === 'closed'),
 
                         TextInput::make('session_number')
                             ->label('Session Number')
@@ -103,10 +105,10 @@ class PosSessionForm
                             ->options([
                                 'open' => 'Open',
                                 'closed' => 'Closed',
-                                'abandoned' => 'Abandoned',
                             ])
                             ->required()
-                            ->default('open'),
+                            ->default('open')
+                            ->disabled(fn ($record) => $record && $record->status === 'closed'),
                     ])
                     ->columns(2),
 
@@ -115,7 +117,8 @@ class PosSessionForm
                         DateTimePicker::make('opened_at')
                             ->label('Opened At')
                             ->required()
-                            ->default(now()),
+                            ->default(now())
+                            ->disabled(fn ($record) => $record && $record->status === 'closed'),
 
                         DateTimePicker::make('closed_at')
                             ->label('Closed At')
@@ -130,7 +133,8 @@ class PosSessionForm
                             ->numeric()
                             ->default(0)
                             ->suffix('kr')
-                            ->helperText('Starting cash in drawer'),
+                            ->helperText('Starting cash in drawer')
+                            ->disabled(fn ($record) => $record && $record->status === 'closed'),
 
                         TextInput::make('expected_cash')
                             ->label('Expected Cash')
@@ -143,7 +147,8 @@ class PosSessionForm
                             ->label('Actual Cash')
                             ->numeric()
                             ->suffix('kr')
-                            ->helperText('Cash counted at closing'),
+                            ->helperText('Cash counted at closing')
+                            ->disabled(fn ($record) => $record && $record->status === 'closed'),
 
                         TextInput::make('cash_difference')
                             ->label('Cash Difference')
@@ -161,12 +166,14 @@ class PosSessionForm
                         Textarea::make('opening_notes')
                             ->label('Opening Notes')
                             ->rows(3)
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->disabled(fn ($record) => $record && $record->status === 'closed'),
 
                         Textarea::make('closing_notes')
                             ->label('Closing Notes')
                             ->rows(3)
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->disabled(fn ($record) => $record && $record->status === 'closed'),
                     ])
                     ->collapsible()
                     ->collapsed(),

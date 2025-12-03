@@ -167,8 +167,8 @@ class PosEventsController extends BaseApiController
             ] : null,
             'related_charge_id' => $event->related_charge_id,
             'event_data' => $event->event_data,
-            'occurred_at' => $event->occurred_at->toISOString(),
-            'created_at' => $event->created_at->toISOString(),
+            'occurred_at' => $this->formatDateTimeOslo($event->occurred_at),
+            'created_at' => $this->formatDateTimeOslo($event->created_at),
         ];
     }
 }

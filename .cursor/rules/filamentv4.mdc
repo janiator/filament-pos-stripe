@@ -1,3 +1,7 @@
 ---
 alwaysApply: true
 ---
+
+- Make sure all Filament-related code is following FilamentPHP V4 standards.
+- Any API-related code should be compatible with the FlutterFlow frontend app.
+- Make sure that no tests overwrite the project database. We have had some issues with that before.

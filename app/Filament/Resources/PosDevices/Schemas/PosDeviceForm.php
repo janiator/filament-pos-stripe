@@ -50,6 +50,24 @@ class PosDeviceForm
                             ->required()
                             ->default('active')
                             ->native(false),
+                        
+                        Select::make('default_printer_id')
+                            ->label('Default Receipt Printer')
+                            ->relationship(
+                                'defaultPrinter',
+                                'name',
+                                modifyQueryUsing: function ($query) {
+                                    $tenant = \Filament\Facades\Filament::getTenant();
+                                    if ($tenant) {
+                                        $query->where('store_id', $tenant->id);
+                                    }
+                                    return $query;
+                                }
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->nullable()
+                            ->helperText('Select the default receipt printer for this POS device'),
                     ])
                     ->columns(2),
                 

@@ -171,6 +171,22 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * Get the payment methods for this store
+     */
+    public function paymentMethods()
+    {
+        return $this->hasMany(\App\Models\PaymentMethod::class);
+    }
+
+    /**
+     * Get enabled payment methods for this store
+     */
+    public function enabledPaymentMethods()
+    {
+        return $this->hasMany(\App\Models\PaymentMethod::class)->enabled()->ordered();
+    }
+
+    /**
      * Get the users that belong to this store (tenant)
      */
     public function users(): BelongsToMany

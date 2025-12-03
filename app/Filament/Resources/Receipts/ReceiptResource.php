@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Receipts;
 
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
-use App\Filament\Resources\Receipts\Pages\CreateReceipt;
 use App\Filament\Resources\Receipts\Pages\EditReceipt;
 use App\Filament\Resources\Receipts\Pages\ListReceipts;
 use App\Filament\Resources\Receipts\Schemas\ReceiptForm;
@@ -62,7 +61,6 @@ class ReceiptResource extends Resource
     {
         return [
             'index' => ListReceipts::route('/'),
-            'create' => CreateReceipt::route('/create'),
             'edit' => EditReceipt::route('/{record}/edit'),
             'preview' => \App\Filament\Resources\Receipts\Pages\ViewReceiptPreview::route('/{record}/preview'),
         ];

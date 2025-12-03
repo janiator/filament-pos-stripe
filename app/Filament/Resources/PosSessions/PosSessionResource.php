@@ -6,7 +6,9 @@ use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\PosSessions\Pages\CreatePosSession;
 use App\Filament\Resources\PosSessions\Pages\EditPosSession;
 use App\Filament\Resources\PosSessions\Pages\ListPosSessions;
+use App\Filament\Resources\PosSessions\Pages\ViewPosSession;
 use App\Filament\Resources\PosSessions\Schemas\PosSessionForm;
+use App\Filament\Resources\PosSessions\Schemas\PosSessionInfolist;
 use App\Filament\Resources\PosSessions\Tables\PosSessionsTable;
 use App\Models\PosSession;
 use BackedEnum;
@@ -46,6 +48,11 @@ class PosSessionResource extends Resource
         return PosSessionForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return PosSessionInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return PosSessionsTable::configure($table);
@@ -63,6 +70,7 @@ class PosSessionResource extends Resource
         return [
             'index' => ListPosSessions::route('/'),
             'create' => CreatePosSession::route('/create'),
+            'view' => ViewPosSession::route('/{record}'),
             'edit' => EditPosSession::route('/{record}/edit'),
         ];
     }

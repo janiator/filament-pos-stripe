@@ -58,15 +58,31 @@ class ReceiptForm
                             ->preload(),
 
                         Select::make('charge_id')
-                            ->relationship('charge', 'stripe_charge_id', modifyQueryUsing: function ($query) {
-                                try {
-                                    $tenant = \Filament\Facades\Filament::getTenant();
-                                    if ($tenant && $tenant->slug !== 'visivo-admin') {
-                                        $query->where('connected_charges.store_id', $tenant->id);
+                            ->relationship(
+                                'charge',
+                                'id', // Use 'id' as the title attribute (required by Filament, but we override with getOptionLabelUsing)
+                                modifyQueryUsing: function ($query) {
+                                    try {
+                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                        if ($tenant && $tenant->slug !== 'visivo-admin' && $tenant->stripe_account_id) {
+                                            $query->where('connected_charges.stripe_account_id', $tenant->stripe_account_id);
+                                        }
+                                    } catch (\Throwable $e) {
+                                        // Fallback if Filament facade not available
                                     }
-                                } catch (\Throwable $e) {
-                                    // Fallback if Filament facade not available
                                 }
+                            )
+                            ->getOptionLabelUsing(function ($value) {
+                                $charge = \App\Models\ConnectedCharge::find($value);
+                                if (!$charge) {
+                                    return 'Unknown Charge';
+                                }
+                                // Handle null stripe_charge_id (cash payments)
+                                if ($charge->stripe_charge_id) {
+                                    return $charge->stripe_charge_id . ' - ' . number_format($charge->amount / 100, 2) . ' ' . strtoupper($charge->currency);
+                                }
+                                // For cash payments, show charge ID and amount
+                                return 'Cash Payment #' . $charge->id . ' - ' . number_format($charge->amount / 100, 2) . ' ' . strtoupper($charge->currency);
                             })
                             ->searchable()
                             ->preload(),

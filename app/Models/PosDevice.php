@@ -30,6 +30,7 @@ class PosDevice extends Model
         'device_status',
         'last_seen_at',
         'device_metadata',
+        'default_printer_id',
     ];
 
     protected $casts = [
@@ -56,5 +57,13 @@ class PosDevice extends Model
     public function receiptPrinters(): HasMany
     {
         return $this->hasMany(ReceiptPrinter::class);
+    }
+
+    /**
+     * Get the default receipt printer for this POS device
+     */
+    public function defaultPrinter(): BelongsTo
+    {
+        return $this->belongsTo(ReceiptPrinter::class, 'default_printer_id');
     }
 }

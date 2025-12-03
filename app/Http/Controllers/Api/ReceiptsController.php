@@ -160,6 +160,12 @@ class ReceiptsController extends BaseApiController
 
     /**
      * Get receipt XML for printing
+     * 
+     * Returns the receipt XML without modifying print status.
+     * - If receipt is not printed: Returns original receipt XML
+     * - If receipt is already printed: Returns copy receipt XML (marked as "KOPI")
+     * 
+     * Call mark-printed endpoint after successful print.
      */
     public function xml(Request $request, string $id): \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
     {
@@ -173,6 +179,7 @@ class ReceiptsController extends BaseApiController
 
         // First check if receipt exists
         $receipt = Receipt::where('id', $id)
+            ->where('store_id', $store->id)
             ->with(['store', 'charge', 'posSession', 'user', 'originalReceipt'])
             ->first();
 
@@ -180,9 +187,20 @@ class ReceiptsController extends BaseApiController
             return response()->json(['message' => 'Receipt not found'], 404);
         }
 
-        // Check if receipt belongs to the store
-        if ($receipt->store_id !== $store->id) {
-            return response()->json(['message' => 'Receipt does not belong to this store'], 403);
+        // If receipt is already printed, return copy receipt instead
+        if ($receipt->printed) {
+            // Check if copy receipt already exists
+            $copyReceipt = Receipt::where('store_id', $store->id)
+                ->where('receipt_type', 'copy')
+                ->where('original_receipt_id', $receipt->id)
+                ->first();
+
+            // If no copy receipt exists, create one on the fly
+            if (!$copyReceipt) {
+                $copyReceipt = $this->createCopyReceipt($receipt);
+            }
+
+            $receipt = $copyReceipt;
         }
 
         // Always render fresh XML using renderReceipt()
@@ -197,6 +215,9 @@ class ReceiptsController extends BaseApiController
 
     /**
      * Mark receipt as printed
+     * 
+     * Marks receipt as printed on first call, increments reprint count on subsequent calls.
+     * This ensures compliance by tracking all print operations.
      */
     public function markPrinted(Request $request, string $id): JsonResponse
     {
@@ -212,10 +233,18 @@ class ReceiptsController extends BaseApiController
             ->where('store_id', $store->id)
             ->firstOrFail();
 
-        $receipt->markAsPrinted();
+        // If receipt is not printed, mark it as printed (first print)
+        // If receipt is already printed, increment reprint count
+        if (!$receipt->printed) {
+            $receipt->markAsPrinted();
+            $message = 'Receipt marked as printed';
+        } else {
+            $receipt->incrementReprint();
+            $message = 'Receipt reprint recorded';
+        }
 
         return response()->json([
-            'message' => 'Receipt marked as printed',
+            'message' => $message,
             'receipt' => $this->formatReceiptResponse($receipt->load(['posSession', 'charge', 'user'])),
         ]);
     }
@@ -243,6 +272,39 @@ class ReceiptsController extends BaseApiController
             'message' => 'Receipt reprinted',
             'receipt' => $this->formatReceiptResponse($receipt->load(['posSession', 'charge', 'user'])),
         ]);
+    }
+
+    /**
+     * Create a copy receipt from an original receipt
+     */
+    protected function createCopyReceipt(Receipt $originalReceipt): Receipt
+    {
+        $store = $originalReceipt->store;
+        
+        // Prepare receipt data for copy - preserve all original data
+        $receiptData = $originalReceipt->receipt_data;
+        $receiptData['original_receipt_number'] = $originalReceipt->receipt_number;
+        $receiptNumber = Receipt::generateReceiptNumber($store->id, 'copy');
+        $receiptData['receipt_number'] = $receiptNumber;
+        $receiptData['date'] = now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s');
+
+        $copyReceipt = Receipt::create([
+            'store_id' => $store->id,
+            'pos_session_id' => $originalReceipt->pos_session_id,
+            'charge_id' => $originalReceipt->charge_id,
+            'user_id' => $originalReceipt->user_id,
+            'receipt_number' => $receiptNumber,
+            'receipt_type' => 'copy',
+            'original_receipt_id' => $originalReceipt->id,
+            'receipt_data' => $receiptData,
+        ]);
+
+        // Render and save XML template
+        $templateService = app(\App\Services\ReceiptTemplateService::class);
+        $templateService->renderAndSave($copyReceipt);
+
+        // Reload with relationships
+        return $copyReceipt->load(['store', 'charge', 'posSession', 'user', 'originalReceipt']);
     }
 
     /**
@@ -274,9 +336,9 @@ class ReceiptsController extends BaseApiController
             'original_receipt_id' => $receipt->original_receipt_id,
             'receipt_data' => $receipt->receipt_data,
             'printed' => $receipt->printed,
-            'printed_at' => $receipt->printed_at?->toISOString(),
+            'printed_at' => $this->formatDateTimeOslo($receipt->printed_at),
             'reprint_count' => $receipt->reprint_count,
-            'created_at' => $receipt->created_at->toISOString(),
+            'created_at' => $this->formatDateTimeOslo($receipt->created_at),
         ];
     }
 }

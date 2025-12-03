@@ -67,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Tenant-scoped API resources
     Route::apiResource('customers', \App\Http\Controllers\Api\CustomersController::class);
     Route::apiResource('products', \App\Http\Controllers\Api\ProductsController::class)->only(['index', 'show']);
+    Route::apiResource('collections', \App\Http\Controllers\Api\CollectionsController::class)->only(['index', 'show']);
     
     // Inventory management endpoints
     Route::get('/products/{product}/inventory', [\App\Http\Controllers\Api\InventoryController::class, 'getProductInventory'])->name('api.products.inventory');
@@ -96,6 +97,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/receipts/{id}/xml', [\App\Http\Controllers\Api\ReceiptsController::class, 'xml'])->name('api.receipts.xml');
     Route::post('/receipts/{id}/mark-printed', [\App\Http\Controllers\Api\ReceiptsController::class, 'markPrinted'])->name('api.receipts.mark-printed');
     Route::post('/receipts/{id}/reprint', [\App\Http\Controllers\Api\ReceiptsController::class, 'reprint'])->name('api.receipts.reprint');
+    
+    // Receipt Printer endpoints
+    Route::get('/receipt-printers', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'index'])->name('api.receipt-printers.index');
+    Route::post('/receipt-printers', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'store'])->name('api.receipt-printers.store');
+    Route::get('/receipt-printers/{id}', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'show'])->name('api.receipt-printers.show');
+    Route::put('/receipt-printers/{id}', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'update'])->name('api.receipt-printers.update');
+    Route::patch('/receipt-printers/{id}', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'update'])->name('api.receipt-printers.patch');
+    Route::delete('/receipt-printers/{id}', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'destroy'])->name('api.receipt-printers.destroy');
+    Route::post('/receipt-printers/{id}/test-connection', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'testConnection'])->name('api.receipt-printers.test-connection');
+    Route::post('/receipt-printers/{id}/test-print', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'testPrint'])->name('api.receipt-printers.test-print');
+    
+    // Purchase endpoints
+    Route::get('/purchases/payment-methods', [\App\Http\Controllers\Api\PurchasesController::class, 'getPaymentMethods'])->name('api.purchases.payment-methods');
+    Route::post('/purchases', [\App\Http\Controllers\Api\PurchasesController::class, 'store'])->name('api.purchases.store');
     
     // Note: Add more API resources here following the same pattern:
     // Route::apiResource('subscriptions', \App\Http\Controllers\Api\SubscriptionsController::class);

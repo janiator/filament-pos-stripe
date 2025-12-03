@@ -17,25 +17,45 @@ class ReceiptGenerationService
         $this->templateService = $templateService;
     }
     /**
-     * Generate a sales receipt for a charge
+     * Generate receipt XML for printing
+     *
+     * @param Receipt $receipt
+     * @return string
      */
-    public function generateSalesReceipt(ConnectedCharge $charge, ?PosSession $session = null): Receipt
+    public function generateReceiptXml(Receipt $receipt): string
     {
-        $session = $session ?? $charge->posSession;
+        return $this->templateService->renderReceipt($receipt);
+    }
+
+    /**
+     * Generate a sales receipt for a charge (single or split payment)
+     *
+     * @param ConnectedCharge|array $chargeOrCharges Primary charge or array of charges for split payment
+     * @param PosSession|null $session
+     * @return Receipt
+     */
+    public function generateSalesReceipt(ConnectedCharge|array $chargeOrCharges, ?PosSession $session = null): Receipt
+    {
+        // Handle both single charge and array of charges (split payment)
+        $charges = is_array($chargeOrCharges) ? $chargeOrCharges : [$chargeOrCharges];
+        $primaryCharge = $charges[0];
+        $isSplitPayment = count($charges) > 1;
+
+        $session = $session ?? $primaryCharge->posSession;
         
         // Get store from session or find by stripe_account_id
         $store = $session?->store;
-        if (!$store && $charge->stripe_account_id) {
-            $store = Store::where('stripe_account_id', $charge->stripe_account_id)->first();
+        if (!$store && $primaryCharge->stripe_account_id) {
+            $store = Store::where('stripe_account_id', $primaryCharge->stripe_account_id)->first();
         }
         
         if (!$store) {
             throw new \Exception('Cannot generate receipt: Store not found for charge');
         }
 
-        // Get items from charge metadata or create default
+        // Get items from primary charge metadata
         $items = [];
-        $metadata = is_array($charge->metadata) ? $charge->metadata : json_decode($charge->metadata ?? '{}', true);
+        $metadata = is_array($primaryCharge->metadata) ? $primaryCharge->metadata : json_decode($primaryCharge->metadata ?? '{}', true);
         
         if (isset($metadata['items']) && is_array($metadata['items'])) {
             $items = $metadata['items'];
@@ -46,23 +66,44 @@ class ReceiptGenerationService
                 $product = ConnectedProduct::find($productId);
                 if ($product) {
                     $quantity = $metadata['quantity'] ?? 1;
-                    $unitPrice = ($charge->amount / 100) / $quantity;
+                    $totalAmount = array_sum(array_column($charges, 'amount'));
+                    $unitPrice = ($totalAmount / 100) / $quantity;
                     $items[] = [
                         'name' => $product->name,
                         'quantity' => $quantity,
                         'unit_price' => number_format($unitPrice, 2, ',', ' '),
-                        'line_total' => number_format($charge->amount / 100, 2, ',', ' '),
+                        'line_total' => number_format($totalAmount / 100, 2, ',', ' '),
                     ];
                 }
             } else {
                 // Fallback: single item
+                $totalAmount = array_sum(array_column($charges, 'amount'));
                 $items[] = [
-                    'name' => $charge->description ?? 'Vare',
+                    'name' => $primaryCharge->description ?? 'Vare',
                     'quantity' => 1,
-                    'unit_price' => number_format($charge->amount / 100, 2, ',', ' '),
-                    'line_total' => number_format($charge->amount / 100, 2, ',', ' '),
+                    'unit_price' => number_format($totalAmount / 100, 2, ',', ' '),
+                    'line_total' => number_format($totalAmount / 100, 2, ',', ' '),
                 ];
             }
+        }
+
+        // Calculate totals
+        $totalAmount = array_sum(array_column($charges, 'amount'));
+        $subtotal = $metadata['subtotal'] ?? ($totalAmount / 100);
+        $totalDiscounts = $metadata['total_discounts'] ?? 0;
+        $totalTax = $metadata['total_tax'] ?? $this->calculateTaxFromAmount($totalAmount);
+        $tipAmount = $metadata['tip_amount'] ?? 0;
+
+        // Build payment breakdown for split payments
+        $payments = [];
+        foreach ($charges as $charge) {
+            $chargeMetadata = is_array($charge->metadata) ? $charge->metadata : json_decode($charge->metadata ?? '{}', true);
+            $payments[] = [
+                'method' => $charge->payment_method,
+                'amount' => $charge->amount / 100,
+                'payment_code' => $charge->payment_code,
+                'transaction_code' => $charge->transaction_code,
+            ];
         }
 
         $storeMetadata = is_array($store->metadata) ? $store->metadata : json_decode($store->metadata ?? '{}', true);
@@ -74,23 +115,27 @@ class ReceiptGenerationService
                 'organization_number' => $storeMetadata['organization_number'] ?? '',
             ],
             'receipt_number' => Receipt::generateReceiptNumber($store->id, 'sales'),
-            'date' => $charge->paid_at?->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s'),
-            'transaction_id' => $charge->stripe_charge_id,
+            'date' => ($primaryCharge->paid_at?->setTimezone('Europe/Oslo') ?? now()->setTimezone('Europe/Oslo'))->format('Y-m-d H:i:s'),
+            'transaction_id' => $primaryCharge->stripe_charge_id ?? $primaryCharge->id, // Use charge ID if no Stripe charge ID (for cash payments)
             'session_number' => $session?->session_number,
             'cashier' => $session?->user?->name ?? 'Unknown',
             'items' => $items,
-            'subtotal' => $charge->amount / 100,
-            'tax' => $this->calculateTax($charge),
-            'total' => $charge->amount / 100,
-            'payment_method' => $charge->payment_method,
-            'payment_code' => $charge->payment_code,
-            'tip_amount' => $charge->tip_amount > 0 ? $charge->tip_amount / 100 : null,
+            'subtotal' => $subtotal,
+            'total_discounts' => $totalDiscounts,
+            'tax' => $totalTax,
+            'total' => $totalAmount / 100,
+            'is_split_payment' => $isSplitPayment,
+            'payments' => $payments,
+            'payment_method' => $isSplitPayment ? 'split' : $primaryCharge->payment_method,
+            'payment_code' => $isSplitPayment ? null : $primaryCharge->payment_code,
+            'tip_amount' => $tipAmount > 0 ? ($tipAmount / 100) : null,
+            'charge_ids' => array_column($charges, 'id'),
         ];
 
         $receipt = Receipt::create([
             'store_id' => $store->id,
             'pos_session_id' => $session?->id,
-            'charge_id' => $charge->id,
+            'charge_id' => $primaryCharge->id, // Primary charge for backward compatibility
             'user_id' => $session?->user_id,
             'receipt_number' => $receiptData['receipt_number'],
             'receipt_type' => 'sales',
@@ -101,6 +146,16 @@ class ReceiptGenerationService
         $this->templateService->renderAndSave($receipt);
 
         return $receipt;
+    }
+
+    /**
+     * Calculate tax from amount
+     */
+    protected function calculateTaxFromAmount(int $amountInOre): float
+    {
+        // Default 25% VAT in Norway
+        $taxRate = 0.25;
+        return round(($amountInOre / 100) * $taxRate / (1 + $taxRate), 2);
     }
 
     /**
@@ -151,7 +206,7 @@ class ReceiptGenerationService
                 'organization_number' => $storeMetadata['organization_number'] ?? '',
             ],
             'receipt_number' => Receipt::generateReceiptNumber($store->id, 'return'),
-            'date' => now()->format('Y-m-d H:i:s'),
+            'date' => now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s'),
             'original_receipt_number' => $originalReceipt->receipt_number,
             'transaction_id' => $charge->stripe_charge_id,
             'refund_amount' => $charge->amount_refunded / 100,
@@ -181,9 +236,7 @@ class ReceiptGenerationService
      */
     protected function calculateTax(ConnectedCharge $charge): float
     {
-        // Default 25% VAT in Norway
-        $taxRate = 0.25;
-        return round(($charge->amount / 100) * $taxRate / (1 + $taxRate), 2);
+        return $this->calculateTaxFromAmount($charge->amount);
     }
 }
 

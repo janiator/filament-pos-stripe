@@ -28,6 +28,8 @@ class PosSession extends Model
         'expected_cash',
         'actual_cash',
         'cash_difference',
+        'transaction_count',
+        'total_amount',
         'opening_notes',
         'closing_notes',
         'opening_data',
@@ -41,6 +43,8 @@ class PosSession extends Model
         'expected_cash' => 'integer',
         'actual_cash' => 'integer',
         'cash_difference' => 'integer',
+        'transaction_count' => 'integer',
+        'total_amount' => 'integer',
         'opening_data' => 'array',
         'closing_data' => 'array',
     ];
@@ -106,17 +110,29 @@ class PosSession extends Model
 
     /**
      * Get total transaction count
+     * Note: The value is now stored in the database column 'transaction_count'
+     * This accessor is kept for backward compatibility but will use the database value
      */
     public function getTransactionCountAttribute(): int
     {
+        // Use the database column value if it exists, otherwise calculate from charges
+        if (isset($this->attributes['transaction_count'])) {
+            return $this->attributes['transaction_count'];
+        }
         return $this->charges()->where('status', 'succeeded')->count();
     }
 
     /**
      * Get total amount for this session
+     * Note: The value is now stored in the database column 'total_amount'
+     * This accessor is kept for backward compatibility but will use the database value
      */
     public function getTotalAmountAttribute(): int
     {
+        // Use the database column value if it exists, otherwise calculate from charges
+        if (isset($this->attributes['total_amount'])) {
+            return $this->attributes['total_amount'];
+        }
         return $this->charges()
             ->where('status', 'succeeded')
             ->sum('amount') ?? 0;

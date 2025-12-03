@@ -45,9 +45,20 @@ class ReceiptsTable
                 TextColumn::make('user.name')
                     ->label('Cashier')
                     ->sortable(),
-                TextColumn::make('charge.stripe_charge_id')
-                    ->label('Charge ID')
-                    ->limit(20),
+                TextColumn::make('charge_id')
+                    ->label('Charge')
+                    ->formatStateUsing(function ($state, $record) {
+                        $charge = $record->charge;
+                        if (!$charge) {
+                            return 'N/A';
+                        }
+                        // Handle null stripe_charge_id (cash payments)
+                        if ($charge->stripe_charge_id) {
+                            return $charge->stripe_charge_id;
+                        }
+                        return 'Cash #' . $charge->id;
+                    })
+                    ->limit(30),
                 IconColumn::make('printed')
                     ->label('Printed')
                     ->boolean(),

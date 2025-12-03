@@ -9,12 +9,37 @@ class SafTCodeMapper
 {
     /**
      * Map payment method to PredefinedBasicID-12 (Payment Code)
+     * 
+     * @param string|null $paymentMethodCode Internal payment method code (e.g., "cash", "card", "card_present")
+     * @param string|null $providerMethod Provider-specific method (e.g., "card_present", "us_bank_account", "sepa_debit")
+     * @return string SAF-T payment code
      */
-    public static function mapPaymentMethodToCode(?string $paymentMethod): string
+    public static function mapPaymentMethodToCode(?string $paymentMethodCode, ?string $providerMethod = null): string
     {
-        return match($paymentMethod) {
+        // First, check provider_method for Stripe-specific types
+        if ($providerMethod) {
+            return match($providerMethod) {
+                'card_present' => '12002', // Debit card (terminal)
+                'card' => '12002', // Debit card (online)
+                'us_bank_account' => '12004', // Bank account
+                'sepa_debit' => '12004', // Bank account (SEPA)
+                'link' => '12011', // Mobile payment (Stripe Link)
+                default => self::mapPaymentMethodCodeToSafT($paymentMethodCode),
+            };
+        }
+
+        // Fall back to code-based mapping
+        return self::mapPaymentMethodCodeToSafT($paymentMethodCode);
+    }
+
+    /**
+     * Map payment method code to SAF-T payment code (internal helper)
+     */
+    protected static function mapPaymentMethodCodeToSafT(?string $paymentMethodCode): string
+    {
+        return match($paymentMethodCode) {
             'cash' => '12001', // Cash
-            'card' => '12002', // Debit card (default for card)
+            'card', 'card_present' => '12002', // Debit card (default for card)
             'credit_card' => '12003', // Credit card
             'bank_account' => '12004', // Bank account
             'gift_token' => '12005', // Gift token
@@ -30,12 +55,35 @@ class SafTCodeMapper
 
     /**
      * Map payment method to PredefinedBasicID-13 (Event Code)
+     * 
+     * @param string|null $paymentMethodCode Internal payment method code
+     * @param string|null $providerMethod Provider-specific method
+     * @return string SAF-T event code
      */
-    public static function mapPaymentMethodToEventCode(?string $paymentMethod): string
+    public static function mapPaymentMethodToEventCode(?string $paymentMethodCode, ?string $providerMethod = null): string
     {
-        return match($paymentMethod) {
+        // First, check provider_method for Stripe-specific types
+        if ($providerMethod) {
+            return match($providerMethod) {
+                'card_present', 'card' => '13017', // Card payment
+                'us_bank_account', 'sepa_debit' => '13019', // Other payment (bank transfers)
+                'link' => '13018', // Mobile payment
+                default => self::mapPaymentMethodCodeToEventCode($paymentMethodCode),
+            };
+        }
+
+        // Fall back to code-based mapping
+        return self::mapPaymentMethodCodeToEventCode($paymentMethodCode);
+    }
+
+    /**
+     * Map payment method code to SAF-T event code (internal helper)
+     */
+    protected static function mapPaymentMethodCodeToEventCode(?string $paymentMethodCode): string
+    {
+        return match($paymentMethodCode) {
             'cash' => '13016', // Cash payment
-            'card', 'credit_card' => '13017', // Card payment
+            'card', 'card_present', 'credit_card' => '13017', // Card payment
             'mobile' => '13018', // Mobile payment
             default => '13019', // Other payment method
         };
@@ -58,6 +106,19 @@ class SafTCodeMapper
 
         // Credit sale (default for card/mobile)
         return '11002'; // Credit sale
+    }
+
+    /**
+     * Map payment method code to transaction code (PredefinedBasicID-11)
+     */
+    public static function mapTransactionToCodeForPayment(string $paymentMethodCode): string
+    {
+        return match($paymentMethodCode) {
+            'cash' => '11001', // Cash sale
+            'card', 'card_present', 'credit_card' => '11002', // Credit sale
+            'mobile' => '11002', // Credit sale (mobile is also credit)
+            default => '11002', // Default to credit sale
+        };
     }
 
     /**

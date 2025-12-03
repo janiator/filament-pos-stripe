@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\PosEvents\Pages;
 
 use App\Filament\Resources\PosEvents\PosEventResource;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListPosEvents extends ListRecords
@@ -13,7 +12,7 @@ class ListPosEvents extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            // POS events should only be created by action triggers according to kassasystemforskriften
         ];
     }
 }

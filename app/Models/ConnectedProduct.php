@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -193,6 +194,21 @@ class ConnectedProduct extends Model implements HasMedia
     {
         return $this->hasMany(ProductVariant::class, 'connected_product_id')
             ->where('stripe_account_id', $this->stripe_account_id);
+    }
+
+    /**
+     * Get the collections this product belongs to
+     */
+    public function collections(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Collection::class,
+            'collection_product',
+            'connected_product_id',
+            'collection_id'
+        )->withPivot('sort_order')
+          ->withTimestamps()
+          ->orderByPivot('sort_order');
     }
 
     /**

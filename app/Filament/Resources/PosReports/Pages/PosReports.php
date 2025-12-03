@@ -85,7 +85,6 @@ class PosReports extends Page implements HasForms, HasTable
                     ->color(fn (string $state): string => match ($state) {
                         'open' => 'success',
                         'closed' => 'gray',
-                        'abandoned' => 'danger',
                         default => 'gray',
                     }),
                 TextColumn::make('user.name')
@@ -126,7 +125,6 @@ class PosReports extends Page implements HasForms, HasTable
                     ->options([
                         'open' => 'Open',
                         'closed' => 'Closed',
-                        'abandoned' => 'Abandoned',
                     ]),
             ])
             ->recordActions([
