@@ -33,17 +33,17 @@ class ConnectedPriceResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Price';
+        return __('filament.resources.connected_price.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Prices';
+        return __('filament.resources.connected_price.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Prices';
+        return __('filament.resources.connected_price.navigation');
     }
 
     public static function form(Schema $schema): Schema

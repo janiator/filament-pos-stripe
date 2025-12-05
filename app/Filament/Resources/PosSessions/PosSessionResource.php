@@ -30,12 +30,12 @@ class PosSessionResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'POS Sessions';
+        return __('filament.resources.pos_session.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'POS System';
+        return __('filament.navigation_groups.pos_system');
     }
 
     public static function getNavigationSort(): ?int

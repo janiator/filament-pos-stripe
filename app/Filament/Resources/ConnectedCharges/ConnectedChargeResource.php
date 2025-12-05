@@ -49,22 +49,22 @@ class ConnectedChargeResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Charge';
+        return __('filament.resources.connected_charge.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Charges';
+        return __('filament.resources.connected_charge.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Charges';
+        return __('filament.resources.connected_charge.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Payments';
+        return __('filament.navigation_groups.payments');
     }
 
     public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null

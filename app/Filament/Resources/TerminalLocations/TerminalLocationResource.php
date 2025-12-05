@@ -32,22 +32,22 @@ class TerminalLocationResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Location';
+        return __('filament.resources.terminal_location.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Locations';
+        return __('filament.resources.terminal_location.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Locations';
+        return __('filament.resources.terminal_location.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Terminals';
+        return __('filament.navigation_groups.terminals');
     }
 
     public static function form(Schema $schema): Schema

@@ -32,22 +32,22 @@ class TerminalReaderResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Reader';
+        return __('filament.resources.terminal_reader.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Readers';
+        return __('filament.resources.terminal_reader.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Readers';
+        return __('filament.resources.terminal_reader.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Terminals';
+        return __('filament.navigation_groups.terminals');
     }
 
     public static function form(Schema $schema): Schema

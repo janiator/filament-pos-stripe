@@ -29,22 +29,22 @@ class DiscountResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Discount';
+        return __('filament.resources.discount.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Discounts';
+        return __('filament.resources.discount.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Discounts';
+        return __('filament.resources.discount.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Catalog';
+        return __('filament.navigation_groups.catalog');
     }
 
     public static function form(Schema $schema): Schema

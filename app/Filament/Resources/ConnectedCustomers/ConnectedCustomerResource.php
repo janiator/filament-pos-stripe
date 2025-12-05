@@ -32,22 +32,22 @@ class ConnectedCustomerResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Customer';
+        return __('filament.resources.connected_customer.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Customers';
+        return __('filament.resources.connected_customer.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Customers';
+        return __('filament.resources.connected_customer.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Customers';
+        return __('filament.navigation_groups.customers');
     }
 
     public static function form(Schema $schema): Schema

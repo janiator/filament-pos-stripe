@@ -20,8 +20,8 @@ class SyncEverythingWidget extends Widget
         SyncEverythingFromStripeJob::dispatch();
 
         Notification::make()
-            ->title('Sync started')
-            ->body('The sync is running in the background. You will be notified when it completes.')
+            ->title(__('filament.widgets.sync_everything.sync_started'))
+            ->body(__('filament.widgets.sync_everything.sync_started_body'))
             ->success()
             ->send();
     }

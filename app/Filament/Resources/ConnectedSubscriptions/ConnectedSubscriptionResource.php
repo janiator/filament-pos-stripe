@@ -32,22 +32,22 @@ class ConnectedSubscriptionResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Subscription';
+        return __('filament.resources.connected_subscription.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Subscriptions';
+        return __('filament.resources.connected_subscription.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Subscriptions';
+        return __('filament.resources.connected_subscription.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Subscriptions';
+        return __('filament.navigation_groups.subscriptions');
     }
 
     public static function form(Schema $schema): Schema

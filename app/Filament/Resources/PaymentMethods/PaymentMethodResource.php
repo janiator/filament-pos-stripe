@@ -29,22 +29,22 @@ class PaymentMethodResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Payment Method Type';
+        return __('filament.resources.payment_method.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Payment Method Types';
+        return __('filament.resources.payment_method.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Payment Method Types';
+        return __('filament.resources.payment_method.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Settings';
+        return __('filament.navigation_groups.settings');
     }
 
     public static function form(Schema $schema): Schema

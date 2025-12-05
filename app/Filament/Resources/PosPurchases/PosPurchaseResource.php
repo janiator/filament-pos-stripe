@@ -29,22 +29,22 @@ class PosPurchaseResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'POS Purchase';
+        return __('filament.resources.pos_purchase.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'POS Purchases';
+        return __('filament.resources.pos_purchase.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Purchases';
+        return __('filament.resources.pos_purchase.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'POS System';
+        return __('filament.navigation_groups.pos_system');
     }
 
     public static function getNavigationSort(): ?int

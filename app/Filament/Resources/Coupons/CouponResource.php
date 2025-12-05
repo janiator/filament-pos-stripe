@@ -29,22 +29,22 @@ class CouponResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Coupon';
+        return __('filament.resources.coupon.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Coupons';
+        return __('filament.resources.coupon.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Coupons';
+        return __('filament.resources.coupon.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Catalog';
+        return __('filament.navigation_groups.catalog');
     }
 
     public static function form(Schema $schema): Schema

@@ -26,12 +26,12 @@ class ReceiptResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'Receipts';
+        return __('filament.resources.receipt.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'POS System';
+        return __('filament.navigation_groups.pos_system');
     }
 
     public static function getNavigationSort(): ?int

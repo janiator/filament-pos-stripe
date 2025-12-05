@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Http\Middleware\FilamentEmbedMode;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -63,22 +64,23 @@ class AppPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                FilamentEmbedMode::class, // Add embed mode support
             ])
             ->authMiddleware([
                 Authenticate::class,
             ])
             ->navigationItems([
                 NavigationItem::make('Horizon')
-                    ->label('Horizon')
+                    ->label(__('filament.navigation.horizon'))
                     ->url('/horizon', shouldOpenInNewTab: true)
                     ->icon('heroicon-o-chart-bar-square')
-                    ->group('System')
+                    ->group(__('filament.navigation_groups.system'))
                     ->sort(100),
                 NavigationItem::make('Pulse')
-                    ->label('Pulse')
+                    ->label(__('filament.navigation.pulse'))
                     ->url('/pulse', shouldOpenInNewTab: true)
                     ->icon('heroicon-o-heart')
-                    ->group('System')
+                    ->group(__('filament.navigation_groups.system'))
                     ->sort(101),
             ]);
     }

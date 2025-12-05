@@ -32,22 +32,22 @@ class PosDeviceResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'POS Device';
+        return __('filament.resources.pos_device.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'POS Devices';
+        return __('filament.resources.pos_device.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'POS Devices';
+        return __('filament.resources.pos_device.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Terminals';
+        return __('filament.navigation_groups.terminals');
     }
 
     public static function form(Schema $schema): Schema

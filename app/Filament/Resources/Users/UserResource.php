@@ -42,7 +42,7 @@ class UserResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Administration';
+        return __('filament.navigation_groups.administration');
     }
 
     public static function canViewAny(): bool

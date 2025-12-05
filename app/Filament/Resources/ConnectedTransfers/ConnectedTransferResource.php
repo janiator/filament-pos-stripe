@@ -32,22 +32,22 @@ class ConnectedTransferResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Transfer';
+        return __('filament.resources.connected_transfer.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Transfers';
+        return __('filament.resources.connected_transfer.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Transfers';
+        return __('filament.resources.connected_transfer.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Payments';
+        return __('filament.navigation_groups.payments');
     }
 
     public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null

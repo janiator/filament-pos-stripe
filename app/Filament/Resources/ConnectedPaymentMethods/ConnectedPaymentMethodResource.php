@@ -32,22 +32,22 @@ class ConnectedPaymentMethodResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Customer Payment Method';
+        return __('filament.resources.connected_payment_method.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Customer Payment Methods';
+        return __('filament.resources.connected_payment_method.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Customer Payment Methods';
+        return __('filament.resources.connected_payment_method.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Payments';
+        return __('filament.navigation_groups.payments');
     }
 
     public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null

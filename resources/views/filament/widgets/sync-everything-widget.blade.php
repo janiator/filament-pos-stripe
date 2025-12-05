@@ -1,7 +1,7 @@
 <x-filament-widgets::widget>
     <x-filament::section>
         <x-slot name="heading">
-            Sync Everything from Stripe
+            {{ __('filament.widgets.sync_everything.heading') }}
         </x-slot>
 
         <x-slot name="description">
@@ -10,20 +10,20 @@
                 $isAdmin = $tenant && $tenant->slug === 'visivo-admin';
             @endphp
             @if($isAdmin)
-                Sync all customers, products, subscriptions, payment intents, charges, transfers, payment methods, payment links, and terminals from all connected Stripe accounts.
+                {{ __('filament.widgets.sync_everything.description_admin') }}
             @else
-                Sync all customers, products, subscriptions, payment intents, charges, transfers, payment methods, payment links, and terminals from the current store's Stripe account.
+                {{ __('filament.widgets.sync_everything.description_store') }}
             @endif
         </x-slot>
 
         <div class="flex items-center gap-4">
             <x-filament::button
                 wire:click="syncEverything"
-                wire:confirm="{{ $isAdmin ? 'This will sync all customers, products, subscriptions, payment intents, charges, transfers, payment methods, payment links, and terminals from all connected Stripe accounts. This may take a moment. Continue?' : 'This will sync all customers, products, subscriptions, payment intents, charges, transfers, payment methods, payment links, and terminals from the current store\'s Stripe account. This may take a moment. Continue?' }}"
+                wire:confirm="{{ $isAdmin ? __('filament.widgets.sync_everything.confirm_admin') : __('filament.widgets.sync_everything.confirm_store') }}"
                 icon="heroicon-o-arrow-path"
                 color="gray"
             >
-                Sync Everything
+                {{ __('filament.widgets.sync_everything.button') }}
             </x-filament::button>
         </div>
     </x-filament::section>

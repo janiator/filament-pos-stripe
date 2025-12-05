@@ -26,12 +26,12 @@ class PosEventResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'POS Events';
+        return __('filament.resources.pos_event.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'POS System';
+        return __('filament.navigation_groups.pos_system');
     }
 
     public static function getNavigationSort(): ?int

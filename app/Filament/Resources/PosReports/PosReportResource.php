@@ -16,12 +16,12 @@ class PosReportResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'POS Reports';
+        return __('filament.resources.pos_report.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'POS';
+        return __('filament.navigation_groups.pos');
     }
 
     public static function getNavigationSort(): ?int

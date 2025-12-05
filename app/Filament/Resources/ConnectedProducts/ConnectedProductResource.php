@@ -32,22 +32,22 @@ class ConnectedProductResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Product';
+        return __('filament.resources.connected_product.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Products';
+        return __('filament.resources.connected_product.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Products';
+        return __('filament.resources.connected_product.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Catalog';
+        return __('filament.navigation_groups.catalog');
     }
 
     public static function form(Schema $schema): Schema

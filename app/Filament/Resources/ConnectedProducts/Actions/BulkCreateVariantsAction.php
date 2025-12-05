@@ -17,32 +17,32 @@ class BulkCreateVariantsAction
     public static function make(): Action
     {
         return Action::make('bulkCreateVariants')
-            ->label('Bulk Create Variants')
+            ->label(__('filament.actions.bulk_create_variants.label'))
             ->icon('heroicon-o-sparkles')
             ->color('success')
             ->form([
                 TextInput::make('preview_count')
-                    ->label('Variants to be created')
+                    ->label(__('filament.actions.bulk_create_variants.variants_to_create'))
                     ->disabled()
                     ->dehydrated(false)
-                    ->formatStateUsing(fn ($state) => $state ? "{$state} variants will be created" : 'Enter option values to see preview')
-                    ->helperText('This is the number of all possible combinations')
+                    ->formatStateUsing(fn ($state) => $state ? __('filament.actions.bulk_create_variants.preview_text', ['count' => $state]) : __('filament.actions.bulk_create_variants.preview_placeholder'))
+                    ->helperText(__('filament.actions.bulk_create_variants.preview_text'))
                     ->columnSpanFull(),
 
                 TextInput::make('options_header')
-                    ->label('Variant Options')
+                    ->label(__('filament.actions.bulk_create_variants.variant_options'))
                     ->disabled()
                     ->dehydrated(false)
-                    ->formatStateUsing(fn () => 'Define the option names and values. All combinations will be created.')
-                    ->helperText('Add options below (e.g., Size, Color, Material)')
+                    ->formatStateUsing(fn () => __('filament.actions.bulk_create_variants.options_description'))
+                    ->helperText(__('filament.actions.bulk_create_variants.options_help'))
                     ->columnSpanFull(),
 
                 Repeater::make('options')
-                    ->label('Options')
+                    ->label(__('filament.actions.bulk_create_variants.options'))
                     ->schema([
                         TextInput::make('name')
-                            ->label('Option Name')
-                            ->placeholder('e.g., Size, Color, Material')
+                            ->label(__('filament.actions.bulk_create_variants.option_name'))
+                            ->placeholder(__('filament.actions.bulk_create_variants.option_name_placeholder'))
                             ->required()
                             ->maxLength(255)
                             ->live()
@@ -57,10 +57,10 @@ class BulkCreateVariantsAction
                             }),
 
                         TextInput::make('values')
-                            ->label('Option Values')
-                            ->placeholder('Comma-separated values, e.g., Small, Medium, Large')
+                            ->label(__('filament.actions.bulk_create_variants.option_values'))
+                            ->placeholder(__('filament.actions.bulk_create_variants.option_values_placeholder'))
                             ->required()
-                            ->helperText('Enter values separated by commas. Each combination will create a variant.')
+                            ->helperText(__('filament.actions.bulk_create_variants.option_values_help'))
                             ->live()
                             ->afterStateUpdated(function ($state, $get, $set) {
                                 // Calculate and show preview of combinations
@@ -73,31 +73,31 @@ class BulkCreateVariantsAction
                     ->minItems(1)
                     ->maxItems(3)
                     ->collapsible()
-                    ->itemLabel(fn (array $state): string => ($state['name'] ?? 'Option') . ': ' . ($state['values'] ?? 'No values'))
-                    ->addActionLabel('Add Option')
+                    ->itemLabel(fn (array $state): string => ($state['name'] ?? __('filament.actions.bulk_create_variants.options')) . ': ' . ($state['values'] ?? __('filament.actions.bulk_create_variants.no_values')))
+                    ->addActionLabel(__('filament.actions.bulk_create_variants.add_option'))
                     ->reorderable()
                     ->required()
                     ->columnSpanFull(),
 
                 TextInput::make('section_defaults')
-                    ->label('Default Values')
+                    ->label(__('filament.actions.bulk_create_variants.default_values'))
                     ->disabled()
                     ->dehydrated(false)
-                    ->formatStateUsing(fn () => 'These values will be applied to all created variants. You can edit them individually later.')
-                    ->helperText('Configure the default values below')
+                    ->formatStateUsing(fn () => __('filament.actions.bulk_create_variants.default_values_description'))
+                    ->helperText(__('filament.actions.bulk_create_variants.default_values_help'))
                     ->columnSpanFull(),
 
                 TextInput::make('default_price')
-                    ->label('Default Price')
+                    ->label(__('filament.actions.bulk_create_variants.default_price'))
                     ->numeric()
                     ->prefix('NOK')
-                    ->helperText('Enter price in decimal format (e.g., 99.99)')
+                    ->helperText(__('filament.actions.bulk_create_variants.default_price_help'))
                     ->default(0)
                     ->required()
                     ->columnSpanFull(),
 
                 Select::make('default_currency')
-                    ->label('Currency')
+                    ->label(__('filament.actions.bulk_create_variants.currency'))
                     ->options([
                         'nok' => 'NOK',
                         'usd' => 'USD',
@@ -108,40 +108,40 @@ class BulkCreateVariantsAction
                     ->columnSpanFull(),
 
                 TextInput::make('default_sku_prefix')
-                    ->label('SKU Prefix')
-                    ->placeholder('e.g., PROD-')
-                    ->helperText('SKU will be: {prefix}{product_id}-{variant-combination}')
+                    ->label(__('filament.actions.bulk_create_variants.sku_prefix'))
+                    ->placeholder(__('filament.actions.bulk_create_variants.sku_prefix_placeholder'))
+                    ->helperText(__('filament.actions.bulk_create_variants.sku_prefix_help'))
                     ->maxLength(50)
                     ->columnSpanFull(),
 
                 TextInput::make('default_inventory_quantity')
-                    ->label('Default Inventory Quantity')
+                    ->label(__('filament.actions.bulk_create_variants.default_inventory_quantity'))
                     ->numeric()
                     ->minValue(0)
-                    ->helperText('Leave empty if not tracking inventory')
+                    ->helperText(__('filament.actions.bulk_create_variants.default_inventory_quantity_help'))
                     ->columnSpanFull(),
 
                 Select::make('default_inventory_policy')
-                    ->label('Inventory Policy')
+                    ->label(__('filament.actions.bulk_create_variants.inventory_policy'))
                     ->options([
-                        'deny' => 'Deny (prevent sales when out of stock)',
-                        'continue' => 'Continue (allow backorders)',
+                        'deny' => __('filament.actions.bulk_create_variants.inventory_policy_deny'),
+                        'continue' => __('filament.actions.bulk_create_variants.inventory_policy_continue'),
                     ])
                     ->default('deny')
                     ->columnSpanFull(),
 
                 Toggle::make('default_requires_shipping')
-                    ->label('Requires Shipping')
+                    ->label(__('filament.actions.bulk_create_variants.requires_shipping'))
                     ->default(true)
                     ->columnSpanFull(),
 
                 Toggle::make('default_taxable')
-                    ->label('Taxable')
+                    ->label(__('filament.actions.bulk_create_variants.taxable'))
                     ->default(true)
                     ->columnSpanFull(),
 
                 Toggle::make('default_active')
-                    ->label('Active')
+                    ->label(__('filament.actions.bulk_create_variants.active'))
                     ->default(true)
                     ->columnSpanFull(),
             ])
@@ -151,8 +151,8 @@ class BulkCreateVariantsAction
                 if (empty($options)) {
                     Notification::make()
                         ->danger()
-                        ->title('No options defined')
-                        ->body('Please define at least one option with values.')
+                        ->title(__('filament.actions.bulk_create_variants.no_options'))
+                        ->body(__('filament.actions.bulk_create_variants.no_options_body'))
                         ->send();
                     return;
                 }
@@ -163,8 +163,8 @@ class BulkCreateVariantsAction
                 if (empty($combinations)) {
                     Notification::make()
                         ->danger()
-                        ->title('No combinations')
-                        ->body('No valid combinations could be generated from the provided options.')
+                        ->title(__('filament.actions.bulk_create_variants.no_combinations'))
+                        ->body(__('filament.actions.bulk_create_variants.no_combinations_body'))
                         ->send();
                     return;
                 }
@@ -255,12 +255,12 @@ class BulkCreateVariantsAction
 
                 Notification::make()
                     ->success()
-                    ->title('Variants Created')
-                    ->body("Successfully created {$created} variant(s)." . ($skipped > 0 ? " {$skipped} variant(s) were skipped (already exist)." : ''))
+                    ->title(__('filament.actions.bulk_create_variants.variants_created'))
+                    ->body(__('filament.actions.bulk_create_variants.variants_created_body', ['count' => $created]) . ($skipped > 0 ? ' ' . __('filament.actions.bulk_create_variants.variants_skipped', ['count' => $skipped]) : ''))
                     ->send();
             })
-            ->modalHeading('Bulk Create Variants')
-            ->modalDescription('Create multiple variants at once by defining option combinations, similar to Shopify.')
+            ->modalHeading(__('filament.actions.bulk_create_variants.heading'))
+            ->modalDescription(__('filament.actions.bulk_create_variants.description'))
             ->modalWidth('2xl');
     }
 

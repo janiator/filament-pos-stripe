@@ -32,22 +32,22 @@ class ConnectedPaymentLinkResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Payment Link';
+        return __('filament.resources.connected_payment_link.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Payment Links';
+        return __('filament.resources.connected_payment_link.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Payment Links';
+        return __('filament.resources.connected_payment_link.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Payments';
+        return __('filament.navigation_groups.payments');
     }
 
     public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null

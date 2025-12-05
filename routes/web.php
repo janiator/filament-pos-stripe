@@ -6,6 +6,13 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Filament token-based authentication route
+// This allows FlutterFlow apps to authenticate users via API token and access Filament panel
+// Usage: /filament-auth/{token}?store={store_slug}&redirect={path}
+Route::get('/filament-auth/{token}', [\App\Http\Controllers\FilamentAuthController::class, 'authenticate'])
+    ->middleware('web')
+    ->name('filament.auth.token');
+
 // Receipt XML download route (works with Filament tenant routing)
 Route::middleware(['auth', 'web'])->group(function () {
     Route::get('/app/store/{tenant}/receipts/{id}/xml', function ($tenant, $id) {

@@ -38,22 +38,22 @@ class ReceiptTemplateResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Receipt Template';
+        return __('filament.resources.receipt_template.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Receipt Templates';
+        return __('filament.resources.receipt_template.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Receipt Templates';
+        return __('filament.resources.receipt_template.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'POS';
+        return __('filament.navigation_groups.pos');
     }
 
     public static function form(Schema $schema): Schema

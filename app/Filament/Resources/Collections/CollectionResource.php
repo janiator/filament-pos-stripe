@@ -29,22 +29,22 @@ class CollectionResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Collection';
+        return __('filament.resources.collection.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Collections';
+        return __('filament.resources.collection.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Collections';
+        return __('filament.resources.collection.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Catalog';
+        return __('filament.navigation_groups.catalog');
     }
 
     public static function form(Schema $schema): Schema

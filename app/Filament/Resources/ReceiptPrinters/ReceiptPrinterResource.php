@@ -29,22 +29,22 @@ class ReceiptPrinterResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Receipt Printer';
+        return __('filament.resources.receipt_printer.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Receipt Printers';
+        return __('filament.resources.receipt_printer.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Receipt Printers';
+        return __('filament.resources.receipt_printer.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Terminals';
+        return __('filament.navigation_groups.terminals');
     }
 
     public static function form(Schema $schema): Schema

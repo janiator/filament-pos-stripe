@@ -17,19 +17,19 @@ class ListReceiptTemplates extends ListRecords
     {
         return [
             Action::make('seedFromFiles')
-                ->label('Seed from Files')
+                ->label(__('filament.actions.seed_from_files.label'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('success')
                 ->requiresConfirmation()
-                ->modalHeading('Seed Templates from Files')
-                ->modalDescription('This will create or update global templates from the template files. Custom templates will be skipped unless you use --force.')
+                ->modalHeading(__('filament.actions.seed_from_files.heading'))
+                ->modalDescription(__('filament.actions.seed_from_files.description'))
                 ->action(function () {
                     Artisan::call('receipt-templates:seed');
                     
                     Notification::make()
                         ->success()
-                        ->title('Templates seeded successfully')
-                        ->body('Global templates have been seeded from files.')
+                        ->title(__('filament.actions.seed_from_files.title'))
+                        ->body(__('filament.actions.seed_from_files.body'))
                         ->send();
                     
                     $this->refresh();

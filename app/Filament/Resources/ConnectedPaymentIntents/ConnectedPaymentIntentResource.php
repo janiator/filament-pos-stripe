@@ -30,22 +30,22 @@ class ConnectedPaymentIntentResource extends Resource
 
     public static function getLabel(): string
     {
-        return 'Payment Intent';
+        return __('filament.resources.connected_payment_intent.label');
     }
 
     public static function getPluralLabel(): string
     {
-        return 'Payment Intents';
+        return __('filament.resources.connected_payment_intent.plural');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Payment Intents';
+        return __('filament.resources.connected_payment_intent.navigation');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Payments';
+        return __('filament.navigation_groups.payments');
     }
 
     public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null
