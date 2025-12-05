@@ -520,3 +520,5 @@ If automatic printing fails:
 - [Receipt Template System](../features/RECEIPT_TEMPLATE_SYSTEM.md)
 - [Purchase Implementation Guide](./FLUTTERFLOW_PURCHASE_ACTION_IMPLEMENTATION.md)
 
+
+

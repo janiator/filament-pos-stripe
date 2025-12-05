@@ -29,7 +29,15 @@ class CreateTerminalReader extends CreateRecord
             'location' => $location->stripe_location_id,
         ];
 
-        if (! ($data['tap_to_pay'] ?? false) && ! empty($data['registration_code'] ?? null)) {
+        $tapToPay = $data['tap_to_pay'] ?? false;
+        
+        if (! $tapToPay) {
+            // Registration code is required for non-Tap-to-Pay readers
+            if (empty($data['registration_code'] ?? null)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'registration_code' => 'Registration code is required for Bluetooth readers.',
+                ]);
+            }
             $params['registration_code'] = $data['registration_code'];
         }
 

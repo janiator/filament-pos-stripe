@@ -88,7 +88,7 @@ class PosPurchaseInfolist
                             ->color('gray')
                             ->icon(Heroicon::OutlinedDocumentText)
                             ->url(fn ($record) => $record->receipt
-                                ? \App\Filament\Resources\Receipts\ReceiptResource::getUrl('edit', ['record' => $record->receipt])
+                                ? \App\Filament\Resources\Receipts\ReceiptResource::getUrl('preview', ['record' => $record->receipt])
                                 : null)
                             ->placeholder('No receipt generated'),
 

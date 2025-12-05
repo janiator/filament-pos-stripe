@@ -31,11 +31,6 @@ class ViewReceiptPreview extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('edit')
-                ->label('Edit Receipt')
-                ->icon('heroicon-o-pencil')
-                ->url(ReceiptResource::getUrl('edit', ['record' => $this->record]))
-                ->color('gray'),
             Action::make('download_xml')
                 ->label('Download XML')
                 ->icon('heroicon-o-arrow-down-tray')

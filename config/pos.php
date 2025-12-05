@@ -8,9 +8,11 @@ return [
     |
     | When enabled, receipts will be automatically printed after a successful
     | purchase. Set to false to disable automatic printing.
+    | 
+    | Default is false - printing is managed through the POS frontend.
     |
     */
-    'auto_print_receipts' => env('POS_AUTO_PRINT_RECEIPTS', true),
+    'auto_print_receipts' => env('POS_AUTO_PRINT_RECEIPTS', false),
 
     /*
     |--------------------------------------------------------------------------

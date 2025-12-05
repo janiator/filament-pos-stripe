@@ -44,7 +44,7 @@ class TerminalReaderForm
                 TextInput::make('registration_code')
                     ->label('Registration code')
                     ->helperText('Required for Bluetooth readers; not needed for Tap to Pay.')
-                    ->dehydrated(false)
+                    ->required(fn (Get $get) => ! ($get('tap_to_pay') ?? false))
                     ->visible(fn (Get $get) => ! $get('tap_to_pay'))
                     ->visibleOn('create'),
 

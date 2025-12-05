@@ -52,7 +52,7 @@ class TerminalReadersRelationManager extends RelationManager
                 Forms\Components\TextInput::make('registration_code')
                     ->label('Registration code')
                     ->helperText('Required for Bluetooth readers; not needed for Tap to Pay.')
-                    ->dehydrated(false)
+                    ->required(fn (Get $get) => ! ($get('tap_to_pay') ?? false))
                     ->visible(fn (Get $get) => ! $get('tap_to_pay')),
 
                 Forms\Components\TextInput::make('stripe_reader_id')
@@ -97,7 +97,15 @@ class TerminalReadersRelationManager extends RelationManager
                             'location' => $location->stripe_location_id,
                         ];
 
-                        if (! ($data['tap_to_pay'] ?? false) && ! empty($data['registration_code'] ?? null)) {
+                        $tapToPay = $data['tap_to_pay'] ?? false;
+                        
+                        if (! $tapToPay) {
+                            // Registration code is required for non-Tap-to-Pay readers
+                            if (empty($data['registration_code'] ?? null)) {
+                                throw \Illuminate\Validation\ValidationException::withMessages([
+                                    'registration_code' => 'Registration code is required for Bluetooth readers.',
+                                ]);
+                            }
                             $params['registration_code'] = $data['registration_code'];
                         }
 

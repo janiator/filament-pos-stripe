@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\PosEvents;
 
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
-use App\Filament\Resources\PosEvents\Pages\EditPosEvent;
 use App\Filament\Resources\PosEvents\Pages\ListPosEvents;
 use App\Filament\Resources\PosEvents\Schemas\PosEventForm;
 use App\Filament\Resources\PosEvents\Tables\PosEventsTable;
@@ -61,7 +60,6 @@ class PosEventResource extends Resource
     {
         return [
             'index' => ListPosEvents::route('/'),
-            'edit' => EditPosEvent::route('/{record}/edit'),
         ];
     }
 }
