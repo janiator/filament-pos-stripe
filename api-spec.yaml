@@ -4963,6 +4963,131 @@ components:
           nullable: true
           description: Tip amount in øre
           example: 500
+        purchase_payments:
+          type: array
+          description: List of payments connected to this purchase (usually one payment per purchase)
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: Payment/charge ID
+                example: 80
+              stripe_charge_id:
+                type: string
+                nullable: true
+                description: Stripe charge ID
+                example: "ch_3Sbkk4FV5GyLGm1e0muKMt1e"
+              stripe_payment_intent_id:
+                type: string
+                nullable: true
+                description: Stripe payment intent ID
+                example: "pi_3Sbkk4FV5GyLGm1e07tVG9ok"
+              amount:
+                type: integer
+                description: Payment amount in øre
+                example: 184900
+              amount_refunded:
+                type: integer
+                description: Amount refunded in øre
+                example: 0
+              currency:
+                type: string
+                description: Currency code
+                example: "nok"
+              status:
+                type: string
+                description: Payment status
+                example: "succeeded"
+              method:
+                type: string
+                nullable: true
+                description: Payment method code
+                example: "card_present"
+              code:
+                type: string
+                nullable: true
+                description: SAF-T payment code
+                example: "12002"
+              transaction_code:
+                type: string
+                nullable: true
+                description: SAF-T transaction code
+                example: "11002"
+              captured:
+                type: boolean
+                description: Whether payment is captured
+                example: true
+              refunded:
+                type: boolean
+                description: Whether payment is refunded
+                example: false
+              paid:
+                type: boolean
+                description: Whether payment is paid
+                example: true
+              paid_at:
+                type: string
+                format: date-time
+                nullable: true
+                description: Payment date/time in Oslo timezone
+                example: "2025-12-07T17:23:36.000+01:00"
+              tip_amount:
+                type: integer
+                nullable: true
+                description: Tip amount in øre
+                example: 0
+              application_fee_amount:
+                type: integer
+                nullable: true
+                description: Application fee amount in øre
+              description:
+                type: string
+                nullable: true
+                description: Payment description
+                example: "Card payment"
+              failure_code:
+                type: string
+                nullable: true
+                description: Failure code if payment failed
+              failure_message:
+                type: string
+                nullable: true
+                description: Failure message if payment failed
+              created_at:
+                type: string
+                format: date-time
+                description: Payment creation date/time in Oslo timezone
+                example: "2025-12-07T17:23:36.000+01:00"
+              payment_method_id:
+                type: string
+                nullable: true
+                description: Stripe payment method ID (from payment intent)
+                example: "pm_xxx"
+              capture_method:
+                type: string
+                nullable: true
+                description: Capture method (automatic or manual)
+                example: "automatic"
+              confirmation_method:
+                type: string
+                nullable: true
+                description: Confirmation method
+                example: "automatic"
+              receipt_email:
+                type: string
+                nullable: true
+                description: Receipt email address
+                example: "customer@example.com"
+              statement_descriptor:
+                type: string
+                nullable: true
+                description: Statement descriptor
+              succeeded_at:
+                type: string
+                format: date-time
+                nullable: true
+                description: Payment intent succeeded date/time in Oslo timezone
 
     PosEvent:
       type: object

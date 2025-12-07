@@ -383,6 +383,9 @@ class PurchasesController extends BaseApiController
         // Use metadata tip (or 0 if not set)
         $data['purchase_tip_amount'] = $metadataTip;
         
+        // Add purchase payments - list of payments connected to this purchase
+        $data['purchase_payments'] = $this->formatPurchasePayments($purchase);
+        
         // Clean outcome to remove Stripe internal properties
         $outcome = $purchase->outcome ?? null;
         if ($outcome && is_array($outcome)) {
@@ -896,5 +899,62 @@ class PurchasesController extends BaseApiController
                 'message' => 'Purchase processing failed: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Format payments connected to a purchase
+     * For most purchases, there will be one payment (the charge itself)
+     * This is structured as an array to allow for future expansion (e.g., split payments)
+     *
+     * @param ConnectedCharge $purchase
+     * @return array
+     */
+    protected function formatPurchasePayments(ConnectedCharge $purchase): array
+    {
+        $payments = [];
+
+        // The charge itself represents the primary payment
+        $payment = [
+            'id' => $purchase->id,
+            'stripe_charge_id' => $purchase->stripe_charge_id,
+            'stripe_payment_intent_id' => $purchase->stripe_payment_intent_id,
+            'amount' => $purchase->amount,
+            'amount_refunded' => $purchase->amount_refunded,
+            'currency' => $purchase->currency,
+            'status' => $purchase->status,
+            'method' => $purchase->payment_method,
+            'code' => $purchase->payment_code,
+            'transaction_code' => $purchase->transaction_code,
+            'captured' => $purchase->captured,
+            'refunded' => $purchase->refunded,
+            'paid' => $purchase->paid,
+            'paid_at' => $this->formatDateTimeOslo($purchase->paid_at),
+            'tip_amount' => $purchase->tip_amount ?? null,
+            'application_fee_amount' => $purchase->application_fee_amount ?? null,
+            'description' => $purchase->description,
+            'failure_code' => $purchase->failure_code,
+            'failure_message' => $purchase->failure_message,
+            'created_at' => $this->formatDateTimeOslo($purchase->created_at),
+        ];
+
+        // If there's a payment intent, try to get additional details
+        if ($purchase->stripe_payment_intent_id) {
+            $paymentIntent = \App\Models\ConnectedPaymentIntent::where('stripe_id', $purchase->stripe_payment_intent_id)
+                ->where('stripe_account_id', $purchase->stripe_account_id)
+                ->first();
+
+            if ($paymentIntent) {
+                $payment['payment_method_id'] = $paymentIntent->stripe_payment_method_id;
+                $payment['capture_method'] = $paymentIntent->capture_method;
+                $payment['confirmation_method'] = $paymentIntent->confirmation_method;
+                $payment['receipt_email'] = $paymentIntent->receipt_email;
+                $payment['statement_descriptor'] = $paymentIntent->statement_descriptor;
+                $payment['succeeded_at'] = $paymentIntent->succeeded_at ? $this->formatDateTimeOslo($paymentIntent->succeeded_at) : null;
+            }
+        }
+
+        $payments[] = $payment;
+
+        return $payments;
     }
 }
