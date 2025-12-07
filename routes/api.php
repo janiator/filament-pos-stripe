@@ -110,7 +110,11 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Purchase endpoints
     Route::get('/purchases/payment-methods', [\App\Http\Controllers\Api\PurchasesController::class, 'getPaymentMethods'])->name('api.purchases.payment-methods');
+    Route::get('/purchases', [\App\Http\Controllers\Api\PurchasesController::class, 'index'])->name('api.purchases.index');
+    Route::get('/purchases/{id}', [\App\Http\Controllers\Api\PurchasesController::class, 'show'])->name('api.purchases.show');
     Route::post('/purchases', [\App\Http\Controllers\Api\PurchasesController::class, 'store'])->name('api.purchases.store');
+    Route::put('/purchases/{id}/customer', [\App\Http\Controllers\Api\PurchasesController::class, 'updateCustomer'])->name('api.purchases.update-customer');
+    Route::patch('/purchases/{id}/customer', [\App\Http\Controllers\Api\PurchasesController::class, 'updateCustomer'])->name('api.purchases.update-customer.patch');
     
     // Note: Add more API resources here following the same pattern:
     // Route::apiResource('subscriptions', \App\Http\Controllers\Api\SubscriptionsController::class);

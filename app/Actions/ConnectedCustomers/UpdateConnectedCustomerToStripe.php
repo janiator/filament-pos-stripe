@@ -39,6 +39,17 @@ class UpdateConnectedCustomerToStripe
             if ($customer->email) {
                 $updateData['email'] = $customer->email;
             }
+            
+            // Add phone if it exists (per Stripe API spec)
+            if ($customer->phone) {
+                $updateData['phone'] = $customer->phone;
+            }
+            
+            // Add address if it exists (per Stripe API spec)
+            // Stripe expects address as an object with line1, line2, city, state, postal_code, country
+            if ($customer->address && is_array($customer->address)) {
+                $updateData['address'] = $customer->address;
+            }
 
             if (! empty($updateData)) {
                 $stripe->customers->update(

@@ -21,6 +21,12 @@ class ConnectedCustomer extends Model
         'stripe_account_id',
         'name',
         'email',
+        'phone',
+        'address',
+    ];
+
+    protected $casts = [
+        'address' => 'array',
     ];
 
     protected static function booted(): void

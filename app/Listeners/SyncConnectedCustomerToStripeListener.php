@@ -18,7 +18,8 @@ class SyncConnectedCustomerToStripeListener
         }
 
         // Check if any syncable fields changed using wasChanged()
-        $syncableFields = ['name', 'email'];
+        // Per Stripe API spec: name, email, phone, and address are syncable
+        $syncableFields = ['name', 'email', 'phone', 'address'];
         $hasChanges = false;
 
         foreach ($syncableFields as $field) {

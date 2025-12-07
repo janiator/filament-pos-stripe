@@ -68,7 +68,9 @@ abstract class BaseApiController extends BaseController
     }
 
     /**
-     * Format a date/time in Oslo timezone for API responses
+     * Format a date/time in Oslo timezone for Flutter-compatible API responses
+     * Returns ISO 8601 format with Oslo timezone offset (e.g., "2025-12-05T13:50:14.000+01:00")
+     * Flutter's DateTime.parse() can handle timezone offsets.
      * 
      * @param \Illuminate\Support\Carbon|\DateTime|null $dateTime
      * @return string|null ISO 8601 formatted string in Oslo timezone
@@ -79,6 +81,24 @@ abstract class BaseApiController extends BaseController
             return null;
         }
 
-        return $dateTime->setTimezone('Europe/Oslo')->toIso8601String();
+        // Convert to Carbon if not already
+        if (!$dateTime instanceof \Carbon\Carbon) {
+            $dateTime = \Carbon\Carbon::instance($dateTime);
+        }
+
+        // Convert to Oslo timezone
+        $oslo = $dateTime->copy()->setTimezone('Europe/Oslo');
+        
+        // Format as ISO 8601 with milliseconds and timezone offset for Flutter compatibility
+        // Format: "2025-12-05T13:50:14.000+01:00" (or +02:00 during DST)
+        // Extract milliseconds from microseconds
+        $microseconds = $oslo->micro;
+        $milliseconds = str_pad((string) floor($microseconds / 1000), 3, '0', STR_PAD_LEFT);
+        
+        // Get timezone offset in format +HH:MM or -HH:MM
+        $offset = $oslo->format('P'); // P format gives +01:00 or +02:00
+        
+        // Format: YYYY-MM-DDTHH:mm:ss.sss+HH:MM
+        return $oslo->format('Y-m-d\TH:i:s') . '.' . $milliseconds . $offset;
     }
 }

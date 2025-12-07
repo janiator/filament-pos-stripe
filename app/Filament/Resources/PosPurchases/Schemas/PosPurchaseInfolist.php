@@ -77,7 +77,7 @@ class PosPurchaseInfolist
                     ->columns(2)
                     ->icon(Heroicon::OutlinedShoppingCart),
 
-                // Customer information (if available)
+                // Customer information (if available) - More prominent
                 Section::make('Customer Information')
                     ->schema([
                         TextEntry::make('customer.name')
@@ -85,6 +85,7 @@ class PosPurchaseInfolist
                             ->icon(Heroicon::OutlinedUser)
                             ->badge()
                             ->color('info')
+                            ->size(TextSize::Large)
                             ->url(fn ($record) => $record->customer
                                 ? \App\Filament\Resources\ConnectedCustomers\ConnectedCustomerResource::getUrl('view', ['record' => $record->customer])
                                 : null)
@@ -95,17 +96,18 @@ class PosPurchaseInfolist
                             ->icon(Heroicon::OutlinedUser)
                             ->badge()
                             ->color('info')
+                            ->size(TextSize::Large)
                             ->visible(fn ($record) => !$record->customer && ($record->metadata['customer_name'] ?? null)),
 
                         TextEntry::make('customer.email')
                             ->label('Email')
                             ->icon(Heroicon::OutlinedEnvelope)
                             ->copyable()
+                            ->size(TextSize::Large)
                             ->visible(fn ($record) => $record->customer && $record->customer->email),
                     ])
                     ->columns(2)
-                    ->collapsible()
-                    ->collapsed()
+                    ->icon(Heroicon::OutlinedUser)
                     ->visible(fn ($record) => $record->customer || ($record->metadata['customer_name'] ?? null)),
 
                 // Receipt and Session Information
@@ -152,79 +154,119 @@ class PosPurchaseInfolist
                     ->columns(2)
                     ->icon(Heroicon::OutlinedDocumentText),
 
-                // Cart Items - Receipt-like display
+                // Cart Items - Clean list display using stored product snapshots
                 Section::make('Items Purchased')
                     ->schema([
                         TextEntry::make('items_display')
                             ->label('')
-                            ->formatStateUsing(function ($state, $record) {
+                            ->state(function ($record) {
+                                // Get metadata directly - it's already cast as array by the model
                                 $metadata = $record->metadata ?? [];
-                                $items = $metadata['items'] ?? [];
-
-                                if (!is_array($items) || empty($items)) {
-                                    return '<div class="text-gray-500 italic">No items in this purchase</div>';
-                                }
-
-                                // Pre-load all products in one query for efficiency
-                                $productIds = collect($items)->pluck('product_id')->filter()->unique()->toArray();
-                                $products = [];
-                                if (!empty($productIds)) {
-                                    $products = \App\Models\ConnectedProduct::whereIn('id', $productIds)
-                                        ->get()
-                                        ->keyBy('id');
-                                }
-
-                                $html = '<div class="space-y-3">';
                                 
-                                foreach ($items as $item) {
+                                // Clean items array if it exists (remove null byte keys)
+                                $items = [];
+                                if (isset($metadata['items']) && is_array($metadata['items'])) {
+                                    foreach ($metadata['items'] as $item) {
+                                        if (is_array($item)) {
+                                            $cleanedItem = [];
+                                            foreach ($item as $key => $value) {
+                                                // Skip keys with null bytes
+                                                if (strpos($key, "\0") === false) {
+                                                    $cleanedItem[$key] = $value;
+                                                }
+                                            }
+                                            $items[] = $cleanedItem;
+                                        }
+                                    }
+                                }
+
+                                if (empty($items)) {
+                                    return 'No items in this purchase';
+                                }
+
+                                $lines = [];
+                                
+                                foreach ($items as $index => $item) {
                                     $quantity = $item['quantity'] ?? 1;
                                     $unitPrice = ($item['unit_price'] ?? 0) / 100;
-                                    $total = $unitPrice * $quantity;
-                                    $productId = $item['product_id'] ?? null;
-                                    $variantId = $item['variant_id'] ?? null;
                                     $discountAmount = ($item['discount_amount'] ?? 0) / 100;
-                                    $productCode = $item['product_code'] ?? null;
+                                    $originalPrice = isset($item['original_price']) ? ($item['original_price'] / 100) : null;
+                                    
+                                    // Calculate line total
+                                    $lineTotal = ($unitPrice * $quantity) - ($discountAmount * $quantity);
 
-                                    // Get product name
-                                    $productName = 'Unknown Product';
-                                    if ($productId && isset($products[$productId])) {
-                                        $product = $products[$productId];
-                                        $productName = $product->name ?? "Product #{$productId}";
-                                    } elseif ($productId) {
-                                        $productName = "Product #{$productId}";
+                                    // Use stored product snapshot (preserves historical data)
+                                    $productName = $item['product_name'] ?? null;
+                                    
+                                    // Fallback to fetching product if snapshot not available (old purchases)
+                                    if (!$productName) {
+                                        $productId = $item['product_id'] ?? null;
+                                        $variantId = $item['variant_id'] ?? null;
+                                        
+                                        if ($variantId) {
+                                            // Try to get variant first
+                                            $variant = \App\Models\ProductVariant::find($variantId);
+                                            if ($variant && $variant->product) {
+                                                $productName = $variant->product->name;
+                                                if ($variant->variant_name !== 'Default') {
+                                                    $productName .= ' - ' . $variant->variant_name;
+                                                }
+                                            } elseif ($productId) {
+                                                $product = \App\Models\ConnectedProduct::find($productId);
+                                                $productName = $product ? $product->name : "Product #{$productId}";
+                                            }
+                                        } elseif ($productId) {
+                                            $product = \App\Models\ConnectedProduct::find($productId);
+                                            $productName = $product ? $product->name : "Product #{$productId}";
+                                        }
+                                        
+                                        // Final fallback
+                                        if (!$productName) {
+                                            $productName = 'Unknown Product';
+                                        }
                                     }
 
-                                    $html .= '<div class="border-b border-gray-200 pb-2">';
-                                    $html .= '<div class="flex justify-between items-start mb-1">';
-                                    $html .= '<div class="flex-1">';
-                                    $html .= '<div class="font-semibold text-gray-900">' . htmlspecialchars($productName) . '</div>';
+                                    // Build item line
+                                    $line = "• {$quantity}x {$productName}";
                                     
+                                    // Add product code if available (from snapshot or item)
+                                    $productCode = $item['product_code'] ?? $item['article_group_code'] ?? null;
                                     if ($productCode) {
-                                        $html .= '<div class="text-xs text-gray-500">Code: ' . htmlspecialchars($productCode) . '</div>';
+                                        $line .= " [{$productCode}]";
                                     }
                                     
+                                    // Add variant info if available
+                                    $variantId = $item['variant_id'] ?? null;
                                     if ($variantId) {
-                                        $html .= '<div class="text-xs text-gray-500">Variant #' . htmlspecialchars($variantId) . '</div>';
+                                        $line .= " (Variant #{$variantId})";
                                     }
                                     
-                                    $html .= '</div>';
-                                    $html .= '<div class="text-right ml-4">';
-                                    $html .= '<div class="font-semibold text-gray-900">' . number_format($total, 2) . ' NOK</div>';
-                                    $html .= '<div class="text-sm text-gray-500">' . $quantity . ' × ' . number_format($unitPrice, 2) . ' NOK</div>';
+                                    // Add pricing info
+                                    if ($originalPrice && $originalPrice > $unitPrice) {
+                                        // Show original price if discounted
+                                        $line .= "\n  " . number_format($originalPrice, 2) . ' NOK (original)';
+                                        $line .= " → " . number_format($unitPrice, 2) . ' NOK (after discount)';
+                                    } else {
+                                        $line .= "\n  " . number_format($unitPrice, 2) . ' NOK';
+                                    }
                                     
+                                    $line .= " × {$quantity}";
+                                    
+                                    // Add discount if applicable
                                     if ($discountAmount > 0) {
-                                        $html .= '<div class="text-xs text-green-600">- ' . number_format($discountAmount, 2) . ' NOK discount</div>';
+                                        $line .= " (Discount: -" . number_format($discountAmount, 2) . ' NOK per unit)';
                                     }
                                     
-                                    $html .= '</div>';
-                                    $html .= '</div>';
-                                    $html .= '</div>';
+                                    // Add total
+                                    $line .= " = " . number_format($lineTotal, 2) . ' NOK';
+
+                                    $lines[] = $line;
                                 }
 
-                                $html .= '</div>';
-                                return $html;
+                                return implode("\n\n", $lines);
                             })
-                            ->html()
+                            ->listWithLineBreaks()
+                            ->placeholder('No items')
                             ->columnSpanFull(),
                     ])
                     ->icon(Heroicon::OutlinedShoppingBag),

@@ -34,6 +34,8 @@ class HandleCustomerWebhook
             'stripe_account_id' => $store->stripe_account_id,
             'name' => $customer->name,
             'email' => $customer->email,
+            'phone' => $customer->phone ?? null,
+            'address' => $customer->address ? (array) $customer->address : null,
         ];
 
         ConnectedCustomer::updateOrCreate(

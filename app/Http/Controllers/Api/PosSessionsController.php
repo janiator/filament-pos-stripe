@@ -153,7 +153,7 @@ class PosSessionsController extends BaseApiController
     }
 
     /**
-     * Close a POS session
+     * Close a POS session (automatically generates Z-report)
      */
     public function close(Request $request, string $id): JsonResponse
     {
@@ -167,7 +167,7 @@ class PosSessionsController extends BaseApiController
 
         $session = PosSession::where('id', $id)
             ->where('store_id', $store->id)
-            ->with(['posDevice', 'user', 'charges'])
+            ->with(['posDevice', 'user', 'charges', 'events', 'receipts', 'store'])
             ->firstOrFail();
 
         if (!$session->canBeClosed()) {
@@ -182,6 +182,7 @@ class PosSessionsController extends BaseApiController
             'closing_data' => 'nullable|array',
         ]);
 
+        // Close session
         $session->close(
             $validated['actual_cash'] ?? null,
             $validated['closing_notes'] ?? null
@@ -192,9 +193,29 @@ class PosSessionsController extends BaseApiController
             $session->save();
         }
 
+        // Log Z-report event (13009)
+        \App\Models\PosEvent::create([
+            'store_id' => $store->id,
+            'pos_device_id' => $session->pos_device_id,
+            'pos_session_id' => $session->id,
+            'user_id' => $request->user()->id,
+            'event_code' => \App\Models\PosEvent::EVENT_Z_REPORT,
+            'event_type' => 'report',
+            'description' => "Z-report for session {$session->session_number}",
+            'event_data' => [
+                'actual_cash' => $session->actual_cash,
+                'cash_difference' => $session->cash_difference,
+            ],
+            'occurred_at' => now(),
+        ]);
+
+        // Generate Z-report
+        $report = $this->generateZReportData($session);
+
         return response()->json([
             'message' => 'Session closed successfully',
             'session' => $this->formatSessionResponse($session->fresh(['posDevice', 'user', 'charges'])),
+            'report' => $report,
         ]);
     }
 
@@ -387,6 +408,25 @@ class PosSessionsController extends BaseApiController
             'occurred_at' => now(),
         ]);
 
+        // Generate Z-report
+        $report = $this->generateZReportData($session);
+
+        return response()->json([
+            'message' => 'Z-report generated and session closed',
+            'session' => $this->formatSessionResponse($session->fresh(['posDevice', 'user', 'charges'])),
+            'report' => $report,
+        ]);
+    }
+
+    /**
+     * Generate Z-report data for a closed session
+     */
+    protected function generateZReportData(PosSession $session): array
+    {
+        // Ensure all relationships are loaded
+        $session->loadMissing(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
+        
+        $charges = $session->charges->where('status', 'succeeded');
         $totalAmount = $charges->sum('amount');
         $cashAmount = $charges->where('payment_method', 'cash')->sum('amount');
         $cardAmount = $charges->where('payment_method', 'card')->sum('amount');
@@ -422,7 +462,7 @@ class PosSessionsController extends BaseApiController
             ];
         });
 
-        $report = [
+        return [
             'session_id' => $session->id,
             'session_number' => $session->session_number,
             'opened_at' => $this->formatDateTimeOslo($session->opened_at),
@@ -490,12 +530,6 @@ class PosSessionsController extends BaseApiController
                 ];
             }),
         ];
-
-        return response()->json([
-            'message' => 'Z-report generated and session closed',
-            'session' => $this->formatSessionResponse($session->fresh(['posDevice', 'user', 'charges'])),
-            'report' => $report,
-        ]);
     }
 
     /**

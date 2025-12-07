@@ -1102,11 +1102,12 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /pos-sessions/{id}/close:
     post:
       tags:
         - POS Sessions
       summary: Close POS session
-      description: Close a POS session. Automatically logs event 13021 (Session closed)
+      description: Close a POS session and automatically generate Z-report. Automatically logs events 13009 (Z-report) and 13021 (Session closed)
       operationId: closePosSession
       parameters:
         - name: id
@@ -1139,7 +1140,7 @@ paths:
                   additionalProperties: true
       responses:
         '200':
-          description: Session closed successfully
+          description: Session closed successfully with Z-report
           content:
             application/json:
               schema:
@@ -1150,6 +1151,8 @@ paths:
                     example: Session closed successfully
                   session:
                     $ref: '#/components/schemas/PosSession'
+                  report:
+                    $ref: '#/components/schemas/ZReport'
         '400':
           description: Session cannot be closed
           content:
@@ -2333,6 +2336,85 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
 
   /purchases:
+    get:
+      tags:
+        - Purchases
+      summary: List purchases
+      description: |
+        Retrieve a paginated list of purchases (charges) for the current store.
+        Only purchases associated with POS sessions are returned.
+      operationId: listPurchases
+      parameters:
+        - name: pos_session_id
+          in: query
+          description: Filter by POS session ID
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: Filter by charge status
+          schema:
+            type: string
+            enum: [succeeded, pending, failed, refunded]
+        - name: payment_method
+          in: query
+          description: Filter by payment method
+          schema:
+            type: string
+            example: cash
+        - name: from_date
+          in: query
+          description: Filter purchases created from this date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          description: Filter purchases created until this date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: paid_from_date
+          in: query
+          description: Filter purchases paid from this date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: paid_to_date
+          in: query
+          description: Filter purchases paid until this date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: per_page
+          in: query
+          description: Number of items per page (max 100)
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: List of purchases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  purchases:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Purchase'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
     post:
       tags:
         - Purchases
@@ -2631,6 +2713,161 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /purchases/{id}:
+    get:
+      tags:
+        - Purchases
+      summary: Get purchase
+      description: Retrieve a single purchase by ID
+      operationId: getPurchase
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Purchase ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Purchase details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  purchase:
+                    $ref: '#/components/schemas/Purchase'
+        '404':
+          description: Purchase not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /purchases/{id}/customer:
+    put:
+      tags:
+        - Purchases
+      summary: Register or update customer for purchase
+      description: |
+        Register a customer to an existing purchase, or remove the customer by setting customer_id to null.
+        This allows associating a customer with a purchase after it has been completed.
+      operationId: updatePurchaseCustomer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Purchase ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer_id:
+                  type: string
+                  nullable: true
+                  description: Stripe customer ID. Set to null to remove customer from purchase.
+                  example: "cus_xxx"
+      responses:
+        '200':
+          description: Customer updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Customer registered to purchase successfully"
+                  purchase:
+                    $ref: '#/components/schemas/Purchase'
+        '400':
+          description: Invalid purchase ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Purchase or customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                  errors:
+                    type: object
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    patch:
+      tags:
+        - Purchases
+      summary: Register or update customer for purchase (PATCH)
+      description: Same as PUT /purchases/{id}/customer
+      operationId: updatePurchaseCustomerPatch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Purchase ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer_id:
+                  type: string
+                  nullable: true
+                  description: Stripe customer ID. Set to null to remove customer from purchase.
+                  example: "cus_xxx"
+      responses:
+        '200':
+          description: Customer updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Customer registered to purchase successfully"
+                  purchase:
+                    $ref: '#/components/schemas/Purchase'
+        '400':
+          description: Invalid purchase ID
+        '404':
+          description: Purchase or customer not found
+        '422':
+          description: Validation error
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -3410,6 +3647,46 @@ paths:
                   format: email
                   maxLength: 255
                   example: john@example.com
+                phone:
+                  type: string
+                  nullable: true
+                  description: Customer phone number (per Stripe API spec)
+                  example: "+4712345678"
+                address:
+                  type: object
+                  nullable: true
+                  description: Customer address (per Stripe API spec)
+                  properties:
+                    line1:
+                      type: string
+                      nullable: true
+                      description: Address line 1 (street, PO Box, or company name)
+                      example: "123 Main St"
+                    line2:
+                      type: string
+                      nullable: true
+                      description: Address line 2 (apartment, suite, unit, or building)
+                      example: "Apt 4B"
+                    city:
+                      type: string
+                      nullable: true
+                      description: City, district, suburb, town, or village
+                      example: "Oslo"
+                    state:
+                      type: string
+                      nullable: true
+                      description: State, county, province, or region
+                      example: "Oslo"
+                    postal_code:
+                      type: string
+                      nullable: true
+                      description: ZIP or postal code
+                      example: "0001"
+                    country:
+                      type: string
+                      nullable: true
+                      description: Two-letter country code (ISO 3166-1 alpha-2)
+                      example: "NO"
                 model:
                   type: string
                   nullable: true
@@ -3507,6 +3784,46 @@ paths:
                   format: email
                   maxLength: 255
                   example: john@example.com
+                phone:
+                  type: string
+                  nullable: true
+                  description: Customer phone number (per Stripe API spec)
+                  example: "+4712345678"
+                address:
+                  type: object
+                  nullable: true
+                  description: Customer address (per Stripe API spec)
+                  properties:
+                    line1:
+                      type: string
+                      nullable: true
+                      description: Address line 1 (street, PO Box, or company name)
+                      example: "123 Main St"
+                    line2:
+                      type: string
+                      nullable: true
+                      description: Address line 2 (apartment, suite, unit, or building)
+                      example: "Apt 4B"
+                    city:
+                      type: string
+                      nullable: true
+                      description: City, district, suburb, town, or village
+                      example: "Oslo"
+                    state:
+                      type: string
+                      nullable: true
+                      description: State, county, province, or region
+                      example: "Oslo"
+                    postal_code:
+                      type: string
+                      nullable: true
+                      description: ZIP or postal code
+                      example: "0001"
+                    country:
+                      type: string
+                      nullable: true
+                      description: Two-letter country code (ISO 3166-1 alpha-2)
+                      example: "NO"
                 model:
                   type: string
                   nullable: true
@@ -3813,6 +4130,46 @@ components:
           format: email
           nullable: true
           example: john@example.com
+        phone:
+          type: string
+          nullable: true
+          description: Customer phone number (per Stripe API spec)
+          example: "+4712345678"
+        address:
+          type: object
+          nullable: true
+          description: Customer address (per Stripe API spec)
+          properties:
+            line1:
+              type: string
+              nullable: true
+              description: Address line 1 (street, PO Box, or company name)
+              example: "123 Main St"
+            line2:
+              type: string
+              nullable: true
+              description: Address line 2 (apartment, suite, unit, or building)
+              example: "Apt 4B"
+            city:
+              type: string
+              nullable: true
+              description: City, district, suburb, town, or village
+              example: "Oslo"
+            state:
+              type: string
+              nullable: true
+              description: State, county, province, or region
+              example: "Oslo"
+            postal_code:
+              type: string
+              nullable: true
+              description: ZIP or postal code
+              example: "0001"
+            country:
+              type: string
+              nullable: true
+              description: Two-letter country code (ISO 3166-1 alpha-2)
+              example: "NO"
         model:
           type: string
           nullable: true
@@ -4294,6 +4651,318 @@ components:
           type: string
           format: date-time
           nullable: true
+
+    Purchase:
+      type: object
+      description: Purchase (charge) with purchase_ prefixed nested structures for FlutterFlow
+      properties:
+        id:
+          type: integer
+          example: 123
+        stripe_charge_id:
+          type: string
+          nullable: true
+          example: "ch_1234567890abcdef"
+        amount:
+          type: integer
+          description: Amount in øre
+          example: 11000
+        amount_refunded:
+          type: integer
+          description: Amount refunded in øre
+          example: 0
+        currency:
+          type: string
+          example: "nok"
+        status:
+          type: string
+          enum: [succeeded, pending, failed, refunded]
+          example: "succeeded"
+        payment_method:
+          type: string
+          example: "cash"
+        description:
+          type: string
+          nullable: true
+          example: "POS Purchase"
+        failure_code:
+          type: string
+          nullable: true
+        failure_message:
+          type: string
+          nullable: true
+        captured:
+          type: boolean
+          example: true
+        refunded:
+          type: boolean
+          example: false
+        paid:
+          type: boolean
+          example: true
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-01T10:30:00+01:00"
+        charge_type:
+          type: string
+          nullable: true
+          example: "pos"
+        application_fee_amount:
+          type: integer
+          nullable: true
+          description: Application fee in øre
+        tip_amount:
+          type: integer
+          nullable: true
+          description: Tip amount in øre
+          example: 500
+        transaction_code:
+          type: string
+          nullable: true
+          description: SAF-T transaction code (PredefinedBasicID-11)
+          example: "11001"
+        payment_code:
+          type: string
+          nullable: true
+          description: SAF-T payment code (PredefinedBasicID-12)
+          example: "12001"
+        article_group_code:
+          type: string
+          nullable: true
+          description: SAF-T article group code (PredefinedBasicID-04)
+          example: "04001"
+        purchase_metadata:
+          type: object
+          nullable: true
+          description: Additional metadata (cashier_name, device_id, payment_intent_id, etc.)
+          additionalProperties: true
+          example:
+            cashier_name: "John Doe"
+            device_id: 1
+            payment_intent_id: "pi_xxx"
+        outcome:
+          type: object
+          nullable: true
+          description: Payment outcome (for Stripe payments)
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-01T10:30:00+01:00"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-12-01T10:30:00+01:00"
+        purchase_session:
+          type: object
+          nullable: true
+          description: POS session information
+          properties:
+            id:
+              type: integer
+              example: 45
+            session_number:
+              type: string
+              example: "000001"
+            status:
+              type: string
+              enum: [open, closed, abandoned]
+              example: "open"
+            opened_at:
+              type: string
+              format: date-time
+              nullable: true
+              example: "2025-12-01T08:00:00+01:00"
+            closed_at:
+              type: string
+              format: date-time
+              nullable: true
+        purchase_store:
+          type: object
+          nullable: true
+          description: Store information
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: "My Store"
+            slug:
+              type: string
+              example: "my-store"
+        purchase_receipt:
+          type: object
+          nullable: true
+          description: Receipt information
+          properties:
+            id:
+              type: integer
+              example: 789
+            receipt_number:
+              type: string
+              example: "1-S-000001"
+            receipt_type:
+              type: string
+              example: "sales"
+            printed:
+              type: boolean
+              example: true
+            printed_at:
+              type: string
+              format: date-time
+              nullable: true
+              example: "2025-12-01T10:30:05+01:00"
+            reprint_count:
+              type: integer
+              example: 0
+        purchase_customer:
+          type: object
+          description: Customer information (always present, null values if no customer)
+          properties:
+            id:
+              type: integer
+              nullable: true
+              example: 10
+            stripe_customer_id:
+              type: string
+              nullable: true
+              example: "cus_xxx"
+            name:
+              type: string
+              nullable: true
+              example: "Customer Name"
+            email:
+              type: string
+              nullable: true
+              example: "customer@example.com"
+            phone:
+              type: string
+              nullable: true
+              description: Customer phone number
+              example: "+4712345678"
+            address:
+              type: string
+              nullable: true
+              description: Customer address
+              example: "123 Main St, Oslo, Norway"
+        purchase_items:
+          type: array
+          nullable: true
+          description: Array of purchased items/products with enriched product information
+          items:
+            type: object
+            properties:
+              purchase_item_id:
+                type: string
+                nullable: true
+                description: Cart item ID (UUID from FlutterFlow)
+                example: "550e8400-e29b-41d4-a716-446655440000"
+              purchase_item_product_id:
+                type: string
+                nullable: true
+                description: Product ID
+                example: "123"
+              purchase_item_variant_id:
+                type: string
+                nullable: true
+                description: Product variant ID (if applicable)
+                example: "456"
+              purchase_item_product_name:
+                type: string
+                nullable: true
+                description: Product name (includes variant name if applicable)
+                example: "Coffee - Large"
+              purchase_item_product_image_url:
+                type: string
+                nullable: true
+                description: Product image URL (signed URL for security)
+                format: uri
+                example: "https://pos.visivo.no/api/products/123/images/789?signature=..."
+              purchase_item_unit_price:
+                type: integer
+                description: Price per unit in øre
+                example: 5000
+              purchase_item_quantity:
+                type: integer
+                description: Quantity purchased
+                example: 2
+              purchase_item_original_price:
+                type: integer
+                nullable: true
+                description: Original price before discount in øre
+                example: 5500
+              purchase_item_discount_amount:
+                type: integer
+                nullable: true
+                description: Discount amount per unit in øre
+                example: 500
+              purchase_item_discount_reason:
+                type: string
+                nullable: true
+                description: Reason for discount
+                example: "Manager override"
+              purchase_item_article_group_code:
+                type: string
+                nullable: true
+                description: SAF-T article group code (PredefinedBasicID-04)
+                example: "04001"
+              purchase_item_product_code:
+                type: string
+                nullable: true
+                description: SAF-T product code (PLU - BasicType-02)
+                example: "COFFEE001"
+              purchase_item_metadata:
+                type: object
+                nullable: true
+                description: Additional item metadata
+                additionalProperties: true
+        purchase_discounts:
+          type: array
+          nullable: true
+          description: Array of cart-level discounts
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [prosent, verdi, ingen]
+                example: prosent
+              amount:
+                type: integer
+                description: Discount amount in øre
+                example: 1000
+              percentage:
+                type: number
+                nullable: true
+                description: Discount percentage (0-100)
+                example: 10
+              reason:
+                type: string
+                nullable: true
+                example: "Kundeklubb"
+        purchase_subtotal:
+          type: integer
+          nullable: true
+          description: Subtotal in øre (before discounts and tax)
+          example: 10000
+        purchase_total_discounts:
+          type: integer
+          nullable: true
+          description: Total discount amount in øre
+          example: 1000
+        purchase_total_tax:
+          type: integer
+          nullable: true
+          description: Total tax amount in øre
+          example: 2000
+        purchase_tip_amount:
+          type: integer
+          nullable: true
+          description: Tip amount in øre
+          example: 500
 
     PosEvent:
       type: object

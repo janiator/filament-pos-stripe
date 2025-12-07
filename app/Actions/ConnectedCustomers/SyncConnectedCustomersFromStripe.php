@@ -98,6 +98,8 @@ class SyncConnectedCustomersFromStripe
                         // Update existing record
                         $customerRecord->name = $customer->name;
                         $customerRecord->email = $customer->email;
+                        $customerRecord->phone = $customer->phone ?? null;
+                        $customerRecord->address = $customer->address ? (array) $customer->address : null;
                         // Explicitly set stripe_account_id again to be safe
                         $customerRecord->stripe_account_id = $stripeAccountId;
                         
@@ -131,6 +133,8 @@ class SyncConnectedCustomersFromStripe
                             $existingCustomer->stripe_account_id = $stripeAccountId;
                             $existingCustomer->name = $customer->name;
                             $existingCustomer->email = $customer->email;
+                            $existingCustomer->phone = $customer->phone ?? null;
+                            $existingCustomer->address = $customer->address ? (array) $customer->address : null;
                             // Use saveQuietly to prevent triggering sync back to Stripe
                             $existingCustomer->saveQuietly();
                             $result['updated']++;
@@ -149,6 +153,8 @@ class SyncConnectedCustomersFromStripe
                                     'stripe_account_id' => $stripeAccountId,
                                     'name' => $customer->name,
                                     'email' => $customer->email,
+                                    'phone' => $customer->phone ?? null,
+                                    'address' => $customer->address ? (array) $customer->address : null,
                                 ]);
                             });
                             $result['created']++;

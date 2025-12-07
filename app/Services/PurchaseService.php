@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\ConnectedCharge;
+use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
 use App\Models\PosSession;
 use App\Models\PosEvent;
+use App\Models\ProductVariant;
 use App\Models\Receipt;
 use App\Models\Store;
 use App\Services\ReceiptGenerationService;
@@ -14,6 +16,7 @@ use App\Services\ReceiptPrintService;
 use App\Services\SafTCodeMapper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Stripe\StripeClient;
 use Throwable;
 
@@ -144,7 +147,7 @@ class PurchaseService
             'paid' => true,
             'paid_at' => now(),
             'metadata' => array_merge([
-                'items' => $cartData['items'] ?? [],
+                'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
                 'discounts' => $cartData['discounts'] ?? [],
                 'customer_id' => $cartData['customer_id'] ?? null,
                 'customer_name' => $cartData['customer_name'] ?? null,
@@ -272,7 +275,7 @@ class PurchaseService
                 'paid' => true,
                 'paid_at' => now(),
                 'metadata' => array_merge([
-                    'items' => $cartData['items'] ?? [],
+                    'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
                     'discounts' => $cartData['discounts'] ?? [],
                     'customer_id' => $cartData['customer_id'] ?? null,
                     'customer_name' => $cartData['customer_name'] ?? null,
@@ -288,7 +291,7 @@ class PurchaseService
             $charge->update([
                 'pos_session_id' => $posSession->id,
                 'metadata' => array_merge($charge->metadata ?? [], [
-                    'items' => $cartData['items'] ?? [],
+                    'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
                     'discounts' => $cartData['discounts'] ?? [],
                     'customer_id' => $cartData['customer_id'] ?? null,
                     'customer_name' => $cartData['customer_name'] ?? null,
@@ -339,7 +342,7 @@ class PurchaseService
             'refunded' => false,
             'paid' => false,
             'metadata' => array_merge([
-                'items' => $cartData['items'] ?? [],
+                'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
                 'discounts' => $cartData['discounts'] ?? [],
                 'customer_id' => $cartData['customer_id'] ?? null,
                 'customer_name' => $cartData['customer_name'] ?? null,
@@ -355,6 +358,115 @@ class PurchaseService
         $this->logPaymentEvent($posSession, $charge, $paymentMethod, '13019');
 
         return $charge;
+    }
+
+    /**
+     * Enrich cart items with product snapshots at purchase time
+     * This preserves historical product information even if products are later changed or deleted
+     *
+     * @param array $items
+     * @param string $stripeAccountId
+     * @return array
+     */
+    protected function enrichCartItemsWithProductSnapshots(array $items, string $stripeAccountId): array
+    {
+        if (empty($items)) {
+            return [];
+        }
+
+        // Collect all product IDs and variant IDs
+        $productIds = [];
+        $variantIds = [];
+        
+        foreach ($items as $item) {
+            if (isset($item['product_id'])) {
+                $productIds[] = (int) $item['product_id'];
+            }
+            if (isset($item['variant_id'])) {
+                $variantIds[] = (int) $item['variant_id'];
+            }
+        }
+
+        // Fetch products and variants in bulk
+        $products = ConnectedProduct::whereIn('id', array_unique($productIds))
+            ->where('stripe_account_id', $stripeAccountId)
+            ->get()
+            ->keyBy('id');
+
+        $variants = ProductVariant::whereIn('id', array_unique($variantIds))
+            ->where('stripe_account_id', $stripeAccountId)
+            ->get()
+            ->keyBy('id');
+
+        // Enrich each item with product snapshot
+        return array_map(function ($item) use ($products, $variants) {
+            $productId = isset($item['product_id']) ? (int) $item['product_id'] : null;
+            $variantId = isset($item['variant_id']) ? (int) $item['variant_id'] : null;
+            
+            $product = $productId ? ($products[$productId] ?? null) : null;
+            $variant = $variantId ? ($variants[$variantId] ?? null) : null;
+
+            // Get product name (from variant if available, otherwise product)
+            $productName = null;
+            if ($variant && $variant->product) {
+                $productName = $variant->product->name;
+                if ($variant->variant_name !== 'Default') {
+                    $productName .= ' - ' . $variant->variant_name;
+                }
+            } elseif ($product) {
+                $productName = $product->name;
+            }
+
+            // Get product image URL (prefer variant image, then product image)
+            $productImageUrl = null;
+            if ($variant && $variant->image_url) {
+                $productImageUrl = $variant->image_url;
+            } elseif ($product) {
+                // Get first image from product
+                if ($product->hasMedia('images')) {
+                    $firstMedia = $product->getMedia('images')->first();
+                    if ($firstMedia) {
+                        // Generate signed URL that expires in 1 year (for historical data)
+                        $productImageUrl = URL::temporarySignedRoute(
+                            'api.products.images.serve',
+                            now()->addYear(),
+                            [
+                                'product' => $product->id,
+                                'media' => $firstMedia->id,
+                            ]
+                        );
+                    }
+                } elseif ($product->images && is_array($product->images) && !empty($product->images)) {
+                    $productImageUrl = $product->images[0];
+                }
+            }
+
+            // Get article group code and product code
+            $articleGroupCode = null;
+            $productCode = null;
+            if ($variant && $variant->product) {
+                $articleGroupCode = $variant->product->article_group_code;
+                $productCode = $variant->product->product_code;
+            } elseif ($product) {
+                $articleGroupCode = $product->article_group_code;
+                $productCode = $product->product_code;
+            }
+
+            // Calculate original price (unit_price + discount_amount if discount exists)
+            $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
+            $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
+            $originalPrice = $discountAmount > 0 ? ($unitPrice + $discountAmount) : null;
+
+            // Merge snapshot data with existing item data
+            return array_merge($item, [
+                // Store snapshot of product information at purchase time
+                'product_name' => $productName,
+                'product_image_url' => $productImageUrl,
+                'original_price' => $originalPrice,
+                'article_group_code' => $articleGroupCode,
+                'product_code' => $productCode,
+            ]);
+        }, $items);
     }
 
     /**

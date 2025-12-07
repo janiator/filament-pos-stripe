@@ -116,3 +116,5 @@ class FilamentAuthController extends Controller
         return redirect($panelUrl);
     }
 }
+
+

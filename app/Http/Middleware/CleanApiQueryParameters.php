@@ -22,13 +22,16 @@ class CleanApiQueryParameters
         if ($request->is('api/*')) {
             $query = $request->query->all();
             
-            // Filter out null, empty strings, and whitespace-only strings
+            // Filter out null, empty strings, whitespace-only strings, and string "null"
             $cleanedQuery = array_filter($query, function ($value) {
                 // Handle arrays (e.g., filters[])
                 if (is_array($value)) {
                     // Filter empty values from arrays
                     $filtered = array_filter($value, function ($item) {
-                        return $item !== null && $item !== '' && trim($item) !== '';
+                        if ($item === null || $item === '' || (is_string($item) && (trim($item) === '' || strtolower(trim($item)) === 'null'))) {
+                            return false;
+                        }
+                        return true;
                     });
                     // Only include array if it has at least one non-empty value
                     return !empty($filtered);
@@ -39,9 +42,12 @@ class CleanApiQueryParameters
                     return false;
                 }
                 
-                // Remove whitespace-only strings
-                if (is_string($value) && trim($value) === '') {
-                    return false;
+                // Remove whitespace-only strings and string "null"
+                if (is_string($value)) {
+                    $trimmed = trim($value);
+                    if ($trimmed === '' || strtolower($trimmed) === 'null') {
+                        return false;
+                    }
                 }
                 
                 return true;
