@@ -86,6 +86,19 @@ class PaymentMethodSeeder extends Seeder
                     'background_color' => '#4A90E260',
                     'icon_color' => '#4A90E2',
                 ],
+                [
+                    'name' => 'Betaling ved henting',
+                    'code' => 'deferred',
+                    'provider' => 'other',
+                    'enabled' => true,
+                    'pos_suitable' => true,
+                    'sort_order' => 5,
+                    'saf_t_payment_code' => '12010', // Other payment code
+                    'saf_t_event_code' => '13019', // Other payment event
+                    'description' => 'Kredittsalg - betaling ved henting (f.eks. renseri). Genererer utleveringskvittering per Kassasystemforskriften § 2-8-7.',
+                    'background_color' => '#FFA50060',
+                    'icon_color' => '#FFA500',
+                ],
             ];
 
             foreach ($defaultMethods as $method) {
@@ -95,17 +108,50 @@ class PaymentMethodSeeder extends Seeder
                     ->first();
 
                 if ($existing) {
-                    // Update existing record with new defaults (but preserve user changes to name, description, etc.)
-                    $existing->update([
-                        'provider' => $method['provider'],
-                        'provider_method' => $method['provider_method'] ?? null,
-                        'pos_suitable' => $method['pos_suitable'] ?? true,
-                        'saf_t_payment_code' => $method['saf_t_payment_code'],
-                        'saf_t_event_code' => $method['saf_t_event_code'],
-                        'sort_order' => $method['sort_order'],
-                        'background_color' => $method['background_color'] ?? null,
-                        'icon_color' => $method['icon_color'] ?? null,
-                    ]);
+                    // Update existing record only with missing/null values (preserve user customizations)
+                    $updates = [];
+                    
+                    // Only update provider if not set
+                    if (!$existing->provider || $existing->provider === 'other') {
+                        $updates['provider'] = $method['provider'];
+                    }
+                    
+                    // Only update provider_method if not set
+                    if (!$existing->provider_method && isset($method['provider_method'])) {
+                        $updates['provider_method'] = $method['provider_method'];
+                    }
+                    
+                    // Only update pos_suitable if not explicitly set (defaults to true)
+                    if ($existing->pos_suitable === null) {
+                        $updates['pos_suitable'] = $method['pos_suitable'] ?? true;
+                    }
+                    
+                    // Only update SAF-T codes if not set
+                    if (!$existing->saf_t_payment_code) {
+                        $updates['saf_t_payment_code'] = $method['saf_t_payment_code'];
+                    }
+                    if (!$existing->saf_t_event_code) {
+                        $updates['saf_t_event_code'] = $method['saf_t_event_code'];
+                    }
+                    
+                    // Only update sort_order if it's the default (0) and we have a different default
+                    // This preserves intentional sort_order = 0 settings
+                    if ($existing->sort_order === 0 && isset($method['sort_order']) && $method['sort_order'] !== 0) {
+                        $updates['sort_order'] = $method['sort_order'];
+                    }
+                    
+                    // Only update colors if not set
+                    if (!$existing->background_color && isset($method['background_color'])) {
+                        $updates['background_color'] = $method['background_color'];
+                    }
+                    if (!$existing->icon_color && isset($method['icon_color'])) {
+                        $updates['icon_color'] = $method['icon_color'];
+                    }
+                    
+                    // Apply updates only if there are any
+                    if (!empty($updates)) {
+                        $existing->update($updates);
+                    }
                 } else {
                     PaymentMethod::create(array_merge($method, [
                         'store_id' => $store->id,

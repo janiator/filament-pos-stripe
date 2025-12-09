@@ -48,6 +48,13 @@ class PosEventsController extends BaseApiController
             $query->whereDate('occurred_at', '<=', $request->get('to_date'));
         }
 
+        // Filter by nullinnslag (drawer open without sale)
+        // Only applies to cash drawer open events (13005)
+        if ($request->has('nullinnslag')) {
+            $nullinnslag = filter_var($request->get('nullinnslag'), FILTER_VALIDATE_BOOLEAN);
+            $query->where('event_data->nullinnslag', $nullinnslag);
+        }
+
         $events = $query->orderBy('occurred_at', 'desc')
             ->paginate($request->get('per_page', 50));
 

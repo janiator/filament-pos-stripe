@@ -21,11 +21,28 @@ class CustomersController extends BaseApiController
 
         $this->authorizeTenant($request, $store);
 
-        $customers = ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id)
-            ->with(['store'])
-            ->paginate($request->get('per_page', 15));
+        $perPage = min($request->get('per_page', 15), 100); // Max 100 per page
+        $paginatedCustomers = ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id)
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
 
-        return response()->json($customers);
+        // Transform customers to exclude internal mapping fields and rename address
+        $customers = $paginatedCustomers->getCollection()->map(function ($customer) {
+            $customerData = $customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
+            if (isset($customerData['address'])) {
+                $customerData['customer_address'] = $customerData['address'];
+                unset($customerData['address']);
+            }
+            return $customerData;
+        });
+
+        return response()->json([
+            'customers' => $customers,
+            'current_page' => $paginatedCustomers->currentPage(),
+            'last_page' => $paginatedCustomers->lastPage(),
+            'per_page' => $paginatedCustomers->perPage(),
+            'total' => $paginatedCustomers->total(),
+        ]);
     }
 
     /**
@@ -46,6 +63,7 @@ class CustomersController extends BaseApiController
             'name' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
+            'profile_image_url' => 'nullable|url|max:500',
             'address' => 'nullable|array',
             'address.line1' => 'nullable|string|max:255',
             'address.line2' => 'nullable|string|max:255',
@@ -53,6 +71,13 @@ class CustomersController extends BaseApiController
             'address.state' => 'nullable|string|max:255',
             'address.postal_code' => 'nullable|string|max:255',
             'address.country' => 'nullable|string|size:2',
+            'customer_address' => 'nullable|array',
+            'customer_address.line1' => 'nullable|string|max:255',
+            'customer_address.line2' => 'nullable|string|max:255',
+            'customer_address.city' => 'nullable|string|max:255',
+            'customer_address.state' => 'nullable|string|max:255',
+            'customer_address.postal_code' => 'nullable|string|max:255',
+            'customer_address.country' => 'nullable|string|size:2',
             'model' => 'nullable|string',
             'model_id' => 'nullable|integer',
             'model_uuid' => 'nullable|uuid',
@@ -60,9 +85,22 @@ class CustomersController extends BaseApiController
 
         $validated['stripe_account_id'] = $store->stripe_account_id;
 
+        // Handle customer_address in request (map to address for database)
+        if (isset($validated['customer_address'])) {
+            $validated['address'] = $validated['customer_address'];
+            unset($validated['customer_address']);
+        }
+
         $customer = ConnectedCustomer::create($validated);
 
-        return response()->json($customer, 201);
+        // Transform response to rename address to customer_address
+        $customerData = $customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
+        if (isset($customerData['address'])) {
+            $customerData['customer_address'] = $customerData['address'];
+            unset($customerData['address']);
+        }
+
+        return response()->json($customerData, 201);
     }
 
     /**
@@ -80,10 +118,17 @@ class CustomersController extends BaseApiController
 
         $customer = ConnectedCustomer::where('id', $id)
             ->where('stripe_account_id', $store->stripe_account_id)
-            ->with(['store', 'subscriptions'])
+            ->with(['subscriptions'])
             ->firstOrFail();
 
-        return response()->json($customer);
+        // Transform response to rename address to customer_address
+        $customerData = $customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
+        if (isset($customerData['address'])) {
+            $customerData['customer_address'] = $customerData['address'];
+            unset($customerData['address']);
+        }
+
+        return response()->json($customerData);
     }
 
     /**
@@ -107,6 +152,7 @@ class CustomersController extends BaseApiController
             'name' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
+            'profile_image_url' => 'nullable|url|max:500',
             'address' => 'nullable|array',
             'address.line1' => 'nullable|string|max:255',
             'address.line2' => 'nullable|string|max:255',
@@ -114,14 +160,34 @@ class CustomersController extends BaseApiController
             'address.state' => 'nullable|string|max:255',
             'address.postal_code' => 'nullable|string|max:255',
             'address.country' => 'nullable|string|size:2',
+            'customer_address' => 'nullable|array',
+            'customer_address.line1' => 'nullable|string|max:255',
+            'customer_address.line2' => 'nullable|string|max:255',
+            'customer_address.city' => 'nullable|string|max:255',
+            'customer_address.state' => 'nullable|string|max:255',
+            'customer_address.postal_code' => 'nullable|string|max:255',
+            'customer_address.country' => 'nullable|string|size:2',
             'model' => 'nullable|string',
             'model_id' => 'nullable|integer',
             'model_uuid' => 'nullable|uuid',
         ]);
 
+        // Handle customer_address in request (map to address for database)
+        if (isset($validated['customer_address'])) {
+            $validated['address'] = $validated['customer_address'];
+            unset($validated['customer_address']);
+        }
+
         $customer->update($validated);
 
-        return response()->json($customer);
+        // Transform response to rename address to customer_address
+        $customerData = $customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
+        if (isset($customerData['address'])) {
+            $customerData['customer_address'] = $customerData['address'];
+            unset($customerData['address']);
+        }
+
+        return response()->json($customerData);
     }
 
     /**

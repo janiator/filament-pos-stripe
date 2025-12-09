@@ -6,9 +6,11 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\FileUpload;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class CollectionForm
 {
@@ -52,15 +54,48 @@ class CollectionForm
 
                 Section::make('Media')
                     ->schema([
+                        FileUpload::make('image')
+                            ->label('Collection Image')
+                            ->image()
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([
+                                null,
+                                '16:9',
+                                '4:3',
+                                '1:1',
+                            ])
+                            ->disk('public')
+                            ->directory('collections')
+                            ->visibility('public')
+                            ->maxSize(5120) // 5MB
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                            ->helperText('Upload an image for this collection (max 5MB). JPEG, PNG, WebP, and GIF are supported.')
+                            ->default(function ($record) {
+                                // Convert existing image_url back to file path if it's from our storage
+                                if ($record && $record->image_url) {
+                                    $url = $record->image_url;
+                                    // Check if it's a storage URL
+                                    $storageUrl = Storage::disk('public')->url('');
+                                    if (str_starts_with($url, $storageUrl)) {
+                                        // Extract the relative path
+                                        $relativePath = str_replace($storageUrl, '', $url);
+                                        return ltrim($relativePath, '/');
+                                    }
+                                }
+                                return null;
+                            })
+                            // Note: image_url will be set in mutation methods after file is saved
+                            ->columnSpanFull(),
+
                         TextInput::make('image_url')
                             ->label('Image URL')
                             ->url()
                             ->maxLength(255)
-                            ->helperText('Optional image URL for the collection')
+                            ->helperText('Image URL (automatically set when uploading a file, or enter manually for external URLs)')
                             ->columnSpanFull(),
                     ])
                     ->collapsible()
-                    ->collapsed(true),
+                    ->collapsed(false),
 
                 Section::make('Metadata')
                     ->schema([

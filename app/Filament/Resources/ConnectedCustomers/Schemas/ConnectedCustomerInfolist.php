@@ -29,6 +29,20 @@ class ConnectedCustomerInfolist
                             ->icon(Heroicon::OutlinedEnvelope)
                             ->copyable(),
 
+                        TextEntry::make('phone')
+                            ->label('Phone')
+                            ->placeholder('-')
+                            ->icon(Heroicon::OutlinedPhone)
+                            ->copyable(),
+
+                        TextEntry::make('profile_image_url')
+                            ->label('Profile Image URL')
+                            ->placeholder('-')
+                            ->icon(Heroicon::OutlinedPhoto)
+                            ->url(fn ($record) => $record->profile_image_url)
+                            ->openUrlInNewTab()
+                            ->copyable(),
+
                         TextEntry::make('store.name')
                             ->label('Store')
                             ->placeholder('-')
@@ -37,7 +51,37 @@ class ConnectedCustomerInfolist
                                 ? \App\Filament\Resources\Stores\StoreResource::getUrl('view', ['record' => $record->store])
                                 : null),
                     ])
-                    ->columns(3),
+                    ->columns(2),
+
+                Section::make('Address')
+                    ->schema([
+                        TextEntry::make('address.line1')
+                            ->label('Address Line 1')
+                            ->placeholder('-'),
+
+                        TextEntry::make('address.line2')
+                            ->label('Address Line 2')
+                            ->placeholder('-'),
+
+                        TextEntry::make('address.city')
+                            ->label('City')
+                            ->placeholder('-'),
+
+                        TextEntry::make('address.state')
+                            ->label('State / County')
+                            ->placeholder('-'),
+
+                        TextEntry::make('address.postal_code')
+                            ->label('Postal Code')
+                            ->placeholder('-'),
+
+                        TextEntry::make('address.country')
+                            ->label('Country')
+                            ->placeholder('-'),
+                    ])
+                    ->columns(2)
+                    ->collapsible()
+                    ->visible(fn ($record) => $record->address && is_array($record->address) && !empty(array_filter($record->address))),
 
                 Section::make('Stripe Details')
                     ->schema([
@@ -53,26 +97,6 @@ class ConnectedCustomerInfolist
                     ])
                     ->columns(2)
                     ->collapsible(),
-
-                Section::make('Model Mapping')
-                    ->schema([
-                        TextEntry::make('model')
-                            ->label('Model')
-                            ->placeholder('-'),
-
-                        TextEntry::make('model_id')
-                            ->label('Model ID')
-                            ->placeholder('-')
-                            ->visible(fn ($record) => $record->model_id),
-
-                        TextEntry::make('model_uuid')
-                            ->label('Model UUID')
-                            ->placeholder('-')
-                            ->visible(fn ($record) => $record->model_uuid),
-                    ])
-                    ->columns(3)
-                    ->collapsible()
-                    ->visible(fn ($record) => $record->model),
 
                 Section::make('Timestamps')
                     ->schema([

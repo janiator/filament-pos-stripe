@@ -11,7 +11,7 @@ use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
-use Filament\Forms\Components\Select;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -61,50 +61,40 @@ class ProductsRelationManager extends RelationManager
             ])
             ->headerActions([
                 AttachAction::make()
-                    ->multiple()
-                    ->recordSelect(function ($select) {
-                        // Configure the select component with search and multi-select
-                        return $select
+                    ->form([
+                        CheckboxList::make('recordIds')
+                            ->label('Products')
+                            ->options(function () {
+                                // Get products that are not already in this collection
+                                $existingProductIds = DB::table('collection_product')
+                                    ->where('collection_id', $this->ownerRecord->id)
+                                    ->pluck('connected_product_id');
+                                
+                                // Build query to get available products
+                                $products = ConnectedProduct::query()
+                                    ->where('stripe_account_id', $this->ownerRecord->stripe_account_id)
+                                    ->where('active', true)
+                                    ->when($existingProductIds->isNotEmpty(), function ($q) use ($existingProductIds) {
+                                        return $q->whereNotIn('id', $existingProductIds);
+                                    })
+                                    ->orderBy('name', 'asc')
+                                    ->orderBy('id', 'asc')
+                                    ->get();
+                                
+                                return $products->mapWithKeys(fn ($product) => [$product->id => $product->name])->all();
+                            })
                             ->searchable()
-                            ->multiple()
-                            ->getOptionLabelUsing(function ($value) {
-                                // Load record directly without using the relationship
-                                $product = ConnectedProduct::where('id', $value)
-                                    ->where('stripe_account_id', $this->ownerRecord->stripe_account_id)
-                                    ->first();
-                                
-                                return $product ? $product->name : 'Unknown Product';
-                            })
-                            ->getOptionLabelsUsing(function (array $values) {
-                                // Load multiple records directly without using the relationship
-                                $products = ConnectedProduct::whereIn('id', $values)
-                                    ->where('stripe_account_id', $this->ownerRecord->stripe_account_id)
-                                    ->get()
-                                    ->mapWithKeys(fn ($product) => [$product->id => $product->name])
-                                    ->all();
-                                
-                                return $products;
-                            });
-                    })
-                    ->recordSelectOptionsQuery(function ($query) {
-                        // Get products that are not already in this collection
-                        // Use a fresh query to avoid the relationship's orderByPivot
-                        $existingProductIds = DB::table('collection_product')
-                            ->where('collection_id', $this->ownerRecord->id)
-                            ->pluck('connected_product_id');
-                        
-                        // Build query from scratch to avoid relationship ordering issues
-                        // This prevents DISTINCT/JSON column issues with PostgreSQL
-                        return ConnectedProduct::query()
-                            ->where('stripe_account_id', $this->ownerRecord->stripe_account_id)
-                            ->where('active', true)
-                            ->when($existingProductIds->isNotEmpty(), function ($q) use ($existingProductIds) {
-                                return $q->whereNotIn('id', $existingProductIds);
-                            })
-                            ->orderBy('name', 'asc')
-                            ->orderBy('id', 'asc');
-                    })
-                    ->recordSelectSearchColumns(['name', 'description']),
+                            ->columns(2)
+                            ->gridDirection('row')
+                            ->helperText('Select products to add to this collection')
+                            ->columnSpanFull(),
+                    ])
+                    ->action(function (array $data): void {
+                        $recordIds = $data['recordIds'] ?? [];
+                        if (!empty($recordIds)) {
+                            $this->ownerRecord->products()->attach($recordIds);
+                        }
+                    }),
             ])
             ->recordActions([
                 DetachAction::make(),

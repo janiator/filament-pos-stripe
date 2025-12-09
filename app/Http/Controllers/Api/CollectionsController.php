@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Collection;
+use App\Models\ConnectedProduct;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class CollectionsController extends BaseApiController
 {
@@ -56,7 +59,7 @@ class CollectionsController extends BaseApiController
                     'name' => $collection->name,
                     'description' => $collection->description,
                     'handle' => $collection->handle,
-                    'image_url' => $collection->image_url,
+                    'image_url' => $this->getCollectionImageUrl($collection),
                     'active' => $collection->active,
                     'sort_order' => $collection->sort_order,
                     'products_count' => $collection->products_count,
@@ -66,13 +69,39 @@ class CollectionsController extends BaseApiController
                 ];
             });
 
+            // Check if there are products with no collection
+            $uncategorizedCount = \App\Models\ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
+                ->where('active', true)
+                ->doesntHave('collections')
+                ->count();
+
+            // Add fake "Ukategorisert" category if there are uncategorized products
+            if ($uncategorizedCount > 0) {
+                $uncategorizedCollection = [
+                    'id' => 0,
+                    'name' => 'Ukategorisert',
+                    'description' => null,
+                    'handle' => null,
+                    'image_url' => null,
+                    'active' => true,
+                    'sort_order' => 9999, // Put it at the end
+                    'products_count' => $uncategorizedCount,
+                    'metadata' => null,
+                    'created_at' => null,
+                    'updated_at' => null,
+                ];
+                
+                // Append to the end of the collection
+                $transformedCollections = $transformedCollections->push($uncategorizedCollection);
+            }
+
             return response()->json([
                 'collections' => $transformedCollections,
                 'meta' => [
                     'current_page' => $collections->currentPage(),
                     'last_page' => $collections->lastPage(),
                     'per_page' => $collections->perPage(),
-                    'total' => $collections->total(),
+                    'total' => $collections->total() + ($uncategorizedCount > 0 ? 1 : 0),
                 ],
             ]);
         } catch (\Throwable $e) {
@@ -117,7 +146,7 @@ class CollectionsController extends BaseApiController
                 'name' => $collection->name,
                 'description' => $collection->description,
                 'handle' => $collection->handle,
-                'image_url' => $collection->image_url,
+                'image_url' => $this->getCollectionImageUrl($collection),
                 'active' => $collection->active,
                 'sort_order' => $collection->sort_order,
                 'products_count' => $collection->products_count,
@@ -127,6 +156,41 @@ class CollectionsController extends BaseApiController
                 'updated_at' => $this->formatDateTimeOslo($collection->updated_at),
             ],
         ]);
+    }
+
+    /**
+     * Get collection image URL - generate signed URL if local, keep external URLs as-is
+     */
+    protected function getCollectionImageUrl(Collection $collection): ?string
+    {
+        if (!$collection->image_url) {
+            return null;
+        }
+
+        // If it's an external URL (Stripe, CDN, etc.), return as-is
+        $storageUrl = Storage::disk('public')->url('');
+        if (!str_starts_with($collection->image_url, $storageUrl) && 
+            !str_starts_with($collection->image_url, config('app.url')) &&
+            !str_starts_with($collection->image_url, request()->getSchemeAndHttpHost())) {
+            return $collection->image_url;
+        }
+
+        // If it's a local storage URL, generate a signed URL
+        if (str_starts_with($collection->image_url, $storageUrl) ||
+            str_starts_with($collection->image_url, config('app.url')) ||
+            str_starts_with($collection->image_url, request()->getSchemeAndHttpHost())) {
+            // Generate signed URL that expires in 24 hours
+            return URL::temporarySignedRoute(
+                'api.collections.image.serve',
+                now()->addDay(),
+                [
+                    'collectionId' => $collection->id,
+                ]
+            );
+        }
+
+        // Fallback: return as-is
+        return $collection->image_url;
     }
 }
 

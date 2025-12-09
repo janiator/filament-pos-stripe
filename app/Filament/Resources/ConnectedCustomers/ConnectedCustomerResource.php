@@ -70,6 +70,7 @@ class ConnectedCustomerResource extends Resource
         return [
             \App\Filament\Resources\ConnectedCustomers\RelationManagers\SubscriptionsRelationManager::class,
             \App\Filament\Resources\ConnectedCustomers\RelationManagers\PaymentMethodsRelationManager::class,
+            \App\Filament\Resources\ConnectedCustomers\RelationManagers\PurchasesRelationManager::class,
         ];
     }
 

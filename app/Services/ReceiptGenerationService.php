@@ -232,6 +232,90 @@ class ReceiptGenerationService
     }
 
     /**
+     * Generate a delivery receipt for deferred payment (Utleveringskvittering)
+     * Complies with Kassasystemforskriften § 2-8-7
+     * Used for credit sales that will be invoiced/paid later (e.g., dry cleaning)
+     *
+     * @param ConnectedCharge $charge
+     * @param PosSession|null $session
+     * @return Receipt
+     */
+    public function generateDeliveryReceipt(ConnectedCharge $charge, ?PosSession $session = null): Receipt
+    {
+        $session = $session ?? $charge->posSession;
+        
+        // Get store from session or find by stripe_account_id
+        $store = $session?->store;
+        if (!$store && $charge->stripe_account_id) {
+            $store = Store::where('stripe_account_id', $charge->stripe_account_id)->first();
+        }
+        
+        if (!$store) {
+            throw new \Exception('Cannot generate receipt: Store not found for charge');
+        }
+
+        // Get items from charge metadata
+        $items = [];
+        $metadata = is_array($charge->metadata) ? $charge->metadata : json_decode($charge->metadata ?? '{}', true);
+        
+        if (isset($metadata['items']) && is_array($metadata['items'])) {
+            $items = $metadata['items'];
+        } else {
+            // Fallback: single item
+            $items[] = [
+                'name' => $charge->description ?? 'Vare/Tjeneste',
+                'quantity' => 1,
+                'unit_price' => number_format($charge->amount / 100, 2, ',', ' '),
+                'line_total' => number_format($charge->amount / 100, 2, ',', ' '),
+            ];
+        }
+
+        // Calculate totals
+        $subtotal = $metadata['subtotal'] ?? ($charge->amount / 100);
+        $totalDiscounts = $metadata['total_discounts'] ?? 0;
+        $totalTax = $metadata['total_tax'] ?? $this->calculateTaxFromAmount($charge->amount);
+
+        $storeMetadata = is_array($store->metadata) ? $store->metadata : json_decode($store->metadata ?? '{}', true);
+
+        $receiptData = [
+            'store' => [
+                'name' => $store->name,
+                'address' => $storeMetadata['address'] ?? '',
+                'organization_number' => $storeMetadata['organization_number'] ?? '',
+            ],
+            'receipt_number' => Receipt::generateReceiptNumber($store->id, 'delivery'),
+            'date' => now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s'),
+            'transaction_id' => $charge->id, // Use charge ID for deferred payments
+            'session_number' => $session?->session_number,
+            'cashier' => $session?->user?->name ?? 'Unknown',
+            'items' => $items,
+            'subtotal' => $subtotal,
+            'total_discounts' => $totalDiscounts,
+            'tax' => $totalTax,
+            'total' => $charge->amount / 100,
+            'currency' => strtoupper($charge->currency),
+            'deferred_reason' => $metadata['deferred_reason'] ?? 'Betaling ved henting',
+            'customer_id' => $metadata['customer_id'] ?? null,
+            'customer_name' => $metadata['customer_name'] ?? null,
+        ];
+
+        $receipt = Receipt::create([
+            'store_id' => $store->id,
+            'pos_session_id' => $session?->id,
+            'charge_id' => $charge->id,
+            'user_id' => $session?->user_id,
+            'receipt_number' => $receiptData['receipt_number'],
+            'receipt_type' => 'delivery',
+            'receipt_data' => $receiptData,
+        ]);
+
+        // Render and save XML template
+        $this->templateService->renderAndSave($receipt);
+
+        return $receipt;
+    }
+
+    /**
      * Calculate tax amount
      */
     protected function calculateTax(ConnectedCharge $charge): float

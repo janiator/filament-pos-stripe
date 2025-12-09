@@ -44,12 +44,24 @@ class ProductsController extends BaseApiController
                 $query->where('type', $request->get('type'));
             }
 
-            // Filter by collection if provided
-            if ($request->has('collection_id')) {
-                $collectionId = $request->get('collection_id');
-                $query->whereHas('collections', function ($q) use ($collectionId) {
-                    $q->where('collections.id', $collectionId);
-                });
+            // Filter by collection if provided (by ID or slug/handle)
+            if ($request->has('collection_id') || $request->has('collection_slug')) {
+                // Special handling for collection_id=0 (uncategorized products)
+                if ($request->has('collection_id') && $request->get('collection_id') == 0) {
+                    $query->doesntHave('collections');
+                } else {
+                    $query->whereHas('collections', function ($q) use ($request, $store) {
+                        $q->where('collections.stripe_account_id', $store->stripe_account_id);
+                        
+                        if ($request->has('collection_id')) {
+                            $q->where('collections.id', $request->get('collection_id'));
+                        }
+                        
+                        if ($request->has('collection_slug')) {
+                            $q->where('collections.handle', $request->get('collection_slug'));
+                        }
+                    });
+                }
             }
 
             // Get paginated results
@@ -198,10 +210,10 @@ class ProductsController extends BaseApiController
         $images = [];
         if ($product->hasMedia('images')) {
             $images = $product->getMedia('images')->map(function ($media) use ($product) {
-                // Generate signed URL that expires in 1 hour
+                // Generate signed URL that expires in 24 hours
                 return URL::temporarySignedRoute(
                     'api.products.images.serve',
-                    now()->addHour(),
+                    now()->addDay(),
                     [
                         'product' => $product->id,
                         'media' => $media->id,
@@ -364,16 +376,26 @@ class ProductsController extends BaseApiController
             return null;
         }
 
-        // If it's an external URL (Stripe, etc.), return as-is
+        // If it's an external URL (Stripe, CDN, etc.), return as-is
         if (filter_var($variant->image_url, FILTER_VALIDATE_URL) && 
             !str_starts_with($variant->image_url, config('app.url')) &&
             !str_starts_with($variant->image_url, request()->getSchemeAndHttpHost())) {
             return $variant->image_url;
         }
 
-        // If it's a local file path, we'd need to handle it differently
-        // For now, return as-is if it's already a URL
-        // If variants store local files in the future, we can add signed URL generation here
+        // If it's a local storage URL, check if it's a product media file
+        // Variants typically use external URLs, but if they reference product media, use product image route
+        $storageUrl = Storage::disk('public')->url('');
+        if (str_starts_with($variant->image_url, $storageUrl) ||
+            str_starts_with($variant->image_url, config('app.url')) ||
+            str_starts_with($variant->image_url, request()->getSchemeAndHttpHost())) {
+            // Try to find if this variant's product has media that matches
+            // For now, return as-is since variants typically use external URLs
+            // If variants start storing local media files, we'll need a variant image route
+            return $variant->image_url;
+        }
+
+        // Fallback: return as-is
         return $variant->image_url;
     }
 }

@@ -38,6 +38,61 @@ class PurchaseService
     }
 
     /**
+     * Resolve customer ID from cart data
+     * Accepts customer database ID (integer)
+     * Returns Stripe customer ID or null
+     *
+     * @param array $cartData
+     * @param string $stripeAccountId
+     * @return string|null
+     */
+    protected function resolveCustomerId(array $cartData, string $stripeAccountId): ?string
+    {
+        $customerId = $cartData['customer_id'] ?? null;
+        
+        // Return null if no customer_id provided
+        if ($customerId === null || $customerId === '' || $customerId === 0) {
+            return null;
+        }
+        
+        // customer_id is the database ID (integer), look up the customer
+        if (is_numeric($customerId)) {
+            $customerIdInt = (int) $customerId;
+            
+            $customer = \App\Models\ConnectedCustomer::where('id', $customerIdInt)
+                ->where('stripe_account_id', $stripeAccountId)
+                ->first();
+            
+            if ($customer) {
+                if (!$customer->stripe_customer_id) {
+                    Log::warning('Customer found but has no stripe_customer_id', [
+                        'customer_id' => $customerIdInt,
+                        'stripe_account_id' => $stripeAccountId,
+                    ]);
+                    return null;
+                }
+                return $customer->stripe_customer_id;
+            } else {
+                // Log warning if customer_id provided but not found
+                Log::warning('Customer ID provided but customer not found', [
+                    'customer_id' => $customerIdInt,
+                    'stripe_account_id' => $stripeAccountId,
+                ]);
+            }
+        } else {
+            // Log warning if customer_id is not numeric
+            Log::warning('Invalid customer_id format in cart data', [
+                'customer_id' => $customerId,
+                'type' => gettype($customerId),
+                'stripe_account_id' => $stripeAccountId,
+            ]);
+        }
+        
+        // If we can't resolve it, return null
+        return null;
+    }
+
+    /**
      * Process a purchase with the given payment method
      *
      * @param PosSession $posSession
@@ -70,21 +125,36 @@ class PurchaseService
             $totalAmount = $cartData['total'] ?? 0; // in øre
             $currency = $cartData['currency'] ?? 'nok';
 
+            // Check if this is a deferred payment (payment on pickup/later)
+            $isDeferredPayment = $metadata['deferred_payment'] ?? false;
+            $isDeferredPayment = $isDeferredPayment || ($paymentMethod->code === 'deferred' || $paymentMethod->code === 'pay_later');
+
             // Process payment based on provider
             $charge = match ($paymentMethod->provider) {
-                'cash' => $this->processCashPayment($posSession, $paymentMethod, $totalAmount, $currency, $cartData, $metadata),
-                'stripe' => $this->processStripePayment($posSession, $paymentMethod, $totalAmount, $currency, $cartData, $metadata),
-                default => $this->processOtherPayment($posSession, $paymentMethod, $totalAmount, $currency, $cartData, $metadata),
+                'cash' => $isDeferredPayment 
+                    ? $this->processDeferredPayment($posSession, $paymentMethod, $totalAmount, $currency, $cartData, $metadata)
+                    : $this->processCashPayment($posSession, $paymentMethod, $totalAmount, $currency, $cartData, $metadata),
+                'stripe' => $isDeferredPayment
+                    ? $this->processDeferredPayment($posSession, $paymentMethod, $totalAmount, $currency, $cartData, $metadata)
+                    : $this->processStripePayment($posSession, $paymentMethod, $totalAmount, $currency, $cartData, $metadata),
+                default => $isDeferredPayment
+                    ? $this->processDeferredPayment($posSession, $paymentMethod, $totalAmount, $currency, $cartData, $metadata)
+                    : $this->processOtherPayment($posSession, $paymentMethod, $totalAmount, $currency, $cartData, $metadata),
             };
 
-            // Generate receipt
-            $receipt = $this->receiptService->generateSalesReceipt($charge, $posSession);
+            // Generate receipt - use delivery receipt for deferred payments (Kassasystemforskriften § 2-8-7)
+            if ($isDeferredPayment) {
+                $receipt = $this->receiptService->generateDeliveryReceipt($charge, $posSession);
+            } else {
+                $receipt = $this->receiptService->generateSalesReceipt($charge, $posSession);
+            }
 
             // Log POS event (13012 - Sales receipt)
+            // Note: Delivery receipts for deferred payments still log as sales receipt events
             $posEvent = $this->logSalesReceiptEvent($posSession, $charge, $receipt, $paymentMethod);
 
-            // Open cash drawer for cash payments
-            if ($paymentMethod->isCash()) {
+            // Don't open cash drawer for deferred payments (payment not received yet)
+            if (!$isDeferredPayment && $paymentMethod->isCash()) {
                 $this->cashDrawerService->openCashDrawer($posSession, $totalAmount);
             }
 
@@ -93,8 +163,11 @@ class PurchaseService
                 $this->receiptPrintService->printReceipt($receipt, $posSession);
             }
 
-            // Update POS session totals
-            $this->updatePosSessionTotals($posSession, $charge, $paymentMethod);
+            // Update POS session totals (only for paid charges)
+            // Deferred payments are not included in totals until paid
+            if (!$isDeferredPayment) {
+                $this->updatePosSessionTotals($posSession, $charge, $paymentMethod);
+            }
 
             DB::commit();
 
@@ -128,13 +201,16 @@ class PurchaseService
     ): ConnectedCharge {
         $store = $posSession->store;
 
+        // Resolve customer ID (local ID -> Stripe customer ID)
+        $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id);
+        
         // Create charge immediately (cash is always successful)
         // Note: stripe_charge_id is null for cash payments since they don't go through Stripe
         $charge = ConnectedCharge::create([
             'stripe_charge_id' => null, // Cash payments don't have a Stripe charge ID
             'stripe_account_id' => $store->stripe_account_id,
             'pos_session_id' => $posSession->id,
-            'stripe_customer_id' => $cartData['customer_id'] ?? null,
+            'stripe_customer_id' => $stripeCustomerId,
             'amount' => $amount,
             'currency' => $currency,
             'status' => 'succeeded',
@@ -257,11 +333,15 @@ class PurchaseService
                 }
             }
 
+            // Resolve customer ID (local ID -> Stripe customer ID)
+            // Prefer cart customer_id if provided, then fall back to payment intent customer
+            $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id) ?? $paymentIntent->customer;
+            
             $charge = ConnectedCharge::create([
                 'stripe_charge_id' => $stripeChargeId,
                 'stripe_account_id' => $store->stripe_account_id,
                 'pos_session_id' => $posSession->id,
-                'stripe_customer_id' => $paymentIntent->customer ?? $cartData['customer_id'] ?? null,
+                'stripe_customer_id' => $stripeCustomerId,
                 'stripe_payment_intent_id' => $paymentIntentId,
                 'amount' => $amount, // Use provided amount (may be split payment)
                 'currency' => $paymentIntent->currency,
@@ -323,6 +403,9 @@ class PurchaseService
     ): ConnectedCharge {
         $store = $posSession->store;
 
+        // Resolve customer ID (local ID -> Stripe customer ID)
+        $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id);
+
         // For other providers, we'll need to implement custom logic
         // For now, create a charge with status pending
         // Note: stripe_charge_id is null for non-Stripe payments
@@ -330,7 +413,7 @@ class PurchaseService
             'stripe_charge_id' => null, // Other payment providers don't have Stripe charge ID
             'stripe_account_id' => $store->stripe_account_id,
             'pos_session_id' => $posSession->id,
-            'stripe_customer_id' => $cartData['customer_id'] ?? null,
+            'stripe_customer_id' => $stripeCustomerId,
             'amount' => $amount,
             'currency' => $currency,
             'status' => 'pending',
@@ -358,6 +441,202 @@ class PurchaseService
         $this->logPaymentEvent($posSession, $charge, $paymentMethod, '13019');
 
         return $charge;
+    }
+
+    /**
+     * Process deferred payment (payment on pickup/later)
+     * Creates a charge with pending status and generates a delivery receipt
+     * Complies with Kassasystemforskriften § 2-8-7 (Utleveringskvittering)
+     *
+     * @param PosSession $posSession
+     * @param PaymentMethod $paymentMethod
+     * @param int $amount
+     * @param string $currency
+     * @param array $cartData
+     * @param array $metadata
+     * @return ConnectedCharge
+     */
+    protected function processDeferredPayment(
+        PosSession $posSession,
+        PaymentMethod $paymentMethod,
+        int $amount,
+        string $currency,
+        array $cartData,
+        array $metadata
+    ): ConnectedCharge {
+        $store = $posSession->store;
+
+        // Resolve customer ID (local ID -> Stripe customer ID)
+        $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id);
+
+        // Create charge with pending status (not paid yet)
+        $charge = ConnectedCharge::create([
+            'stripe_charge_id' => null, // Deferred payments don't have Stripe charge ID until paid
+            'stripe_account_id' => $store->stripe_account_id,
+            'pos_session_id' => $posSession->id,
+            'stripe_customer_id' => $stripeCustomerId,
+            'amount' => $amount,
+            'currency' => $currency,
+            'status' => 'pending',
+            'payment_method' => $paymentMethod->code,
+            'payment_code' => $paymentMethod->saf_t_payment_code ?? SafTCodeMapper::mapPaymentMethodToCode($paymentMethod->code, $paymentMethod->provider_method),
+            'transaction_code' => SafTCodeMapper::mapTransactionToCodeForPayment($paymentMethod->code),
+            'description' => $metadata['description'] ?? 'Deferred payment',
+            'captured' => false,
+            'refunded' => false,
+            'paid' => false,
+            'paid_at' => null, // Will be set when payment is completed
+            'metadata' => array_merge([
+                'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
+                'discounts' => $cartData['discounts'] ?? [],
+                'customer_id' => $cartData['customer_id'] ?? null,
+                'customer_name' => $cartData['customer_name'] ?? null,
+                'tip_amount' => $cartData['tip_amount'] ?? 0,
+                'subtotal' => $cartData['subtotal'] ?? 0,
+                'total_discounts' => $cartData['total_discounts'] ?? 0,
+                'total_tax' => $cartData['total_tax'] ?? 0,
+                'total' => $amount,
+                'deferred_payment' => true,
+                'deferred_reason' => $metadata['deferred_reason'] ?? 'Payment on pickup',
+            ], $metadata),
+        ]);
+
+        // Log deferred payment event (13019 - Other payment, pending)
+        $this->logPaymentEvent($posSession, $charge, $paymentMethod, '13019');
+
+        return $charge;
+    }
+
+    /**
+     * Complete a deferred payment
+     * Updates the charge status and generates a sales receipt
+     *
+     * @param ConnectedCharge $charge
+     * @param PaymentMethod $paymentMethod
+     * @param array $paymentData Additional payment data (e.g., payment_intent_id for Stripe)
+     * @return array
+     * @throws \Exception
+     */
+    public function completeDeferredPayment(
+        ConnectedCharge $charge,
+        PaymentMethod $paymentMethod,
+        array $paymentData = []
+    ): array {
+        DB::beginTransaction();
+
+        try {
+            // Validate charge is pending
+            if ($charge->status !== 'pending' || $charge->paid) {
+                throw new \Exception('Charge is not pending or already paid');
+            }
+
+            // Validate payment method belongs to store
+            $store = $charge->store;
+            if ($paymentMethod->store_id !== $store->id) {
+                throw new \Exception('Payment method does not belong to this store');
+            }
+
+            $posSession = $charge->posSession;
+            if (!$posSession || $posSession->status !== 'open') {
+                throw new \Exception('POS session is not open');
+            }
+
+            // Process payment based on provider
+            if ($paymentMethod->provider === 'stripe') {
+                // Handle Stripe payment
+                $paymentIntentId = $paymentData['payment_intent_id'] ?? null;
+                if (!$paymentIntentId) {
+                    throw new \Exception('Payment intent ID is required for Stripe payments');
+                }
+
+                $stripe = $this->getStripeClient();
+                $paymentIntent = $stripe->paymentIntents->retrieve(
+                    $paymentIntentId,
+                    ['expand' => ['charges.data']],
+                    ['stripe_account' => $store->stripe_account_id]
+                );
+
+                if ($paymentIntent->status !== 'succeeded') {
+                    throw new \Exception('Payment intent is not succeeded');
+                }
+
+                $stripeChargeId = $paymentIntent->latest_charge ?? null;
+                if (!$stripeChargeId && isset($paymentIntent->charges->data[0])) {
+                    $stripeChargeId = $paymentIntent->charges->data[0]->id;
+                }
+
+                if (!$stripeChargeId) {
+                    throw new \Exception('Stripe charge ID not found');
+                }
+
+                // Update charge with payment information
+                $charge->update([
+                    'stripe_charge_id' => $stripeChargeId,
+                    'stripe_payment_intent_id' => $paymentIntentId,
+                    'stripe_customer_id' => $paymentIntent->customer ?? $charge->stripe_customer_id,
+                    'status' => 'succeeded',
+                    'payment_method' => $paymentMethod->code,
+                    'payment_code' => $paymentMethod->saf_t_payment_code ?? SafTCodeMapper::mapPaymentMethodToCode($paymentMethod->code),
+                    'transaction_code' => SafTCodeMapper::mapTransactionToCodeForPayment($paymentMethod->code),
+                    'captured' => true,
+                    'paid' => true,
+                    'paid_at' => now(),
+                ]);
+
+                // Log card payment event (13017)
+                $this->logPaymentEvent($posSession, $charge, $paymentMethod, '13017');
+            } elseif ($paymentMethod->isCash()) {
+                // Handle cash payment
+                $charge->update([
+                    'status' => 'succeeded',
+                    'payment_method' => $paymentMethod->code,
+                    'payment_code' => $paymentMethod->saf_t_payment_code ?? SafTCodeMapper::mapPaymentMethodToCode($paymentMethod->code, $paymentMethod->provider_method),
+                    'transaction_code' => SafTCodeMapper::mapTransactionToCodeForPayment($paymentMethod->code),
+                    'captured' => true,
+                    'paid' => true,
+                    'paid_at' => now(),
+                ]);
+
+                // Log cash payment event (13016)
+                $this->logPaymentEvent($posSession, $charge, $paymentMethod, '13016');
+
+                // Open cash drawer
+                $this->cashDrawerService->openCashDrawer($posSession, $charge->amount);
+            } else {
+                throw new \Exception('Unsupported payment method provider for completing deferred payment');
+            }
+
+            // Generate sales receipt for completed payment
+            $receipt = $this->receiptService->generateSalesReceipt($charge, $posSession);
+
+            // Log sales receipt event (13012)
+            $posEvent = $this->logSalesReceiptEvent($posSession, $charge, $receipt, $paymentMethod);
+
+            // Auto-print receipt (if configured)
+            if (config('pos.auto_print_receipts', true)) {
+                $this->receiptPrintService->printReceipt($receipt, $posSession);
+            }
+
+            // Update POS session totals
+            $this->updatePosSessionTotals($posSession, $charge, $paymentMethod);
+
+            DB::commit();
+
+            return [
+                'charge' => $charge,
+                'receipt' => $receipt,
+                'pos_event' => $posEvent,
+            ];
+        } catch (Throwable $e) {
+            DB::rollBack();
+            Log::error('Deferred payment completion failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'charge_id' => $charge->id,
+                'payment_method_id' => $paymentMethod->id,
+            ]);
+            throw $e;
+        }
     }
 
     /**

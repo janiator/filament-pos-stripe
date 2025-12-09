@@ -74,6 +74,16 @@ class PurchasesController extends BaseApiController
             $query->whereDate('paid_at', '<=', $request->get('paid_to_date'));
         }
 
+        // Filter by customer (ignore if null) - customer_id is the database ID
+        if ($request->has('customer_id') && $request->get('customer_id') !== null) {
+            $customerId = (int) $request->get('customer_id');
+            // Use whereHas to filter by customer database ID
+            $query->whereHas('customer', function ($q) use ($customerId, $store) {
+                $q->where('stripe_connected_customer_mappings.id', $customerId)
+                  ->where('stripe_connected_customer_mappings.stripe_account_id', $store->stripe_account_id);
+            });
+        }
+
         $perPage = min($request->get('per_page', 20), 100); // Max 100 per page
         $purchases = $query->orderBy('created_at', 'desc')
             ->paginate($perPage);
@@ -160,8 +170,9 @@ class PurchasesController extends BaseApiController
         }
 
         // Validate request - customer_id is optional (can be null to remove customer)
+        // customer_id is the database ID (integer)
         $validator = Validator::make($request->all(), [
-            'customer_id' => ['nullable', 'string'],
+            'customer_id' => ['nullable', 'integer'],
         ]);
 
         if ($validator->fails()) {
@@ -173,11 +184,12 @@ class PurchasesController extends BaseApiController
         }
 
         $customerId = $request->input('customer_id');
+        $stripeCustomerId = null;
 
         // If customer_id is provided, verify customer exists and belongs to the store
         if ($customerId !== null) {
             $customer = \App\Models\ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id)
-                ->where('stripe_customer_id', $customerId)
+                ->where('id', (int) $customerId)
                 ->first();
 
             if (!$customer) {
@@ -186,11 +198,13 @@ class PurchasesController extends BaseApiController
                     'message' => 'Customer not found',
                 ], 404);
             }
+
+            $stripeCustomerId = $customer->stripe_customer_id;
         }
 
         // Update the purchase with the customer (or set to null to remove)
         $purchase->update([
-            'stripe_customer_id' => $customerId,
+            'stripe_customer_id' => $stripeCustomerId,
         ]);
 
         // Reload relationships
@@ -268,37 +282,30 @@ class PurchasesController extends BaseApiController
 
         // Always return purchase_customer as an object (never null)
         // If no customer, return object with null values
+        // Match the structure from customers API
         if ($purchase->customer) {
-            // Format address as string if available
-            $addressString = null;
-            if ($purchase->customer->address && is_array($purchase->customer->address)) {
-                $addressParts = array_filter([
-                    $purchase->customer->address['line1'] ?? null,
-                    $purchase->customer->address['line2'] ?? null,
-                    $purchase->customer->address['city'] ?? null,
-                    $purchase->customer->address['state'] ?? null,
-                    $purchase->customer->address['postal_code'] ?? null,
-                    $purchase->customer->address['country'] ?? null,
-                ]);
-                $addressString = !empty($addressParts) ? implode(', ', $addressParts) : null;
+            // Transform customer to match customers API structure
+            $customerData = $purchase->customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
+            
+            // Rename address to customer_address
+            if (isset($customerData['address'])) {
+                $customerData['customer_address'] = $customerData['address'];
+                unset($customerData['address']);
             }
             
-            $data['purchase_customer'] = [
-                'id' => $purchase->customer->id,
-                'stripe_customer_id' => $purchase->customer->stripe_customer_id,
-                'name' => $purchase->customer->name,
-                'email' => $purchase->customer->email,
-                'phone' => $purchase->customer->phone,
-                'address' => $addressString,
-            ];
+            $data['purchase_customer'] = $customerData;
         } else {
             $data['purchase_customer'] = [
                 'id' => null,
                 'stripe_customer_id' => null,
+                'stripe_account_id' => null,
                 'name' => null,
                 'email' => null,
                 'phone' => null,
-                'address' => null,
+                'profile_image_url' => null,
+                'customer_address' => null,
+                'created_at' => null,
+                'updated_at' => null,
             ];
         }
 
@@ -510,7 +517,7 @@ class PurchasesController extends BaseApiController
                     if ($firstMedia) {
                         $productImageUrl = URL::temporarySignedRoute(
                             'api.products.images.serve',
-                            now()->addHour(),
+                            now()->addDay(),
                             [
                                 'product' => $product->id,
                                 'media' => $firstMedia->id,
@@ -631,8 +638,36 @@ class PurchasesController extends BaseApiController
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.total' => ['required', 'integer', 'min:1'],
             'cart.currency' => ['nullable', 'string', 'size:3'],
+            'cart.customer_id' => ['nullable', 'integer'],
             'metadata' => ['nullable', 'array'],
         ]);
+
+        // Custom validation: if customer_id is provided, verify it exists and belongs to store
+        // Note: Ignore 0 values (FlutterFlow sometimes sets 0 instead of null)
+        $validator->after(function ($validator) use ($request) {
+            $customerId = $request->input('cart.customer_id');
+            
+            // Ignore null, empty, or 0 values
+            if ($customerId !== null && $customerId !== '' && $customerId !== 0) {
+                // Get store from POS session
+                $posSessionId = $request->input('pos_session_id');
+                if ($posSessionId) {
+                    $posSession = \App\Models\PosSession::find($posSessionId);
+                    if ($posSession && $posSession->store) {
+                        $customer = \App\Models\ConnectedCustomer::where('id', (int) $customerId)
+                            ->where('stripe_account_id', $posSession->store->stripe_account_id)
+                            ->exists();
+                        
+                        if (!$customer) {
+                            $validator->errors()->add(
+                                'cart.customer_id',
+                                'Customer not found or does not belong to this store'
+                            );
+                        }
+                    }
+                }
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json([
@@ -749,6 +784,134 @@ class PurchasesController extends BaseApiController
     }
 
     /**
+     * Complete payment for a deferred purchase
+     * Used for purchases that were created with deferred payment (e.g., dry cleaning)
+     *
+     * @param Request $request
+     * @param string|int $id Charge ID
+     * @return JsonResponse
+     */
+    public function completePayment(Request $request, string|int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'payment_method_code' => ['required', 'string'],
+            'metadata' => ['nullable', 'array'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        // Get charge
+        $charge = ConnectedCharge::findOrFail($id);
+
+        // Verify user has access to this charge's store
+        $user = $request->user();
+        
+        // Try to get store from Filament tenant first, then fall back to user's current store
+        try {
+            $userStore = \Filament\Facades\Filament::getTenant();
+        } catch (\Throwable $e) {
+            $userStore = null;
+        }
+        
+        // If no tenant, try user's current store
+        if (!$userStore) {
+            $userStore = $user->currentStore();
+        }
+        
+        if (!$userStore || $charge->store->id !== $userStore->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access to charge',
+            ], 403);
+        }
+
+        // Verify charge is pending
+        if ($charge->status !== 'pending' || $charge->paid) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Charge is not pending or already paid',
+            ], 422);
+        }
+
+        // Get payment method
+        $paymentMethod = PaymentMethod::where('store_id', $charge->store->id)
+            ->where('code', $validated['payment_method_code'])
+            ->first();
+
+        if (!$paymentMethod) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment method not found',
+            ], 404);
+        }
+
+        if (!$paymentMethod->enabled) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment method is not enabled',
+            ], 422);
+        }
+
+        // For Stripe payments, require payment_intent_id in metadata
+        if ($paymentMethod->provider === 'stripe') {
+            $paymentIntentId = $validated['metadata']['payment_intent_id'] ?? null;
+            if (!$paymentIntentId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment intent ID is required for Stripe payments',
+                ], 422);
+            }
+        }
+
+        try {
+            // Complete deferred payment
+            $result = $this->purchaseService->completeDeferredPayment(
+                $charge,
+                $paymentMethod,
+                $validated['metadata'] ?? []
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'charge' => [
+                        'id' => $result['charge']->id,
+                        'stripe_charge_id' => $result['charge']->stripe_charge_id,
+                        'amount' => $result['charge']->amount,
+                        'currency' => $result['charge']->currency,
+                        'status' => $result['charge']->status,
+                        'payment_method' => $result['charge']->payment_method,
+                        'paid_at' => $this->formatDateTimeOslo($result['charge']->paid_at),
+                    ],
+                    'receipt' => [
+                        'id' => $result['receipt']->id,
+                        'receipt_number' => $result['receipt']->receipt_number,
+                        'receipt_type' => $result['receipt']->receipt_type,
+                    ],
+                    'pos_event' => [
+                        'id' => $result['pos_event']->id,
+                        'event_code' => $result['pos_event']->event_code,
+                        'transaction_code' => $result['charge']->transaction_code,
+                    ],
+                ],
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment completion failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Process a split payment purchase
      *
      * @param Request $request
@@ -769,6 +932,7 @@ class PurchasesController extends BaseApiController
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.total' => ['required', 'integer', 'min:1'],
             'cart.currency' => ['nullable', 'string', 'size:3'],
+            'cart.customer_id' => ['nullable', 'integer'],
             'metadata' => ['nullable', 'array'],
         ]);
 
@@ -783,6 +947,28 @@ class PurchasesController extends BaseApiController
                     'payments',
                     "Payment amounts (${totalPaid}) must equal cart total (${cartTotal})"
                 );
+            }
+
+            // Validate customer_id if provided
+            // Note: Ignore 0 values (FlutterFlow sometimes sets 0 instead of null)
+            $customerId = $request->input('cart.customer_id');
+            if ($customerId !== null && $customerId !== '' && $customerId !== 0) {
+                $posSessionId = $request->input('pos_session_id');
+                if ($posSessionId) {
+                    $posSession = \App\Models\PosSession::find($posSessionId);
+                    if ($posSession && $posSession->store) {
+                        $customer = \App\Models\ConnectedCustomer::where('id', (int) $customerId)
+                            ->where('stripe_account_id', $posSession->store->stripe_account_id)
+                            ->exists();
+                        
+                        if (!$customer) {
+                            $validator->errors()->add(
+                                'cart.customer_id',
+                                'Customer not found or does not belong to this store'
+                            );
+                        }
+                    }
+                }
             }
         });
 

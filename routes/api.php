@@ -19,6 +19,10 @@ Route::post('/auth/login', [AuthController::class, 'login'])->name('api.auth.log
 Route::get('/products/{product}/images/{media}', [\App\Http\Controllers\Api\ProductImagesController::class, 'serve'])
     ->name('api.products.images.serve');
 
+// Collection image serving with signed URLs (public route, secured by signature validation)
+Route::get('/collections/{collectionId}/image', [\App\Http\Controllers\Api\CollectionImagesController::class, 'serve'])
+    ->name('api.collections.image.serve');
+
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth endpoints
@@ -113,6 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/purchases', [\App\Http\Controllers\Api\PurchasesController::class, 'index'])->name('api.purchases.index');
     Route::get('/purchases/{id}', [\App\Http\Controllers\Api\PurchasesController::class, 'show'])->name('api.purchases.show');
     Route::post('/purchases', [\App\Http\Controllers\Api\PurchasesController::class, 'store'])->name('api.purchases.store');
+    Route::post('/purchases/{id}/complete-payment', [\App\Http\Controllers\Api\PurchasesController::class, 'completePayment'])->name('api.purchases.complete-payment');
     Route::put('/purchases/{id}/customer', [\App\Http\Controllers\Api\PurchasesController::class, 'updateCustomer'])->name('api.purchases.update-customer');
     Route::patch('/purchases/{id}/customer', [\App\Http\Controllers\Api\PurchasesController::class, 'updateCustomer'])->name('api.purchases.update-customer.patch');
     

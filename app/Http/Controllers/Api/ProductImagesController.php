@@ -15,7 +15,7 @@ class ProductImagesController extends BaseApiController
      * Serve a product image with signed URL validation
      * 
      * This route validates the signed URL signature to ensure the request is authorized
-     * and hasn't been tampered with. The signed URL expires after 1 hour.
+     * and hasn't been tampered with. The signed URL expires after 24 hours.
      */
     public function serve(Request $request, string $productId, string $mediaId): StreamedResponse|JsonResponse
     {

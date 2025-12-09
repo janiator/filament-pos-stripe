@@ -9,11 +9,14 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Actions\Action;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use App\Models\Collection;
+use Illuminate\Support\Str;
 
 class ConnectedProductForm
 {
@@ -401,17 +404,87 @@ class ConnectedProductForm
                                     ->schema([
                                         CheckboxList::make('collections')
                                             ->label('Collections')
-                                            ->relationship('collections', 'name')
-                                            ->searchable()
-                                            ->preload()
-                                            ->helperText('Select collections this product belongs to')
-                                            ->query(function ($query, $get, $record) {
-                                                $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-                                                if ($stripeAccountId) {
-                                                    return $query->where('stripe_account_id', $stripeAccountId);
+                                            ->relationship(
+                                                'collections',
+                                                'name',
+                                                modifyQueryUsing: function ($query, $get, $record) {
+                                                    $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+                                                    
+                                                    // Clear any existing orderBy clauses from the relationship
+                                                    // (the relationship has orderByPivot which causes PostgreSQL DISTINCT issues)
+                                                    $query->getQuery()->orders = [];
+                                                    
+                                                    if ($stripeAccountId) {
+                                                        // Select specific columns to avoid PostgreSQL JSON distinct issue
+                                                        // Order by name (which is in SELECT) instead of pivot sort_order
+                                                        return $query->where('stripe_account_id', $stripeAccountId)
+                                                            ->select('collections.id', 'collections.name', 'collections.stripe_account_id')
+                                                            ->orderBy('collections.name', 'asc');
+                                                    }
+                                                    return $query->select('collections.id', 'collections.name', 'collections.stripe_account_id')
+                                                        ->orderBy('collections.name', 'asc');
                                                 }
-                                                return $query;
-                                            })
+                                            )
+                                            ->searchable()
+                                            ->helperText('Select collections this product belongs to')
+                                            ->hintAction(
+                                                Action::make('createCollection')
+                                                    ->label('Create New Collection')
+                                                    ->icon('heroicon-o-plus')
+                                                    ->form([
+                                                        TextInput::make('name')
+                                                            ->label('Collection Name')
+                                                            ->required()
+                                                            ->maxLength(255)
+                                                            ->live(onBlur: true)
+                                                            ->afterStateUpdated(function ($state, $set) {
+                                                                if ($state) {
+                                                                    $set('handle', Str::slug($state));
+                                                                }
+                                                            }),
+                                                        TextInput::make('handle')
+                                                            ->label('Handle (Slug)')
+                                                            ->maxLength(255)
+                                                            ->helperText('URL-friendly identifier'),
+                                                        Textarea::make('description')
+                                                            ->label('Description')
+                                                            ->rows(3),
+                                                        Toggle::make('active')
+                                                            ->label('Active')
+                                                            ->default(true),
+                                                    ])
+                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
+                                                        // Get stripe_account_id from product record or form state
+                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+                                                        
+                                                        if (!$stripeAccountId) {
+                                                            throw new \Exception('Cannot create collection: stripe_account_id is required');
+                                                        }
+                                                        
+                                                        // Get store_id from tenant
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $storeId = $tenant?->id;
+                                                        
+                                                        // Create the collection
+                                                        $collection = Collection::create([
+                                                            'store_id' => $storeId,
+                                                            'stripe_account_id' => $stripeAccountId,
+                                                            'name' => $data['name'],
+                                                            'handle' => $data['handle'] ?? Str::slug($data['name']),
+                                                            'description' => $data['description'] ?? null,
+                                                            'active' => $data['active'] ?? true,
+                                                        ]);
+                                                        
+                                                        // Add the new collection to the selected collections
+                                                        $currentCollections = $get('collections') ?? [];
+                                                        if (!is_array($currentCollections)) {
+                                                            $currentCollections = [];
+                                                        }
+                                                        $currentCollections[] = $collection->id;
+                                                        $set('collections', array_unique($currentCollections));
+                                                    })
+                                                    ->successNotificationTitle('Collection created')
+                                            )
                                             ->columnSpanFull(),
                                     ])
                                     ->collapsible()

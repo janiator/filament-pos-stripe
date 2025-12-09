@@ -107,11 +107,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                message: The provided credentials are incorrect.
-                errors:
-                  email:
-                    - The provided credentials are incorrect.
+              examples:
+                default:
+                  value:
+                    message: The provided credentials are incorrect.
+                    errors:
+                      email:
+                        - The provided credentials are incorrect.
 
   /auth/me:
     get:
@@ -217,8 +219,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                message: No store assigned to this user
+              examples:
+                default:
+                  value:
+                    message: No store assigned to this user
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -234,8 +238,9 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - store_id
+              description: >
+                Either 'store_id' or 'store_slug' is required. The server
+                will reject requests that do not provide at least one of them.
               properties:
                 store_id:
                   type: integer
@@ -245,9 +250,6 @@ paths:
                   type: string
                   description: Store slug to set as current (alternative to store_id)
                   example: my-store
-              oneOf:
-                - required: [store_id]
-                - required: [store_slug]
       responses:
         '200':
           description: Current store changed successfully
@@ -267,16 +269,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                message: You do not have access to this store
+              examples:
+                default:
+                  value:
+                    message: You do not have access to this store
         '404':
           description: Store not found or no store assigned to user
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                message: Store not found
+              examples:
+                default:
+                  value:
+                    message: Store not found
         '422':
           description: Validation error
           content:
@@ -298,8 +304,9 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - store_id
+              description: >
+                Either 'store_id' or 'store_slug' is required. The server
+                will reject requests that do not provide at least one of them.
               properties:
                 store_id:
                   type: integer
@@ -309,9 +316,6 @@ paths:
                   type: string
                   description: Store slug to set as current (alternative to store_id)
                   example: my-store
-              oneOf:
-                - required: [store_id]
-                - required: [store_slug]
       responses:
         '200':
           description: Current store changed successfully
@@ -331,16 +335,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                message: You do not have access to this store
+              examples:
+                default:
+                  value:
+                    message: You do not have access to this store
         '404':
           description: Store not found or no store assigned to user
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                message: Store not found
+              examples:
+                default:
+                  value:
+                    message: Store not found
         '422':
           description: Validation error
           content:
@@ -381,16 +389,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                message: You do not have access to this store
+              examples:
+                default:
+                  value:
+                    message: You do not have access to this store
         '404':
           description: Store not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                message: Store not found
+              examples:
+                default:
+                  value:
+                    message: Store not found
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -1358,6 +1370,12 @@ paths:
           schema:
             type: integer
             default: 50
+        - name: nullinnslag
+          in: query
+          description: Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them.
+          required: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: List of POS events
@@ -2362,6 +2380,13 @@ paths:
           schema:
             type: string
             example: cash
+        - name: customer_id
+          in: query
+          description: Filter by customer database ID (integer)
+          required: false
+          schema:
+            type: integer
+            example: 1
         - name: from_date
           in: query
           description: Filter purchases created from this date (YYYY-MM-DD)
@@ -2424,15 +2449,18 @@ paths:
         
         **Single Payment:** Include `payment_method_code` in request body.
         **Split Payment:** Include `payments` array in request body.
+        **Deferred Payment:** Set `metadata.deferred_payment` to `true` to create a purchase with payment on pickup/later.
+        When using deferred payment, a delivery receipt (Utleveringskvittering) is generated per Kassasystemforskriften § 2-8-7.
+        Payment can be completed later using POST /purchases/{id}/complete-payment.
         
         This endpoint:
         1. Validates the cart and payment method(s)
-        2. Processes payment(s) based on method (cash, Stripe, etc.)
-        3. Creates ConnectedCharge record(s)
-        4. Generates a receipt (single receipt for split payments)
+        2. Processes payment(s) based on method (cash, Stripe, etc.) or creates pending charge for deferred payments
+        3. Creates ConnectedCharge record(s) with status 'pending' for deferred payments
+        4. Generates a receipt (sales receipt for paid, delivery receipt for deferred)
         5. Logs POS events for kassasystemforskriften compliance
-        6. Updates POS session totals
-        7. Opens cash drawer for cash payments
+        6. Updates POS session totals (only for paid charges)
+        7. Opens cash drawer for cash payments (not for deferred)
         8. Automatically prints receipt (if configured)
         
         For Stripe payments, the payment intent must already be created and confirmed.
@@ -2444,178 +2472,8 @@ paths:
           application/json:
             schema:
               oneOf:
-                - type: object
-                  description: Single payment request
-                  required:
-                    - pos_session_id
-                    - payment_method_code
-                    - cart
-                  properties:
-                    pos_session_id:
-                      type: integer
-                      description: ID of the active POS session
-                      example: 1
-                    payment_method_code:
-                      type: string
-                      description: Code of the payment method (e.g., "cash", "card", "card_present")
-                      example: cash
-                - type: object
-                  description: Split payment request
-                  required:
-                    - pos_session_id
-                    - payments
-                    - cart
-                  properties:
-                    pos_session_id:
-                      type: integer
-                      description: ID of the active POS session
-                      example: 1
-                    payments:
-                      type: array
-                      description: Array of payment methods and amounts
-                      minItems: 1
-                      items:
-                        type: object
-                        required:
-                          - payment_method_code
-                          - amount
-                        properties:
-                          payment_method_code:
-                            type: string
-                            example: cash
-                          amount:
-                            type: integer
-                            description: Payment amount in minor units (øre)
-                            minimum: 1
-                            example: 5000
-                          metadata:
-                            type: object
-                            description: Payment-specific metadata (e.g., payment_intent_id for Stripe)
-                            example:
-                              payment_intent_id: pi_xxx
-              properties:
-                cart:
-                  type: object
-                  required:
-                    - items
-                    - total
-                  properties:
-                    items:
-                      type: array
-                      minItems: 1
-                      items:
-                        type: object
-                        required:
-                          - product_id
-                          - quantity
-                          - unit_price
-                        properties:
-                          product_id:
-                            type: integer
-                            example: 123
-                          variant_id:
-                            type: integer
-                            nullable: true
-                            example: 456
-                          quantity:
-                            type: integer
-                            minimum: 1
-                            example: 2
-                          unit_price:
-                            type: integer
-                            description: Price per unit in minor units (øre)
-                            minimum: 0
-                            example: 5000
-                          discount_amount:
-                            type: integer
-                            description: Discount amount per unit in minor units
-                            default: 0
-                            example: 500
-                          tax_rate:
-                            type: number
-                            description: Tax rate (e.g., 0.25 for 25%)
-                            default: 0
-                            example: 0.25
-                          tax_inclusive:
-                            type: boolean
-                            description: Whether price includes tax
-                            default: true
-                            example: true
-                    discounts:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          type:
-                            type: string
-                            enum: [prosent, verdi, ingen]
-                            example: prosent
-                          amount:
-                            type: integer
-                            description: Discount amount in minor units
-                            example: 1000
-                          percentage:
-                            type: number
-                            nullable: true
-                            description: Discount percentage (0-100)
-                            example: 10
-                          reason:
-                            type: string
-                            nullable: true
-                            example: Kundeklubb
-                    tip_amount:
-                      type: integer
-                      description: Tip amount in minor units
-                      default: 0
-                      example: 0
-                    customer_id:
-                      type: string
-                      nullable: true
-                      description: Customer ID (Stripe customer ID)
-                      example: cus_xxx
-                    customer_name:
-                      type: string
-                      nullable: true
-                      example: John Doe
-                    subtotal:
-                      type: integer
-                      description: Subtotal in minor units (before discounts and tax)
-                      example: 10000
-                    total_discounts:
-                      type: integer
-                      description: Total discount amount in minor units
-                      example: 1000
-                    total_tax:
-                      type: integer
-                      description: Total tax amount in minor units
-                      example: 2000
-                    total:
-                      type: integer
-                      description: Total amount in minor units
-                      minimum: 1
-                      example: 11000
-                    currency:
-                      type: string
-                      description: Currency code (ISO 3-letter)
-                      default: nok
-                      example: nok
-                metadata:
-                  type: object
-                  description: Additional metadata
-                  properties:
-                    payment_intent_id:
-                      type: string
-                      description: Stripe payment intent ID (required for Stripe payments)
-                      example: pi_xxx
-                    cashier_name:
-                      type: string
-                      example: John Doe
-                    device_id:
-                      type: integer
-                      example: 1
-                    description:
-                      type: string
-                      example: Purchase description
+                - $ref: '#/components/schemas/PurchaseSinglePaymentRequest'
+                - $ref: '#/components/schemas/PurchaseSplitPaymentRequest'
       responses:
         '201':
           description: Purchase completed successfully
@@ -2749,6 +2607,155 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /purchases/{id}/complete-payment:
+    post:
+      tags:
+        - Purchases
+      summary: Complete payment for deferred purchase
+      description: |
+        Complete payment for a purchase that was created with deferred payment (e.g., dry cleaning, payment on pickup).
+        
+        This endpoint:
+        1. Validates the charge is pending
+        2. Processes payment based on the provided payment method
+        3. Updates charge status to succeeded
+        4. Generates a sales receipt (replacing the delivery receipt)
+        5. Logs POS events
+        6. Updates POS session totals
+        7. Opens cash drawer for cash payments
+        8. Automatically prints receipt (if configured)
+        
+        For Stripe payments, the payment intent must already be created and confirmed.
+        Include the payment_intent_id in the metadata.
+        
+        **Compliance:** This complies with Kassasystemforskriften § 2-8-7 (Utleveringskvittering).
+        Deferred payments generate delivery receipts initially, then sales receipts when payment is completed.
+      operationId: completePurchasePayment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Purchase (charge) ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payment_method_code
+              properties:
+                payment_method_code:
+                  type: string
+                  description: Code of the payment method (e.g., "cash", "card", "card_present")
+                  example: cash
+                metadata:
+                  type: object
+                  description: Payment-specific metadata (e.g., payment_intent_id for Stripe)
+                  additionalProperties: true
+                  example:
+                    payment_intent_id: pi_xxx
+      responses:
+        '200':
+          description: Payment completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      charge:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 123
+                          stripe_charge_id:
+                            type: string
+                            nullable: true
+                            example: ch_xxx
+                          amount:
+                            type: integer
+                            example: 11000
+                          currency:
+                            type: string
+                            example: nok
+                          status:
+                            type: string
+                            example: succeeded
+                          payment_method:
+                            type: string
+                            example: cash
+                          paid_at:
+                            type: string
+                            format: date-time
+                            example: "2025-12-09T14:30:00+01:00"
+                      receipt:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 456
+                          receipt_number:
+                            type: string
+                            example: "1-S-000001"
+                          receipt_type:
+                            type: string
+                            example: sales
+                      pos_event:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 789
+                          event_code:
+                            type: string
+                            example: "13012"
+                          transaction_code:
+                            type: string
+                            example: "1"
+        '400':
+          description: Invalid purchase ID or charge already paid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Purchase or payment method not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error or charge not pending
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                  errors:
+                    type: object
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Unauthorized access to charge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /purchases/{id}/customer:
     put:
       tags:
@@ -2773,10 +2780,10 @@ paths:
               type: object
               properties:
                 customer_id:
-                  type: string
+                  type: integer
                   nullable: true
-                  description: Stripe customer ID. Set to null to remove customer from purchase.
-                  example: "cus_xxx"
+                  description: Customer database ID (integer). Set to null to remove customer from purchase.
+                  example: 1
       responses:
         '200':
           description: Customer updated successfully
@@ -2842,10 +2849,10 @@ paths:
               type: object
               properties:
                 customer_id:
-                  type: string
+                  type: integer
                   nullable: true
-                  description: Stripe customer ID. Set to null to remove customer from purchase.
-                  example: "cus_xxx"
+                  description: Customer database ID (integer). Set to null to remove customer from purchase.
+                  example: 1
       responses:
         '200':
           description: Customer updated successfully
@@ -2893,10 +2900,18 @@ paths:
             type: string
         - name: collection_id
           in: query
-          description: Filter by collection ID
+          description: Filter by collection ID. Use 0 to get uncategorized products (products with no collection)
           required: false
           schema:
             type: integer
+            example: 1
+        - name: collection_slug
+          in: query
+          description: Filter by collection slug/handle
+          required: false
+          schema:
+            type: string
+            example: summer-collection
         - name: per_page
           in: query
           description: Number of items per page (max 100)
@@ -3052,7 +3067,7 @@ paths:
       tags:
         - Collections
       summary: List collections
-      description: Get paginated list of collections
+      description: 'Get paginated list of collections. If there are products with no collection, a fake "Ukategorisert" category with id 0 will be included in the list.'
       operationId: listCollections
       parameters:
         - name: search
@@ -3602,7 +3617,24 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedCustomers'
+                type: object
+                properties:
+                  customers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Customer'
+                  current_page:
+                    type: integer
+                    example: 1
+                  last_page:
+                    type: integer
+                    example: 10
+                  per_page:
+                    type: integer
+                    example: 15
+                  total:
+                    type: integer
+                    example: 100
         '404':
           description: Store not found
           content:
@@ -3652,7 +3684,48 @@ paths:
                   nullable: true
                   description: Customer phone number (per Stripe API spec)
                   example: "+4712345678"
+                profile_image_url:
+                  type: string
+                  format: uri
+                  nullable: true
+                  description: URL to the customer profile image
+                  example: "https://example.com/images/profile.jpg"
                 address:
+                  type: object
+                  nullable: true
+                  description: Customer address (deprecated, use customer_address instead)
+                  properties:
+                    line1:
+                      type: string
+                      nullable: true
+                      description: Address line 1 (street, PO Box, or company name)
+                      example: "123 Main St"
+                    line2:
+                      type: string
+                      nullable: true
+                      description: Address line 2 (apartment, suite, unit, or building)
+                      example: "Apt 4B"
+                    city:
+                      type: string
+                      nullable: true
+                      description: City, district, suburb, town, or village
+                      example: "Oslo"
+                    state:
+                      type: string
+                      nullable: true
+                      description: State, county, province, or region
+                      example: "Oslo"
+                    postal_code:
+                      type: string
+                      nullable: true
+                      description: ZIP or postal code
+                      example: "0001"
+                    country:
+                      type: string
+                      nullable: true
+                      description: Two-letter country code (ISO 3166-1 alpha-2)
+                      example: "NO"
+                customer_address:
                   type: object
                   nullable: true
                   description: Customer address (per Stripe API spec)
@@ -3789,7 +3862,48 @@ paths:
                   nullable: true
                   description: Customer phone number (per Stripe API spec)
                   example: "+4712345678"
+                profile_image_url:
+                  type: string
+                  format: uri
+                  nullable: true
+                  description: URL to the customer profile image
+                  example: "https://example.com/images/profile.jpg"
                 address:
+                  type: object
+                  nullable: true
+                  description: Customer address (deprecated, use customer_address instead)
+                  properties:
+                    line1:
+                      type: string
+                      nullable: true
+                      description: Address line 1 (street, PO Box, or company name)
+                      example: "123 Main St"
+                    line2:
+                      type: string
+                      nullable: true
+                      description: Address line 2 (apartment, suite, unit, or building)
+                      example: "Apt 4B"
+                    city:
+                      type: string
+                      nullable: true
+                      description: City, district, suburb, town, or village
+                      example: "Oslo"
+                    state:
+                      type: string
+                      nullable: true
+                      description: State, county, province, or region
+                      example: "Oslo"
+                    postal_code:
+                      type: string
+                      nullable: true
+                      description: ZIP or postal code
+                      example: "0001"
+                    country:
+                      type: string
+                      nullable: true
+                      description: Two-letter country code (ISO 3166-1 alpha-2)
+                      example: "NO"
+                customer_address:
                   type: object
                   nullable: true
                   description: Customer address (per Stripe API spec)
@@ -3884,7 +3998,7 @@ paths:
   /stores/{store}/terminal/connection-token:
     post:
       tags:
-        - Terminal
+        - Terminals
       summary: Create terminal connection token
       description: Create a connection token for Stripe Terminal
       operationId: createTerminalConnectionToken
@@ -3936,7 +4050,7 @@ paths:
   /stores/{store}/terminal/payment-intents:
     post:
       tags:
-        - Terminal
+        - Terminals
       summary: Create payment intent
       description: Create a payment intent for Stripe Terminal
       operationId: createTerminalPaymentIntent
@@ -4135,7 +4249,13 @@ components:
           nullable: true
           description: Customer phone number (per Stripe API spec)
           example: "+4712345678"
-        address:
+        profile_image_url:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to the customer profile image
+          example: "https://example.com/images/profile.jpg"
+        customer_address:
           type: object
           nullable: true
           description: Customer address (per Stripe API spec)
@@ -4170,16 +4290,6 @@ components:
               nullable: true
               description: Two-letter country code (ISO 3166-1 alpha-2)
               example: "NO"
-        model:
-          type: string
-          nullable: true
-        model_id:
-          type: integer
-          nullable: true
-        model_uuid:
-          type: string
-          format: uuid
-          nullable: true
         created_at:
           type: string
           format: date-time
@@ -4442,9 +4552,11 @@ components:
           description: Bearer token for API authentication
           example: 1|abc123def456...
         current_store:
-          $ref: '#/components/schemas/Store'
-          nullable: true
           description: User's current/default store
+          allOf:
+            - $ref: '#/components/schemas/Store'
+            - type: object
+              nullable: true
         stores:
           type: array
           items:
@@ -4463,9 +4575,11 @@ components:
         user:
           $ref: '#/components/schemas/User'
         current_store:
-          $ref: '#/components/schemas/Store'
-          nullable: true
           description: User's current/default store
+          allOf:
+            - $ref: '#/components/schemas/Store'
+            - type: object
+              nullable: true
         stores:
           type: array
           items:
@@ -4477,32 +4591,6 @@ components:
                     type: boolean
                     description: Whether this is the user's current store
                     example: true
-
-    PaginatedCustomers:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Customer'
-        current_page:
-          type: integer
-          example: 1
-        per_page:
-          type: integer
-          example: 15
-        total:
-          type: integer
-          example: 100
-        last_page:
-          type: integer
-          example: 7
-        from:
-          type: integer
-          example: 1
-        to:
-          type: integer
-          example: 15
 
     PaginationMeta:
       type: object
@@ -4519,138 +4607,6 @@ components:
         total:
           type: integer
           example: 200
-
-    PosSession:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 1
-        store_id:
-          type: integer
-          example: 1
-        pos_device_id:
-          type: integer
-          example: 1
-        user_id:
-          type: integer
-          example: 1
-        session_number:
-          type: string
-          description: Zero-padded 6-digit session number
-          example: "000001"
-        status:
-          type: string
-          enum: [open, closed, abandoned]
-          example: open
-        opening_balance:
-          type: integer
-          description: Opening cash balance in øre
-          example: 0
-        expected_cash:
-          type: integer
-          nullable: true
-          description: Expected cash amount in øre
-        actual_cash:
-          type: integer
-          nullable: true
-          description: Actual cash count in øre
-        cash_difference:
-          type: integer
-          nullable: true
-          description: Cash difference in øre
-        opening_notes:
-          type: string
-          nullable: true
-          description: Free-text notes for session opening (e.g., shift information, initial observations, cashier notes)
-          maxLength: 1000
-        closing_notes:
-          type: string
-          nullable: true
-          description: Free-text notes for session closing (e.g., cash discrepancies, end-of-shift observations, issues encountered)
-          maxLength: 1000
-        opening_data:
-          type: object
-          nullable: true
-          additionalProperties: true
-        closing_data:
-          type: object
-          nullable: true
-          additionalProperties: true
-        opened_at:
-          type: string
-          format: date-time
-        closed_at:
-          type: string
-          format: date-time
-          nullable: true
-        session_device:
-          type: object
-          nullable: true
-          properties:
-            id:
-              type: integer
-            device_name:
-              type: string
-        session_user:
-          type: object
-          nullable: true
-          properties:
-            id:
-              type: integer
-            name:
-              type: string
-        transaction_count:
-          type: integer
-          description: Number of successful transactions
-          example: 5
-        total_amount:
-          type: integer
-          description: Total amount in øre
-          example: 150000
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-
-    PosSessionWithCharges:
-      allOf:
-        - $ref: '#/components/schemas/PosSession'
-        - type: object
-          properties:
-            session_charges:
-              type: array
-              items:
-                $ref: '#/components/schemas/SessionCharge'
-
-    SessionCharge:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 101
-        stripe_charge_id:
-          type: string
-          example: "ch_1234567890abcdef"
-        amount:
-          type: integer
-          description: Amount in øre
-          example: 50000
-        currency:
-          type: string
-          example: "nok"
-        status:
-          type: string
-          example: "succeeded"
-        payment_method:
-          type: string
-          example: "card"
-        paid_at:
-          type: string
-          format: date-time
-          nullable: true
 
     Purchase:
       type: object
@@ -4820,7 +4776,7 @@ components:
               example: 0
         purchase_customer:
           type: object
-          description: Customer information (always present, null values if no customer)
+          description: Customer information (always present, null values if no customer). Matches the Customer schema from /customers API.
           properties:
             id:
               type: integer
@@ -4830,24 +4786,75 @@ components:
               type: string
               nullable: true
               example: "cus_xxx"
+            stripe_account_id:
+              type: string
+              nullable: true
+              example: "acct_1234567890"
             name:
               type: string
               nullable: true
               example: "Customer Name"
             email:
               type: string
+              format: email
               nullable: true
               example: "customer@example.com"
             phone:
               type: string
               nullable: true
-              description: Customer phone number
+              description: Customer phone number (per Stripe API spec)
               example: "+4712345678"
-            address:
+            profile_image_url:
               type: string
+              format: uri
               nullable: true
-              description: Customer address
-              example: "123 Main St, Oslo, Norway"
+              description: URL to the customer profile image
+              example: "https://example.com/images/profile.jpg"
+            customer_address:
+              type: object
+              nullable: true
+              description: Customer address (per Stripe API spec)
+              properties:
+                line1:
+                  type: string
+                  nullable: true
+                  description: Address line 1 (street, PO Box, or company name)
+                  example: "123 Main St"
+                line2:
+                  type: string
+                  nullable: true
+                  description: Address line 2 (apartment, suite, unit, or building)
+                  example: "Apt 4B"
+                city:
+                  type: string
+                  nullable: true
+                  description: City, district, suburb, town, or village
+                  example: "Oslo"
+                state:
+                  type: string
+                  nullable: true
+                  description: State, county, province, or region
+                  example: "Oslo"
+                postal_code:
+                  type: string
+                  nullable: true
+                  description: ZIP or postal code
+                  example: "0001"
+                country:
+                  type: string
+                  nullable: true
+                  description: Two-letter country code (ISO 3166-1 alpha-2)
+                  example: "NO"
+            created_at:
+              type: string
+              format: date-time
+              nullable: true
+              example: "2025-11-28T13:59:53.000000Z"
+            updated_at:
+              type: string
+              format: date-time
+              nullable: true
+              example: "2025-12-09T14:02:52.000000Z"
         purchase_items:
           type: array
           nullable: true
@@ -5088,6 +5095,138 @@ components:
                 format: date-time
                 nullable: true
                 description: Payment intent succeeded date/time in Oslo timezone
+
+    PosSession:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        store_id:
+          type: integer
+          example: 1
+        pos_device_id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 1
+        session_number:
+          type: string
+          description: Zero-padded 6-digit session number
+          example: "000001"
+        status:
+          type: string
+          enum: [open, closed, abandoned]
+          example: open
+        opening_balance:
+          type: integer
+          description: Opening cash balance in øre
+          example: 0
+        expected_cash:
+          type: integer
+          nullable: true
+          description: Expected cash amount in øre
+        actual_cash:
+          type: integer
+          nullable: true
+          description: Actual cash count in øre
+        cash_difference:
+          type: integer
+          nullable: true
+          description: Cash difference in øre
+        opening_notes:
+          type: string
+          nullable: true
+          description: Free-text notes for session opening (e.g., shift information, initial observations, cashier notes)
+          maxLength: 1000
+        closing_notes:
+          type: string
+          nullable: true
+          description: Free-text notes for session closing (e.g., cash discrepancies, end-of-shift observations, issues encountered)
+          maxLength: 1000
+        opening_data:
+          type: object
+          nullable: true
+          additionalProperties: true
+        closing_data:
+          type: object
+          nullable: true
+          additionalProperties: true
+        opened_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+        session_device:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            device_name:
+              type: string
+        session_user:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        transaction_count:
+          type: integer
+          description: Number of successful transactions
+          example: 5
+        total_amount:
+          type: integer
+          description: Total amount in øre
+          example: 150000
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PosSessionWithCharges:
+      allOf:
+        - $ref: '#/components/schemas/PosSession'
+        - type: object
+          properties:
+            session_charges:
+              type: array
+              items:
+                $ref: '#/components/schemas/SessionCharge'
+
+    SessionCharge:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 101
+        stripe_charge_id:
+          type: string
+          example: "ch_1234567890abcdef"
+        amount:
+          type: integer
+          description: Amount in øre
+          example: 50000
+        currency:
+          type: string
+          example: "nok"
+        status:
+          type: string
+          example: "succeeded"
+        payment_method:
+          type: string
+          example: "card"
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
 
     PosEvent:
       type: object
@@ -5718,9 +5857,11 @@ components:
 
     Collection:
       type: object
+      description: 'Collection object. Note: id 0 represents a fake "Ukategorisert" (Uncategorized) category that appears when there are products with no collection.'
       properties:
         id:
           type: integer
+          description: 'Collection ID. Value 0 indicates the fake "Ukategorisert" category for uncategorized products.'
           example: 1
         name:
           type: string
@@ -5793,6 +5934,198 @@ components:
             password:
               - The password field is required.
 
+    PurchaseCart:
+      type: object
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - product_id
+              - quantity
+              - unit_price
+            properties:
+              product_id:
+                type: integer
+                example: 123
+              variant_id:
+                type: integer
+                nullable: true
+                example: 456
+              quantity:
+                type: integer
+                minimum: 1
+                example: 2
+              unit_price:
+                type: integer
+                description: Price per unit in minor units (øre)
+                minimum: 0
+                example: 5000
+              discount_amount:
+                type: integer
+                description: Discount amount per unit in minor units
+                default: 0
+                example: 500
+              tax_rate:
+                type: number
+                description: Tax rate (e.g., 0.25 for 25%)
+                default: 0
+                example: 0.25
+              tax_inclusive:
+                type: boolean
+                description: Whether price includes tax
+                default: true
+                example: true
+        discounts:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [prosent, verdi, ingen]
+                example: prosent
+              amount:
+                type: integer
+                description: Discount amount in minor units
+                example: 1000
+              percentage:
+                type: number
+                nullable: true
+                description: Discount percentage (0-100)
+                example: 10
+              reason:
+                type: string
+                nullable: true
+                example: Kundeklubb
+        tip_amount:
+          type: integer
+          description: Tip amount in minor units
+          default: 0
+          example: 0
+        customer_id:
+          type: integer
+          nullable: true
+          description: Customer database ID (integer)
+          example: 1
+        customer_name:
+          type: string
+          nullable: true
+          example: John Doe
+        subtotal:
+          type: integer
+          description: Subtotal in minor units (before discounts and tax)
+          example: 10000
+        total_discounts:
+          type: integer
+          description: Total discount amount in minor units
+          example: 1000
+        total_tax:
+          type: integer
+          description: Total tax amount in minor units
+          example: 2000
+        total:
+          type: integer
+          description: Total amount in minor units
+          minimum: 1
+          example: 11000
+        currency:
+          type: string
+          description: Currency code (ISO 3-letter)
+          default: nok
+          example: nok
+
+    PurchaseMetadata:
+      type: object
+      description: Additional metadata
+      properties:
+        payment_intent_id:
+          type: string
+          description: Stripe payment intent ID (required for Stripe payments)
+          example: pi_xxx
+        deferred_payment:
+          type: boolean
+          description: Set to true to create a deferred payment (payment on pickup/later). Generates a delivery receipt per Kassasystemforskriften § 2-8-7.
+          example: false
+        deferred_reason:
+          type: string
+          description: Reason for deferred payment (e.g., "Payment on pickup", "Dry cleaning")
+          example: "Payment on pickup"
+        cashier_name:
+          type: string
+          example: John Doe
+        device_id:
+          type: integer
+          example: 1
+        description:
+          type: string
+          example: Purchase description
+
+    PurchaseSinglePaymentRequest:
+      type: object
+      required:
+        - pos_session_id
+        - payment_method_code
+        - cart
+      properties:
+        pos_session_id:
+          type: integer
+          description: ID of the active POS session
+          example: 1
+        payment_method_code:
+          type: string
+          description: Code of the payment method (e.g., "cash", "card", "card_present")
+          example: cash
+        cart:
+          $ref: '#/components/schemas/PurchaseCart'
+        metadata:
+          $ref: '#/components/schemas/PurchaseMetadata'
+
+    PurchaseSplitPaymentRequest:
+      type: object
+      required:
+        - pos_session_id
+        - payments
+        - cart
+      properties:
+        pos_session_id:
+          type: integer
+          description: ID of the active POS session
+          example: 1
+        payments:
+          type: array
+          description: Array of payment methods and amounts
+          minItems: 1
+          items:
+            type: object
+            required:
+              - payment_method_code
+              - amount
+            properties:
+              payment_method_code:
+                type: string
+                example: cash
+              amount:
+                type: integer
+                description: Payment amount in minor units (øre)
+                minimum: 1
+                example: 5000
+              metadata:
+                type: object
+                description: Payment-specific metadata (e.g., payment_intent_id for Stripe)
+                additionalProperties: true
+                example:
+                  payment_intent_id: pi_xxx
+        cart:
+          $ref: '#/components/schemas/PurchaseCart'
+        metadata:
+          $ref: '#/components/schemas/PurchaseMetadata'
+
   responses:
     UnauthorizedError:
       description: Authentication required or invalid token
@@ -5800,8 +6133,10 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-          example:
-            message: Unauthenticated.
+          examples:
+            default:
+              value:
+                message: Unauthenticated.
 
 security:
   - bearerAuth: []

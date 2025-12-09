@@ -4,6 +4,11 @@
 // It converts the cart data from FlutterFlow app state to the API format
 // and makes the purchase API request.
 //
+// Supports:
+// - Single and split payments
+// - Cash and Stripe payments
+// - Deferred payments (payment on pickup) - use payment_method_code: "deferred" or set metadata.deferred_payment: true
+//
 // IMPORTANT: FlutterFlow requires Future<dynamic> as return type, not Map<String, dynamic>?
 //
 // Function signature (update in FlutterFlow):
@@ -13,9 +18,10 @@
 //   String apiBaseUrl,
 //   String authToken,
 //   String? paymentIntentId,  // Optional, for Stripe payments
-//   String? additionalMetadataJson,  // Optional, pass as JSON string
+//   String? additionalMetadataJson,  // Optional, pass as JSON string. For deferred payments, include: {"deferred_payment": true, "deferred_reason": "Payment on pickup"}
 //   bool isSplitPayment,  // Default: false
 //   String? splitPaymentsJson,  // Optional, pass as JSON string for split payments
+//   String? customerId,  // Optional, local customer ID (database ID, integer as string). Overrides cart customer ID if provided.
 // ) async
 
 import 'dart:convert';
@@ -30,6 +36,7 @@ Future<dynamic> completePosPurchase(
   String? additionalMetadataJson,
   bool isSplitPayment,
   String? splitPaymentsJson,
+  String? customerId,
 ) async {
   try {
     // Parse additional metadata from JSON string
@@ -161,12 +168,25 @@ Future<dynamic> completePosPurchase(
     final total = cart.cartTotalCartPrice; // in øre
     final tipAmount = cart.cartTipAmount; // in øre
     
+    // Determine customer ID: use passed parameter if provided, otherwise use cart's customer ID
+    // Note: customer_id should be the local database ID (integer), not the Stripe customer ID
+    // The backend will resolve the local ID to the Stripe customer ID automatically
+    final String? finalCustomerId = customerId != null && customerId.isNotEmpty
+        ? customerId
+        : (cart.cartCustomerId.isNotEmpty ? cart.cartCustomerId : null);
+    
+    // Convert customer ID to integer if it's numeric (local ID)
+    // Backend will handle conversion: numeric ID -> lookup Stripe ID, Stripe ID (starts with 'cus_') -> use directly
+    final dynamic customerIdForApi = finalCustomerId != null && finalCustomerId.isNotEmpty
+        ? (int.tryParse(finalCustomerId) ?? finalCustomerId) // Try to parse as int, fallback to string
+        : null;
+    
     // Build cart object
     final cartData = {
       'items': cartItems,
       'discounts': cartDiscounts,
       'tip_amount': tipAmount,
-      'customer_id': cart.cartCustomerId.isNotEmpty ? cart.cartCustomerId : null,
+      'customer_id': customerIdForApi, // Local customer ID (integer) - backend will resolve to Stripe ID
       'customer_name': cart.cartCustomerName.isNotEmpty ? cart.cartCustomerName : null,
       'subtotal': subtotal,
       'total_discounts': totalDiscounts,

@@ -107,6 +107,11 @@ return [
             'plural' => 'Rapporter',
             'navigation' => 'Rapporter',
         ],
+        'settings' => [
+            'label' => 'Innstillinger',
+            'plural' => 'Innstillinger',
+            'navigation' => 'Innstillinger',
+        ],
         'receipt' => [
             'label' => 'Kvittering',
             'plural' => 'Kvitteringer',
