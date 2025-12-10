@@ -521,7 +521,7 @@ class PosSessionsTable
 
     /**
      * Calculate manual discounts from session receipts
-     * Only discounts with discountReason (manual) are counted, not automatic/campaign discounts
+     * NOTE: Currently all discounts are treated as manual until more discount logic is implemented
      */
     protected static function calculateManualDiscounts(PosSession $session): array
     {
@@ -532,28 +532,27 @@ class PosSessionsTable
         foreach ($session->receipts as $receipt) {
             $receiptData = $receipt->receipt_data ?? [];
             
-            // Check item-level manual discounts (those with discountReason)
+            // Check item-level discounts
+            // For now, all discounts are treated as manual
             $items = $receiptData['items'] ?? [];
             foreach ($items as $item) {
                 $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
-                $discountReason = $item['discount_reason'] ?? null;
                 
-                // Only count if discount exists AND has a reason (manual discount)
-                if ($discountAmount > 0 && !empty($discountReason)) {
+                // Count all discounts as manual for now
+                if ($discountAmount > 0) {
                     $manualDiscountCount++;
                     $manualDiscountAmount += $discountAmount * ($item['quantity'] ?? 1);
                 }
             }
             
-            // Check cart-level manual discounts (those with reason field)
+            // Check cart-level discounts
+            // For now, all discounts are treated as manual
             $discounts = $receiptData['discounts'] ?? [];
             foreach ($discounts as $discount) {
                 $discountAmount = isset($discount['amount']) ? (int) $discount['amount'] : 0;
-                $discountReason = $discount['reason'] ?? null;
                 
-                // Only count if discount exists AND has a reason (manual discount)
-                // Automatic discounts (campaigns, coupons) don't have reason
-                if ($discountAmount > 0 && !empty($discountReason)) {
+                // Count all discounts as manual for now
+                if ($discountAmount > 0) {
                     $manualDiscountCount++;
                     $manualDiscountAmount += $discountAmount;
                 }
