@@ -93,6 +93,9 @@ class ReceiptGenerationService
         $totalDiscounts = $metadata['total_discounts'] ?? 0;
         $totalTax = $metadata['total_tax'] ?? $this->calculateTaxFromAmount($totalAmount);
         $tipAmount = $metadata['tip_amount'] ?? 0;
+        
+        // Get cart-level discounts from metadata
+        $cartDiscounts = $metadata['discounts'] ?? [];
 
         // Build payment breakdown for split payments
         $payments = [];
@@ -120,6 +123,7 @@ class ReceiptGenerationService
             'session_number' => $session?->session_number,
             'cashier' => $session?->user?->name ?? 'Unknown',
             'items' => $items,
+            'discounts' => $cartDiscounts, // Cart-level discounts array
             'subtotal' => $subtotal,
             'total_discounts' => $totalDiscounts,
             'tax' => $totalTax,
@@ -283,6 +287,9 @@ class ReceiptGenerationService
         $subtotal = $metadata['subtotal'] ?? ($charge->amount / 100);
         $totalDiscounts = $metadata['total_discounts'] ?? 0;
         $totalTax = $metadata['total_tax'] ?? $this->calculateTaxFromAmount($charge->amount);
+        
+        // Get cart-level discounts from metadata
+        $cartDiscounts = $metadata['discounts'] ?? [];
 
         $storeMetadata = is_array($store->metadata) ? $store->metadata : json_decode($store->metadata ?? '{}', true);
 
@@ -298,6 +305,7 @@ class ReceiptGenerationService
             'session_number' => $session?->session_number,
             'cashier' => $session?->user?->name ?? 'Unknown',
             'items' => $items,
+            'discounts' => $cartDiscounts, // Cart-level discounts array
             'subtotal' => $subtotal,
             'total_discounts' => $totalDiscounts,
             'tax' => $totalTax,
