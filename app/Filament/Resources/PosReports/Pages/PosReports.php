@@ -522,12 +522,34 @@ class PosReports extends Page implements HasForms, HasTable
             // For now, all discounts are treated as manual
             $items = $receiptData['items'] ?? [];
             foreach ($items as $item) {
-                $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
+                // Handle discount_amount in different formats:
+                // - Integer (øre): direct use
+                // - String/number (formatted): try to parse
+                // - May be stored as 0 or null if no discount
+                $discountAmount = 0;
+                if (isset($item['discount_amount'])) {
+                    $discountValue = $item['discount_amount'];
+                    // If it's a string, it might be formatted (e.g., "50,00" or "50.00")
+                    if (is_string($discountValue)) {
+                        // Remove formatting and convert to øre
+                        $discountValue = str_replace([',', ' '], ['.', ''], $discountValue);
+                        $discountAmount = (int) round((float) $discountValue * 100);
+                    } elseif (is_numeric($discountValue)) {
+                        // If it's already a number, check if it's in øre or kroner
+                        // If less than 1000, assume it's already in øre, otherwise might be in kroner
+                        $discountAmount = (int) $discountValue;
+                        if ($discountAmount > 1000 && $discountAmount < 100000) {
+                            // Likely in kroner (e.g., 50.00), convert to øre
+                            $discountAmount = (int) round($discountAmount * 100);
+                        }
+                    }
+                }
                 
                 // Count all discounts as manual for now
                 if ($discountAmount > 0) {
+                    $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
                     $manualDiscountCount++;
-                    $manualDiscountAmount += $discountAmount * ($item['quantity'] ?? 1);
+                    $manualDiscountAmount += $discountAmount * $quantity;
                 }
             }
             
@@ -535,12 +557,47 @@ class PosReports extends Page implements HasForms, HasTable
             // For now, all discounts are treated as manual
             $discounts = $receiptData['discounts'] ?? [];
             foreach ($discounts as $discount) {
-                $discountAmount = isset($discount['amount']) ? (int) $discount['amount'] : 0;
+                // Handle discount amount in different formats
+                $discountAmount = 0;
+                if (isset($discount['amount'])) {
+                    $discountValue = $discount['amount'];
+                    // If it's a string, it might be formatted
+                    if (is_string($discountValue)) {
+                        $discountValue = str_replace([',', ' '], ['.', ''], $discountValue);
+                        $discountAmount = (int) round((float) $discountValue * 100);
+                    } elseif (is_numeric($discountValue)) {
+                        $discountAmount = (int) $discountValue;
+                        // If it's a large number, might be in kroner
+                        if ($discountAmount > 1000 && $discountAmount < 100000) {
+                            $discountAmount = (int) round($discountAmount * 100);
+                        }
+                    }
+                }
                 
                 // Count all discounts as manual for now
                 if ($discountAmount > 0) {
                     $manualDiscountCount++;
                     $manualDiscountAmount += $discountAmount;
+                }
+            }
+            
+            // Also check total_discounts as a fallback if individual discounts aren't found
+            // This handles cases where discounts exist but aren't broken down per item
+            if ($manualDiscountAmount === 0 && isset($receiptData['total_discounts'])) {
+                $totalDiscounts = $receiptData['total_discounts'];
+                if (is_numeric($totalDiscounts) && $totalDiscounts > 0) {
+                    // Convert from kroner to øre if needed
+                    $totalDiscountsOre = (int) $totalDiscounts;
+                    if ($totalDiscountsOre < 1000) {
+                        // Likely already in øre
+                        $manualDiscountAmount = $totalDiscountsOre;
+                    } else {
+                        // Likely in kroner, convert to øre
+                        $manualDiscountAmount = (int) round($totalDiscountsOre * 100);
+                    }
+                    if ($manualDiscountAmount > 0) {
+                        $manualDiscountCount = 1; // At least one discount
+                    }
                 }
             }
         }
