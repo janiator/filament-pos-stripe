@@ -511,12 +511,29 @@ class PosReports extends Page implements HasForms, HasTable
      */
     protected function calculateManualDiscounts(PosSession $session): array
     {
-        $session->load(['receipts']);
+        $session->load(['receipts', 'charges']);
         $manualDiscountCount = 0;
         $manualDiscountAmount = 0;
         
         foreach ($session->receipts as $receipt) {
             $receiptData = $receipt->receipt_data ?? [];
+            
+            // If receipt_data doesn't have items, try to get from charge metadata
+            if (empty($receiptData['items']) && $receipt->charge_id) {
+                $charge = $session->charges->firstWhere('id', $receipt->charge_id);
+                if ($charge && $charge->metadata) {
+                    $metadata = is_array($charge->metadata) ? $charge->metadata : json_decode($charge->metadata ?? '{}', true);
+                    if (isset($metadata['items']) && is_array($metadata['items'])) {
+                        $receiptData['items'] = $metadata['items'];
+                    }
+                    if (isset($metadata['discounts']) && is_array($metadata['discounts'])) {
+                        $receiptData['discounts'] = $metadata['discounts'];
+                    }
+                    if (isset($metadata['total_discounts'])) {
+                        $receiptData['total_discounts'] = $metadata['total_discounts'];
+                    }
+                }
+            }
             
             // Check item-level discounts
             // For now, all discounts are treated as manual
