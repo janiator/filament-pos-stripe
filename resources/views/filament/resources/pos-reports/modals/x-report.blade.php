@@ -112,6 +112,18 @@
 </style>
 
 <div class="x-report-container">
+    <!-- Download Button -->
+    <div style="margin-bottom: 1rem; text-align: right;">
+        <a href="{{ route('reports.x-report.pdf', ['tenant' => $session->store->slug, 'sessionId' => $session->id]) }}" 
+           target="_blank"
+           style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background-color: rgb(239 68 68); color: white; text-decoration: none; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500;">
+            <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Last ned PDF
+        </a>
+    </div>
+    
     <!-- Header Section -->
     <div class="x-report-section x-report-header">
         <h3 class="x-report-title">X-Rapport (Mellomrapport)</h3>
@@ -198,7 +210,7 @@
             </div>
             <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format($report['expected_cash'] / 100, 2) }} NOK</div>
         </div>
-        @if($report['tips_enabled'] ?? true)
+        @if(!empty($report['tips_enabled']) && $report['tips_enabled'] === true)
             <div class="x-report-section" style="background-color: rgb(239 246 255); border-color: rgb(191 219 254);">
                 <div style="font-size: 0.875rem; color: rgb(75 85 99); margin-bottom: 0.5rem;">
                     <strong>Totalt Drikkepenger</strong>
@@ -268,6 +280,33 @@
                                 <td style="font-weight: 500; color: rgb(17 24 39);">{{ $code }}</td>
                                 <td style="text-align: center; color: rgb(17 24 39);">{{ $data['count'] }}</td>
                                 <td style="text-align: right; font-weight: 600; color: rgb(17 24 39);">{{ number_format($data['amount'] / 100, 2) }} NOK</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
+    <!-- Sales by Category -->
+    @if(isset($report['sales_by_category']) && $report['sales_by_category']->count() > 0)
+        <div class="x-report-section x-report-card">
+            <h4 class="x-report-title">Salg per Produktkategori</h4>
+            <div style="overflow-x: auto;">
+                <table class="x-report-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">Kategori</th>
+                            <th style="text-align: center;">Antall</th>
+                            <th style="text-align: right;">Beløp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($report['sales_by_category'] as $category)
+                            <tr>
+                                <td style="font-weight: 500; color: rgb(17 24 39);">{{ $category['name'] }}</td>
+                                <td style="text-align: center; color: rgb(17 24 39);">{{ $category['count'] }}</td>
+                                <td style="text-align: right; font-weight: 600; color: rgb(17 24 39);">{{ number_format($category['amount'] / 100, 2) }} NOK</td>
                             </tr>
                         @endforeach
                     </tbody>

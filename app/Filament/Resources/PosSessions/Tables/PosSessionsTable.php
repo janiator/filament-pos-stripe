@@ -82,6 +82,19 @@ class PosSessionsTable
                     ->icon('heroicon-o-document-chart-bar')
                     ->color('info')
                     ->modalHeading('X-Report (Interim Report)')
+                    ->before(function (PosSession $record) {
+                        // Log X-report event (13008) per § 2-8-2
+                        PosEvent::create([
+                            'store_id' => $record->store_id,
+                            'pos_device_id' => $record->pos_device_id,
+                            'pos_session_id' => $record->id,
+                            'user_id' => auth()->id(),
+                            'event_code' => PosEvent::EVENT_X_REPORT,
+                            'event_type' => 'report',
+                            'description' => "X-report for session {$record->session_number}",
+                            'occurred_at' => now(),
+                        ]);
+                    })
                     ->modalContent(fn (PosSession $record) => view('filament.resources.pos-reports.modals.x-report', [
                         'session' => $record,
                         'report' => self::generateXReport($record),
@@ -94,6 +107,19 @@ class PosSessionsTable
                     ->icon('heroicon-o-document-check')
                     ->color('success')
                     ->modalHeading('Z-Report (End-of-Day Report)')
+                    ->before(function (PosSession $record) {
+                        // Log Z-report event (13009) per § 2-8-3
+                        PosEvent::create([
+                            'store_id' => $record->store_id,
+                            'pos_device_id' => $record->pos_device_id,
+                            'pos_session_id' => $record->id,
+                            'user_id' => auth()->id(),
+                            'event_code' => PosEvent::EVENT_Z_REPORT,
+                            'event_type' => 'report',
+                            'description' => "Z-report for session {$record->session_number}",
+                            'occurred_at' => now(),
+                        ]);
+                    })
                     ->modalContent(fn (PosSession $record) => view('filament.resources.pos-reports.modals.z-report', [
                         'session' => $record,
                         'report' => self::generateZReport($record),
@@ -164,14 +190,14 @@ class PosSessionsTable
     /**
      * Generate X-report data for a session
      */
-    protected static function generateXReport(PosSession $session): array
+    public static function generateXReport(PosSession $session): array
     {
         $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
         $charges = $session->charges->where('status', 'succeeded');
         
         // Get settings to check if tips are enabled
         $settings = \App\Models\Setting::getForStore($session->store_id);
-        $tipsEnabled = $settings->tips_enabled ?? true;
+        $tipsEnabled = (bool) ($settings->tips_enabled ?? true);
         
         $totalAmount = $charges->sum('amount');
         $cashAmount = $charges->where('payment_method', 'cash')->sum('amount');
@@ -214,8 +240,13 @@ class PosSessionsTable
         
         // Cash drawer events
         $cashDrawerOpens = $session->events->where('event_code', PosEvent::EVENT_CASH_DRAWER_OPEN)->count();
-        $nullinnslagCount = $session->events->where('event_code', PosEvent::EVENT_CASH_DRAWER_OPEN)
-            ->where('event_data->nullinnslag', true)->count();
+        $nullinnslagCount = $session->events
+            ->where('event_code', PosEvent::EVENT_CASH_DRAWER_OPEN)
+            ->filter(function ($event) {
+                $eventData = $event->event_data ?? [];
+                return isset($eventData['nullinnslag']) && $eventData['nullinnslag'] === true;
+            })
+            ->count();
         
         // Receipt count
         $receiptCount = $session->receipts->count();
@@ -257,13 +288,14 @@ class PosSessionsTable
             'receipt_count' => $receiptCount,
             'charges' => $charges,
             'tips_enabled' => $tipsEnabled,
+            'sales_by_category' => self::calculateSalesByCategory($session),
         ];
     }
 
     /**
      * Generate Z-report data for a session
      */
-    protected static function generateZReport(PosSession $session): array
+    public static function generateZReport(PosSession $session): array
     {
         $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
         $report = self::generateXReport($session);
@@ -275,12 +307,12 @@ class PosSessionsTable
         $report['closing_notes'] = $session->closing_notes;
         $report['report_type'] = 'Z-Report';
         
-        // Event summary
+        // Event summary with Norwegian translations
         $eventSummary = $session->events->groupBy('event_code')->map(function ($group) {
             $firstEvent = $group->first();
             return [
                 'code' => $firstEvent->event_code,
-                'description' => $firstEvent->description ?? $firstEvent->event_description ?? 'N/A',
+                'description' => self::translateEventToNorwegian($firstEvent->event_code, $firstEvent->description ?? $firstEvent->event_description ?? 'N/A'),
                 'count' => $group->count(),
             ];
         });
@@ -288,10 +320,16 @@ class PosSessionsTable
         
         // Get settings to check if tips are enabled
         $settings = \App\Models\Setting::getForStore($session->store_id);
-        $tipsEnabled = $settings->tips_enabled ?? true;
+        $tipsEnabled = (bool) ($settings->tips_enabled ?? true);
+        
+        // Check if session spans multiple days
+        $sessionStartDate = $session->opened_at->format('Y-m-d');
+        $sessionEndDate = $session->closed_at ? $session->closed_at->format('Y-m-d') : now()->format('Y-m-d');
+        $spansMultipleDays = $sessionStartDate !== $sessionEndDate;
         
         // Complete transaction list with all details
-        $report['complete_transaction_list'] = $session->charges->where('status', 'succeeded')->map(function ($charge) use ($tipsEnabled) {
+        $report['complete_transaction_list'] = $session->charges->where('status', 'succeeded')->map(function ($charge) use ($tipsEnabled, $spansMultipleDays) {
+            $transactionDate = $charge->paid_at ?? $charge->created_at;
             return [
                 'id' => $charge->id,
                 'stripe_charge_id' => $charge->stripe_charge_id,
@@ -304,8 +342,12 @@ class PosSessionsTable
                 'description' => $charge->description,
                 'paid_at' => $charge->paid_at?->toISOString(),
                 'created_at' => $charge->created_at->toISOString(),
+                'transaction_date' => $transactionDate->format('Y-m-d'),
+                'spans_multiple_days' => $spansMultipleDays,
             ];
         });
+        
+        $report['spans_multiple_days'] = $spansMultipleDays;
         
         $report['tips_enabled'] = $tipsEnabled;
         
@@ -318,6 +360,135 @@ class PosSessionsTable
         });
         $report['receipt_summary'] = $receiptSummary;
         
+        // Sales per category
+        $report['sales_by_category'] = self::calculateSalesByCategory($session);
+        
         return $report;
+    }
+
+    /**
+     * Translate POS event code to Norwegian
+     */
+    protected static function translateEventToNorwegian(string $eventCode, string $fallback = 'N/A'): string
+    {
+        return match($eventCode) {
+            PosEvent::EVENT_APPLICATION_START => 'POS-applikasjon startet',
+            PosEvent::EVENT_APPLICATION_SHUTDOWN => 'POS-applikasjon avsluttet',
+            PosEvent::EVENT_EMPLOYEE_LOGIN => 'Ansatt innlogging',
+            PosEvent::EVENT_EMPLOYEE_LOGOUT => 'Ansatt utlogging',
+            PosEvent::EVENT_CASH_DRAWER_OPEN => 'Kontantskuff åpnet',
+            PosEvent::EVENT_CASH_DRAWER_CLOSE => 'Kontantskuff lukket',
+            PosEvent::EVENT_X_REPORT => 'X-rapport (mellomrapport)',
+            PosEvent::EVENT_Z_REPORT => 'Z-rapport (sluttrapport)',
+            PosEvent::EVENT_SALES_RECEIPT => 'Salgskvittering',
+            PosEvent::EVENT_RETURN_RECEIPT => 'Returkvittering',
+            PosEvent::EVENT_VOID_TRANSACTION => 'Annullert transaksjon',
+            PosEvent::EVENT_CORRECTION_RECEIPT => 'Korreksjonskvittering',
+            PosEvent::EVENT_CASH_PAYMENT => 'Kontantbetaling',
+            PosEvent::EVENT_CARD_PAYMENT => 'Kortbetaling',
+            PosEvent::EVENT_MOBILE_PAYMENT => 'Mobilbetaling',
+            PosEvent::EVENT_OTHER_PAYMENT => 'Annen betalingsmetode',
+            PosEvent::EVENT_SESSION_OPENED => 'Økt åpnet',
+            PosEvent::EVENT_SESSION_CLOSED => 'Økt stengt',
+            default => $fallback,
+        };
+    }
+
+    /**
+     * Calculate sales per product category (collection)
+     */
+    protected static function calculateSalesByCategory(PosSession $session): \Illuminate\Support\Collection
+    {
+        $session->load(['receipts']);
+        
+        $categorySales = collect();
+        
+        // Get all sales receipts for this session
+        $salesReceipts = $session->receipts->where('receipt_type', 'sales');
+        
+        // Collect all product and variant IDs to eager load
+        $productIds = [];
+        $variantIds = [];
+        
+        foreach ($salesReceipts as $receipt) {
+            $items = $receipt->receipt_data['items'] ?? [];
+            foreach ($items as $item) {
+                if (isset($item['product_id'])) {
+                    $productIds[] = (int) $item['product_id'];
+                }
+                if (isset($item['variant_id'])) {
+                    $variantIds[] = (int) $item['variant_id'];
+                }
+            }
+        }
+        
+        // Eager load products and variants with collections
+        $products = \App\Models\ConnectedProduct::whereIn('id', array_unique($productIds))
+            ->with('collections')
+            ->get()
+            ->keyBy('id');
+        
+        $variants = \App\Models\ProductVariant::whereIn('id', array_unique($variantIds))
+            ->with('product.collections')
+            ->get()
+            ->keyBy('id');
+        
+        foreach ($salesReceipts as $receipt) {
+            $items = $receipt->receipt_data['items'] ?? [];
+            
+            foreach ($items as $item) {
+                $productId = $item['product_id'] ?? null;
+                $variantId = $item['variant_id'] ?? null;
+                $quantity = $item['quantity'] ?? 1;
+                
+                // Calculate line total - handle both øre (integer) and decimal formats
+                $lineTotal = 0;
+                if (isset($item['line_total'])) {
+                    $lineTotal = is_numeric($item['line_total']) ? (int) $item['line_total'] : 0;
+                } elseif (isset($item['unit_price'])) {
+                    $unitPrice = is_numeric($item['unit_price']) ? (int) $item['unit_price'] : 0;
+                    $lineTotal = $unitPrice * $quantity;
+                }
+                
+                // Get product to find its collections
+                $product = null;
+                if ($variantId && isset($variants[$variantId])) {
+                    $product = $variants[$variantId]->product;
+                } elseif ($productId && isset($products[$productId])) {
+                    $product = $products[$productId];
+                }
+                
+                if ($product) {
+                    $collections = $product->collections;
+                    
+                    if ($collections->isEmpty()) {
+                        // If no collections, use "Ingen kategori" (No category)
+                        $categoryName = 'Ingen kategori';
+                        $categoryId = 'no-category';
+                    } else {
+                        // Use the first collection (products can belong to multiple)
+                        $collection = $collections->first();
+                        $categoryName = $collection->name;
+                        $categoryId = $collection->id;
+                    }
+                    
+                    if (!$categorySales->has($categoryId)) {
+                        $categorySales->put($categoryId, [
+                            'id' => $categoryId,
+                            'name' => $categoryName,
+                            'count' => 0,
+                            'amount' => 0,
+                        ]);
+                    }
+                    
+                    $current = $categorySales->get($categoryId);
+                    $current['count'] += $quantity;
+                    $current['amount'] += $lineTotal;
+                    $categorySales->put($categoryId, $current);
+                }
+            }
+        }
+        
+        return $categorySales->sortByDesc('amount')->values();
     }
 }

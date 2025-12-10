@@ -151,6 +151,7 @@ class PosDevicesController extends BaseApiController
 
     /**
      * Update device heartbeat (last_seen_at and optional status/metadata)
+     * Automatically creates a start event if device was inactive for a while
      */
     public function heartbeat(Request $request, string $id): JsonResponse
     {
@@ -173,14 +174,84 @@ class PosDevicesController extends BaseApiController
             'device_metadata' => 'nullable|array',
         ]);
 
+        // Store the old last_seen_at value before updating (needed for inactivity calculation)
+        $oldLastSeenAt = $device->last_seen_at;
+
+        // Check if device was inactive (no heartbeat for more than 10 minutes)
+        // If so, create a start event to indicate the device came back online
+        $inactivityThreshold = now()->subMinutes(10);
+        $wasInactive = $oldLastSeenAt === null || $oldLastSeenAt < $inactivityThreshold;
+        
+        // Check if there's already a recent start event (within last 30 seconds)
+        // to avoid creating duplicate events if multiple heartbeats arrive quickly
+        $recentStartEvent = null;
+        if ($wasInactive) {
+            $recentStartEvent = \App\Models\PosEvent::where('pos_device_id', $device->id)
+                ->where('event_code', \App\Models\PosEvent::EVENT_APPLICATION_START)
+                ->where('occurred_at', '>=', now()->subSeconds(30))
+                ->first();
+        }
+
         $validated['last_seen_at'] = now();
+        $validated['device_status'] = $validated['device_status'] ?? 'active';
 
         $device->update($validated);
 
-        return response()->json([
+        $startEventCreated = false;
+        $startEventId = null;
+
+        // Create start event if device was inactive and no recent start event exists
+        if ($wasInactive && !$recentStartEvent) {
+            // Get current session if exists
+            $currentSession = \App\Models\PosSession::where('store_id', $store->id)
+                ->where('pos_device_id', $device->id)
+                ->where('status', 'open')
+                ->first();
+
+            // Get user ID (may be null if app starts before login)
+            $userId = $request->user()?->id;
+
+            // Calculate inactivity duration using the old last_seen_at value
+            $inactivityDuration = $oldLastSeenAt 
+                ? round($oldLastSeenAt->diffInMinutes(now()), 2)
+                : null;
+
+            // Log application start event (13001)
+            $event = \App\Models\PosEvent::create([
+                'store_id' => $store->id,
+                'pos_device_id' => $device->id,
+                'pos_session_id' => $currentSession?->id,
+                'user_id' => $userId,
+                'event_code' => \App\Models\PosEvent::EVENT_APPLICATION_START,
+                'event_type' => 'application',
+                'description' => "POS application resumed on device {$device->device_name} after inactivity",
+                'event_data' => [
+                    'device_name' => $device->device_name,
+                    'platform' => $device->platform,
+                    'system_version' => $device->system_version,
+                    'user_logged_in' => !is_null($userId),
+                    'inactivity_duration_minutes' => $inactivityDuration,
+                    'auto_detected' => true,
+                ],
+                'occurred_at' => now(),
+            ]);
+
+            $startEventCreated = true;
+            $startEventId = $event->id;
+        }
+
+        $response = [
             'message' => 'Device heartbeat updated',
-            'device' => $this->formatDeviceResponse($device),
-        ]);
+            'device' => $this->formatDeviceResponse($device->fresh()),
+        ];
+
+        if ($startEventCreated) {
+            $response['start_event_created'] = true;
+            $response['start_event_id'] = $startEventId;
+            $response['message'] = 'Device heartbeat updated and start event created (device resumed after inactivity)';
+        }
+
+        return response()->json($response);
     }
 
     /**

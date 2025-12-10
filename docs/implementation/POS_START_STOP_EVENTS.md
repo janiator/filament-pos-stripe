@@ -10,11 +10,53 @@ This document outlines best practices for handling POS application start and sto
 - **Endpoint:** `POST /api/pos-devices/{id}/start`
 - **Authentication:** Required (Sanctum)
 - **When to Call:** When the POS application initializes/starts
+- **Automatic Detection:** A start event is automatically created when a heartbeat is received after 10+ minutes of inactivity
 
 ### Shutdown Event
 - **Endpoint:** `POST /api/pos-devices/{id}/shutdown`
 - **Authentication:** Required (Sanctum)
 - **When to Call:** When the POS application closes/shuts down
+- **Automatic Detection:** A stop event is automatically created by a scheduled job if no heartbeat is received for 15+ minutes
+
+### Heartbeat Endpoint
+- **Endpoint:** `POST /api/pos-devices/{id}/heartbeat`
+- **Authentication:** Required (Sanctum)
+- **When to Call:** Periodically (recommended every 5 minutes) to keep device status active
+- **Automatic Features:**
+  - Automatically creates a start event if device was inactive for 10+ minutes
+  - Updates `last_seen_at` timestamp
+  - Optionally updates device status and metadata
+
+## Automatic Event Detection
+
+The system automatically detects POS start and stop events based on heartbeat activity:
+
+### Automatic Start Event
+- **Trigger:** Heartbeat received after 10+ minutes of inactivity
+- **Location:** `POST /api/pos-devices/{id}/heartbeat` endpoint
+- **Behavior:**
+  - Checks if `last_seen_at` is older than 10 minutes
+  - Creates a start event (13001) if device was inactive
+  - Prevents duplicates by checking for recent start events (within 30 seconds)
+  - Includes `auto_detected: true` in event data
+  - Includes inactivity duration in event data
+
+### Automatic Stop Event
+- **Trigger:** No heartbeat received for 15+ minutes
+- **Location:** Scheduled command `pos:check-inactive-devices` (runs every 5 minutes)
+- **Behavior:**
+  - Checks all devices with `last_seen_at` older than 15 minutes
+  - Only processes devices with status `active` or `inactive` (not already `offline`)
+  - Prevents duplicates by checking for recent stop events (within 5 minutes)
+  - Creates a stop event (13002) for each inactive device
+  - Updates device status to `offline`
+  - Includes `auto_detected: true` in event data
+  - Includes inactivity duration in event data
+
+### Configuration
+- **Inactivity threshold for start detection:** 10 minutes (hardcoded in heartbeat endpoint)
+- **Inactivity threshold for stop detection:** 15 minutes (configurable via `--timeout` option)
+- **Check frequency:** Every 5 minutes (scheduled job)
 
 ## Implementation Details
 
@@ -232,8 +274,17 @@ export function usePosLifecycle(deviceId, apiClient) {
 1. App crashes unexpectedly
 2. App lifecycle hook triggers
 3. Call `/shutdown` endpoint (may fail if network unavailable)
-4. Device status may remain `active` until next heartbeat or start event
-5. Consider implementing a background job to detect stale devices
+4. If shutdown event is not logged, the scheduled job will detect inactivity after 15 minutes
+5. Automatic stop event is created and device status updated to `offline`
+
+### Scenario 5: Automatic Start Detection (Heartbeat-Based)
+1. Device stops sending heartbeats (app closed, network issue, etc.)
+2. After 15 minutes of no heartbeats, scheduled job creates stop event
+3. Device status updated to `offline`
+4. Later, device sends heartbeat again (app reopened, network restored)
+5. Heartbeat endpoint detects 10+ minutes of inactivity
+6. Automatic start event is created
+7. Device status updated to `active`
 
 ## Troubleshooting
 
@@ -243,7 +294,7 @@ export function usePosLifecycle(deviceId, apiClient) {
 
 ### Issue: Missing Shutdown Events
 - **Cause:** App crashes before shutdown hook executes
-- **Solution:** Implement shutdown hooks in multiple lifecycle events. Consider background sync.
+- **Solution:** The system automatically detects inactive devices after 15 minutes and creates stop events. However, it's still recommended to call the shutdown endpoint explicitly when possible.
 
 ### Issue: Device Status Not Updating
 - **Cause:** Start/shutdown events not being called
