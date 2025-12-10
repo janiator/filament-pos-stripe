@@ -282,16 +282,187 @@ class ReceiptTemplateService
         // Get store metadata
         $storeMetadata = is_array($store->metadata) ? $store->metadata : json_decode($store->metadata ?? '{}', true);
         
+        // Get organization number from store model or metadata (prefer model field)
+        $organizationNumber = $store->organisasjonsnummer ?? ($storeMetadata['organization_number'] ?? '');
+        
         // Calculate VAT (25% standard in Norway)
         $vatRate = 25.0;
         $totalAmount = $charge ? ($charge->amount / 100) : ($receipt->receipt_data['total'] ?? 0);
         $vatBase = round($totalAmount / (1 + ($vatRate / 100)), 2);
         $vatAmount = round($totalAmount - $vatBase, 2);
 
-        // Prepare items
+        // Prepare items and enrich with product information
         $items = [];
         if ($charge && isset($receipt->receipt_data['items'])) {
             $items = $receipt->receipt_data['items'];
+            
+            // Normalize and enrich items with product information
+            foreach ($items as &$item) {
+                // Ensure name is present - get from product if missing
+                if (empty($item['name'])) {
+                    if (isset($item['variant_id']) && $item['variant_id']) {
+                        $variant = \App\Models\ProductVariant::find($item['variant_id']);
+                        if ($variant && $variant->product) {
+                            $item['name'] = $variant->product->name;
+                            if ($variant->variant_name !== 'Default') {
+                                $item['name'] .= ' - ' . $variant->variant_name;
+                            }
+                        }
+                    } elseif (isset($item['product_id']) && $item['product_id']) {
+                        $product = \App\Models\ConnectedProduct::find($item['product_id']);
+                        if ($product) {
+                            $item['name'] = $product->name;
+                        }
+                    }
+                    // Final fallback
+                    if (empty($item['name'])) {
+                        $item['name'] = $item['description'] ?? $item['product_name'] ?? 'Vare';
+                    }
+                }
+                
+                // Ensure quantity is present
+                if (!isset($item['quantity']) || $item['quantity'] <= 0) {
+                    $item['quantity'] = 1;
+                }
+                
+                // Check if unit_price is already a formatted string (contains comma)
+                $unitPriceFormatted = isset($item['unit_price']) && is_string($item['unit_price']) && strpos($item['unit_price'], ',') !== false;
+                
+                // Calculate and format unit_price if not already formatted
+                if (!$unitPriceFormatted) {
+                    $unitPrice = 0;
+                    if (isset($item['price_amount'])) {
+                        // price_amount is always in cents
+                        $unitPrice = ((int) $item['price_amount']) / 100;
+                    } elseif (isset($item['line_total_amount'])) {
+                        // line_total_amount is always in cents
+                        $unitPrice = ((int) $item['line_total_amount']) / 100 / $item['quantity'];
+                    } elseif (isset($item['unit_price']) && is_numeric($item['unit_price'])) {
+                        $unitPrice = (float) $item['unit_price'];
+                        // If value is large integer (> 100), it's likely in cents
+                        if ($unitPrice > 100 && $unitPrice == (int) $unitPrice) {
+                            $unitPrice = $unitPrice / 100;
+                        }
+                    } elseif (isset($item['line_total']) && is_numeric($item['line_total']) && (!is_string($item['line_total']) || strpos($item['line_total'], ',') === false)) {
+                        $lineTotal = (float) $item['line_total'];
+                        // If value is large integer (> 100), it's likely in cents
+                        if ($lineTotal > 100 && $lineTotal == (int) $lineTotal) {
+                            $lineTotal = $lineTotal / 100;
+                        }
+                        $unitPrice = $lineTotal / $item['quantity'];
+                    }
+                    // Only set if we have a valid price > 0
+                    if ($unitPrice > 0) {
+                        $item['unit_price'] = number_format($unitPrice, 2, ',', ' ');
+                    }
+                }
+                
+                // Check if line_total is already a formatted string (contains comma)
+                $lineTotalFormatted = isset($item['line_total']) && is_string($item['line_total']) && strpos($item['line_total'], ',') !== false;
+                
+                // Calculate and format line_total if not already formatted
+                if (!$lineTotalFormatted) {
+                    $lineTotal = 0;
+                    if (isset($item['line_total_amount'])) {
+                        // line_total_amount is always in cents
+                        $lineTotal = ((int) $item['line_total_amount']) / 100;
+                    } elseif (isset($item['price_amount'])) {
+                        // price_amount is always in cents
+                        $lineTotal = ((int) $item['price_amount']) / 100 * $item['quantity'];
+                    } elseif (isset($item['line_total']) && is_numeric($item['line_total']) && (!is_string($item['line_total']) || strpos($item['line_total'], ',') === false)) {
+                        $lineTotal = (float) $item['line_total'];
+                        // If value is large integer (> 100), it's likely in cents
+                        if ($lineTotal > 100 && $lineTotal == (int) $lineTotal) {
+                            $lineTotal = $lineTotal / 100;
+                        }
+                    } elseif (isset($item['unit_price'])) {
+                        // Check if unit_price is already formatted
+                        if (is_string($item['unit_price']) && strpos($item['unit_price'], ',') !== false) {
+                            // Already formatted, extract numeric value
+                            $unitPriceStr = str_replace([' ', ','], ['', '.'], $item['unit_price']);
+                            $unitPrice = (float) $unitPriceStr;
+                            $lineTotal = $unitPrice * $item['quantity'];
+                        } elseif (is_numeric($item['unit_price']) && (!is_string($item['unit_price']) || strpos($item['unit_price'], ',') === false)) {
+                            $unitPrice = (float) $item['unit_price'];
+                            // If value is large integer (> 100), it's likely in cents
+                            if ($unitPrice > 100 && $unitPrice == (int) $unitPrice) {
+                                $unitPrice = $unitPrice / 100;
+                            }
+                            $lineTotal = $unitPrice * $item['quantity'];
+                        }
+                    }
+                    // Only set if we have a valid total > 0
+                    if ($lineTotal > 0) {
+                        $item['line_total'] = number_format($lineTotal, 2, ',', ' ');
+                    }
+                }
+                
+                // Enrich with product information (SKU/barcode) if variant_id is available
+                if (isset($item['variant_id']) && $item['variant_id']) {
+                    $variant = \App\Models\ProductVariant::find($item['variant_id']);
+                    if ($variant) {
+                        // Add SKU or barcode if available
+                        if ($variant->sku && !isset($item['sku'])) {
+                            $item['sku'] = $variant->sku;
+                        }
+                        if ($variant->barcode && !isset($item['barcode'])) {
+                            $item['barcode'] = $variant->barcode;
+                        }
+                        // Use product code (SKU or barcode) for display
+                        $item['product_code'] = $variant->sku ?? $variant->barcode ?? null;
+                    }
+                } elseif (isset($item['product_id']) && $item['product_id']) {
+                    // Try to get first variant's SKU/barcode if no variant_id
+                    $product = \App\Models\ConnectedProduct::find($item['product_id']);
+                    if ($product && $product->variants()->count() > 0) {
+                        $variant = $product->variants()->first();
+                        if ($variant) {
+                            $item['product_code'] = $variant->sku ?? $variant->barcode ?? null;
+                        }
+                    }
+                }
+                
+                // Format the entire line to prevent overflow
+                // For 80mm receipts: max ~48 characters per line
+                // Format: "Product Name        Qty x Price" (no line total to allow longer names)
+                
+                $quantityStr = (string)($item['quantity'] ?? 1);
+                $unitPriceStr = $item['unit_price'] ?? '0,00';
+                
+                // Check if this is a return receipt
+                $isReturn = $receipt->receipt_type === 'return';
+                
+                // Build price section: "Qty x Price" (with negative sign for returns)
+                if ($isReturn) {
+                    // Ensure negative sign is present (remove if already there to avoid double negative)
+                    $unitPriceStr = ltrim($unitPriceStr, '-');
+                    $priceSection = sprintf('%s x -%s', $quantityStr, $unitPriceStr);
+                } else {
+                    $priceSection = sprintf('%s x %s', $quantityStr, $unitPriceStr);
+                }
+                
+                $priceSectionLength = mb_strlen($priceSection);
+                
+                // Calculate max name length (48 chars total - price section - spacing)
+                // Reserve 8 spaces for padding between name and price
+                $maxNameLength = 48 - $priceSectionLength - 8;
+                if ($maxNameLength < 10) {
+                    $maxNameLength = 10; // Minimum name length
+                }
+                
+                // Truncate name if needed
+                $productName = $item['name'] ?? 'Vare';
+                if (mb_strlen($productName) > $maxNameLength) {
+                    $productName = mb_substr($productName, 0, $maxNameLength - 3) . '...';
+                }
+                
+                // Format the complete line with proper spacing
+                // Pad name to fixed width, then add price section
+                $item['formatted_line'] = sprintf('%-' . $maxNameLength . 's        %s', $productName, $priceSection);
+                // Also keep the original name (truncated) for backwards compatibility
+                $item['name'] = $productName;
+            }
+            unset($item); // Break reference
         } elseif ($charge) {
             // Fallback: create single item from charge
             $items[] = [
@@ -348,7 +519,7 @@ class ReceiptTemplateService
 
         return [
             'store_name' => $store->name,
-            'organization_number' => $storeMetadata['organization_number'] ?? '',
+            'organization_number' => $organizationNumber,
             'store_address' => $storeMetadata['address'] ?? '',
             'session_number' => $session?->session_number ?? 'N/A',
             'cashier_name' => $user?->name ?? 'N/A',

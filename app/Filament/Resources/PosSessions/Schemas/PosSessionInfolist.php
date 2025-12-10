@@ -65,25 +65,21 @@ class PosSessionInfolist
                         TextEntry::make('opening_balance')
                             ->label('Opening Balance')
                             ->money('nok', divideBy: 100)
-                            ->suffix('kr')
                             ->placeholder('-'),
 
                         TextEntry::make('expected_cash')
                             ->label('Expected Cash')
                             ->money('nok', divideBy: 100)
-                            ->suffix('kr')
                             ->placeholder('-'),
 
                         TextEntry::make('actual_cash')
                             ->label('Actual Cash')
                             ->money('nok', divideBy: 100)
-                            ->suffix('kr')
                             ->placeholder('-'),
 
                         TextEntry::make('cash_difference')
                             ->label('Cash Difference')
                             ->money('nok', divideBy: 100)
-                            ->suffix('kr')
                             ->color(fn ($state) => $state > 0 ? 'success' : ($state < 0 ? 'danger' : 'gray'))
                             ->placeholder('-'),
                     ])

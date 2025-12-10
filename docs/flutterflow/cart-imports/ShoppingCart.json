@@ -44,6 +44,12 @@
       "defaultValue": null
     },
     {
+      "name": "note",
+      "type": "String",
+      "required": false,
+      "defaultValue": null
+    },
+    {
       "name": "createdAt",
       "type": "DateTime",
       "required": true,

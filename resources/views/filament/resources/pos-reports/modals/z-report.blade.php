@@ -77,12 +77,14 @@
                 {{ number_format(($report['cash_difference'] ?? 0) / 100, 2) }} NOK
             </div>
         </div>
-        <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-            <div class="text-sm text-gray-600 dark:text-gray-300">
-                <strong>Total Tips:</strong><br>
-                {{ number_format(($report['total_tips'] ?? 0) / 100, 2) }} NOK
+        @if($report['tips_enabled'] ?? true)
+            <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 dark:text-gray-300">
+                    <strong>Total Tips:</strong><br>
+                    {{ number_format(($report['total_tips'] ?? 0) / 100, 2) }} NOK
+                </div>
             </div>
-        </div>
+        @endif
     </div>
 
     <!-- VAT Breakdown -->
@@ -184,7 +186,9 @@
                             <th class="text-left p-2">Payment Code</th>
                             <th class="text-left p-2">Transaction Code</th>
                             <th class="text-right p-2">Amount</th>
-                            <th class="text-right p-2">Tip</th>
+                            @if($report['tips_enabled'] ?? true)
+                                <th class="text-right p-2">Tip</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -196,7 +200,9 @@
                                 <td class="p-2">{{ $transaction['payment_code'] ?? 'N/A' }}</td>
                                 <td class="p-2">{{ $transaction['transaction_code'] ?? 'N/A' }}</td>
                                 <td class="p-2 text-right">{{ number_format($transaction['amount'] / 100, 2) }} NOK</td>
-                                <td class="p-2 text-right">{{ $transaction['tip_amount'] > 0 ? number_format($transaction['tip_amount'] / 100, 2) . ' NOK' : '-' }}</td>
+                                @if($report['tips_enabled'] ?? true)
+                                    <td class="p-2 text-right">{{ ($transaction['tip_amount'] ?? 0) > 0 ? number_format($transaction['tip_amount'] / 100, 2) . ' NOK' : '-' }}</td>
+                                @endif
                             </tr>
                         @endforeach
                     </tbody>

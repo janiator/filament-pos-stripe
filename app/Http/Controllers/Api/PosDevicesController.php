@@ -208,12 +208,40 @@ class PosDevicesController extends BaseApiController
             ->where('status', 'open')
             ->first();
 
+        // Check for recent start event to prevent duplicates (within last 30 seconds)
+        $recentStartEvent = \App\Models\PosEvent::where('pos_device_id', $device->id)
+            ->where('event_code', \App\Models\PosEvent::EVENT_APPLICATION_START)
+            ->where('occurred_at', '>=', now()->subSeconds(30))
+            ->first();
+
+        if ($recentStartEvent) {
+            // Return existing event info instead of creating duplicate
+            return response()->json([
+                'message' => 'Application start already logged recently',
+                'device' => $this->formatDeviceResponse($device),
+                'current_session' => $currentSession ? [
+                    'id' => $currentSession->id,
+                    'session_number' => $currentSession->session_number,
+                ] : null,
+                'warning' => 'Start event was logged less than 30 seconds ago',
+            ]);
+        }
+
+        // Update device status and last seen timestamp
+        $device->update([
+            'device_status' => 'active',
+            'last_seen_at' => now(),
+        ]);
+
+        // Get user ID (may be null if app starts before login)
+        $userId = $request->user()?->id;
+
         // Log application start event (13001)
-        \App\Models\PosEvent::create([
+        $event = \App\Models\PosEvent::create([
             'store_id' => $store->id,
             'pos_device_id' => $device->id,
             'pos_session_id' => $currentSession?->id,
-            'user_id' => $request->user()->id,
+            'user_id' => $userId,
             'event_code' => \App\Models\PosEvent::EVENT_APPLICATION_START,
             'event_type' => 'application',
             'description' => "POS application started on device {$device->device_name}",
@@ -221,17 +249,19 @@ class PosDevicesController extends BaseApiController
                 'device_name' => $device->device_name,
                 'platform' => $device->platform,
                 'system_version' => $device->system_version,
+                'user_logged_in' => !is_null($userId),
             ],
             'occurred_at' => now(),
         ]);
 
         return response()->json([
             'message' => 'Application start logged successfully',
-            'device' => $this->formatDeviceResponse($device),
+            'device' => $this->formatDeviceResponse($device->fresh()),
             'current_session' => $currentSession ? [
                 'id' => $currentSession->id,
                 'session_number' => $currentSession->session_number,
             ] : null,
+            'event_id' => $event->id,
         ]);
     }
 
@@ -260,26 +290,51 @@ class PosDevicesController extends BaseApiController
             ->where('status', 'open')
             ->first();
 
+        // Get user ID (may be null if app crashes before logout)
+        $userId = $request->user()?->id;
+
+        // Update device status to offline
+        $device->update([
+            'device_status' => 'offline',
+            'last_seen_at' => now(),
+        ]);
+
         // Log application shutdown event (13002)
-        \App\Models\PosEvent::create([
+        $event = \App\Models\PosEvent::create([
             'store_id' => $store->id,
             'pos_device_id' => $device->id,
             'pos_session_id' => $currentSession?->id,
-            'user_id' => $request->user()->id,
+            'user_id' => $userId,
             'event_code' => \App\Models\PosEvent::EVENT_APPLICATION_SHUTDOWN,
             'event_type' => 'application',
             'description' => "POS application shut down on device {$device->device_name}",
             'event_data' => [
                 'device_name' => $device->device_name,
                 'platform' => $device->platform,
+                'has_open_session' => !is_null($currentSession),
+                'session_id' => $currentSession?->id,
+                'user_logged_in' => !is_null($userId),
             ],
             'occurred_at' => now(),
         ]);
 
-        return response()->json([
+        $response = [
             'message' => 'Application shutdown logged successfully',
-            'device' => $this->formatDeviceResponse($device),
-        ]);
+            'device' => $this->formatDeviceResponse($device->fresh()),
+            'event_id' => $event->id,
+        ];
+
+        // Warn if there's an open session
+        if ($currentSession) {
+            $response['warning'] = 'Device has an open session that should be closed';
+            $response['open_session'] = [
+                'id' => $currentSession->id,
+                'session_number' => $currentSession->session_number,
+                'opened_at' => $this->formatDateTimeOslo($currentSession->opened_at),
+            ];
+        }
+
+        return response()->json($response);
     }
 
     /**

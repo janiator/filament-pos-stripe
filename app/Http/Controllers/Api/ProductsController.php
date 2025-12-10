@@ -30,12 +30,31 @@ class ProductsController extends BaseApiController
             $query = ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
                 ->where('active', true); // Only active products for POS
 
-            // Filter by search term if provided
+            // Filter by freetext search term if provided
+            // Searches across product fields and variant fields (SKU, barcode, variant names, etc.)
             if ($request->has('search')) {
                 $search = $request->get('search');
-                $query->where(function ($q) use ($search) {
+                $query->where(function ($q) use ($search, $store) {
+                    // Search in product fields
                     $q->where('name', 'ilike', "%{$search}%")
-                      ->orWhere('description', 'ilike', "%{$search}%");
+                      ->orWhere('description', 'ilike', "%{$search}%")
+                      ->orWhere('stripe_product_id', 'ilike', "%{$search}%")
+                      ->orWhere('product_code', 'ilike', "%{$search}%")
+                      ->orWhere('article_group_code', 'ilike', "%{$search}%")
+                      // Search in variant fields (SKU, barcode, option values, Stripe IDs)
+                      // Note: variant_name is a computed attribute, so we search option values instead
+                      ->orWhereHas('variants', function ($variantQuery) use ($search, $store) {
+                          $variantQuery->where('stripe_account_id', $store->stripe_account_id)
+                              ->where(function ($vq) use ($search) {
+                                  $vq->where('sku', 'ilike', "%{$search}%")
+                                     ->orWhere('barcode', 'ilike', "%{$search}%")
+                                     ->orWhere('option1_value', 'ilike', "%{$search}%")
+                                     ->orWhere('option2_value', 'ilike', "%{$search}%")
+                                     ->orWhere('option3_value', 'ilike', "%{$search}%")
+                                     ->orWhere('stripe_product_id', 'ilike', "%{$search}%")
+                                     ->orWhere('stripe_price_id', 'ilike', "%{$search}%");
+                              });
+                      });
                 });
             }
 
@@ -221,8 +240,16 @@ class ProductsController extends BaseApiController
                 );
             })->toArray();
         } elseif ($product->images && is_array($product->images)) {
-            // Fallback to stored image URLs (from Stripe) - these are external URLs, keep as-is
-            $images = $product->images;
+            // Fallback to stored image URLs (from Stripe) - ensure they're strings
+            $images = array_map(function ($image) {
+                // If image is an object/array, extract URL; otherwise return as string
+                if (is_array($image) && isset($image['url'])) {
+                    return $image['url'];
+                } elseif (is_object($image) && isset($image->url)) {
+                    return $image->url;
+                }
+                return is_string($image) ? $image : (string) $image;
+            }, $product->images);
         }
 
         // Get collections
@@ -240,12 +267,15 @@ class ProductsController extends BaseApiController
             ->where('active', true)
             ->get()
             ->map(function ($variant) use ($product) {
-                // Ensure consistent price amount (always integer, 0 if null)
+                // Price handling for variants:
+                // - If price_amount is null (custom price input), return 0 and "0.00"
+                // - Frontend can check if price_amount === 0 to enable custom price input
+                // - This avoids null type issues with FlutterFlow's non-nullable schema
                 $priceAmount = $variant->price_amount ?? 0;
                 $currency = strtoupper($variant->currency ?? 'NOK');
                 
-                // Format price consistently (never return 'N/A')
-                $amountFormatted = $priceAmount > 0 
+                // Format price - return "0.00" if no price set (frontend checks price_amount === 0)
+                $amountFormatted = $priceAmount > 0
                     ? number_format($priceAmount / 100, 2, '.', '') 
                     : '0.00';
                 
@@ -276,13 +306,18 @@ class ProductsController extends BaseApiController
                             'value' => $variant->option3_value ?? '',
                         ] : null,
                     ], fn($option) => $option !== null)),
+                    // Variant price object (for FlutterFlow compatibility)
                     'variant_price' => [
-                        'amount' => $priceAmount,
-                        'amount_formatted' => $amountFormatted,
-                        'currency' => $currency,
-                        'compare_at_price' => $compareAtPriceFormatted,
-                        'discount_percentage' => $variant->discount_percentage ?? null,
+                        'amount' => $priceAmount, // Returns 0 for custom price input
+                        'amount_formatted' => $amountFormatted, // Returns "0.00" for custom price input
                     ],
+                    // Also include flattened fields for backward compatibility
+                    'price_amount' => $priceAmount,
+                    'price_amount_formatted' => $amountFormatted,
+                    'compare_at_price_amount' => $variant->compare_at_price_amount, // Can be null
+                    'compare_at_price_amount_formatted' => $compareAtPriceFormatted, // Can be null
+                    'currency' => $currency,
+                    'no_price_in_pos' => $variant->no_price_in_pos ?? false,
                     'variant_inventory' => [
                         'quantity' => $variant->inventory_quantity ?? null,
                         'in_stock' => $variant->in_stock ?? true,
@@ -340,11 +375,14 @@ class ProductsController extends BaseApiController
             'shippable' => $product->shippable ?? false,
             'url' => $product->url ?? null,
             'images' => $images,
+            'no_price_in_pos' => $product->no_price_in_pos ?? false,
             'product_price' => $defaultPrice ? [
                 'id' => $defaultPrice->stripe_price_id,
                 'amount' => $defaultPrice->unit_amount,
                 'amount_formatted' => number_format($defaultPrice->unit_amount / 100, 2, '.', ''),
                 'currency' => strtoupper($defaultPrice->currency ?? 'NOK'),
+                'type' => $defaultPrice->type ?? 'one_time',
+                'is_default' => true, // product_price is always the default price
             ] : null,
             'prices' => $allPrices,
             'variants' => $variants,

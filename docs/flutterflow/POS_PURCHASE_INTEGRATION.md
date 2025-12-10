@@ -213,12 +213,19 @@ The purchase flow supports:
 2. **Create Payment Method Button Widget:**
    - Use Container with custom colors from API response
    - Display payment method name
-   - Use `background_color` and `icon_color` from API
+   - Use `background_color` and `icon_color` from API (CSS format: `#RRGGBBAA` for background, `#RRGGBB` for icon)
    - Example:
    ```dart
+   // FlutterFlow's fromCssColor handles CSS format automatically
+   // For manual conversion: #RRGGBBAA -> 0xAARRGGBB (move alpha from end to start)
+   String bgColor = paymentMethod['background_color']; // e.g., "#4C4B39F0"
+   String alpha = bgColor.substring(7, 9);
+   String rgb = bgColor.substring(1, 7);
+   Color bg = Color(int.parse('0x$alpha$rgb'));
+   
    Container(
      decoration: BoxDecoration(
-       color: Color(int.parse(paymentMethod['background_color'].replaceFirst('#', '0xFF'))),
+       color: bg,
        borderRadius: BorderRadius.circular(8),
      ),
      child: Text(
@@ -450,6 +457,7 @@ Ensure your cart data matches this structure:
   'tip_amount': 0,  // in øre
   'customer_id': 'cus_xxx',  // Optional
   'customer_name': 'John Doe',  // Optional
+  'note': 'Customer requested delivery by 3 PM',  // Optional
   'subtotal': 9000,  // in øre
   'total_discounts': 1000,  // in øre
   'total_tax': 2000,  // in øre

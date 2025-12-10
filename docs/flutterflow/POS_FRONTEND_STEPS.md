@@ -17,19 +17,25 @@ Follow these steps to integrate the complete purchase flow in your FlutterFlow P
 ### Display Payment Methods
 1. Create a **Custom Widget** or use **List View** to display payment methods
 2. For each payment method, create a button with:
-   - **Background Color:** Use `background_color` from API (format: `#AARRGGBB`)
+   - **Background Color:** Use `background_color` from API (format: `#RRGGBBAA` - CSS format with alpha at end)
    - **Text/Icon Color:** Use `icon_color` from API (format: `#RRGGBB`)
    - **Label:** Use `name` from API
 3. Store selected payment method in app state
 
-**Example Color Conversion:**
+**Example Color Usage:**
 ```dart
-// Convert #AARRGGBB to Flutter Color
-Color backgroundColor = Color(int.parse(
-  paymentMethod['background_color'].replaceFirst('#', '0xFF')
-));
+// FlutterFlow's fromCssColor automatically handles CSS format (#RRGGBBAA)
+// The colors are already in CSS format, so FlutterFlow will parse them correctly
+// No manual conversion needed if using FlutterFlow's color parsing
 
-// Convert #RRGGBB to Flutter Color  
+// If manually converting #RRGGBBAA to Flutter Color (0xAARRGGBB format):
+// Extract alpha from end and move to start
+String bgColor = paymentMethod['background_color']; // e.g., "#4C4B39F0"
+String alpha = bgColor.substring(7, 9); // Get last 2 chars (alpha)
+String rgb = bgColor.substring(1, 7); // Get RGB part
+Color backgroundColor = Color(int.parse('0x$alpha$rgb')); // Convert to 0xAARRGGBB
+
+// For icon color (#RRGGBB), add FF for full opacity
 Color iconColor = Color(int.parse(
   paymentMethod['icon_color'].replaceFirst('#', '0xFF')
 ));
@@ -292,6 +298,7 @@ Ensure your cart matches this structure:
   'tip_amount': 0,                 // Optional, in øre
   'customer_id': 'cus_xxx',        // Optional
   'customer_name': 'John Doe',     // Optional
+  'note': 'Customer requested delivery by 3 PM',  // Optional
   'subtotal': 9000,                // Required, in øre
   'total_discounts': 1000,         // Optional, in øre
   'total_tax': 2000,               // Optional, in øre

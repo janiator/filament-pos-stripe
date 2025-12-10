@@ -26,6 +26,7 @@ class Setting extends Model
         'timezone',
         'locale',
         'tax_included',
+        'tips_enabled',
         // Additional settings stored as JSON
         'additional_settings',
     ];
@@ -36,6 +37,7 @@ class Setting extends Model
         'cash_drawer_open_duration_ms' => 'integer',
         'default_vat_rate' => 'decimal:2',
         'tax_included' => 'boolean',
+        'tips_enabled' => 'boolean',
         'additional_settings' => 'array',
     ];
 
@@ -73,6 +75,7 @@ class Setting extends Model
                 'timezone' => config('app.timezone', 'Europe/Oslo'),
                 'locale' => config('app.locale', 'nb'),
                 'tax_included' => false,
+                'tips_enabled' => true,
             ]
         );
     }

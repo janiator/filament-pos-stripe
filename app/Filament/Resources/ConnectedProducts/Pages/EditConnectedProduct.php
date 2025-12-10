@@ -24,7 +24,28 @@ class EditConnectedProduct extends EditRecord
             unset($data['compare_at_price_decimal']);
         }
 
+        // If no_price_in_pos is enabled and price is empty, ensure it stays null
+        if (!empty($data['no_price_in_pos']) && (empty($data['price']) || $data['price'] === '')) {
+            $data['price'] = null;
+            $data['default_price'] = null; // Also clear default_price to prevent restoration
+        }
+
         return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        $product = $this->record;
+
+        // Only sync price if no_price_in_pos is NOT enabled
+        if (!$product->no_price_in_pos && !$product->isVariable() && $product->price && $product->stripe_product_id && $product->stripe_account_id) {
+            $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice();
+            $syncPriceAction($product);
+        } elseif ($product->no_price_in_pos && $product->default_price) {
+            // Clear default_price if no_price_in_pos is enabled
+            $product->default_price = null;
+            $product->saveQuietly();
+        }
     }
 
     protected function getHeaderActions(): array

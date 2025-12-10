@@ -94,7 +94,28 @@ class PosPurchasesTable
                     ->label('Paid At')
                     ->dateTime()
                     ->sortable()
-                    ->default('-'),
+                    ->placeholder('-'),
+
+                TextColumn::make('note')
+                    ->label('Note')
+                    ->state(function ($record) {
+                        $metadata = $record->metadata ?? [];
+                        if (is_string($metadata)) {
+                            $metadata = json_decode($metadata, true) ?? [];
+                        }
+                        return is_array($metadata) ? ($metadata['note'] ?? null) : null;
+                    })
+                    ->wrap()
+                    ->limit(50)
+                    ->tooltip(function ($record) {
+                        $metadata = $record->metadata ?? [];
+                        if (is_string($metadata)) {
+                            $metadata = json_decode($metadata, true) ?? [];
+                        }
+                        return is_array($metadata) ? ($metadata['note'] ?? null) : null;
+                    })
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
                     ->label('Created')

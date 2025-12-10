@@ -232,6 +232,7 @@ class PurchaseService
                 'total_discounts' => $cartData['total_discounts'] ?? 0,
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
+                'note' => $cartData['note'] ?? null,
             ], $metadata),
         ]);
 
@@ -364,6 +365,7 @@ class PurchaseService
                     'total_discounts' => $cartData['total_discounts'] ?? 0,
                     'total_tax' => $cartData['total_tax'] ?? 0,
                     'total' => $amount,
+                    'note' => $cartData['note'] ?? null,
                 ], $metadata),
             ]);
         } else {
@@ -380,6 +382,7 @@ class PurchaseService
                     'total_discounts' => $cartData['total_discounts'] ?? 0,
                     'total_tax' => $cartData['total_tax'] ?? 0,
                     'total' => $amount,
+                    'note' => $cartData['note'] ?? null,
                 ]),
             ]);
         }
@@ -406,9 +409,11 @@ class PurchaseService
         // Resolve customer ID (local ID -> Stripe customer ID)
         $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id);
 
-        // For other providers, we'll need to implement custom logic
-        // For now, create a charge with status pending
+        // For other providers (e.g., Vipps, gift tokens), we assume payment was made
+        // and automatically confirm the payment status
         // Note: stripe_charge_id is null for non-Stripe payments
+        $eventCode = $paymentMethod->saf_t_event_code ?? SafTCodeMapper::mapPaymentMethodToEventCode($paymentMethod->code, $paymentMethod->provider_method);
+        
         $charge = ConnectedCharge::create([
             'stripe_charge_id' => null, // Other payment providers don't have Stripe charge ID
             'stripe_account_id' => $store->stripe_account_id,
@@ -416,14 +421,15 @@ class PurchaseService
             'stripe_customer_id' => $stripeCustomerId,
             'amount' => $amount,
             'currency' => $currency,
-            'status' => 'pending',
+            'status' => 'succeeded',
             'payment_method' => $paymentMethod->code,
             'payment_code' => $paymentMethod->saf_t_payment_code ?? SafTCodeMapper::mapPaymentMethodToCode($paymentMethod->code, $paymentMethod->provider_method),
             'transaction_code' => SafTCodeMapper::mapTransactionToCodeForPayment($paymentMethod->code),
             'description' => $metadata['description'] ?? 'Other payment',
-            'captured' => false,
+            'captured' => true,
             'refunded' => false,
-            'paid' => false,
+            'paid' => true,
+            'paid_at' => now(),
             'metadata' => array_merge([
                 'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
                 'discounts' => $cartData['discounts'] ?? [],
@@ -434,11 +440,12 @@ class PurchaseService
                 'total_discounts' => $cartData['total_discounts'] ?? 0,
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
+                'note' => $cartData['note'] ?? null,
             ], $metadata),
         ]);
 
-        // Log other payment event (13019)
-        $this->logPaymentEvent($posSession, $charge, $paymentMethod, '13019');
+        // Log payment event using the payment method's event code
+        $this->logPaymentEvent($posSession, $charge, $paymentMethod, $eventCode);
 
         return $charge;
     }
@@ -496,6 +503,7 @@ class PurchaseService
                 'total_discounts' => $cartData['total_discounts'] ?? 0,
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
+                'note' => $cartData['note'] ?? null,
                 'deferred_payment' => true,
                 'deferred_reason' => $metadata['deferred_reason'] ?? 'Payment on pickup',
             ], $metadata),
@@ -602,6 +610,23 @@ class PurchaseService
 
                 // Open cash drawer
                 $this->cashDrawerService->openCashDrawer($posSession, $charge->amount);
+            } elseif ($paymentMethod->provider === 'other') {
+                // Handle other payment methods (e.g., Vipps, gift tokens, etc.)
+                // These are assumed to be confirmed automatically when completing the payment
+                $eventCode = $paymentMethod->saf_t_event_code ?? SafTCodeMapper::mapPaymentMethodToEventCode($paymentMethod->code, $paymentMethod->provider_method);
+                
+                $charge->update([
+                    'status' => 'succeeded',
+                    'payment_method' => $paymentMethod->code,
+                    'payment_code' => $paymentMethod->saf_t_payment_code ?? SafTCodeMapper::mapPaymentMethodToCode($paymentMethod->code, $paymentMethod->provider_method),
+                    'transaction_code' => SafTCodeMapper::mapTransactionToCodeForPayment($paymentMethod->code),
+                    'captured' => true,
+                    'paid' => true,
+                    'paid_at' => now(),
+                ]);
+
+                // Log payment event using the payment method's event code
+                $this->logPaymentEvent($posSession, $charge, $paymentMethod, $eventCode);
             } else {
                 throw new \Exception('Unsupported payment method provider for completing deferred payment');
             }
@@ -838,6 +863,52 @@ class PurchaseService
     }
 
     /**
+     * Cancel a Stripe payment intent
+     * 
+     * @param string $paymentIntentId
+     * @param string $stripeAccountId Connected account ID
+     * @return array ['cancelled' => bool, 'error' => string|null]
+     */
+    public function cancelPaymentIntent(string $paymentIntentId, string $stripeAccountId): array
+    {
+        try {
+            $stripe = $this->getStripeClient();
+            $paymentIntent = $stripe->paymentIntents->cancel(
+                $paymentIntentId,
+                [],
+                ['stripe_account' => $stripeAccountId]
+            );
+            
+            return [
+                'cancelled' => true,
+                'error' => null,
+                'payment_intent' => $paymentIntent,
+            ];
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            // Payment intent might already be cancelled, succeeded, or not found
+            // This is not necessarily an error - it might already be in the desired state
+            return [
+                'cancelled' => false,
+                'error' => $e->getMessage(),
+                'payment_intent' => null,
+            ];
+        } catch (\Exception $e) {
+            // Other errors
+            Log::error('Error cancelling Stripe payment intent', [
+                'payment_intent_id' => $paymentIntentId,
+                'stripe_account_id' => $stripeAccountId,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return [
+                'cancelled' => false,
+                'error' => $e->getMessage(),
+                'payment_intent' => null,
+            ];
+        }
+    }
+
+    /**
      * Process a purchase with split payments (multiple payment methods)
      *
      * @param PosSession $posSession
@@ -1036,6 +1107,284 @@ class PurchaseService
         if ($paymentMethod->isCash()) {
             $posSession->increment('expected_cash', $amount);
         }
+
+        $posSession->save();
+    }
+
+    /**
+     * Process a refund for a purchase
+     * 
+     * Handles both Stripe refunds and cash refunds (manual process)
+     * Generates return receipt and logs POS event (13013)
+     * Updates POS session totals
+     * 
+     * @param ConnectedCharge $charge
+     * @param int|null $amount Amount to refund in minor units (øre). If null, refunds full amount.
+     * @param string|null $reason Optional reason for refund
+     * @param int|null $userId User ID performing the refund
+     * @return array ['charge' => ConnectedCharge, 'receipt' => Receipt, 'pos_event' => PosEvent]
+     * @throws \Exception
+     */
+    public function processRefund(
+        ConnectedCharge $charge,
+        ?int $amount = null,
+        ?string $reason = null,
+        ?int $userId = null
+    ): array {
+        DB::beginTransaction();
+
+        try {
+            // Validate charge can be refunded
+            if ($charge->status === 'cancelled') {
+                throw new \Exception('Cannot refund a cancelled purchase');
+            }
+
+            if ($charge->status === 'pending' || !$charge->paid) {
+                throw new \Exception('Cannot refund a purchase that has not been paid');
+            }
+
+            // Determine refund amount
+            $refundAmount = $amount ?? ($charge->amount - $charge->amount_refunded);
+            
+            if ($refundAmount <= 0) {
+                throw new \Exception('Refund amount must be greater than zero');
+            }
+
+            $remainingRefundable = $charge->amount - $charge->amount_refunded;
+            if ($refundAmount > $remainingRefundable) {
+                throw new \Exception("Refund amount ({$refundAmount}) exceeds remaining refundable amount ({$remainingRefundable})");
+            }
+
+            // Get POS session
+            $posSession = $charge->posSession;
+            if (!$posSession) {
+                throw new \Exception('POS session not found for charge');
+            }
+
+            // Get payment method
+            $paymentMethod = PaymentMethod::where('store_id', $posSession->store_id)
+                ->where('code', $charge->payment_method)
+                ->first();
+
+            if (!$paymentMethod) {
+                throw new \Exception('Payment method not found');
+            }
+
+            // Process Stripe refund if applicable
+            $stripeRefundId = null;
+            $stripeRefundError = null;
+            
+            if ($charge->stripe_charge_id && $paymentMethod->provider === 'stripe') {
+                $refundResult = $this->processStripeRefund(
+                    $charge->stripe_charge_id,
+                    $charge->stripe_account_id,
+                    $refundAmount,
+                    $reason
+                );
+                
+                $stripeRefundId = $refundResult['refund_id'];
+                $stripeRefundError = $refundResult['error'];
+                
+                if ($stripeRefundError && !$stripeRefundId) {
+                    // Stripe refund failed - abort transaction
+                    throw new \Exception("Stripe refund failed: {$stripeRefundError}");
+                }
+            }
+            // For cash refunds, we just update the local record (manual process)
+
+            // Calculate new refunded amounts
+            $newAmountRefunded = $charge->amount_refunded + $refundAmount;
+            $isFullyRefunded = $newAmountRefunded >= $charge->amount;
+
+            // Update charge
+            $metadata = $charge->metadata ?? [];
+            $refunds = $metadata['refunds'] ?? [];
+            $refunds[] = [
+                'amount' => $refundAmount,
+                'amount_refunded' => $newAmountRefunded,
+                'reason' => $reason,
+                'refunded_at' => now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s'),
+                'refunded_by' => $userId,
+                'stripe_refund_id' => $stripeRefundId,
+            ];
+            $metadata['refunds'] = $refunds;
+            $metadata['last_refund_at'] = now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s');
+            $metadata['last_refund_by'] = $userId;
+            if ($reason) {
+                $metadata['refund_reason'] = $reason;
+            }
+
+            $charge->update([
+                'amount_refunded' => $newAmountRefunded,
+                'refunded' => $isFullyRefunded,
+                'status' => $isFullyRefunded ? 'refunded' : $charge->status,
+                'metadata' => $metadata,
+            ]);
+
+            // Refresh charge to get updated values
+            $charge->refresh();
+
+            // Get original receipt (sales receipt for completed purchases, delivery receipt for deferred)
+            $originalReceipt = $charge->receipt;
+            if (!$originalReceipt) {
+                // Try to find any receipt for this charge
+                $originalReceipt = Receipt::where('charge_id', $charge->id)
+                    ->orderByDesc('created_at')
+                    ->first();
+            }
+
+            if (!$originalReceipt) {
+                throw new \Exception('Original receipt not found for charge');
+            }
+
+            // Generate return receipt (pass current refund amount for this specific refund)
+            $returnReceipt = $this->receiptService->generateReturnReceipt($charge, $originalReceipt, $refundAmount);
+
+            // Log return receipt event (13013)
+            $posEvent = PosEvent::create([
+                'store_id' => $posSession->store_id,
+                'pos_device_id' => $posSession->pos_device_id,
+                'pos_session_id' => $posSession->id,
+                'user_id' => $userId ?? $posSession->user_id,
+                'related_charge_id' => $charge->id,
+                'event_code' => PosEvent::EVENT_RETURN_RECEIPT,
+                'event_type' => 'transaction',
+                'description' => "Return receipt for charge " . ($charge->stripe_charge_id ?? $charge->id),
+                'event_data' => [
+                    'charge_id' => $charge->id,
+                    'stripe_charge_id' => $charge->stripe_charge_id,
+                    'stripe_refund_id' => $stripeRefundId,
+                    'refund_amount' => $refundAmount,
+                    'amount_refunded' => $newAmountRefunded,
+                    'original_amount' => $charge->amount,
+                    'is_full_refund' => $isFullyRefunded,
+                    'reason' => $reason,
+                    'receipt_id' => $returnReceipt->id,
+                    'receipt_number' => $returnReceipt->receipt_number,
+                    'original_receipt_id' => $originalReceipt->id,
+                    'original_receipt_number' => $originalReceipt->receipt_number,
+                ],
+                'occurred_at' => now(),
+            ]);
+
+            // Update POS session totals (decrement)
+            $this->updatePosSessionTotalsForRefund($posSession, $charge, $paymentMethod, $refundAmount);
+
+            // Auto-print receipt (if configured)
+            if (config('pos.auto_print_receipts', true)) {
+                $this->receiptPrintService->printReceipt($returnReceipt, $posSession);
+            }
+
+            DB::commit();
+
+            return [
+                'charge' => $charge->fresh(),
+                'receipt' => $returnReceipt,
+                'pos_event' => $posEvent,
+            ];
+        } catch (Throwable $e) {
+            DB::rollBack();
+            Log::error('Refund processing failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'charge_id' => $charge->id,
+                'refund_amount' => $amount,
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Process a Stripe refund
+     * 
+     * @param string $stripeChargeId
+     * @param string $stripeAccountId Connected account ID
+     * @param int $amount Amount to refund in minor units (øre)
+     * @param string|null $reason Optional reason for refund
+     * @return array ['refund_id' => string|null, 'error' => string|null]
+     */
+    protected function processStripeRefund(
+        string $stripeChargeId,
+        string $stripeAccountId,
+        int $amount,
+        ?string $reason = null
+    ): array {
+        try {
+            $stripe = $this->getStripeClient();
+            
+            $params = [
+                'charge' => $stripeChargeId,
+                'amount' => $amount,
+            ];
+            
+            if ($reason) {
+                $params['reason'] = 'requested_by_customer'; // Stripe reason
+                $params['metadata'] = [
+                    'refund_reason' => $reason,
+                ];
+            }
+
+            $refund = $stripe->refunds->create(
+                $params,
+                [
+                    'stripe_account' => $stripeAccountId,
+                ]
+            );
+
+            return [
+                'refund_id' => $refund->id,
+                'error' => null,
+                'refund' => $refund,
+            ];
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            Log::error('Stripe refund failed', [
+                'charge_id' => $stripeChargeId,
+                'stripe_account_id' => $stripeAccountId,
+                'amount' => $amount,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return [
+                'refund_id' => null,
+                'error' => $e->getMessage(),
+                'refund' => null,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error processing Stripe refund', [
+                'charge_id' => $stripeChargeId,
+                'stripe_account_id' => $stripeAccountId,
+                'amount' => $amount,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return [
+                'refund_id' => null,
+                'error' => $e->getMessage(),
+                'refund' => null,
+            ];
+        }
+    }
+
+    /**
+     * Update POS session totals after refund
+     * Decrements transaction count, total amount, and expected cash (for cash payments)
+     */
+    protected function updatePosSessionTotalsForRefund(
+        PosSession $posSession,
+        ConnectedCharge $charge,
+        PaymentMethod $paymentMethod,
+        int $refundAmount
+    ): void {
+        // Decrement total amount
+        $posSession->decrement('total_amount', $refundAmount);
+
+        // For cash payments, decrement expected cash
+        if ($paymentMethod->isCash()) {
+            $posSession->decrement('expected_cash', $refundAmount);
+        }
+
+        // Note: We don't decrement transaction_count because the original transaction still exists
+        // The refund is tracked as a separate event (return receipt)
 
         $posSession->save();
     }

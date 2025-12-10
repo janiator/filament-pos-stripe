@@ -24,6 +24,14 @@ class SyncProductPrice
             return;
         }
 
+        // Skip sync if no_price_in_pos is enabled
+        if ($product->no_price_in_pos) {
+            Log::info('Skipping price sync - no_price_in_pos is enabled', [
+                'product_id' => $product->id,
+            ]);
+            return;
+        }
+
         // Get the current price from the product
         $newPriceAmount = $product->price ? $this->parsePrice($product->price, $product->currency ?? 'nok') : null;
         $currency = strtolower($product->currency ?? 'nok');

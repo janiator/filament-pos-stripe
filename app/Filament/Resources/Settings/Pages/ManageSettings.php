@@ -40,6 +40,9 @@ class ManageSettings extends Page implements HasForms, HasActions
 
         // Get or create settings for the current store
         $this->record = Setting::getForStore($tenant->id);
+        
+        // Fill form with record data
+        $this->form->fill($this->record->toArray());
     }
 
     public function getTitle(): string

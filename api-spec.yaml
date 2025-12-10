@@ -2411,6 +2411,20 @@ paths:
           schema:
             type: string
             format: date
+        - name: search
+          in: query
+          description: |
+            Freetext search term that searches across multiple purchase fields:
+            - Purchase ID (exact match for numeric IDs)
+            - Stripe charge ID
+            - Description
+            - Transaction code and payment code
+            - Article group code
+            - Customer name, email, phone, or Stripe customer ID
+            - Receipt number
+          required: false
+          schema:
+            type: string
         - name: per_page
           in: query
           description: Number of items per page (max 100)
@@ -2756,6 +2770,288 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /purchases/{id}/cancel:
+    post:
+      tags:
+        - Purchases
+      summary: Cancel a pending purchase
+      description: |
+        Cancels a purchase that is in pending status (e.g., deferred payments).
+        
+        This endpoint:
+        1. Validates the purchase is pending and not paid
+        2. Cancels the Stripe payment intent if one exists (for deferred payments)
+        3. Changes purchase status to 'cancelled'
+        4. Logs a void transaction event (13014)
+        5. Updates purchase metadata with cancellation information
+        
+        **Use cases:**
+        - Cancel deferred payments that were never completed
+        - Cancel pending orders that customers no longer want
+        - Handle abandoned transactions
+        
+        **Note:** This is different from a refund. Refunds are for completed purchases.
+        Cancellation is for pending purchases that never completed payment.
+      operationId: cancelPurchase
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Purchase ID
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+                  description: Optional reason for cancellation
+                  example: "Customer cancelled order"
+      responses:
+        '200':
+          description: Purchase cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Purchase cancelled successfully"
+                  purchase:
+                    $ref: '#/components/schemas/Purchase'
+        '400':
+          description: Invalid purchase ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Purchase not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error or purchase cannot be cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Purchase is not pending or already paid"
+                  errors:
+                    type: object
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Unauthorized access to purchase
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /purchases/{id}/refund:
+    post:
+      tags:
+        - Purchases
+      summary: Refund a purchase
+      description: |
+        Processes refunds for both Stripe and cash payments.
+        
+        **For Stripe payments:**
+        - Creates a refund in Stripe
+        - Updates local charge record with refund information
+        - Supports full and partial refunds
+        
+        **For cash payments:**
+        - Updates local records only (manual refund process)
+        - Cash must be physically returned to customer
+        
+        **Automatic processes:**
+        1. Validates purchase can be refunded (paid, not cancelled)
+        2. Processes Stripe refund if applicable
+        3. Updates charge status and refund amounts
+        4. Generates return receipt automatically (Kassasystemforskriften compliance)
+        5. Logs return receipt event (13013)
+        6. Updates POS session totals (decrements amounts)
+        7. Auto-prints receipt if configured
+        
+        **Compliance:**
+        - Return receipts are immutable and sequentially numbered
+        - All refunds are logged in POS events for audit trail
+        - Supports refund reasons for compliance tracking
+        
+        **Use cases:**
+        - Full refunds for returned items
+        - Partial refunds for partial returns
+        - Refunds with reasons for compliance tracking
+      operationId: refundPurchase
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Purchase ID
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  minimum: 1
+                  description: |
+                    Amount to refund in minor units (øre).
+                    If not provided, refunds the full remaining refundable amount.
+                    Must not exceed remaining refundable amount.
+                  example: 5000
+                reason:
+                  type: string
+                  maxLength: 500
+                  description: Optional reason for refund (for compliance tracking)
+                  example: "Customer returned item"
+      responses:
+        '200':
+          description: Refund processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Refund processed successfully"
+                  data:
+                    type: object
+                    properties:
+                      charge:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 123
+                          stripe_charge_id:
+                            type: string
+                            nullable: true
+                            example: "ch_1234567890"
+                          amount:
+                            type: integer
+                            description: Original purchase amount in minor units (øre)
+                            example: 10000
+                          amount_refunded:
+                            type: integer
+                            description: Total amount refunded so far in minor units (øre)
+                            example: 5000
+                          currency:
+                            type: string
+                            example: "nok"
+                          status:
+                            type: string
+                            enum: [succeeded, pending, failed, refunded, cancelled]
+                            description: Purchase status (will be 'refunded' if fully refunded)
+                            example: "succeeded"
+                          refunded:
+                            type: boolean
+                            description: Whether purchase is fully refunded
+                            example: false
+                          payment_method:
+                            type: string
+                            example: "card"
+                      receipt:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 456
+                          receipt_number:
+                            type: string
+                            description: Sequential receipt number
+                            example: "RET-2025-000123"
+                          receipt_type:
+                            type: string
+                            example: "return"
+                      pos_event:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 789
+                          event_code:
+                            type: string
+                            description: POS event code (13013 for return receipt)
+                            example: "13013"
+                          description:
+                            type: string
+                            example: "Return receipt for charge ch_1234567890"
+        '400':
+          description: Invalid purchase ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Purchase not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error or purchase cannot be refunded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Cannot refund a purchase that has not been paid"
+                  errors:
+                    type: object
+        '500':
+          description: Refund processing failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Refund processing failed: Stripe refund failed: ..."
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Unauthorized access to purchase
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /purchases/{id}/customer:
     put:
       tags:
@@ -2888,7 +3184,14 @@ paths:
       parameters:
         - name: search
           in: query
-          description: Search term (name or description)
+          description: |
+            Freetext search term that searches across multiple product fields:
+            - Product name, description
+            - Product codes (product_code, article_group_code)
+            - Stripe product ID
+            - Variant SKU and barcode
+            - Variant names and option values
+            - Stripe product/price IDs for variants
           required: false
           schema:
             type: string
@@ -4632,7 +4935,7 @@ components:
           example: "nok"
         status:
           type: string
-          enum: [succeeded, pending, failed, refunded]
+          enum: [succeeded, pending, failed, refunded, cancelled]
           example: "succeeded"
         payment_method:
           type: string
@@ -4970,6 +5273,11 @@ components:
           nullable: true
           description: Tip amount in øre
           example: 500
+        purchase_note:
+          type: string
+          nullable: true
+          description: Optional note/comment for the purchase
+          example: "Customer requested delivery by 3 PM"
         purchase_payments:
           type: array
           description: List of payments connected to this purchase (usually one payment per purchase)
@@ -5646,8 +5954,8 @@ components:
         background_color:
           type: string
           nullable: true
-          description: Accent background color for the payment method button (hex with alpha, e.g., #4C4B39EF)
-          example: "#4C4B39EF"
+          description: Accent background color for the payment method button (CSS hex format with alpha at end, e.g., #4C4B39F0)
+          example: "#4C4B39F0"
         icon_color:
           type: string
           nullable: true
@@ -5708,6 +6016,10 @@ components:
             type: string
             format: uri
           description: Array of image URLs (signed URLs for security)
+        no_price_in_pos:
+          type: boolean
+          description: If true, this product has no preset price and requires custom price input on POS.
+          default: false
         product_price:
           type: object
           nullable: true
@@ -5773,19 +6085,38 @@ components:
                       type: string
                     value:
                       type: string
+              variant_price:
+                type: object
+                description: Variant price object (for FlutterFlow compatibility)
+                properties:
+                  amount:
+                    type: integer
+                    description: Price in øre. Returns 0 for variants without preset prices (custom price input on POS).
+                  amount_formatted:
+                    type: string
+                    description: Formatted price string. Returns "0.00" for variants without preset prices.
               price_amount:
                 type: integer
-                description: Price in øre
+                nullable: false
+                description: Price in øre (flattened field for backward compatibility). Returns 0 for variants without preset prices (custom price input on POS). Frontend should check if price_amount === 0 to enable custom price input.
               price_amount_formatted:
                 type: string
+                nullable: false
+                description: Formatted price string (flattened field for backward compatibility). Returns "0.00" for variants without preset prices. Frontend should check if price_amount === 0 to enable custom price input.
               compare_at_price_amount:
                 type: integer
                 nullable: true
+                description: Compare at price in øre (original price for discounts).
               compare_at_price_amount_formatted:
                 type: string
                 nullable: true
+                description: Formatted compare at price string.
               currency:
                 type: string
+              no_price_in_pos:
+                type: boolean
+                description: If true, this variant has no preset price and requires custom price input on POS.
+                default: false
               variant_inventory:
                 type: object
                 properties:
@@ -6039,6 +6370,11 @@ components:
           description: Currency code (ISO 3-letter)
           default: nok
           example: nok
+        note:
+          type: string
+          nullable: true
+          description: Optional note/comment for the purchase
+          example: "Customer requested delivery by 3 PM"
 
     PurchaseMetadata:
       type: object

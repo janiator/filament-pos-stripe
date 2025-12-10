@@ -159,12 +159,16 @@ class PosReports extends Page implements HasForms, HasTable
         $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
         $charges = $session->charges->where('status', 'succeeded');
         
+        // Get settings to check if tips are enabled
+        $settings = \App\Models\Setting::getForStore($session->store_id);
+        $tipsEnabled = $settings->tips_enabled ?? true;
+        
         $totalAmount = $charges->sum('amount');
         $cashAmount = $charges->where('payment_method', 'cash')->sum('amount');
         $cardAmount = $charges->where('payment_method', 'card')->sum('amount');
         $mobileAmount = $charges->where('payment_method', 'mobile')->sum('amount');
         $otherAmount = $totalAmount - $cashAmount - $cardAmount - $mobileAmount;
-        $totalTips = $charges->sum('tip_amount');
+        $totalTips = $tipsEnabled ? $charges->sum('tip_amount') : 0;
         
         // Calculate VAT (25% standard in Norway)
         $vatRate = 0.25;
@@ -172,11 +176,11 @@ class PosReports extends Page implements HasForms, HasTable
         $vatAmount = $totalAmount - $vatBase;
         
         // Payment method breakdown
-        $byPaymentMethod = $charges->groupBy('payment_method')->map(function ($group) {
+        $byPaymentMethod = $charges->groupBy('payment_method')->map(function ($group) use ($tipsEnabled) {
             return [
                 'count' => $group->count(),
                 'amount' => $group->sum('amount'),
-                'tips' => $group->sum('tip_amount'),
+                'tips' => $tipsEnabled ? $group->sum('tip_amount') : 0,
             ];
         });
         
@@ -242,6 +246,7 @@ class PosReports extends Page implements HasForms, HasTable
             'nullinnslag_count' => $nullinnslagCount,
             'receipt_count' => $receiptCount,
             'charges' => $charges,
+            'tips_enabled' => $tipsEnabled,
         ];
     }
 
@@ -268,8 +273,12 @@ class PosReports extends Page implements HasForms, HasTable
         });
         $report['event_summary'] = $eventSummary;
         
+        // Get settings to check if tips are enabled
+        $settings = \App\Models\Setting::getForStore($session->store_id);
+        $tipsEnabled = $settings->tips_enabled ?? true;
+        
         // Complete transaction list with all details
-        $report['complete_transaction_list'] = $session->charges->where('status', 'succeeded')->map(function ($charge) {
+        $report['complete_transaction_list'] = $session->charges->where('status', 'succeeded')->map(function ($charge) use ($tipsEnabled) {
             return [
                 'id' => $charge->id,
                 'stripe_charge_id' => $charge->stripe_charge_id,
@@ -278,12 +287,14 @@ class PosReports extends Page implements HasForms, HasTable
                 'payment_method' => $charge->payment_method,
                 'payment_code' => $charge->payment_code,
                 'transaction_code' => $charge->transaction_code,
-                'tip_amount' => $charge->tip_amount,
+                'tip_amount' => $tipsEnabled ? $charge->tip_amount : 0,
                 'description' => $charge->description,
                 'paid_at' => $charge->paid_at?->toISOString(),
                 'created_at' => $charge->created_at->toISOString(),
             ];
         });
+        
+        $report['tips_enabled'] = $tipsEnabled;
         
         // Receipt summary
         $receiptSummary = $session->receipts->groupBy('receipt_type')->map(function ($group) {

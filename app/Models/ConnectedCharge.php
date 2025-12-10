@@ -82,10 +82,15 @@ class ConnectedCharge extends Model
 
     /**
      * Get the receipt for this charge
+     * For deferred payments: returns sales receipt if paid, otherwise delivery receipt
+     * For regular purchases: returns sales receipt
+     * Prioritizes sales receipts over delivery receipts, then returns the latest
      */
     public function receipt(): HasOne
     {
-        return $this->hasOne(Receipt::class, 'charge_id');
+        return $this->hasOne(Receipt::class, 'charge_id')
+            ->orderByRaw("CASE WHEN receipt_type = 'sales' THEN 0 ELSE 1 END") // Prioritize sales receipts first
+            ->orderByDesc('created_at'); // Then get latest if multiple sales receipts exist
     }
 
     public function getFormattedAmountAttribute(): string

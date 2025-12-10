@@ -118,6 +118,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/purchases/{id}', [\App\Http\Controllers\Api\PurchasesController::class, 'show'])->name('api.purchases.show');
     Route::post('/purchases', [\App\Http\Controllers\Api\PurchasesController::class, 'store'])->name('api.purchases.store');
     Route::post('/purchases/{id}/complete-payment', [\App\Http\Controllers\Api\PurchasesController::class, 'completePayment'])->name('api.purchases.complete-payment');
+    Route::post('/purchases/{id}/cancel', [\App\Http\Controllers\Api\PurchasesController::class, 'cancel'])->name('api.purchases.cancel');
+    Route::post('/purchases/{id}/refund', [\App\Http\Controllers\Api\PurchasesController::class, 'refund'])->name('api.purchases.refund');
     Route::put('/purchases/{id}/customer', [\App\Http\Controllers\Api\PurchasesController::class, 'updateCustomer'])->name('api.purchases.update-customer');
     Route::patch('/purchases/{id}/customer', [\App\Http\Controllers\Api\PurchasesController::class, 'updateCustomer'])->name('api.purchases.update-customer.patch');
     
