@@ -90,6 +90,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pos-events', [\App\Http\Controllers\Api\PosEventsController::class, 'store'])->name('api.pos-events.store');
     Route::get('/pos-events/{id}', [\App\Http\Controllers\Api\PosEventsController::class, 'show'])->name('api.pos-events.show');
 
+    // POS Line Corrections endpoints
+    Route::get('/pos-line-corrections', [\App\Http\Controllers\Api\PosLineCorrectionsController::class, 'index'])->name('api.pos-line-corrections.index');
+    Route::post('/pos-line-corrections', [\App\Http\Controllers\Api\PosLineCorrectionsController::class, 'store'])->name('api.pos-line-corrections.store');
+    Route::get('/pos-line-corrections/{id}', [\App\Http\Controllers\Api\PosLineCorrectionsController::class, 'show'])->name('api.pos-line-corrections.show');
+
     // POS Transaction endpoints
     Route::post('/pos-transactions/charges/{chargeId}/void', [\App\Http\Controllers\Api\PosTransactionsController::class, 'void'])->name('api.pos-transactions.void');
     Route::post('/pos-transactions/correction-receipt', [\App\Http\Controllers\Api\PosTransactionsController::class, 'correctionReceipt'])->name('api.pos-transactions.correction-receipt');

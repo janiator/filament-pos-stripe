@@ -40,6 +40,7 @@ class ReportController extends Controller
         $report = PosSessionsTable::generateXReport($session);
 
         // Log X-report event (13008) per § 2-8-2
+        // Include complete report data in event_data for electronic journal compliance
         \App\Models\PosEvent::create([
             'store_id' => $session->store_id,
             'pos_device_id' => $session->pos_device_id,
@@ -48,6 +49,11 @@ class ReportController extends Controller
             'event_code' => \App\Models\PosEvent::EVENT_X_REPORT,
             'event_type' => 'report',
             'description' => "X-report PDF generated for session {$session->session_number}",
+            'event_data' => [
+                'report_type' => 'X-Report',
+                'session_number' => $session->session_number,
+                'report_data' => $report, // Complete report data for electronic journal
+            ],
             'occurred_at' => now(),
         ]);
 
@@ -103,6 +109,7 @@ class ReportController extends Controller
         $report = PosSessionsTable::generateZReport($session);
 
         // Log Z-report event (13009) per § 2-8-3
+        // Include complete report data in event_data for electronic journal compliance
         \App\Models\PosEvent::create([
             'store_id' => $session->store_id,
             'pos_device_id' => $session->pos_device_id,
@@ -111,6 +118,11 @@ class ReportController extends Controller
             'event_code' => \App\Models\PosEvent::EVENT_Z_REPORT,
             'event_type' => 'report',
             'description' => "Z-report PDF generated for session {$session->session_number}",
+            'event_data' => [
+                'report_type' => 'Z-Report',
+                'session_number' => $session->session_number,
+                'report_data' => $report, // Complete report data for electronic journal
+            ],
             'occurred_at' => now(),
         ]);
 

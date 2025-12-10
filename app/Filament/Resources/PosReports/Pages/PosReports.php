@@ -133,7 +133,11 @@ class PosReports extends Page implements HasForms, HasTable
                     ->icon('heroicon-o-document-chart-bar')
                     ->modalHeading('X-Report (Interim Report)')
                     ->before(function (PosSession $record) {
+                        // Generate report data first
+                        $report = $this->generateXReport($record);
+                        
                         // Log X-report event (13008) per § 2-8-2
+                        // Include complete report data in event_data for electronic journal compliance
                         PosEvent::create([
                             'store_id' => $record->store_id,
                             'pos_device_id' => $record->pos_device_id,
@@ -142,6 +146,11 @@ class PosReports extends Page implements HasForms, HasTable
                             'event_code' => PosEvent::EVENT_X_REPORT,
                             'event_type' => 'report',
                             'description' => "X-report for session {$record->session_number}",
+                            'event_data' => [
+                                'report_type' => 'X-Report',
+                                'session_number' => $record->session_number,
+                                'report_data' => $report, // Complete report data for electronic journal
+                            ],
                             'occurred_at' => now(),
                         ]);
                     })
@@ -157,7 +166,11 @@ class PosReports extends Page implements HasForms, HasTable
                     ->icon('heroicon-o-document-check')
                     ->modalHeading('Z-Report (End-of-Day Report)')
                     ->before(function (PosSession $record) {
+                        // Generate report data first
+                        $report = $this->generateZReport($record);
+                        
                         // Log Z-report event (13009) per § 2-8-3
+                        // Include complete report data in event_data for electronic journal compliance
                         PosEvent::create([
                             'store_id' => $record->store_id,
                             'pos_device_id' => $record->pos_device_id,
@@ -166,6 +179,11 @@ class PosReports extends Page implements HasForms, HasTable
                             'event_code' => PosEvent::EVENT_Z_REPORT,
                             'event_type' => 'report',
                             'description' => "Z-report for session {$record->session_number}",
+                            'event_data' => [
+                                'report_type' => 'Z-Report',
+                                'session_number' => $record->session_number,
+                                'report_data' => $report, // Complete report data for electronic journal
+                            ],
                             'occurred_at' => now(),
                         ]);
                     })
@@ -241,6 +259,12 @@ class PosReports extends Page implements HasForms, HasTable
         // Receipt count
         $receiptCount = $session->receipts->count();
         
+        // Calculate manual discounts (only discounts applied manually at cash point)
+        $manualDiscounts = $this->calculateManualDiscounts($session);
+        
+        // Line corrections (only reductions count)
+        $lineCorrections = $this->calculateLineCorrections($session);
+        
         return [
             'session_id' => $session->id,
             'session_number' => $session->session_number,
@@ -279,6 +303,8 @@ class PosReports extends Page implements HasForms, HasTable
             'charges' => $charges,
             'tips_enabled' => $tipsEnabled,
             'sales_by_category' => $this->calculateSalesByCategory($session),
+            'manual_discounts' => $manualDiscounts,
+            'line_corrections' => $lineCorrections,
         ];
     }
 
@@ -477,6 +503,80 @@ class PosReports extends Page implements HasForms, HasTable
         }
         
         return $categorySales->sortByDesc('amount')->values();
+    }
+
+    /**
+     * Calculate manual discounts from session receipts
+     * Only discounts with discountReason (manual) are counted, not automatic/campaign discounts
+     */
+    protected function calculateManualDiscounts(PosSession $session): array
+    {
+        $session->load(['receipts']);
+        $manualDiscountCount = 0;
+        $manualDiscountAmount = 0;
+        
+        foreach ($session->receipts as $receipt) {
+            $receiptData = $receipt->receipt_data ?? [];
+            
+            // Check item-level manual discounts (those with discountReason)
+            $items = $receiptData['items'] ?? [];
+            foreach ($items as $item) {
+                $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
+                $discountReason = $item['discount_reason'] ?? null;
+                
+                // Only count if discount exists AND has a reason (manual discount)
+                if ($discountAmount > 0 && !empty($discountReason)) {
+                    $manualDiscountCount++;
+                    $manualDiscountAmount += $discountAmount * ($item['quantity'] ?? 1);
+                }
+            }
+            
+            // Check cart-level manual discounts (those with reason field)
+            $discounts = $receiptData['discounts'] ?? [];
+            foreach ($discounts as $discount) {
+                $discountAmount = isset($discount['amount']) ? (int) $discount['amount'] : 0;
+                $discountReason = $discount['reason'] ?? null;
+                
+                // Only count if discount exists AND has a reason (manual discount)
+                // Automatic discounts (campaigns, coupons) don't have reason
+                if ($discountAmount > 0 && !empty($discountReason)) {
+                    $manualDiscountCount++;
+                    $manualDiscountAmount += $discountAmount;
+                }
+            }
+        }
+        
+        return [
+            'count' => $manualDiscountCount,
+            'amount' => $manualDiscountAmount,
+        ];
+    }
+
+    /**
+     * Calculate line corrections from session
+     * Only reductions count as line corrections (per FAQ requirement)
+     */
+    protected function calculateLineCorrections(PosSession $session): array
+    {
+        $session->load(['lineCorrections']);
+        
+        $correctionsByType = $session->lineCorrections->groupBy('correction_type')->map(function ($group) {
+            return [
+                'type' => $group->first()->correction_type,
+                'count' => $group->count(),
+                'total_quantity_reduction' => $group->sum('quantity_reduction'),
+                'total_amount_reduction' => $group->sum('amount_reduction'),
+            ];
+        });
+        
+        $totalCount = $session->lineCorrections->count();
+        $totalAmountReduction = $session->lineCorrections->sum('amount_reduction');
+        
+        return [
+            'total_count' => $totalCount,
+            'total_amount_reduction' => $totalAmountReduction,
+            'by_type' => $correctionsByType,
+        ];
     }
 
     public function getSalesOverview(): array

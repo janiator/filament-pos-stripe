@@ -270,6 +270,65 @@
         </div>
     </div>
 
+    <!-- Manual Discounts -->
+    @if(isset($report['manual_discounts']) && $report['manual_discounts']['count'] > 0)
+        <div class="z-report-section" style="background-color: rgb(249 250 251); border-color: rgb(229 231 235);">
+            <h4 class="z-report-title">Manuelle Rabatter</h4>
+            <div class="z-report-grid z-report-grid-2">
+                <div>
+                    <div class="z-report-metric-label">Antall Rabatter</div>
+                    <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ $report['manual_discounts']['count'] }}</div>
+                </div>
+                <div>
+                    <div class="z-report-metric-label">Totalt Rabattbeløp</div>
+                    <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format($report['manual_discounts']['amount'] / 100, 2) }} NOK</div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Line Corrections -->
+    @if(isset($report['line_corrections']) && $report['line_corrections']['total_count'] > 0)
+        <div class="z-report-section" style="background-color: rgb(249 250 251); border-color: rgb(229 231 235);">
+            <h4 class="z-report-title">Linjekorreksjoner</h4>
+            <div class="z-report-grid z-report-grid-2">
+                <div>
+                    <div class="z-report-metric-label">Antall Korreksjoner</div>
+                    <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ $report['line_corrections']['total_count'] }}</div>
+                </div>
+                <div>
+                    <div class="z-report-metric-label">Totalt Reduksjon</div>
+                    <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format($report['line_corrections']['total_amount_reduction'] / 100, 2) }} NOK</div>
+                </div>
+            </div>
+            @if(isset($report['line_corrections']['by_type']) && $report['line_corrections']['by_type']->count() > 0)
+                <div style="margin-top: 1rem;">
+                    <div style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: rgb(75 85 99);">Oppdeling etter Type:</div>
+                    <div style="overflow-x: auto;">
+                        <table class="z-report-table">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: left;">Type</th>
+                                    <th style="text-align: center;">Antall</th>
+                                    <th style="text-align: right;">Reduksjon</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($report['line_corrections']['by_type'] as $correction)
+                                    <tr>
+                                        <td style="text-transform: capitalize;">{{ $correction['type'] }}</td>
+                                        <td style="text-align: center;">{{ $correction['count'] }}</td>
+                                        <td style="text-align: right;">{{ number_format($correction['total_amount_reduction'] / 100, 2) }} NOK</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endif
+
     <!-- Activity Metrics -->
     <div class="z-report-grid z-report-grid-3">
         <div class="z-report-section" style="background-color: rgb(250 245 255); border-color: rgb(233 213 255);">

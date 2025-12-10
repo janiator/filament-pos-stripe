@@ -193,7 +193,16 @@ class PosSessionsController extends BaseApiController
             $session->save();
         }
 
-        // Log Z-report event (13009)
+        // Generate Z-report data first (using shared method from PosSessionsTable)
+        $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
+        $report = \App\Filament\Resources\PosSessions\Tables\PosSessionsTable::generateZReport($session);
+        
+        // Convert dates to ISO format for API response
+        $report['opened_at'] = $this->formatDateTimeOslo($session->opened_at);
+        $report['closed_at'] = $session->closed_at ? $this->formatDateTimeOslo($session->closed_at) : null;
+        $report['report_generated_at'] = $this->formatDateTimeOslo($report['report_generated_at']);
+        
+        // Log Z-report event (13009) with complete report data for electronic journal compliance
         \App\Models\PosEvent::create([
             'store_id' => $store->id,
             'pos_device_id' => $session->pos_device_id,
@@ -203,14 +212,12 @@ class PosSessionsController extends BaseApiController
             'event_type' => 'report',
             'description' => "Z-report for session {$session->session_number}",
             'event_data' => [
-                'actual_cash' => $session->actual_cash,
-                'cash_difference' => $session->cash_difference,
+                'report_type' => 'Z-Report',
+                'session_number' => $session->session_number,
+                'report_data' => $report, // Complete report data for electronic journal
             ],
             'occurred_at' => now(),
         ]);
-
-        // Generate Z-report
-        $report = $this->generateZReportData($session);
 
         return response()->json([
             'message' => 'Session closed successfully',
@@ -267,7 +274,15 @@ class PosSessionsController extends BaseApiController
             ], 400);
         }
 
-        // Log X-report event (13008)
+        // Generate report data first (using shared method from PosSessionsTable)
+        $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
+        $report = \App\Filament\Resources\PosSessions\Tables\PosSessionsTable::generateXReport($session);
+        
+        // Convert dates to ISO format for API response
+        $report['opened_at'] = $this->formatDateTimeOslo($session->opened_at);
+        $report['report_generated_at'] = $this->formatDateTimeOslo($report['report_generated_at']);
+        
+        // Log X-report event (13008) with complete report data for electronic journal compliance
         \App\Models\PosEvent::create([
             'store_id' => $store->id,
             'pos_device_id' => $session->pos_device_id,
@@ -276,77 +291,13 @@ class PosSessionsController extends BaseApiController
             'event_code' => \App\Models\PosEvent::EVENT_X_REPORT,
             'event_type' => 'report',
             'description' => "X-report for session {$session->session_number}",
+            'event_data' => [
+                'report_type' => 'X-Report',
+                'session_number' => $session->session_number,
+                'report_data' => $report, // Complete report data for electronic journal
+            ],
             'occurred_at' => now(),
         ]);
-
-        $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
-        $charges = $session->charges->where('status', 'succeeded');
-        
-        $totalAmount = $charges->sum('amount');
-        $cashAmount = $charges->where('payment_method', 'cash')->sum('amount');
-        $cardAmount = $charges->where('payment_method', 'card')->sum('amount');
-        $mobileAmount = $charges->where('payment_method', 'mobile')->sum('amount');
-        $otherAmount = $totalAmount - $cashAmount - $cardAmount - $mobileAmount;
-        $totalTips = $charges->sum('tip_amount');
-        
-        // Calculate VAT (25% standard in Norway)
-        $vatRate = 0.25;
-        $vatBase = round($totalAmount / (1 + $vatRate), 0);
-        $vatAmount = $totalAmount - $vatBase;
-        
-        // Cash drawer events
-        $cashDrawerOpens = $session->events->where('event_code', \App\Models\PosEvent::EVENT_CASH_DRAWER_OPEN)->count();
-        $nullinnslagCount = $session->events->where('event_code', \App\Models\PosEvent::EVENT_CASH_DRAWER_OPEN)
-            ->where('event_data->nullinnslag', true)->count();
-        
-        $report = [
-            'session_id' => $session->id,
-            'session_number' => $session->session_number,
-            'opened_at' => $this->formatDateTimeOslo($session->opened_at),
-            'report_generated_at' => $this->formatDateTimeOslo(now()),
-            'store' => [
-                'id' => $session->store->id,
-                'name' => $session->store->name,
-            ],
-            'device' => $session->posDevice ? [
-                'id' => $session->posDevice->id,
-                'name' => $session->posDevice->device_name,
-            ] : null,
-            'cashier' => $session->user ? [
-                'id' => $session->user->id,
-                'name' => $session->user->name,
-            ] : null,
-            'opening_balance' => $session->opening_balance,
-            'transactions_count' => $charges->count(),
-            'total_amount' => $totalAmount,
-            'vat_base' => $vatBase,
-            'vat_amount' => $vatAmount,
-            'vat_rate' => $vatRate * 100,
-            'cash_amount' => $cashAmount,
-            'card_amount' => $cardAmount,
-            'mobile_amount' => $mobileAmount,
-            'other_amount' => $otherAmount,
-            'total_tips' => $totalTips,
-            'expected_cash' => $session->calculateExpectedCash(),
-            'by_payment_method' => $this->calculateByPaymentMethod($charges),
-            'by_payment_code' => $charges->groupBy('payment_code')->map(function ($group) {
-                return [
-                    'code' => $group->first()->payment_code,
-                    'count' => $group->count(),
-                    'amount' => $group->sum('amount'),
-                ];
-            }),
-            'transactions_by_type' => $charges->groupBy('transaction_code')->map(function ($group) {
-                return [
-                    'code' => $group->first()->transaction_code,
-                    'count' => $group->count(),
-                    'amount' => $group->sum('amount'),
-                ];
-            }),
-            'cash_drawer_opens' => $cashDrawerOpens,
-            'nullinnslag_count' => $nullinnslagCount,
-            'receipt_count' => $session->receipts->count(),
-        ];
 
         return response()->json([
             'message' => 'X-report generated successfully',
@@ -392,7 +343,16 @@ class PosSessionsController extends BaseApiController
             $validated['closing_notes'] ?? null
         );
 
-        // Log Z-report event (13009)
+        // Generate Z-report data first (using shared method from PosSessionsTable)
+        $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
+        $report = \App\Filament\Resources\PosSessions\Tables\PosSessionsTable::generateZReport($session);
+        
+        // Convert dates to ISO format for API response
+        $report['opened_at'] = $this->formatDateTimeOslo($session->opened_at);
+        $report['closed_at'] = $session->closed_at ? $this->formatDateTimeOslo($session->closed_at) : null;
+        $report['report_generated_at'] = $this->formatDateTimeOslo($report['report_generated_at']);
+        
+        // Log Z-report event (13009) with complete report data for electronic journal compliance
         \App\Models\PosEvent::create([
             'store_id' => $store->id,
             'pos_device_id' => $session->pos_device_id,
@@ -402,14 +362,12 @@ class PosSessionsController extends BaseApiController
             'event_type' => 'report',
             'description' => "Z-report for session {$session->session_number}",
             'event_data' => [
-                'actual_cash' => $session->actual_cash,
-                'cash_difference' => $session->cash_difference,
+                'report_type' => 'Z-Report',
+                'session_number' => $session->session_number,
+                'report_data' => $report, // Complete report data for electronic journal
             ],
             'occurred_at' => now(),
         ]);
-
-        // Generate Z-report
-        $report = $this->generateZReportData($session);
 
         return response()->json([
             'message' => 'Z-report generated and session closed',

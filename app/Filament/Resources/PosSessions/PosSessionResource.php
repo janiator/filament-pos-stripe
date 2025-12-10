@@ -5,6 +5,7 @@ namespace App\Filament\Resources\PosSessions;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\PosSessions\Pages\CreatePosSession;
 use App\Filament\Resources\PosSessions\Pages\EditPosSession;
+use App\Filament\Resources\PosSessions\Pages\EmbedPosSessions;
 use App\Filament\Resources\PosSessions\Pages\ListPosSessions;
 use App\Filament\Resources\PosSessions\Pages\ViewPosSession;
 use App\Filament\Resources\PosSessions\Schemas\PosSessionForm;
@@ -72,6 +73,7 @@ class PosSessionResource extends Resource
             'create' => CreatePosSession::route('/create'),
             'view' => ViewPosSession::route('/{record}'),
             'edit' => EditPosSession::route('/{record}/edit'),
+            'embed' => EmbedPosSessions::route('/embed'),
         ];
     }
 }

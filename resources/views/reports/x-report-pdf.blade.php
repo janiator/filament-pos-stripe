@@ -207,6 +207,49 @@
         </table>
     </div>
 
+    @if(isset($report['manual_discounts']) && $report['manual_discounts']['count'] > 0)
+        <div class="section">
+            <div class="section-title">Manuelle Rabatter</div>
+            <table>
+                <tr>
+                    <th>Antall Rabatter</th>
+                    <th class="text-right">Totalt Rabattbeløp</th>
+                </tr>
+                <tr>
+                    <td>{{ $report['manual_discounts']['count'] }}</td>
+                    <td class="text-right">{{ number_format($report['manual_discounts']['amount'] / 100, 2) }} NOK</td>
+                </tr>
+            </table>
+        </div>
+    @endif
+
+    @if(isset($report['line_corrections']) && $report['line_corrections']['total_count'] > 0)
+        <div class="section">
+            <div class="section-title">Linjekorreksjoner</div>
+            <table>
+                <tr>
+                    <th>Type</th>
+                    <th class="text-center">Antall</th>
+                    <th class="text-right">Reduksjon</th>
+                </tr>
+                @if(isset($report['line_corrections']['by_type']) && $report['line_corrections']['by_type']->count() > 0)
+                    @foreach($report['line_corrections']['by_type'] as $correction)
+                        <tr>
+                            <td>{{ ucfirst($correction['type']) }}</td>
+                            <td class="text-center">{{ $correction['count'] }}</td>
+                            <td class="text-right">{{ number_format($correction['total_amount_reduction'] / 100, 2) }} NOK</td>
+                        </tr>
+                    @endforeach
+                @endif
+                <tr style="font-weight: 600; border-top: 2px solid #e5e7eb;">
+                    <td>Totalt</td>
+                    <td class="text-center">{{ $report['line_corrections']['total_count'] }}</td>
+                    <td class="text-right">{{ number_format($report['line_corrections']['total_amount_reduction'] / 100, 2) }} NOK</td>
+                </tr>
+            </table>
+        </div>
+    @endif
+
     <div class="metrics">
         <div class="metric-card">
             <div class="metric-label">Kontantskuff-åpninger</div>
