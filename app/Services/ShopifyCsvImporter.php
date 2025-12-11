@@ -60,38 +60,38 @@ class ShopifyCsvImporter
 
             if (! isset($products[$productHandle])) {
                 $products[$productHandle] = [
-                    'handle' => $productHandle,
-                    'title' => null,
-                    'body_html' => '',
-                    'vendor' => '',
-                    'type' => '',
-                    'tags' => '',
-                    'category' => $data['Product Category'] ?? ($data['Category'] ?? ''),
-                    'published' => false,
-                    'images' => [],
-                    'variants' => [],
-                    'variant_count' => 0,
-                    'variant_min_price' => null,
-                    'variant_max_price' => null,
+                    'handle'           => $productHandle,
+                    'title'            => null,
+                    'body_html'        => '',
+                    'vendor'           => '',
+                    'type'             => '',
+                    'tags'             => '',
+                    'category'         => $data['Product Category'] ?? ($data['Category'] ?? ''),
+                    'published'        => false,
+                    'images'           => [],
+                    'variants'         => [],
+                    'variant_count'    => 0,
+                    'variant_min_price'=> null,
+                    'variant_max_price'=> null,
                 ];
             }
 
             if (! empty($data['Title'])) {
-                $products[$productHandle]['title'] = $data['Title'];
+                $products[$productHandle]['title']     = $data['Title'];
                 $products[$productHandle]['body_html'] = $data['Body (HTML)'] ?? $products[$productHandle]['body_html'];
-                $products[$productHandle]['vendor'] = $data['Vendor'] ?? $products[$productHandle]['vendor'];
-                $products[$productHandle]['type'] = $data['Type'] ?? $products[$productHandle]['type'];
-                $products[$productHandle]['tags'] = $data['Tags'] ?? $products[$productHandle]['tags'];
-                $products[$productHandle]['category'] = $data['Product Category'] ?? ($data['Category'] ?? $products[$productHandle]['category']);
+                $products[$productHandle]['vendor']    = $data['Vendor'] ?? $products[$productHandle]['vendor'];
+                $products[$productHandle]['type']      = $data['Type'] ?? $products[$productHandle]['type'];
+                $products[$productHandle]['tags']      = $data['Tags'] ?? $products[$productHandle]['tags'];
+                $products[$productHandle]['category']  = $data['Product Category'] ?? ($data['Category'] ?? $products[$productHandle]['category']);
                 $products[$productHandle]['published'] = (($data['Published'] ?? 'false') === 'true');
 
                 // Collect main product image
                 $mainImageSrc = trim((string) ($data['Image Src'] ?? ''));
                 if ($mainImageSrc !== '') {
                     $products[$productHandle]['images'][] = [
-                        'src' => $mainImageSrc,
+                        'src'      => $mainImageSrc,
                         'position' => (int) ($data['Image Position'] ?? 1),
-                        'alt' => trim((string) ($data['Image Alt Text'] ?? '')),
+                        'alt'      => trim((string) ($data['Image Alt Text'] ?? '')),
                     ];
                 }
             }
@@ -105,22 +105,22 @@ class ShopifyCsvImporter
             }
 
             $variantPrice = trim((string) ($data['Variant Price'] ?? ''));
-            $title = trim((string) ($data['Title'] ?? ''));
-            $imageSrc = trim((string) ($data['Image Src'] ?? ''));
+            $title        = trim((string) ($data['Title'] ?? ''));
+            $imageSrc     = trim((string) ($data['Image Src'] ?? ''));
 
             if ($variantPrice === '') {
                 // Image-only rows: have Image Src but no Title and no Variant Price
                 if ($imageSrc !== '' && $title === '') {
                     $products[$productHandle]['images'][] = [
-                        'src' => $imageSrc,
+                        'src'      => $imageSrc,
                         'position' => (int) ($data['Image Position'] ?? (count($products[$productHandle]['images']) + 1)),
-                        'alt' => trim((string) ($data['Image Alt Text'] ?? '')),
+                        'alt'      => trim((string) ($data['Image Alt Text'] ?? '')),
                     ];
 
                     Log::debug('Added additional image to product', [
-                        'handle' => $productHandle,
-                        'product_title' => $products[$productHandle]['title'] ?? 'N/A',
-                        'image_src' => $imageSrc,
+                        'handle'         => $productHandle,
+                        'product_title'  => $products[$productHandle]['title'] ?? 'N/A',
+                        'image_src'      => $imageSrc,
                         'image_position' => $data['Image Position'] ?? null,
                     ]);
                 }
@@ -129,7 +129,7 @@ class ShopifyCsvImporter
 
             // Parse inventory fields
             $inventoryQuantity = null;
-            $inventoryPolicy = 'deny';
+            $inventoryPolicy   = 'deny';
 
             if (! empty($data['Variant Inventory Tracker']) && $data['Variant Inventory Tracker'] !== 'shopify') {
                 $inventoryQuantity = null;
@@ -147,36 +147,36 @@ class ShopifyCsvImporter
             $priceNumeric = is_numeric($variantPrice) ? (float) $variantPrice : null;
 
             $variant = [
-                'option1_name' => $data['Option1 Name'] ?? '',
-                'option1_value' => $data['Option1 Value'] ?? '',
-                'option2_name' => $data['Option2 Name'] ?? '',
-                'option2_value' => $data['Option2 Value'] ?? '',
-                'option3_name' => $data['Option3 Name'] ?? '',
-                'option3_value' => $data['Option3 Value'] ?? '',
-                'sku' => $data['Variant SKU'] ?? '',
-                'price' => $variantPrice,
-                'compare_at_price' => $data['Variant Compare At Price'] ?? '',
-                'barcode' => $data['Variant Barcode'] ?? '',
-                'grams' => (int) ($data['Variant Grams'] ?? 0),
-                'requires_shipping' => ($data['Variant Requires Shipping'] ?? 'true') === 'true',
-                'taxable' => ($data['Variant Taxable'] ?? 'true') === 'true',
-                'image' => $data['Variant Image'] ?? '',
-                'inventory_quantity' => $inventoryQuantity,
-                'inventory_policy' => $inventoryPolicy,
-                'inventory_management' => ! empty($data['Variant Inventory Tracker']) ? $data['Variant Inventory Tracker'] : null,
+                'option1_name'        => $data['Option1 Name'] ?? '',
+                'option1_value'       => $data['Option1 Value'] ?? '',
+                'option2_name'        => $data['Option2 Name'] ?? '',
+                'option2_value'       => $data['Option2 Value'] ?? '',
+                'option3_name'        => $data['Option3 Name'] ?? '',
+                'option3_value'       => $data['Option3 Value'] ?? '',
+                'sku'                 => $data['Variant SKU'] ?? '',
+                'price'               => $variantPrice,
+                'compare_at_price'    => $data['Variant Compare At Price'] ?? '',
+                'barcode'             => $data['Variant Barcode'] ?? '',
+                'grams'               => (int) ($data['Variant Grams'] ?? 0),
+                'requires_shipping'   => ($data['Variant Requires Shipping'] ?? 'true') === 'true',
+                'taxable'             => ($data['Variant Taxable'] ?? 'true') === 'true',
+                'image'               => $data['Variant Image'] ?? '',
+                'inventory_quantity'  => $inventoryQuantity,
+                'inventory_policy'    => $inventoryPolicy,
+                'inventory_management'=> ! empty($data['Variant Inventory Tracker']) ? $data['Variant Inventory Tracker'] : null,
             ];
 
             // Add variant image if present
             $variantImage = trim((string) ($variant['image'] ?? ''));
             if ($variantImage !== '') {
                 $products[$productHandle]['images'][] = [
-                    'src' => $variantImage,
+                    'src'      => $variantImage,
                     'position' => count($products[$productHandle]['images']) + 1,
-                    'alt' => trim((string) ($data['Image Alt Text'] ?? '')),
+                    'alt'      => trim((string) ($data['Image Alt Text'] ?? '')),
                 ];
 
                 Log::debug('Added variant image to product', [
-                    'handle' => $productHandle,
+                    'handle'        => $productHandle,
                     'product_title' => $products[$productHandle]['title'] ?? 'N/A',
                     'variant_image' => $variantImage,
                 ]);
@@ -196,15 +196,15 @@ class ShopifyCsvImporter
             }
 
             Log::info('Added variant to product', [
-                'handle' => $productHandle,
-                'product_title' => $products[$productHandle]['title'] ?? 'N/A',
-                'variant_price' => $variant['price'],
-                'variant_options' => [
+                'handle'                       => $productHandle,
+                'product_title'                => $products[$productHandle]['title'] ?? 'N/A',
+                'variant_price'                => $variant['price'],
+                'variant_options'              => [
                     'option1' => $variant['option1_value'] ?? null,
                     'option2' => $variant['option2_value'] ?? null,
                     'option3' => $variant['option3_value'] ?? null,
                 ],
-                'total_variants_for_product' => $products[$productHandle]['variant_count'],
+                'total_variants_for_product'   => $products[$productHandle]['variant_count'],
             ]);
         }
 
@@ -232,7 +232,7 @@ class ShopifyCsvImporter
         unset($product);
 
         $result = [
-            'products' => array_values($products),
+            'products'       => array_values($products),
             'total_products' => count($products),
             'total_variants' => array_sum(array_map(fn ($p) => count($p['variants'] ?? []), $products)),
         ];
@@ -242,21 +242,21 @@ class ShopifyCsvImporter
         // Debug: Log variant counts and image counts per product (keep your style)
         foreach ($products as $handle => $product) {
             $variantCount = $product['variant_count'] ?? count($product['variants'] ?? []);
-            $imageCount = count($product['images'] ?? []);
+            $imageCount   = count($product['images'] ?? []);
             Log::info('Product parsed from CSV', [
-                'handle' => $handle,
-                'title' => $product['title'] ?? 'N/A',
+                'handle'        => $handle,
+                'title'         => $product['title'] ?? 'N/A',
                 'variant_count' => $variantCount,
-                'image_count' => $imageCount,
-                'images' => array_map(function ($img) {
+                'image_count'   => $imageCount,
+                'images'        => array_map(function ($img) {
                     return [
-                        'src' => $img['src'] ?? null,
+                        'src'      => $img['src'] ?? null,
                         'position' => $img['position'] ?? null,
                     ];
                 }, $product['images'] ?? []),
-                'variants' => array_map(function ($v) {
+                'variants'      => array_map(function ($v) {
                     return [
-                        'price' => $v['price'] ?? null,
+                        'price'   => $v['price'] ?? null,
                         'option1' => $v['option1_value'] ?? null,
                         'option2' => $v['option2_value'] ?? null,
                         'option3' => $v['option3_value'] ?? null,
@@ -273,29 +273,39 @@ class ShopifyCsvImporter
     }
 
     /**
-     * Import products from parsed data
+     * Import products from parsed data.
+     *
+     * @param  callable|null  $progress fn(int $index, int $total, array $productData, int $imported, int $skipped, int $errorCount)
      */
-    public function import(string $filePath, string $stripeAccountId): array
-    {
-        $parsed = $this->parse($filePath);
+    public function import(
+        string $filePath,
+        string $stripeAccountId,
+        ?callable $progress = null,
+        bool $downloadImages = true,
+    ): array {
+        $parsed   = $this->parse($filePath);
         $products = $parsed['products'] ?? [];
 
-        $imported = 0;
-        $skipped = 0;
-        $errorCount = 0;
+        $imported     = 0;
+        $skipped      = 0;
+        $errorCount   = 0;
         $errorDetails = [];
         $totalProducts = count($products);
 
         Log::info('Starting product import', [
-            'total_products' => $totalProducts,
+            'total_products'    => $totalProducts,
             'stripe_account_id' => $stripeAccountId,
         ]);
 
         foreach ($products as $index => $productData) {
             $productIndex = $index + 1;
 
+            if ($progress) {
+                $progress($productIndex, $totalProducts, $productData, $imported, $skipped, $errorCount);
+            }
+
             $this->logProgress('shopify.import.products', $productIndex, $totalProducts, [
-                'title' => $productData['title'] ?? null,
+                'title'  => $productData['title'] ?? null,
                 'handle' => $productData['handle'] ?? null,
             ]);
 
@@ -304,8 +314,8 @@ class ShopifyCsvImporter
                     $errorCount++;
                     $errorDetails[] = "Missing title/handle at row group index {$productIndex}";
                     Log::warning('Skipping product - missing title or handle', [
-                        'title' => $productData['title'] ?? null,
-                        'handle' => $productData['handle'] ?? null,
+                        'title'         => $productData['title'] ?? null,
+                        'handle'        => $productData['handle'] ?? null,
                         'product_index' => $productIndex,
                     ]);
                     continue;
@@ -326,15 +336,15 @@ class ShopifyCsvImporter
 
                 if ($existing) {
                     Log::info('Product already exists, skipping', [
-                        'name' => $productData['title'],
-                        'handle' => $handle,
+                        'name'              => $productData['title'],
+                        'handle'            => $handle,
                         'stripe_account_id' => $stripeAccountId,
                     ]);
                     $skipped++;
                     continue;
                 }
 
-                $variants = $productData['variants'] ?? [];
+                $variants     = $productData['variants'] ?? [];
                 $variantCount = is_array($variants) ? count($variants) : 0;
 
                 // One-line: Shopify single products still have 1 CSV variant row; treat <=1 as single in our domain.
@@ -342,30 +352,30 @@ class ShopifyCsvImporter
 
                 $product = new ConnectedProduct([
                     'stripe_account_id' => $stripeAccountId,
-                    'name' => $productData['title'],
-                    'description' => $this->stripHtml($productData['body_html']),
-                    'active' => (bool) ($productData['published'] ?? false),
-                    'type' => 'good',
-                    'shippable' => true,
-                    'product_meta' => [
-                        'source' => 'shopify',
-                        'handle' => $handle,
-                        'vendor' => $productData['vendor'] ?? '',
-                        'type' => $productData['type'] ?? '',
-                        'tags' => $productData['tags'] ?? '',
+                    'name'              => $productData['title'],
+                    'description'       => $this->stripHtml($productData['body_html']),
+                    'active'            => (bool) ($productData['published'] ?? false),
+                    'type'              => 'good',
+                    'shippable'         => true,
+                    'product_meta'      => [
+                        'source'   => 'shopify',
+                        'handle'   => $handle,
+                        'vendor'   => $productData['vendor'] ?? '',
+                        'type'     => $productData['type'] ?? '',
+                        'tags'     => $productData['tags'] ?? '',
                         'category' => $productData['category'] ?? '',
                     ],
                 ]);
 
-                $createAction = app(CreateConnectedProductInStripe::class);
+                $createAction   = app(CreateConnectedProductInStripe::class);
                 $stripeProductId = $createAction($product);
 
                 if (! $stripeProductId) {
                     $errorCount++;
                     $errorDetails[] = "Stripe product create failed for '{$productData['title']}' ({$handle})";
                     Log::error('Failed to create product in Stripe', [
-                        'name' => $productData['title'],
-                        'handle' => $handle,
+                        'name'        => $productData['title'],
+                        'handle'      => $handle,
                         'is_variable' => $isVariable,
                     ]);
                     continue;
@@ -374,21 +384,21 @@ class ShopifyCsvImporter
                 $product->stripe_product_id = $stripeProductId;
                 $product->save();
 
-                if (! empty($productData['images'])) {
+                if ($downloadImages && ! empty($productData['images'])) {
                     try {
                         $this->downloadAndAddImages($product, $productData['images']);
                     } catch (\Exception $e) {
                         Log::warning('Failed to download some images for product', [
                             'product' => $productData['title'],
-                            'handle' => $handle,
-                            'error' => $e->getMessage(),
+                            'handle'  => $handle,
+                            'error'   => $e->getMessage(),
                         ]);
                     }
                 }
 
-                if ($product->hasMedia('images')) {
+                if ($downloadImages && $product->hasMedia('images')) {
                     $uploadAction = app(UploadProductImagesToStripe::class);
-                    $imageUrls = $uploadAction($product);
+                    $imageUrls    = $uploadAction($product);
                     if (! empty($imageUrls)) {
                         $product->images = $imageUrls;
                         $product->saveQuietly();
@@ -396,17 +406,17 @@ class ShopifyCsvImporter
                 }
 
                 Log::info('Processing product variants', [
-                    'product' => $productData['title'],
-                    'handle' => $handle,
+                    'product'       => $productData['title'],
+                    'handle'        => $handle,
                     'variant_count' => $variantCount,
-                    'is_variable' => $isVariable,
+                    'is_variable'   => $isVariable,
                 ]);
 
                 if ($variantCount === 0) {
                     // Keep your defensive log style
                     Log::info('Product has no variants', [
                         'product' => $productData['title'],
-                        'handle' => $handle,
+                        'handle'  => $handle,
                     ]);
                 }
 
@@ -419,46 +429,51 @@ class ShopifyCsvImporter
                 $imported++;
 
                 Log::info("Successfully imported product {$productIndex}/{$totalProducts}", [
-                    'product_title' => $productData['title'] ?? 'Unknown',
-                    'handle' => $handle,
+                    'product_title'  => $productData['title'] ?? 'Unknown',
+                    'handle'         => $handle,
                     'imported_count' => $imported,
                 ]);
             } catch (\Throwable $e) {
                 $productTitle = $productData['title'] ?? 'Unknown';
-                $handle = $productData['handle'] ?? 'Unknown';
+                $handle       = $productData['handle'] ?? 'Unknown';
                 $errorCount++;
                 $errorMessage = "Product '{$productTitle}' ({$handle}): {$e->getMessage()}";
                 $errorDetails[] = $errorMessage;
 
                 Log::error('Error importing product', [
-                    'product' => $productTitle,
-                    'handle' => $handle,
+                    'product'       => $productTitle,
+                    'handle'        => $handle,
                     'product_index' => $productIndex,
-                    'error' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
+                    'error'         => $e->getMessage(),
+                    'file'          => $e->getFile(),
+                    'line'          => $e->getLine(),
                 ]);
             }
         }
 
+        if ($progress && $totalProducts > 0) {
+            $lastProduct = end($products) ?: [];
+            $progress($totalProducts, $totalProducts, $lastProduct, $imported, $skipped, $errorCount);
+        }
+
         $result = [
-            'imported' => $imported,
-            'skipped' => $skipped,
-            'errors' => $errorDetails,
+            'imported'    => $imported,
+            'skipped'     => $skipped,
+            'errors'      => $errorDetails,
             'error_count' => $errorCount,
-            'stats' => [
-                'parse' => $parsed['stats'] ?? $this->buildParseStats($parsed),
+            'stats'       => [
+                'parse'  => $parsed['stats'] ?? $this->buildParseStats($parsed),
                 'import' => [
-                    'imported' => $imported,
-                    'skipped' => $skipped,
-                    'error_count' => $errorCount,
+                    'imported'       => $imported,
+                    'skipped'        => $skipped,
+                    'error_count'    => $errorCount,
                     'total_products' => $totalProducts,
                 ],
             ],
         ];
 
         Log::info('Finished product import', [
-            'stats' => $result['stats'],
+            'stats'        => $result['stats'],
             'first_errors' => array_slice($errorDetails, 0, 15),
         ]);
 
@@ -473,7 +488,7 @@ class ShopifyCsvImporter
         // Skip image downloads in test environment to avoid timeouts
         if (app()->environment('testing')) {
             Log::info('Skipping image downloads in test environment', [
-                'product_id' => $product->id,
+                'product_id'  => $product->id,
                 'image_count' => count($images),
             ]);
             return;
@@ -490,7 +505,7 @@ class ShopifyCsvImporter
                     ->toMediaCollection('images');
             } catch (\Exception $e) {
                 Log::warning('Failed to download image', [
-                    'url' => $imageData['src'] ?? null,
+                    'url'   => $imageData['src'] ?? null,
                     'error' => $e->getMessage(),
                 ]);
             }
@@ -508,7 +523,7 @@ class ShopifyCsvImporter
         // Handle Norwegian format (1.234,56) or US format (1,234.56)
         if (strpos($price, ',') !== false && strpos($price, '.') !== false) {
             $lastComma = strrpos($price, ',');
-            $lastDot = strrpos($price, '.');
+            $lastDot   = strrpos($price, '.');
 
             if ($lastComma > $lastDot) {
                 // Norwegian format: 1.234,56
@@ -580,8 +595,8 @@ class ShopifyCsvImporter
         int &$errorCount
     ): void {
         $variantsProcessed = 0;
-        $variantsCreated = 0;
-        $variantsUpdated = 0;
+        $variantsCreated   = 0;
+        $variantsUpdated   = 0;
 
         foreach ($variants as $index => $variantData) {
             $variantsProcessed++;
@@ -595,7 +610,9 @@ class ShopifyCsvImporter
                 continue;
             }
 
-            $sku = ! empty(trim((string) ($variantData['sku'] ?? ''))) ? trim((string) $variantData['sku']) : null;
+            $sku = ! empty(trim((string) ($variantData['sku'] ?? '')))
+                ? trim((string) $variantData['sku'])
+                : null;
 
             $existingVariant = null;
 
@@ -607,7 +624,7 @@ class ShopifyCsvImporter
             }
 
             if (! $existingVariant) {
-                $query = \App\Models\ProductVariant::where('connected_product_id', $product->id)
+                $query  = \App\Models\ProductVariant::where('connected_product_id', $product->id)
                     ->where('stripe_account_id', $stripeAccountId);
 
                 $option1 = $variantData['option1_value'] ?? null;
@@ -638,27 +655,27 @@ class ShopifyCsvImporter
             if ($existingVariant) {
                 $variant = $existingVariant;
                 $variant->fill([
-                    'sku' => $sku,
-                    'barcode' => $variantData['barcode'] ?? null,
-                    'option1_name' => $variantData['option1_name'] ?? null,
-                    'option1_value' => $variantData['option1_value'] ?? null,
-                    'option2_name' => $variantData['option2_name'] ?? null,
-                    'option2_value' => $variantData['option2_value'] ?? null,
-                    'option3_name' => $variantData['option3_name'] ?? null,
-                    'option3_value' => $variantData['option3_value'] ?? null,
-                    'price_amount' => $priceAmount,
-                    'currency' => 'nok',
-                    'compare_at_price_amount' => ! empty($variantData['compare_at_price'])
+                    'sku'                    => $sku,
+                    'barcode'                => $variantData['barcode'] ?? null,
+                    'option1_name'           => $variantData['option1_name'] ?? null,
+                    'option1_value'          => $variantData['option1_value'] ?? null,
+                    'option2_name'           => $variantData['option2_name'] ?? null,
+                    'option2_value'          => $variantData['option2_value'] ?? null,
+                    'option3_name'           => $variantData['option3_name'] ?? null,
+                    'option3_value'          => $variantData['option3_value'] ?? null,
+                    'price_amount'           => $priceAmount,
+                    'currency'               => 'nok',
+                    'compare_at_price_amount'=> ! empty($variantData['compare_at_price'])
                         ? $this->parsePrice((string) $variantData['compare_at_price'])
                         : null,
-                    'weight_grams' => $variantData['grams'] ?? null,
-                    'requires_shipping' => $variantData['requires_shipping'] ?? true,
-                    'taxable' => $variantData['taxable'] ?? true,
-                    'image_url' => $variantData['image'] ?? null,
-                    'inventory_quantity' => $variantData['inventory_quantity'] ?? 0,
-                    'inventory_policy' => $variantData['inventory_policy'] ?? 'deny',
-                    'active' => true,
-                    'metadata' => [
+                    'weight_grams'           => $variantData['grams'] ?? null,
+                    'requires_shipping'      => $variantData['requires_shipping'] ?? true,
+                    'taxable'                => $variantData['taxable'] ?? true,
+                    'image_url'              => $variantData['image'] ?? null,
+                    'inventory_quantity'     => $variantData['inventory_quantity'] ?? 0,
+                    'inventory_policy'       => $variantData['inventory_policy'] ?? 'deny',
+                    'active'                 => true,
+                    'metadata'               => [
                         'source' => 'shopify',
                     ],
                 ]);
@@ -666,32 +683,36 @@ class ShopifyCsvImporter
                 $variantsUpdated++;
             } else {
                 $variant = \App\Models\ProductVariant::withoutEvents(function () use (
-                    $product, $stripeAccountId, $sku, $variantData, $priceAmount
+                    $product,
+                    $stripeAccountId,
+                    $sku,
+                    $variantData,
+                    $priceAmount
                 ) {
                     return \App\Models\ProductVariant::create([
-                        'connected_product_id' => $product->id,
-                        'stripe_account_id' => $stripeAccountId,
-                        'sku' => $sku,
-                        'barcode' => $variantData['barcode'] ?? null,
-                        'option1_name' => $variantData['option1_name'] ?? null,
-                        'option1_value' => $variantData['option1_value'] ?? null,
-                        'option2_name' => $variantData['option2_name'] ?? null,
-                        'option2_value' => $variantData['option2_value'] ?? null,
-                        'option3_name' => $variantData['option3_name'] ?? null,
-                        'option3_value' => $variantData['option3_value'] ?? null,
-                        'price_amount' => $priceAmount,
-                        'currency' => 'nok',
-                        'compare_at_price_amount' => ! empty($variantData['compare_at_price'])
+                        'connected_product_id'   => $product->id,
+                        'stripe_account_id'      => $stripeAccountId,
+                        'sku'                    => $sku,
+                        'barcode'                => $variantData['barcode'] ?? null,
+                        'option1_name'           => $variantData['option1_name'] ?? null,
+                        'option1_value'          => $variantData['option1_value'] ?? null,
+                        'option2_name'           => $variantData['option2_name'] ?? null,
+                        'option2_value'          => $variantData['option2_value'] ?? null,
+                        'option3_name'           => $variantData['option3_name'] ?? null,
+                        'option3_value'          => $variantData['option3_value'] ?? null,
+                        'price_amount'           => $priceAmount,
+                        'currency'               => 'nok',
+                        'compare_at_price_amount'=> ! empty($variantData['compare_at_price'])
                             ? $this->parsePrice((string) $variantData['compare_at_price'])
                             : null,
-                        'weight_grams' => $variantData['grams'] ?? null,
-                        'requires_shipping' => $variantData['requires_shipping'] ?? true,
-                        'taxable' => $variantData['taxable'] ?? true,
-                        'image_url' => $variantData['image'] ?? null,
-                        'inventory_quantity' => $variantData['inventory_quantity'] ?? 0,
-                        'inventory_policy' => $variantData['inventory_policy'] ?? 'deny',
-                        'active' => true,
-                        'metadata' => [
+                        'weight_grams'           => $variantData['grams'] ?? null,
+                        'requires_shipping'      => $variantData['requires_shipping'] ?? true,
+                        'taxable'                => $variantData['taxable'] ?? true,
+                        'image_url'              => $variantData['image'] ?? null,
+                        'inventory_quantity'     => $variantData['inventory_quantity'] ?? 0,
+                        'inventory_policy'       => $variantData['inventory_policy'] ?? 'deny',
+                        'active'                 => true,
+                        'metadata'               => [
                             'source' => 'shopify',
                         ],
                     ]);
@@ -701,7 +722,7 @@ class ShopifyCsvImporter
 
             // Create Stripe Product + Price per variant
             $createVariantProductAction = app(\App\Actions\ConnectedProducts\CreateVariantProductInStripe::class);
-            $variantStripeProductId = $createVariantProductAction($variant);
+            $variantStripeProductId     = $createVariantProductAction($variant);
 
             if (! $variantStripeProductId) {
                 $errorCount++;
@@ -710,7 +731,7 @@ class ShopifyCsvImporter
             }
 
             $createPriceAction = app(CreateConnectedPriceInStripe::class);
-            $priceId = $createPriceAction(
+            $priceId           = $createPriceAction(
                 $variantStripeProductId,
                 $stripeAccountId,
                 $priceAmount,
@@ -718,17 +739,17 @@ class ShopifyCsvImporter
                 [
                     'nickname' => $variant->variant_name ?? $this->buildVariantName($variantData),
                     'metadata' => [
-                        'source' => 'shopify-variant',
+                        'source'     => 'shopify-variant',
                         'variant_id' => (string) $variant->id,
-                        'sku' => (string) ($variantData['sku'] ?? ''),
-                        'barcode' => (string) ($variantData['barcode'] ?? ''),
+                        'sku'        => (string) ($variantData['sku'] ?? ''),
+                        'barcode'    => (string) ($variantData['barcode'] ?? ''),
                     ],
                 ]
             );
 
             if ($priceId) {
                 $variant->stripe_product_id = $variantStripeProductId;
-                $variant->stripe_price_id = $priceId;
+                $variant->stripe_price_id   = $priceId;
                 $variant->saveQuietly();
             } else {
                 $errorCount++;
@@ -737,11 +758,11 @@ class ShopifyCsvImporter
         }
 
         Log::info('Variable variant import summary', [
-            'product_id' => $product->id,
-            'product_name' => $product->name,
+            'product_id'         => $product->id,
+            'product_name'       => $product->name,
             'variants_processed' => $variantsProcessed,
-            'variants_created' => $variantsCreated,
-            'variants_updated' => $variantsUpdated,
+            'variants_created'   => $variantsCreated,
+            'variants_updated'   => $variantsUpdated,
         ]);
     }
 
@@ -759,7 +780,7 @@ class ShopifyCsvImporter
 
         if (! $first || empty($first['price'])) {
             Log::warning('Single product missing variant price row', [
-                'product_id' => $product->id,
+                'product_id'   => $product->id,
                 'product_name' => $product->name,
             ]);
             return;
@@ -777,7 +798,7 @@ class ShopifyCsvImporter
         }
 
         $createPriceAction = app(CreateConnectedPriceInStripe::class);
-        $priceId = $createPriceAction(
+        $priceId           = $createPriceAction(
             $product->stripe_product_id,
             $stripeAccountId,
             $priceAmount,
@@ -786,7 +807,7 @@ class ShopifyCsvImporter
                 'nickname' => $product->name,
                 'metadata' => [
                     'source' => 'shopify',
-                    'mode' => 'single',
+                    'mode'   => 'single',
                 ],
             ]
         );
@@ -801,15 +822,15 @@ class ShopifyCsvImporter
             $product->default_price = $priceId;
         }
 
-        $product->price = number_format($priceAmount / 100, 2, '.', '');
+        $product->price    = number_format($priceAmount / 100, 2, '.', '');
         $product->currency = 'nok';
         $product->saveQuietly();
 
         Log::info('Set single product main price', [
-            'product_id' => $product->id,
-            'product_name' => $product->name,
-            'price' => $product->price,
-            'default_price' => $product->default_price,
+            'product_id'     => $product->id,
+            'product_name'   => $product->name,
+            'price'          => $product->price,
+            'default_price'  => $product->default_price,
         ]);
     }
 
@@ -817,57 +838,70 @@ class ShopifyCsvImporter
     {
         $products = $parsed['products'] ?? [];
 
-        $vendors = [];
-        $types = [];
-        $tags = [];
-        $categories = [];
-        $imagesTotal = 0;
-        $variableProducts = 0;
-        $singleLikeProducts = 0;
+        $vendors           = [];
+        $types             = [];
+        $tags              = [];
+        $categories        = [];
+        $imagesTotal       = 0;
+        $variableProducts  = 0;
+        $singleLikeProducts= 0;
 
         foreach ($products as $p) {
             $vendor = trim((string) ($p['vendor'] ?? ''));
-            if ($vendor !== '') $vendors[$vendor] = true;
+            if ($vendor !== '') {
+                $vendors[$vendor] = true;
+            }
 
             $type = trim((string) ($p['type'] ?? ''));
-            if ($type !== '') $types[$type] = true;
+            if ($type !== '') {
+                $types[$type] = true;
+            }
 
             $category = trim((string) ($p['category'] ?? ''));
-            if ($category !== '') $categories[$category] = true;
+            if ($category !== '') {
+                $categories[$category] = true;
+            }
 
             $rawTags = (string) ($p['tags'] ?? '');
             if ($rawTags !== '') {
                 foreach (explode(',', $rawTags) as $t) {
                     $t = trim($t);
-                    if ($t !== '') $tags[$t] = true;
+                    if ($t !== '') {
+                        $tags[$t] = true;
+                    }
                 }
             }
 
             $imagesTotal += is_array($p['images'] ?? null) ? count($p['images']) : 0;
 
             $vc = (int) ($p['variant_count'] ?? (is_array($p['variants'] ?? null) ? count($p['variants']) : 0));
-            if ($vc > 1) $variableProducts++;
-            elseif ($vc === 1) $singleLikeProducts++;
+            if ($vc > 1) {
+                $variableProducts++;
+            } elseif ($vc === 1) {
+                $singleLikeProducts++;
+            }
         }
 
         return [
-            'total_products' => (int) ($parsed['total_products'] ?? count($products)),
-            'total_variants' => (int) ($parsed['total_variants'] ?? 0),
-            'variable_products' => $variableProducts,
-            'single_like_products' => $singleLikeProducts,
-            'unique_vendors' => count($vendors),
-            'unique_types' => count($types),
-            'unique_tags' => count($tags),
-            'unique_categories' => count($categories),
-            'total_images' => $imagesTotal,
+            'total_products'      => (int) ($parsed['total_products'] ?? count($products)),
+            'total_variants'      => (int) ($parsed['total_variants'] ?? 0),
+            'variable_products'   => $variableProducts,
+            'single_like_products'=> $singleLikeProducts,
+            'unique_vendors'      => count($vendors),
+            'unique_types'        => count($types),
+            'unique_tags'         => count($tags),
+            'unique_categories'   => count($categories),
+            'total_images'        => $imagesTotal,
         ];
     }
 
     protected function buildProgressBar(int $current, int $total, int $width = 28): string
     {
-        if ($total <= 0) return str_repeat('-', $width);
+        if ($total <= 0) {
+            return str_repeat('-', $width);
+        }
 
-        $ratio = max(0, min(1, $current / $total));
+        $ratio  = max(0, min(1, $current / $total));
         $filled = (int) floor($ratio * $width);
 
         return str_repeat('█', $filled) . str_repeat('░', max(0, $width - $filled));
@@ -882,8 +916,8 @@ class ShopifyCsvImporter
         if ($current === 1 || $current === $total || ($current % 10) === 0) {
             Log::info($channel, array_merge($context, [
                 'progress' => "{$current}/{$total}",
-                'percent' => $pct,
-                'bar' => $bar,
+                'percent'  => $pct,
+                'bar'      => $bar,
             ]));
         }
     }
