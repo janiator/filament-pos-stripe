@@ -13,53 +13,30 @@ return [
     */
 
     'events' => [
-        // Account events
-        'account.updated',
-        
-        // Customer events
-        'customer.created',
+        // Customer events (core Connect events)
         'customer.updated',
         'customer.deleted',
         
-        // Subscription events
+        // Subscription events (core Connect events)
         'customer.subscription.created',
         'customer.subscription.updated',
         'customer.subscription.deleted',
+        
+        // Charge events (core Connect events)
+        'charge.succeeded',
+        
+        // Invoice events (for subscriptions - core Connect events)
+        'invoice.payment_action_required',
+        'invoice.payment_succeeded',
+        
+        // Additional events that may be valid for Connect
+        'customer.created',
         'customer.subscription.paused',
         'customer.subscription.resumed',
         'customer.subscription.trial_will_end',
-        
-        // Product events (may not be valid for Connect - will test)
-        'product.created',
-        'product.updated',
-        'product.deleted',
-        
-        // Price events (may not be valid for Connect - will test)
-        'price.created',
-        'price.updated',
-        'price.deleted',
-        
-        // Charge events
-        'charge.succeeded',
-        
-        // Payment method events
-        'payment_method.attached',
-        'payment_method.detached',
-        'payment_method.updated',
-        'payment_method.automatically_updated',
-        
-        // Payment link events
-        'payment_link.created',
-        'payment_link.updated',
-        
-        // Transfer events
         'transfer.created',
         'transfer.updated',
         'transfer.reversed',
-        
-        // Invoice events (for subscriptions)
-        'invoice.payment_action_required',
-        'invoice.payment_succeeded',
     ],
 ];
 
