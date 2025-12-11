@@ -1,15 +1,11 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Schema;
 use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         // Convert any existing abandoned sessions to closed
@@ -27,9 +23,6 @@ return new class extends Migration
         }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         // Revert enum back to include abandoned (PostgreSQL only; SQLite has no named check constraint)
