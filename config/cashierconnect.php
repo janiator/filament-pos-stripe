@@ -14,9 +14,7 @@ return [
 
     'events' => [
         // Account events
-        'account.created',
         'account.updated',
-        'account.deleted',
         
         // Customer events
         'customer.created',
@@ -51,6 +49,7 @@ return [
         'charge.updated',
         'charge.refunded',
         'charge.refund.updated',
+        'charge.succeeded',
         
         // Payment method events
         'payment_method.attached',
@@ -59,7 +58,6 @@ return [
         'payment_method.automatically_updated',
         
         // Payment link events
-        'checkout.session.completed',
         'payment_link.created',
         'payment_link.updated',
         
@@ -70,17 +68,9 @@ return [
         'transfer.paid',
         'transfer.failed',
         
-        // Terminal location events
-        'terminal.location.created',
-        'terminal.location.updated',
-        'terminal.location.deleted',
-        
         // Invoice events (for subscriptions)
-        'invoice.created',
-        'invoice.finalized',
+        'invoice.payment_action_required',
         'invoice.payment_succeeded',
-        'invoice.payment_failed',
-        'invoice.updated',
     ],
 ];
 
