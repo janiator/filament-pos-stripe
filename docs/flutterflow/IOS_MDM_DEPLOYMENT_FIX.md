@@ -22,7 +22,10 @@ This error occurs when:
 - ✅ **Device UDIDs must be registered** in the provisioning profile
 - ✅ Maximum **100 devices** per year per App ID
 - ✅ Works with Jamf MDM
+- ✅ **Developer Mode must be enabled** on iOS 16+ devices (Settings → Privacy & Security → Developer Mode)
 - ❌ Cannot distribute via App Store (different build required)
+
+**Note**: On iOS 16+, users will be prompted to enable Developer Mode when installing ad-hoc apps. This is **normal and required** - the device will restart once during setup.
 
 ### Step 1: Get Device UDIDs from Jamf
 
@@ -220,7 +223,22 @@ fastlane build_ad_hoc
 2. Ensure the app is configured for **Device Assignment**
 3. Verify the app is assigned to the correct device group
 
-### 3. Trust Developer Certificate (On Device)
+### 3. Enable Developer Mode (Required for iOS 16+)
+
+**This is normal and required** for ad-hoc/MDM app installations on iOS 16 and later.
+
+1. On iPad: **Settings** → **Privacy & Security** → **Developer Mode**
+2. Toggle **Developer Mode** to **ON**
+3. iPad will restart (required)
+4. After restart, confirm the prompt to enable Developer Mode
+
+**Note**: 
+- Developer Mode is required for any app installed outside the App Store (ad-hoc, MDM, TestFlight)
+- This is a security feature introduced in iOS 16
+- The device will restart once when enabling Developer Mode
+- This is a one-time setup per device
+
+### 4. Trust Developer Certificate (On Device)
 
 After installation, users may need to trust the developer:
 
@@ -259,9 +277,18 @@ codesign -d --entitlements - Payload/POSitiv.app
 ### Issue: "Untrusted Developer" or App Won't Launch
 
 **Solution**: 
-- After installation, go to **Settings** → **General** → **VPN & Device Management**
-- Find your developer certificate and tap **Trust**
-- This is required for Ad-Hoc apps on first launch
+- **First**: Enable Developer Mode (Settings → Privacy & Security → Developer Mode)
+- **Then**: Trust the developer certificate (Settings → General → VPN & Device Management)
+- Both steps are required for Ad-Hoc apps on iOS 16+
+
+### Issue: "Developer Mode Required" Message
+
+**Solution**:
+- This is **normal and expected** for ad-hoc/MDM installations on iOS 16+
+- Enable Developer Mode: **Settings** → **Privacy & Security** → **Developer Mode** → Toggle ON
+- Device will restart once
+- After restart, confirm the Developer Mode prompt
+- This is a one-time setup per device
 
 ### Issue: Provisioning Profile Mismatch / Device UDID Not Included
 
@@ -287,13 +314,15 @@ codesign -d --entitlements - Payload/POSitiv.app
 
 ## Best Practices for Ad-Hoc MDM Deployment
 
-1. **Register all device UDIDs upfront** - You can add up to 100 devices per App ID per year
-2. **Keep certificates up to date** (set reminders before expiration)
-3. **Test on one device first** before deploying to all devices
-4. **Document device UDIDs** - Keep a list of all registered devices
-5. **Use CI/CD** to automate signing and building
-6. **Monitor device limit** - Ad-Hoc is limited to 100 devices per App ID per year
-7. **Regenerate provisioning profile** when adding new devices (don't forget to rebuild IPA)
+1. **Enable Developer Mode first** - Required on iOS 16+ devices before installing ad-hoc apps
+2. **Register all device UDIDs upfront** - You can add up to 100 devices per App ID per year
+3. **Keep certificates up to date** (set reminders before expiration)
+4. **Test on one device first** before deploying to all devices
+5. **Document device UDIDs** - Keep a list of all registered devices
+6. **Use CI/CD** to automate signing and building
+7. **Monitor device limit** - Ad-Hoc is limited to 100 devices per App ID per year
+8. **Regenerate provisioning profile** when adding new devices (don't forget to rebuild IPA)
+9. **Inform users about Developer Mode** - They'll need to enable it and restart the device
 
 ## Flutter-Specific Notes
 

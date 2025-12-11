@@ -29,26 +29,17 @@ return [
         'customer.subscription.resumed',
         'customer.subscription.trial_will_end',
         
-        // Subscription item events
-        'customer.subscription.item.created',
-        'customer.subscription.item.updated',
-        'customer.subscription.item.deleted',
-        
-        // Product events
+        // Product events (may not be valid for Connect - will test)
         'product.created',
         'product.updated',
         'product.deleted',
         
-        // Price events
+        // Price events (may not be valid for Connect - will test)
         'price.created',
         'price.updated',
         'price.deleted',
         
         // Charge events
-        'charge.created',
-        'charge.updated',
-        'charge.refunded',
-        'charge.refund.updated',
         'charge.succeeded',
         
         // Payment method events
@@ -65,8 +56,6 @@ return [
         'transfer.created',
         'transfer.updated',
         'transfer.reversed',
-        'transfer.paid',
-        'transfer.failed',
         
         // Invoice events (for subscriptions)
         'invoice.payment_action_required',
