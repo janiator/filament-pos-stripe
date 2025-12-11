@@ -44,7 +44,7 @@ class Store extends Model implements StripeAccount
             if ($store->wasRecentlyCreated) {
                 return;
             }
-            
+
             $listener = new \App\Listeners\SyncStoreToStripeListener();
             $listener->handle($store);
         });
@@ -202,12 +202,12 @@ class Store extends Model implements StripeAccount
     {
         try {
             $tenant = \Filament\Facades\Filament::getTenant();
-            
+
             // If no tenant or admin store, sync all stores
             if (!$tenant || $tenant->slug === 'visivo-admin') {
                 return static::whereNotNull('stripe_account_id')->get();
             }
-            
+
             // Otherwise, sync only the current store
             return static::whereNotNull('stripe_account_id')
                 ->where('id', $tenant->id)
