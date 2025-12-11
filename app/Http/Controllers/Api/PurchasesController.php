@@ -84,6 +84,38 @@ class PurchasesController extends BaseApiController
             });
         }
 
+        // Filter by freetext search term if provided
+        // Searches across charge fields, customer info, receipt numbers, transaction codes, etc.
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $query->where(function ($q) use ($search, $store) {
+                // Search in charge fields
+                // If search is numeric, try exact match on ID first
+                if (is_numeric($search)) {
+                    $q->where('id', '=', (int) $search);
+                }
+                $q->orWhere('stripe_charge_id', 'ilike', "%{$search}%")
+                  ->orWhere('description', 'ilike', "%{$search}%")
+                  ->orWhere('transaction_code', 'ilike', "%{$search}%")
+                  ->orWhere('payment_code', 'ilike', "%{$search}%")
+                  ->orWhere('article_group_code', 'ilike', "%{$search}%")
+                  // Search in customer fields
+                  ->orWhereHas('customer', function ($customerQuery) use ($search, $store) {
+                      $customerQuery->where('stripe_connected_customer_mappings.stripe_account_id', $store->stripe_account_id)
+                          ->where(function ($cq) use ($search) {
+                              $cq->where('stripe_connected_customer_mappings.name', 'ilike', "%{$search}%")
+                                 ->orWhere('stripe_connected_customer_mappings.email', 'ilike', "%{$search}%")
+                                 ->orWhere('stripe_connected_customer_mappings.phone', 'ilike', "%{$search}%")
+                                 ->orWhere('stripe_connected_customer_mappings.stripe_customer_id', 'ilike', "%{$search}%");
+                          });
+                  })
+                  // Search in receipt number
+                  ->orWhereHas('receipt', function ($receiptQuery) use ($search) {
+                      $receiptQuery->where('receipt_number', 'ilike', "%{$search}%");
+                  });
+            });
+        }
+
         $perPage = min($request->get('per_page', 20), 100); // Max 100 per page
         $purchases = $query->orderBy('created_at', 'desc')
             ->paginate($perPage);
@@ -368,27 +400,63 @@ class PurchasesController extends BaseApiController
         // Add purchase discounts
         if (isset($cleanMetadata['discounts']) && is_array($cleanMetadata['discounts'])) {
             $data['purchase_discounts'] = $cleanMetadata['discounts'];
+            // Calculate cart-level discounts total
+            $cartLevelDiscounts = 0;
+            foreach ($cleanMetadata['discounts'] as $discount) {
+                if (isset($discount['amount']) && is_numeric($discount['amount'])) {
+                    $cartLevelDiscounts += (int) $discount['amount'];
+                }
+            }
+            // Add cart-level discounts to calculated discounts
+            $calculatedDiscounts += $cartLevelDiscounts;
         } else {
             $data['purchase_discounts'] = [];
         }
 
-        // Add purchase totals - use calculated values if metadata values are 0 or missing
-        $metadataSubtotal = isset($cleanMetadata['subtotal']) ? (int) $cleanMetadata['subtotal'] : 0;
-        $metadataDiscounts = isset($cleanMetadata['total_discounts']) ? (int) $cleanMetadata['total_discounts'] : 0;
-        $metadataTax = isset($cleanMetadata['total_tax']) ? (int) $cleanMetadata['total_tax'] : 0;
-        $metadataTip = isset($cleanMetadata['tip_amount']) ? (int) $cleanMetadata['tip_amount'] : 0;
+        // Add purchase totals - use calculated values if metadata values are missing or incorrectly 0
+        // If metadata is missing (null), calculate from items
+        // If metadata is 0 but we have items that would produce non-zero values, recalculate (handles incorrect metadata)
+        $metadataSubtotal = isset($cleanMetadata['subtotal']) ? (int) $cleanMetadata['subtotal'] : null;
+        $metadataDiscounts = isset($cleanMetadata['total_discounts']) ? (int) $cleanMetadata['total_discounts'] : null;
+        $metadataTax = isset($cleanMetadata['total_tax']) ? (int) $cleanMetadata['total_tax'] : null;
+        $metadataTip = isset($cleanMetadata['tip_amount']) ? (int) $cleanMetadata['tip_amount'] : null;
         
-        // Use calculated subtotal if metadata subtotal is 0 or missing
-        $data['purchase_subtotal'] = ($metadataSubtotal > 0) ? $metadataSubtotal : $calculatedSubtotal;
+        // Use calculated subtotal if metadata is missing OR if metadata is 0 but we have items
+        if ($metadataSubtotal === null || ($metadataSubtotal === 0 && $calculatedSubtotal > 0)) {
+            $data['purchase_subtotal'] = $calculatedSubtotal;
+        } else {
+            $data['purchase_subtotal'] = $metadataSubtotal;
+        }
         
-        // Use calculated discounts if metadata discounts are 0 or missing
-        $data['purchase_total_discounts'] = ($metadataDiscounts > 0) ? $metadataDiscounts : $calculatedDiscounts;
+        // Use calculated discounts if metadata is missing OR if metadata is 0 but we have calculated discounts
+        if ($metadataDiscounts === null || ($metadataDiscounts === 0 && $calculatedDiscounts > 0)) {
+            $data['purchase_total_discounts'] = $calculatedDiscounts;
+        } else {
+            $data['purchase_total_discounts'] = $metadataDiscounts;
+        }
         
-        // Use metadata tax (or 0 if not set)
-        $data['purchase_total_tax'] = $metadataTax;
+        // Calculate tax from subtotal if metadata is missing OR if metadata is 0 but we have a subtotal
+        // Prices are tax-inclusive, so we extract tax: Tax = Subtotal × (Tax Rate / (1 + Tax Rate))
+        // Default 25% VAT in Norway
+        $subtotalAfterDiscounts = $data['purchase_subtotal'] - $data['purchase_total_discounts'];
+        if ($metadataTax === null || ($metadataTax === 0 && $subtotalAfterDiscounts > 0)) {
+            // Calculate tax from subtotal (after discounts, tax-inclusive)
+            $taxRate = 0.25; // 25% VAT default
+            $calculatedTax = $subtotalAfterDiscounts > 0 
+                ? (int) round($subtotalAfterDiscounts * ($taxRate / (1 + $taxRate)))
+                : 0;
+            $data['purchase_total_tax'] = $calculatedTax;
+        } else {
+            $data['purchase_total_tax'] = $metadataTax;
+        }
         
         // Use metadata tip (or 0 if not set)
-        $data['purchase_tip_amount'] = $metadataTip;
+        $data['purchase_tip_amount'] = $metadataTip ?? 0;
+        
+        // Extract note from metadata if present
+        $data['purchase_note'] = isset($cleanMetadata['note']) && !empty($cleanMetadata['note']) 
+            ? $cleanMetadata['note'] 
+            : null;
         
         // Add purchase payments - list of payments connected to this purchase
         $data['purchase_payments'] = $this->formatPurchasePayments($purchase);
@@ -639,6 +707,7 @@ class PurchasesController extends BaseApiController
             'cart.total' => ['required', 'integer', 'min:1'],
             'cart.currency' => ['nullable', 'string', 'size:3'],
             'cart.customer_id' => ['nullable', 'integer'],
+            'cart.note' => ['nullable', 'string', 'max:1000'],
             'metadata' => ['nullable', 'array'],
         ]);
 
@@ -933,6 +1002,7 @@ class PurchasesController extends BaseApiController
             'cart.total' => ['required', 'integer', 'min:1'],
             'cart.currency' => ['nullable', 'string', 'size:3'],
             'cart.customer_id' => ['nullable', 'integer'],
+            'cart.note' => ['nullable', 'string', 'max:1000'],
             'metadata' => ['nullable', 'array'],
         ]);
 
@@ -1083,6 +1153,284 @@ class PurchasesController extends BaseApiController
             return response()->json([
                 'success' => false,
                 'message' => 'Purchase processing failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel a pending purchase
+     * 
+     * Cancels a purchase that is in pending status (e.g., deferred payments).
+     * Changes the status to 'cancelled' and logs a void transaction event.
+     *
+     * @param Request $request
+     * @param string|int $id Purchase ID
+     * @return JsonResponse
+     */
+    public function cancel(Request $request, string|int $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        // Validate that id is numeric
+        if (!is_numeric($id)) {
+            return response()->json(['message' => 'Invalid purchase ID'], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        // Find the purchase
+        $purchase = ConnectedCharge::where('stripe_account_id', $store->stripe_account_id)
+            ->where('id', (int) $id)
+            ->whereNotNull('pos_session_id')
+            ->first();
+
+        if (!$purchase) {
+            return response()->json(['message' => 'Purchase not found'], 404);
+        }
+
+        // Validate purchase is pending
+        if ($purchase->status !== 'pending' || $purchase->paid) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Purchase is not pending or already paid',
+            ], 422);
+        }
+
+        // Check if purchase is already refunded
+        if ($purchase->refunded) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot cancel a purchase that has already been refunded',
+            ], 422);
+        }
+
+        // Get POS session
+        $posSession = $purchase->posSession;
+        if (!$posSession || $posSession->status !== 'open') {
+            return response()->json([
+                'success' => false,
+                'message' => 'POS session is not open',
+            ], 422);
+        }
+
+        // Cancel Stripe payment intent if it exists (for deferred payments)
+        $paymentIntentCancelled = false;
+        $paymentIntentError = null;
+        if ($purchase->stripe_payment_intent_id) {
+            $cancelResult = $this->purchaseService->cancelPaymentIntent(
+                $purchase->stripe_payment_intent_id,
+                $store->stripe_account_id
+            );
+            $paymentIntentCancelled = $cancelResult['cancelled'];
+            $paymentIntentError = $cancelResult['error'];
+        }
+
+        // Log void transaction event (13014)
+        \App\Models\PosEvent::create([
+            'store_id' => $store->id,
+            'pos_device_id' => $posSession->pos_device_id,
+            'pos_session_id' => $posSession->id,
+            'user_id' => $request->user()->id,
+            'related_charge_id' => $purchase->id,
+            'event_code' => \App\Models\PosEvent::EVENT_VOID_TRANSACTION,
+            'event_type' => 'transaction',
+            'description' => "Purchase cancelled: {$purchase->description}",
+            'event_data' => [
+                'charge_id' => $purchase->id,
+                'stripe_charge_id' => $purchase->stripe_charge_id,
+                'stripe_payment_intent_id' => $purchase->stripe_payment_intent_id,
+                'payment_intent_cancelled' => $paymentIntentCancelled,
+                'payment_intent_error' => $paymentIntentError,
+                'original_amount' => $purchase->amount,
+                'original_status' => $purchase->status,
+                'reason' => $validated['reason'] ?? null,
+            ],
+            'occurred_at' => now(),
+        ]);
+
+        // Update purchase status to cancelled and add cancellation metadata
+        $metadata = $purchase->metadata ?? [];
+        $metadata['cancelled'] = true;
+        $metadata['cancelled_at'] = $this->formatDateTimeOslo(now());
+        $metadata['cancelled_by'] = $request->user()->id;
+        $metadata['cancellation_reason'] = $validated['reason'] ?? null;
+        if ($paymentIntentCancelled) {
+            $metadata['payment_intent_cancelled'] = true;
+            $metadata['payment_intent_cancelled_at'] = $this->formatDateTimeOslo(now());
+        }
+        if ($paymentIntentError) {
+            $metadata['payment_intent_cancellation_error'] = $paymentIntentError;
+        }
+
+        $purchase->update([
+            'status' => 'cancelled',
+            'failure_message' => $validated['reason'] ?? 'Purchase cancelled',
+            'metadata' => $metadata,
+        ]);
+
+        // Reload relationships
+        $purchase->load(['posSession', 'store', 'receipt', 'customer']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase cancelled successfully',
+            'purchase' => $this->formatPurchaseResponse($purchase),
+        ]);
+    }
+
+    /**
+     * Refund a purchase
+     * 
+     * Processes refunds for both Stripe and cash payments.
+     * For Stripe payments, creates a refund in Stripe.
+     * For cash payments, updates local records only (manual refund process).
+     * 
+     * Generates return receipt automatically and logs POS event (13013).
+     * Updates POS session totals.
+     * 
+     * Supports full and partial refunds.
+     *
+     * @param Request $request
+     * @param string|int $id Purchase ID
+     * @return JsonResponse
+     */
+    public function refund(Request $request, string|int $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        // Validate that id is numeric
+        if (!is_numeric($id)) {
+            return response()->json(['message' => 'Invalid purchase ID'], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'amount' => ['nullable', 'integer', 'min:1'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        // Find the purchase
+        $purchase = ConnectedCharge::where('stripe_account_id', $store->stripe_account_id)
+            ->where('id', (int) $id)
+            ->whereNotNull('pos_session_id')
+            ->first();
+
+        if (!$purchase) {
+            return response()->json(['message' => 'Purchase not found'], 404);
+        }
+
+        // Validate purchase can be refunded
+        if ($purchase->status === 'cancelled') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot refund a cancelled purchase',
+            ], 422);
+        }
+
+        if ($purchase->status === 'pending' || !$purchase->paid) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot refund a purchase that has not been paid',
+            ], 422);
+        }
+
+        // Validate refund amount if provided
+        if (isset($validated['amount'])) {
+            $refundAmount = (int) $validated['amount'];
+            $remainingRefundable = $purchase->amount - $purchase->amount_refunded;
+            
+            if ($refundAmount > $remainingRefundable) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Refund amount ({$refundAmount}) exceeds remaining refundable amount ({$remainingRefundable})",
+                ], 422);
+            }
+        }
+
+        // Get POS session
+        $posSession = $purchase->posSession;
+        if (!$posSession || $posSession->status !== 'open') {
+            return response()->json([
+                'success' => false,
+                'message' => 'POS session is not open',
+            ], 422);
+        }
+
+        try {
+            // Process refund
+            $result = $this->purchaseService->processRefund(
+                $purchase,
+                $validated['amount'] ?? null,
+                $validated['reason'] ?? null,
+                $request->user()->id
+            );
+
+            // Reload relationships
+            $result['charge']->load(['posSession', 'store', 'receipt', 'customer']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Refund processed successfully',
+                'data' => [
+                    'charge' => [
+                        'id' => $result['charge']->id,
+                        'stripe_charge_id' => $result['charge']->stripe_charge_id,
+                        'amount' => $result['charge']->amount,
+                        'amount_refunded' => $result['charge']->amount_refunded,
+                        'currency' => $result['charge']->currency,
+                        'status' => $result['charge']->status,
+                        'refunded' => $result['charge']->refunded,
+                        'payment_method' => $result['charge']->payment_method,
+                    ],
+                    'receipt' => [
+                        'id' => $result['receipt']->id,
+                        'receipt_number' => $result['receipt']->receipt_number,
+                        'receipt_type' => $result['receipt']->receipt_type,
+                    ],
+                    'pos_event' => [
+                        'id' => $result['pos_event']->id,
+                        'event_code' => $result['pos_event']->event_code,
+                        'description' => $result['pos_event']->description,
+                    ],
+                ],
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Refund processing failed: ' . $e->getMessage(),
             ], 500);
         }
     }

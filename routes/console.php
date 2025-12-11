@@ -15,3 +15,7 @@ Schedule::command('horizon:snapshot')->everyFiveMinutes()->withoutOverlapping();
 // Pulse check - takes a single snapshot of server metrics (use --once flag)
 // Note: pulse:check without --once runs continuously, so use --once for scheduled tasks
 // Schedule::command('pulse:check --once')->everyMinute();
+
+// Check for inactive POS devices and create stop events
+// Runs every 5 minutes to check for devices that haven't sent heartbeats
+Schedule::command('pos:check-inactive-devices')->everyFiveMinutes()->withoutOverlapping();

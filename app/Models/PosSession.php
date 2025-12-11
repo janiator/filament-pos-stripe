@@ -98,6 +98,14 @@ class PosSession extends Model
     }
 
     /**
+     * Get all line corrections for this session
+     */
+    public function lineCorrections(): HasMany
+    {
+        return $this->hasMany(PosLineCorrection::class);
+    }
+
+    /**
      * Calculate expected cash from charges
      */
     public function calculateExpectedCash(): int

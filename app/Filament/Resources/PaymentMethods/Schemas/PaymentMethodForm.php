@@ -150,25 +150,36 @@ class PaymentMethodForm
                         ColorPicker::make('background_color')
                             ->label('Background Color')
                             ->rgba()
-                            ->helperText('Accent background color for the payment method button (supports #AARRGGBB or rgba format)')
+                            ->helperText('Accent background color for the payment method button (supports #RRGGBBAA or rgba format)')
                             ->default('rgba(76, 75, 57, 0.94)')
                             ->rules([
                                 'nullable',
                                 'regex:/^(#[0-9A-Fa-f]{8}|rgba?\(\d+,\s*\d+,\s*\d+(?:,\s*[\d.]+)?\))$/',
                             ])
                             ->dehydrateStateUsing(function ($state) {
-                                // Convert rgba() to #AARRGGBB if needed
+                                // Convert rgba() to #RRGGBBAA (CSS format with alpha at end)
                                 if (preg_match('/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/', $state, $matches)) {
                                     $r = (int)$matches[1];
                                     $g = (int)$matches[2];
                                     $b = (int)$matches[3];
                                     $a = isset($matches[4]) ? (float)$matches[4] : 1.0;
-                                    $aHex = str_pad(dechex(round($a * 255)), 2, '0', STR_PAD_LEFT);
-                                    return sprintf('#%s%02X%02X%02X', $aHex, $r, $g, $b);
+                                    // Convert alpha to hex and ensure uppercase for consistency
+                                    $aHex = strtoupper(str_pad(dechex(round($a * 255)), 2, '0', STR_PAD_LEFT));
+                                    // Store as #RRGGBBAA (CSS format - alpha at end)
+                                    return sprintf('#%02X%02X%02X%s', $r, $g, $b, $aHex);
                                 }
-                                // If already in #AARRGGBB or #RRGGBB format, return as is
-                                if (preg_match('/^#[0-9A-Fa-f]{6,8}$/', $state)) {
-                                    return $state;
+                                // If already in #RRGGBBAA format (CSS), normalize to uppercase
+                                if (preg_match('/^#([0-9A-Fa-f]{8})$/', $state, $matches)) {
+                                    return '#' . strtoupper($matches[1]);
+                                }
+                                // If #RRGGBB (no alpha), keep as is
+                                if (preg_match('/^#([0-9A-Fa-f]{6})$/', $state, $matches)) {
+                                    return '#' . strtoupper($matches[1]);
+                                }
+                                // If #AARRGGBB format (old format), convert to #RRGGBBAA
+                                if (preg_match('/^#([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/', $state, $matches)) {
+                                    // Old format: AARRGGBB -> New format: RRGGBBAA
+                                    return sprintf('#%s%s%s%s', strtoupper($matches[2]), strtoupper($matches[3]), strtoupper($matches[4]), strtoupper($matches[1]));
                                 }
                                 return $state;
                             })
@@ -176,12 +187,12 @@ class PaymentMethodForm
                                 if (empty($state)) {
                                     return null;
                                 }
-                                // Convert #AARRGGBB to rgba() for display (alpha is first in this format)
+                                // Convert #RRGGBBAA (CSS format - alpha at end) to rgba() for display
                                 if (preg_match('/^#([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/', $state, $matches)) {
-                                    $a = round(hexdec($matches[1]) / 255, 2);
-                                    $r = hexdec($matches[2]);
-                                    $g = hexdec($matches[3]);
-                                    $b = hexdec($matches[4]);
+                                    $r = hexdec($matches[1]);
+                                    $g = hexdec($matches[2]);
+                                    $b = hexdec($matches[3]);
+                                    $a = round(hexdec($matches[4]) / 255, 2);
                                     return sprintf('rgba(%d, %d, %d, %s)', $r, $g, $b, $a);
                                 }
                                 // If #RRGGBB (no alpha), convert to rgba with alpha 1.0

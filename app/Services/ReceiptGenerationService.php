@@ -93,6 +93,9 @@ class ReceiptGenerationService
         $totalDiscounts = $metadata['total_discounts'] ?? 0;
         $totalTax = $metadata['total_tax'] ?? $this->calculateTaxFromAmount($totalAmount);
         $tipAmount = $metadata['tip_amount'] ?? 0;
+        
+        // Get cart-level discounts from metadata
+        $cartDiscounts = $metadata['discounts'] ?? [];
 
         // Build payment breakdown for split payments
         $payments = [];
@@ -112,7 +115,7 @@ class ReceiptGenerationService
             'store' => [
                 'name' => $store->name,
                 'address' => $storeMetadata['address'] ?? '',
-                'organization_number' => $storeMetadata['organization_number'] ?? '',
+                'organization_number' => $store->organisasjonsnummer ?? ($storeMetadata['organization_number'] ?? ''),
             ],
             'receipt_number' => Receipt::generateReceiptNumber($store->id, 'sales'),
             'date' => ($primaryCharge->paid_at?->setTimezone('Europe/Oslo') ?? now()->setTimezone('Europe/Oslo'))->format('Y-m-d H:i:s'),
@@ -120,6 +123,7 @@ class ReceiptGenerationService
             'session_number' => $session?->session_number,
             'cashier' => $session?->user?->name ?? 'Unknown',
             'items' => $items,
+            'discounts' => $cartDiscounts, // Cart-level discounts array
             'subtotal' => $subtotal,
             'total_discounts' => $totalDiscounts,
             'tax' => $totalTax,
@@ -160,8 +164,12 @@ class ReceiptGenerationService
 
     /**
      * Generate a return receipt
+     * 
+     * @param ConnectedCharge $charge The charge being refunded
+     * @param Receipt $originalReceipt The original receipt (sales or delivery)
+     * @param int|null $refundAmount Optional: specific refund amount for this receipt (in minor units). If null, uses charge->amount_refunded
      */
-    public function generateReturnReceipt(ConnectedCharge $charge, Receipt $originalReceipt): Receipt
+    public function generateReturnReceipt(ConnectedCharge $charge, Receipt $originalReceipt, ?int $refundAmount = null): Receipt
     {
         $session = $charge->posSession;
         
@@ -175,6 +183,10 @@ class ReceiptGenerationService
             throw new \Exception('Cannot generate receipt: Store not found for charge');
         }
 
+        // Use provided refund amount or total refunded amount
+        $displayRefundAmount = $refundAmount ?? $charge->amount_refunded;
+        $refundAmountFormatted = number_format($displayRefundAmount / 100, 2, ',', ' ');
+
         // Get items from original receipt or charge
         $items = [];
         if (isset($originalReceipt->receipt_data['items'])) {
@@ -183,8 +195,8 @@ class ReceiptGenerationService
                 $items[] = [
                     'name' => $item['name'] ?? $item['description'] ?? 'Vare',
                     'quantity' => $item['quantity'] ?? 1,
-                    'unit_price' => $item['unit_price'] ?? number_format($charge->amount_refunded / 100, 2, ',', ' '),
-                    'line_total' => '-' . ($item['line_total'] ?? number_format($charge->amount_refunded / 100, 2, ',', ' ')),
+                    'unit_price' => $refundAmountFormatted,
+                    'line_total' => '-' . $refundAmountFormatted,
                 ];
             }
         } else {
@@ -192,8 +204,8 @@ class ReceiptGenerationService
             $items[] = [
                 'name' => $charge->description ?? 'Retur',
                 'quantity' => 1,
-                'unit_price' => number_format($charge->amount_refunded / 100, 2, ',', ' '),
-                'line_total' => '-' . number_format($charge->amount_refunded / 100, 2, ',', ' '),
+                'unit_price' => $refundAmountFormatted,
+                'line_total' => '-' . $refundAmountFormatted,
             ];
         }
 
@@ -203,13 +215,14 @@ class ReceiptGenerationService
             'store' => [
                 'name' => $store->name,
                 'address' => $storeMetadata['address'] ?? '',
-                'organization_number' => $storeMetadata['organization_number'] ?? '',
+                'organization_number' => $store->organisasjonsnummer ?? ($storeMetadata['organization_number'] ?? ''),
             ],
             'receipt_number' => Receipt::generateReceiptNumber($store->id, 'return'),
             'date' => now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s'),
             'original_receipt_number' => $originalReceipt->receipt_number,
             'transaction_id' => $charge->stripe_charge_id,
-            'refund_amount' => $charge->amount_refunded / 100,
+            'refund_amount' => $displayRefundAmount / 100,
+            'total_refunded_amount' => $charge->amount_refunded / 100, // Total refunded so far
             'original_amount' => $charge->amount / 100,
             'items' => $items,
         ];
@@ -274,6 +287,9 @@ class ReceiptGenerationService
         $subtotal = $metadata['subtotal'] ?? ($charge->amount / 100);
         $totalDiscounts = $metadata['total_discounts'] ?? 0;
         $totalTax = $metadata['total_tax'] ?? $this->calculateTaxFromAmount($charge->amount);
+        
+        // Get cart-level discounts from metadata
+        $cartDiscounts = $metadata['discounts'] ?? [];
 
         $storeMetadata = is_array($store->metadata) ? $store->metadata : json_decode($store->metadata ?? '{}', true);
 
@@ -281,7 +297,7 @@ class ReceiptGenerationService
             'store' => [
                 'name' => $store->name,
                 'address' => $storeMetadata['address'] ?? '',
-                'organization_number' => $storeMetadata['organization_number'] ?? '',
+                'organization_number' => $store->organisasjonsnummer ?? ($storeMetadata['organization_number'] ?? ''),
             ],
             'receipt_number' => Receipt::generateReceiptNumber($store->id, 'delivery'),
             'date' => now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s'),
@@ -289,6 +305,7 @@ class ReceiptGenerationService
             'session_number' => $session?->session_number,
             'cashier' => $session?->user?->name ?? 'Unknown',
             'items' => $items,
+            'discounts' => $cartDiscounts, // Cart-level discounts array
             'subtotal' => $subtotal,
             'total_discounts' => $totalDiscounts,
             'tax' => $totalTax,

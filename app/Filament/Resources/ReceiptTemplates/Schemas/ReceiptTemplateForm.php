@@ -46,7 +46,8 @@ class ReceiptTemplateForm
                                 ->label('Custom Template')
                                 ->helperText('Mark as custom to prevent overwriting when seeding from files')
                                 ->default(false)
-                                ->disabled(fn ($record) => $record === null || !$record->is_custom),
+                                ->disabled(fn ($record) => $record === null)
+                                ->dehydrated(true),
                         ]),
                     ]),
                 

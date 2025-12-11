@@ -9,6 +9,12 @@ When a purchase is completed, a receipt is automatically generated on the backen
 2. **Displayed** in the FlutterFlow app
 3. **Printed** automatically (if configured) or manually
 
+**Note:** For deferred payments (payment on pickup):
+- Initially, a **delivery receipt** (Utleveringskvittering) is generated
+- When payment is completed, a **sales receipt** is generated (replacing the delivery receipt)
+- The purchase's receipt relationship automatically returns the sales receipt for completed payments
+- Use the receipt ID from the `completeDeferredPayment` response to retrieve the sales receipt
+
 ---
 
 ## 1. Receipt Generation (Automatic)

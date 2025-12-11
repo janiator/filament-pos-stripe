@@ -28,6 +28,11 @@ class StoreForm
                         ? 'Email cannot be synced to Stripe for connected accounts. Update it in the Stripe Dashboard or Connect onboarding flow.'
                         : 'Email address for the store'),
 
+                TextInput::make('organisasjonsnummer')
+                    ->label('Organisasjonsnummer')
+                    ->maxLength(255)
+                    ->helperText('Organization number (org.nr.) used on receipts'),
+
                 Radio::make('commission_type')
                     ->label('Commission type')
                     ->options([

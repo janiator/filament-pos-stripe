@@ -48,7 +48,7 @@ class SafTCodeMapper
             'bottle_deposit' => '12008', // Bottle deposit
             'check' => '12009', // Check
             'credit_note' => '12010', // Credit note
-            'mobile' => '12011', // Mobile phone apps
+            'mobile', 'vipps' => '12011', // Mobile phone apps (including Vipps)
             default => '12999', // Other
         };
     }
@@ -84,7 +84,7 @@ class SafTCodeMapper
         return match($paymentMethodCode) {
             'cash' => '13016', // Cash payment
             'card', 'card_present', 'credit_card' => '13017', // Card payment
-            'mobile' => '13018', // Mobile payment
+            'mobile', 'vipps' => '13018', // Mobile payment (including Vipps)
             default => '13019', // Other payment method
         };
     }
@@ -116,7 +116,7 @@ class SafTCodeMapper
         return match($paymentMethodCode) {
             'cash' => '11001', // Cash sale
             'card', 'card_present', 'credit_card' => '11002', // Credit sale
-            'mobile' => '11002', // Credit sale (mobile is also credit)
+            'mobile', 'vipps' => '11002', // Credit sale (mobile/Vipps is also credit)
             default => '11002', // Default to credit sale
         };
     }

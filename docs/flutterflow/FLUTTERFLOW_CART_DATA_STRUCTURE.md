@@ -184,6 +184,7 @@ class ShoppingCart {
   final int? tipAmount;               // Tip amount in øre
   final String? customerId;           // Customer ID (if customer selected)
   final String? customerName;         // Customer name for display
+  final String? note;                 // Optional note/comment for the purchase
   final DateTime createdAt;           // Cart creation timestamp
   final DateTime updatedAt;           // Last update timestamp
   final Map<String, dynamic>? metadata; // Additional cart metadata
@@ -229,6 +230,7 @@ class ShoppingCart {
     this.tipAmount,
     this.customerId,
     this.customerName,
+    this.note,
     DateTime? createdAt,
     DateTime? updatedAt,
     this.metadata,
@@ -245,6 +247,7 @@ class ShoppingCart {
     int? tipAmount,
     String? customerId,
     String? customerName,
+    String? note,
     DateTime? createdAt,
     DateTime? updatedAt,
     Map<String, dynamic>? metadata,
@@ -257,6 +260,7 @@ class ShoppingCart {
       tipAmount: tipAmount ?? this.tipAmount,
       customerId: customerId ?? this.customerId,
       customerName: customerName ?? this.customerName,
+      note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
       metadata: metadata ?? this.metadata,
@@ -384,6 +388,8 @@ class ShoppingCart {
     return {
       'pos_session_id': posSessionId,
       'customer_id': customerId,
+      'customer_name': customerName,
+      'note': note,
       'items': items.map((item) => {
         'product_id': item.productId,
         'variant_id': item.variantId,
@@ -417,6 +423,7 @@ class ShoppingCart {
       'tip_amount': tipAmount,
       'customer_id': customerId,
       'customer_name': customerName,
+      'note': note,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'metadata': metadata,
@@ -436,6 +443,7 @@ class ShoppingCart {
       tipAmount: json['tip_amount'] as int?,
       customerId: json['customer_id'] as String?,
       customerName: json['customer_name'] as String?,
+      note: json['note'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       metadata: json['metadata'] as Map<String, dynamic>?,

@@ -103,7 +103,9 @@ When the customer returns to pay, you need to complete the payment using a separ
 
 ### Step 1: Create Custom Action for Completing Payment
 
-Create a new custom action in FlutterFlow called `completeDeferredPayment`:
+Create a new custom action in FlutterFlow called `completeDeferredPayment`.
+
+**File Location:** `/docs/flutterflow/custom-actions/complete_deferred_payment.dart`
 
 **Function signature:**
 ```dart
@@ -117,7 +119,7 @@ Future<dynamic> completeDeferredPayment(
 ) async
 ```
 
-**Custom code:**
+**Custom code (copy from file):**
 ```dart
 // FlutterFlow Custom Action: Complete Deferred Payment
 // 
@@ -334,6 +336,8 @@ When completing a deferred payment, the response will look like:
    - Display the new sales receipt
    - Print sales receipt (if configured)
    - Note: This replaces the delivery receipt
+   - The receipt ID is returned in `result['data']['receipt']['id']`
+   - When retrieving the purchase later, `purchase.purchase_receipt` will show the sales receipt (not the delivery receipt)
 
 ## Example: Complete Flow
 
@@ -371,19 +375,81 @@ if (result['success'] == true) {
 ```dart
 // User selects pending purchase and payment method
 final result = await completeDeferredPayment(
-  chargeId: pendingChargeId,
+  chargeId: pendingChargeId,  // The purchase/charge ID from the deferred purchase
   paymentMethodCode: selectedPaymentMethod,  // 'cash' or 'card_present'
   apiBaseUrl: apiBaseUrl,
   authToken: authToken,
-  paymentIntentId: paymentIntentId,  // If Stripe payment
-  additionalMetadataJson: null,
+  paymentIntentId: paymentIntentId,  // Required for Stripe payments, null for cash
+  additionalMetadataJson: null,  // Optional additional metadata
 );
 
 if (result['success'] == true) {
-  // Payment completed
-  // Show sales receipt
-  // Print sales receipt
+  final charge = result['data']['charge'];
+  final receipt = result['data']['receipt'];
+  
+  // Payment completed successfully
+  // charge.status = "succeeded"
+  // charge.paid = true
+  // receipt.receipt_type = "sales" (replaced delivery receipt)
+  
+  // Show sales receipt to customer
+  // Print sales receipt (if configured)
   // Update UI to remove from pending list
+  // Cash drawer will open automatically for cash payments
+} else {
+  // Handle error
+  final errorMessage = result['message'];
+  // Show error to user
+}
+```
+
+**Function Signature:**
+```dart
+Future<dynamic> completeDeferredPayment(
+  int chargeId,                 // Required: Purchase/charge ID
+  String paymentMethodCode,     // Required: 'cash', 'card_present', etc.
+  String apiBaseUrl,            // Required: API base URL
+  String authToken,             // Required: Authentication token
+  String? paymentIntentId,      // Optional: Required for Stripe payments
+  String? additionalMetadataJson, // Optional: Additional metadata as JSON string
+)
+```
+
+**Parameters:**
+- `chargeId`: The ID of the deferred purchase (charge ID) that was returned when creating the deferred purchase
+- `paymentMethodCode`: The payment method code to use for completion (e.g., `'cash'`, `'card_present'`, `'card'`)
+- `apiBaseUrl`: Your API base URL (e.g., `'https://api.example.com'`)
+- `authToken`: Bearer token for authentication
+- `paymentIntentId`: **Required for Stripe payments** - the payment intent ID from Stripe Terminal or card payment. Set to `null` for cash payments.
+- `additionalMetadataJson`: Optional JSON string with additional metadata (e.g., `jsonEncode({'cashier_name': 'John Doe'})`)
+
+**Response Structure:**
+```dart
+{
+  'success': true,
+  'data': {
+    'charge': {
+      'id': 123,
+      'stripe_charge_id': 'ch_xxx',
+      'amount': 11000,
+      'currency': 'nok',
+      'status': 'succeeded',  // Changed from 'pending'
+      'payment_method': 'cash',
+      'paid_at': '2025-12-09T14:30:00+01:00'
+    },
+    'receipt': {
+      'id': 456,
+      'receipt_number': '1-S-000001',  // Sales receipt (S = Sales)
+      'receipt_type': 'sales'  // Replaced delivery receipt
+    },
+    'pos_event': {
+      'id': 789,
+      'event_code': '13012',
+      'transaction_code': '1'
+    }
+  },
+  'message': 'Payment completed successfully',
+  'statusCode': 200
 }
 ```
 

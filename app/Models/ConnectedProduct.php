@@ -27,6 +27,7 @@ class ConnectedProduct extends Model implements HasMedia
         'url',
         'package_dimensions',
         'shippable',
+        'no_price_in_pos',
         'statement_descriptor',
         'tax_code',
         'unit_label',
@@ -45,6 +46,7 @@ class ConnectedProduct extends Model implements HasMedia
         'package_dimensions' => 'array',
         'shippable' => 'boolean',
         'compare_at_price_amount' => 'integer',
+        'no_price_in_pos' => 'boolean',
     ];
 
     /**
@@ -53,6 +55,11 @@ class ConnectedProduct extends Model implements HasMedia
      */
     public function getPriceAttribute($value)
     {
+        // If no_price_in_pos is set, don't restore price from default_price
+        if ($this->no_price_in_pos) {
+            return $value ? str_replace(',', '.', (string) $value) : null;
+        }
+
         // If price is set, return it (convert comma to dot if needed)
         if ($value) {
             return str_replace(',', '.', (string) $value);
@@ -104,12 +111,18 @@ class ConnectedProduct extends Model implements HasMedia
             // For single products: Sync both product details and prices
             
             // Sync price if it changed (only on update, create is handled in afterCreate hook)
-            // Only sync prices for single products
-            if (!$product->isVariable() && !$product->wasRecentlyCreated && ($product->wasChanged('price') || $product->wasChanged('currency'))) {
+            // Only sync prices for single products and if no_price_in_pos is NOT enabled
+            if (!$product->isVariable() && !$product->wasRecentlyCreated && !$product->no_price_in_pos && ($product->wasChanged('price') || $product->wasChanged('currency'))) {
                 if ($product->price && $product->stripe_product_id && $product->stripe_account_id) {
                     $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice();
                     $syncPriceAction($product);
                 }
+            }
+
+            // If no_price_in_pos is enabled and price is empty, clear default_price
+            if ($product->no_price_in_pos && empty($product->price) && $product->default_price) {
+                $product->default_price = null;
+                $product->saveQuietly();
             }
             
             // Use saved event to ensure it fires for both create and update

@@ -372,6 +372,12 @@ class ConnectedProductForm
                                             ->disabled()
                                             ->dehydrated(false)
                                             ->visible(fn ($record) => $record && $record->default_price),
+
+                                        Toggle::make('no_price_in_pos')
+                                            ->label('No Price in POS')
+                                            ->helperText('Enable this to allow custom price input on POS. When enabled, the price field can be left empty and will not be restored from default_price.')
+                                            ->default(false)
+                                            ->columnSpanFull(),
                                     ])
                                     ->collapsible()
                                     ->collapsed(false)

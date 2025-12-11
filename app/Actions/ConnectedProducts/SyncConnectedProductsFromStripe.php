@@ -327,6 +327,8 @@ class SyncConnectedProductsFromStripe
         $option3Value = $metadata['option3_value'] ?? null;
 
         // Get price for this variant
+        // Note: Variants without prices are for custom price input on POS and won't be synced TO Stripe,
+        // but if they exist in Stripe without a price, we'll sync them with null price_amount
         $priceId = $product->default_price;
         $priceAmount = null;
         $currency = 'nok';

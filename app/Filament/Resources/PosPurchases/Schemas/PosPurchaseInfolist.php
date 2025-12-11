@@ -110,6 +110,19 @@ class PosPurchaseInfolist
                     ->icon(Heroicon::OutlinedUser)
                     ->visible(fn ($record) => $record->customer || ($record->metadata['customer_name'] ?? null)),
 
+                // Purchase Note (if available)
+                Section::make('Purchase Note')
+                    ->schema([
+                        TextEntry::make('metadata.note')
+                            ->label('Note')
+                            ->icon(Heroicon::OutlinedDocumentText)
+                            ->placeholder('No note')
+                            ->wrap()
+                            ->columnSpanFull(),
+                    ])
+                    ->icon(Heroicon::OutlinedChatBubbleLeftRight)
+                    ->visible(fn ($record) => !empty($record->metadata['note'] ?? null)),
+
                 // Receipt and Session Information
                 Section::make('Receipt & Session')
                     ->schema([

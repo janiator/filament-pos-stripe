@@ -83,6 +83,18 @@ Route::middleware(['auth', 'web'])->group(function () {
             'Content-Disposition' => 'inline; filename="receipt-' . $receipt->receipt_number . '.xml"',
         ]);
     })->name('receipts.xml.simple');
+    
+    // Report PDF download routes (works with Filament tenant routing)
+    Route::get('/app/store/{tenant}/pos-sessions/{sessionId}/x-report/pdf', [\App\Http\Controllers\ReportController::class, 'downloadXReportPdf'])
+        ->name('reports.x-report.pdf');
+    Route::get('/app/store/{tenant}/pos-sessions/{sessionId}/z-report/pdf', [\App\Http\Controllers\ReportController::class, 'downloadZReportPdf'])
+        ->name('reports.z-report.pdf');
+    
+    // Report embed routes (for embedding in Filament frontend)
+    Route::get('/app/store/{tenant}/pos-sessions/{sessionId}/x-report/embed', [\App\Http\Controllers\ReportController::class, 'embedXReport'])
+        ->name('reports.x-report.embed');
+    Route::get('/app/store/{tenant}/pos-sessions/{sessionId}/z-report/embed', [\App\Http\Controllers\ReportController::class, 'embedZReport'])
+        ->name('reports.z-report.embed');
 });
 
 // Dummy login route to prevent "Route [login] not defined" errors

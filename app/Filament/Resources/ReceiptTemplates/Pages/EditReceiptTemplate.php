@@ -38,8 +38,9 @@ class EditReceiptTemplate extends EditRecord
             $data['template_type'] = $this->record->template_type;
         }
         
-        // Mark as custom if content differs from default
-        if (!isset($data['is_custom']) || !$data['is_custom']) {
+        // Only auto-detect custom status if is_custom is not explicitly set in the form
+        // This allows users to manually disable the custom flag
+        if (!isset($data['is_custom'])) {
             $templatePath = base_path('resources/receipt-templates/epson');
             $templateFiles = [
                 'sales' => 'sales-receipt.xml',
@@ -58,8 +59,13 @@ class EditReceiptTemplate extends EditRecord
                 // Only mark as custom if content actually differs
                 if (isset($data['content']) && trim($data['content']) !== trim($defaultContent)) {
                     $data['is_custom'] = true;
+                } else {
+                    $data['is_custom'] = false;
                 }
             }
+        } else {
+            // Ensure boolean value
+            $data['is_custom'] = (bool) $data['is_custom'];
         }
         
         return $data;

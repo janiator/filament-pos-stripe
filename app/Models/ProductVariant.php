@@ -35,6 +35,7 @@ class ProductVariant extends Model
         'image_url',
         'metadata',
         'active',
+        'no_price_in_pos',
     ];
 
     protected $casts = [
@@ -46,6 +47,7 @@ class ProductVariant extends Model
         'inventory_quantity' => 'integer',
         'active' => 'boolean',
         'metadata' => 'array',
+        'no_price_in_pos' => 'boolean',
     ];
 
     /**
@@ -230,6 +232,15 @@ class ProductVariant extends Model
                 return;
             }
 
+            // Skip Stripe sync for variants without prices (custom price input on POS)
+            if (!$variant->price_amount || $variant->price_amount <= 0) {
+                \Illuminate\Support\Facades\Log::info('Skipping Stripe creation for variant - no price set (custom price on POS)', [
+                    'variant_id' => $variant->id,
+                    'product_id' => $product->id,
+                ]);
+                return;
+            }
+
             if (!$variant->stripe_product_id && $variant->stripe_account_id) {
                 $createVariantProductAction = app(\App\Actions\ConnectedProducts\CreateVariantProductInStripe::class);
                 $stripeProductId = $createVariantProductAction($variant);
@@ -238,8 +249,8 @@ class ProductVariant extends Model
                     $variant->stripe_product_id = $stripeProductId;
                     $variant->saveQuietly();
 
-                    // Create price for the variant product
-                    if ($variant->price_amount && $variant->price_amount > 0) {
+                    // Create price for the variant product (skip if no_price_in_pos is enabled)
+                    if (!$variant->no_price_in_pos && $variant->price_amount && $variant->price_amount > 0) {
                         $createPriceAction = app(\App\Actions\ConnectedPrices\CreateConnectedPriceInStripe::class);
                         $priceId = $createPriceAction(
                             $stripeProductId,
@@ -261,6 +272,11 @@ class ProductVariant extends Model
                             $variant->stripe_price_id = $priceId;
                             $variant->saveQuietly();
                         }
+                    } elseif ($variant->no_price_in_pos) {
+                        \Illuminate\Support\Facades\Log::info('Skipping Stripe price creation for variant - no_price_in_pos is enabled', [
+                            'variant_id' => $variant->id,
+                            'product_id' => $variant->connected_product_id,
+                        ]);
                     }
                 }
             }

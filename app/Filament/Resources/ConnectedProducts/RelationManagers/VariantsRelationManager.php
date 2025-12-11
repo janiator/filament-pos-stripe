@@ -37,38 +37,97 @@ class VariantsRelationManager extends RelationManager
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Convert cents to decimal for display
-        if (isset($data['price_amount'])) {
-            $data['price_decimal'] = $data['price_amount'] / 100;
+        // Convert cents to decimal for display (formatStateUsing handles this now)
+        // But we still need to ensure it's set for initial load
+        if (isset($data['price_amount']) && $data['price_amount'] !== null && $data['price_amount'] > 0) {
+            $data['price_amount'] = $data['price_amount'] / 100;
         }
-        if (isset($data['compare_at_price_amount'])) {
-            $data['compare_at_price_decimal'] = $data['compare_at_price_amount'] / 100;
+        if (isset($data['compare_at_price_amount']) && $data['compare_at_price_amount'] !== null && $data['compare_at_price_amount'] > 0) {
+            $data['compare_at_price_amount'] = $data['compare_at_price_amount'] / 100;
         }
         return $data;
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Convert decimal to cents for storage
+        // dehydrateStateUsing handles the conversion now, but ensure stripe_account_id is set
+        if (!isset($data['stripe_account_id'])) {
+            $data['stripe_account_id'] = $this->ownerRecord->stripe_account_id;
+        }
+
+        return $data;
+    }
+    
+    protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
+    {
+        // Ensure conversion happens even if mutateFormDataBeforeSave wasn't called
+        // Convert price_decimal to price_amount if present
         if (isset($data['price_decimal'])) {
-            $data['price_amount'] = (int) round($data['price_decimal'] * 100);
+            if ($data['price_decimal'] !== null && $data['price_decimal'] !== '') {
+                $data['price_amount'] = (int) round((float) $data['price_decimal'] * 100);
+            } else {
+                $data['price_amount'] = null;
+            }
             unset($data['price_decimal']);
         }
+        
+        // Convert compare_at_price_decimal to compare_at_price_amount if present
         if (isset($data['compare_at_price_decimal'])) {
             if ($data['compare_at_price_decimal'] !== null && $data['compare_at_price_decimal'] !== '') {
-                $data['compare_at_price_amount'] = (int) round($data['compare_at_price_decimal'] * 100);
+                $data['compare_at_price_amount'] = (int) round((float) $data['compare_at_price_decimal'] * 100);
             } else {
                 $data['compare_at_price_amount'] = null;
             }
             unset($data['compare_at_price_decimal']);
         }
         
-        // Ensure stripe_account_id is set
-        if (!isset($data['stripe_account_id'])) {
-            $data['stripe_account_id'] = $this->ownerRecord->stripe_account_id;
+        // Debug logging
+        \Log::debug('VariantsRelationManager handleRecordUpdate', [
+            'record_id' => $record->id,
+            'data_keys' => array_keys($data),
+            'price_amount' => $data['price_amount'] ?? 'NOT SET',
+            'price_decimal' => $data['price_decimal'] ?? 'NOT SET',
+            'current_price_amount' => $record->price_amount,
+        ]);
+        
+        // Call parent to handle the update
+        $result = parent::handleRecordUpdate($record, $data);
+        
+        // Debug after save
+        $result->refresh();
+        \Log::debug('VariantsRelationManager after update', [
+            'record_id' => $result->id,
+            'saved_price_amount' => $result->price_amount,
+        ]);
+        
+        return $result;
+    }
+    
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    {
+        // Ensure conversion happens even if mutateFormDataBeforeSave wasn't called
+        // Convert price_decimal to price_amount if present
+        if (isset($data['price_decimal'])) {
+            if ($data['price_decimal'] !== null && $data['price_decimal'] !== '') {
+                $data['price_amount'] = (int) round((float) $data['price_decimal'] * 100);
+            } else {
+                $data['price_amount'] = null;
+            }
+            unset($data['price_decimal']);
         }
         
-        return $data;
+        // Convert compare_at_price_decimal to compare_at_price_amount if present
+        if (isset($data['compare_at_price_decimal'])) {
+            if ($data['compare_at_price_decimal'] !== null && $data['compare_at_price_decimal'] !== '') {
+                $data['compare_at_price_amount'] = (int) round((float) $data['compare_at_price_decimal'] * 100);
+            } else {
+                $data['compare_at_price_amount'] = null;
+            }
+            unset($data['compare_at_price_decimal']);
+        }
+        
+        // Call parent to handle the creation
+        return parent::handleRecordCreation($data);
     }
 
     public function form(Schema $schema): Schema
@@ -115,39 +174,62 @@ class VariantsRelationManager extends RelationManager
 
                 Section::make('Pricing')
                     ->schema([
-                        Grid::make(3)
+                        Grid::make(2)
                             ->schema([
-                                TextInput::make('price_decimal')
+                                TextInput::make('price_amount')
                                     ->label('Price')
                                     ->numeric()
                                     ->prefix(fn ($get) => strtoupper($get('currency') ?? 'NOK'))
-                                    ->helperText('Enter price in decimal format (e.g., 99.99)')
-                                    ->required()
+                                    ->helperText('Enter price in decimal format (e.g., 99.99). Leave empty for custom price input on POS.')
                                     ->live()
-                                    ->afterStateUpdated(function ($state, $set, $get) {
-                                        // Convert decimal to cents
-                                        if ($state !== null && $state !== '') {
-                                            $set('price_amount', (int) round($state * 100));
+                                    ->afterStateHydrated(function ($state, $set, $get, $record) {
+                                        // Convert cents to decimal for display
+                                        if ($state !== null && $record && $record->price_amount) {
+                                            $set('price_amount', $record->price_amount / 100);
                                         }
                                     })
-                                    ->default(fn ($record) => $record ? $record->price_amount / 100 : null),
+                                    ->dehydrateStateUsing(function ($state) {
+                                        // Convert decimal input to cents for storage
+                                        if ($state !== null && $state !== '') {
+                                            return (int) round((float) $state * 100);
+                                        }
+                                        return null;
+                                    })
+                                    ->formatStateUsing(function ($state) {
+                                        // Convert cents to decimal for display
+                                        if ($state !== null && $state > 0) {
+                                            return $state / 100;
+                                        }
+                                        return null;
+                                    }),
 
-                                TextInput::make('compare_at_price_decimal')
+                                TextInput::make('compare_at_price_amount')
                                     ->label('Compare At Price')
                                     ->numeric()
                                     ->prefix(fn ($get) => strtoupper($get('currency') ?? 'NOK'))
                                     ->helperText('Original price for showing discounts')
                                     ->live()
-                                    ->afterStateUpdated(function ($state, $set) {
-                                        // Convert decimal to cents
-                                        if ($state !== null && $state !== '') {
-                                            $set('compare_at_price_amount', (int) round($state * 100));
-                                        } else {
-                                            $set('compare_at_price_amount', null);
+                                    ->afterStateHydrated(function ($state, $set, $get, $record) {
+                                        // Convert cents to decimal for display
+                                        if ($state !== null && $record && $record->compare_at_price_amount) {
+                                            $set('compare_at_price_amount', $record->compare_at_price_amount / 100);
                                         }
                                     })
-                                    ->default(fn ($record) => $record && $record->compare_at_price_amount ? $record->compare_at_price_amount / 100 : null)
-                                    ->visible(fn ($get) => $get('price_decimal') > 0),
+                                    ->dehydrateStateUsing(function ($state) {
+                                        // Convert decimal input to cents for storage
+                                        if ($state !== null && $state !== '') {
+                                            return (int) round((float) $state * 100);
+                                        }
+                                        return null;
+                                    })
+                                    ->formatStateUsing(function ($state) {
+                                        // Convert cents to decimal for display
+                                        if ($state !== null && $state > 0) {
+                                            return $state / 100;
+                                        }
+                                        return null;
+                                    })
+                                    ->visible(fn ($get) => ($get('price_amount') ?? 0) > 0),
 
                                 Select::make('currency')
                                     ->label('Currency')
@@ -161,14 +243,12 @@ class VariantsRelationManager extends RelationManager
                                     ->live(),
                             ]),
 
-                        // Hidden fields for actual storage (in cents)
-                        TextInput::make('price_amount')
-                            ->hidden()
-                            ->dehydrated(),
+                        Toggle::make('no_price_in_pos')
+                            ->label('No Price in POS')
+                            ->helperText('Enable this to allow custom price input on POS. When enabled, the price field can be left empty and will not sync to Stripe.')
+                            ->default(false)
+                            ->columnSpanFull(),
 
-                        TextInput::make('compare_at_price_amount')
-                            ->hidden()
-                            ->dehydrated(),
                     ])
                     ->collapsible(),
 
@@ -296,8 +376,8 @@ class VariantsRelationManager extends RelationManager
                         if ($state === null) {
                             return 'Not tracked';
                         }
-                        return $state > 0 
-                            ? "<span class='text-success-600 font-semibold'>{$state}</span>" 
+                        return $state > 0
+                            ? "<span class='text-success-600 font-semibold'>{$state}</span>"
                             : "<span class='text-danger-600 font-semibold'>Out of stock</span>";
                     })
                     ->html()

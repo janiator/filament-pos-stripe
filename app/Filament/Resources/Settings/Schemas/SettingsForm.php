@@ -38,6 +38,7 @@ class SettingsForm
                             ])
                             ->default('epson')
                             ->required()
+                            ->rules(['required', 'string', 'in:epson'])
                             ->columnSpan(1),
 
                         TextInput::make('receipt_number_format')
@@ -45,6 +46,7 @@ class SettingsForm
                             ->helperText('Format: {store_id}-{type}-{number:06d}')
                             ->default('{store_id}-{type}-{number:06d}')
                             ->required()
+                            ->rules(['required', 'string', 'max:255'])
                             ->columnSpan(1),
 
                         TextInput::make('default_vat_rate')
@@ -53,6 +55,7 @@ class SettingsForm
                             ->default(25.0)
                             ->suffix('%')
                             ->required()
+                            ->rules(['required', 'numeric', 'min:0', 'max:100'])
                             ->columnSpan(1),
                     ])
                     ->columns(2)
@@ -73,6 +76,7 @@ class SettingsForm
                             ->default(250)
                             ->suffix('ms')
                             ->required()
+                            ->rules(['required', 'integer', 'min:0'])
                             ->columnSpan(1),
                     ])
                     ->columns(2)
@@ -92,6 +96,7 @@ class SettingsForm
                             ])
                             ->default('nok')
                             ->required()
+                            ->rules(['required', 'string', 'in:nok,sek,dkk,eur,usd'])
                             ->columnSpan(1),
 
                         Select::make('timezone')
@@ -105,6 +110,7 @@ class SettingsForm
                             ])
                             ->default('Europe/Oslo')
                             ->required()
+                            ->rules(['required', 'string'])
                             ->searchable()
                             ->columnSpan(1),
 
@@ -119,12 +125,19 @@ class SettingsForm
                             ])
                             ->default('nb')
                             ->required()
+                            ->rules(['required', 'string', 'in:nb,nn,sv,da,en'])
                             ->columnSpan(1),
 
                         Toggle::make('tax_included')
                             ->label('Tax Included in Prices')
                             ->helperText('Whether prices include tax by default')
                             ->default(false)
+                            ->columnSpan(1),
+
+                        Toggle::make('tips_enabled')
+                            ->label('Enable Tips')
+                            ->helperText('Allow tips to be added to transactions. When disabled, tips will be hidden from reports.')
+                            ->default(true)
                             ->columnSpan(1),
                     ])
                     ->columns(2)

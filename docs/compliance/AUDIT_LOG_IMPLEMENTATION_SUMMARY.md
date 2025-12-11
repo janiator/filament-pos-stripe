@@ -13,22 +13,47 @@ All missing POS audit log events required by Kassasystemforskriften have been im
 - **Controller:** `PosDevicesController::start()`
 - **Status:** ✅ Implemented
 - **Description:** Logs when POS application starts/initializes
+- **Features:**
+  - Automatically updates device status to `active` and `last_seen_at` timestamp
+  - Prevents duplicate events within 30 seconds (returns existing event info)
+  - Handles cases where app starts before user login (user_id can be null)
+  - Links to current open session if exists
+  - **Automatic Detection:** Start event is automatically created when heartbeat is received after 10+ minutes of inactivity
 - **Data Logged:**
-  - Device information
+  - Device information (name, platform, system version)
   - Current session (if exists)
-  - User who started application
+  - User who started application (nullable if app starts before login)
+  - Device status update
   - Timestamp
+- **Response includes:**
+  - Device information
+  - Current session details (if exists)
+  - Event ID for reference
+  - Warning if duplicate event detected
 
 #### 13002 - POS Application Shutdown
 - **Endpoint:** `POST /api/pos-devices/{id}/shutdown`
 - **Controller:** `PosDevicesController::shutdown()`
 - **Status:** ✅ Implemented
 - **Description:** Logs when POS application closes/shuts down
+- **Features:**
+  - Automatically updates device status to `offline` and `last_seen_at` timestamp
+  - Handles cases where app crashes before logout (user_id can be null)
+  - Warns if device has an open session that should be closed
+  - Links to current open session if exists
+  - **Automatic Detection:** Stop event is automatically created by scheduled job if no heartbeat is received for 15+ minutes
 - **Data Logged:**
-  - Device information
+  - Device information (name, platform)
   - Current session (if exists)
-  - User who shut down application
+  - User who shut down application (nullable if app crashes)
+  - Open session status
+  - Device status update
   - Timestamp
+- **Response includes:**
+  - Device information
+  - Event ID for reference
+  - Warning and open session details if session is still open
+- **Note:** Frontend should call this endpoint in app lifecycle hooks (e.g., `onTerminate`, `onPause`) to ensure shutdown events are logged even if app crashes
 
 ---
 
@@ -246,8 +271,17 @@ All missing POS audit log events required by Kassasystemforskriften have been im
 1. **app/Http/Controllers/Api/PosDevicesController.php**
    - Added `start()` method for application start (13001)
    - Added `shutdown()` method for application shutdown (13002)
+   - Enhanced `heartbeat()` method to automatically create start events after inactivity
    - Added `openCashDrawer()` method for drawer open (13005)
    - Added `closeCashDrawer()` method for drawer close (13006)
+
+2. **app/Console/Commands/CheckInactivePosDevices.php** (NEW)
+   - Scheduled command to check for inactive devices
+   - Automatically creates stop events for devices without recent heartbeats
+   - Runs every 5 minutes via Laravel scheduler
+
+3. **routes/console.php**
+   - Added scheduled task for `pos:check-inactive-devices` command
 
 2. **app/Http/Controllers/Api/AuthController.php**
    - Enhanced `login()` to log employee login (13003)
