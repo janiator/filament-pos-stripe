@@ -6,8 +6,28 @@
              *  Shopify Import Page – Local CSS (no Tailwind required)
              * ========================================================================= */
 
+            /* ==========================
+             * FORCE FULL WIDTH (Filament)
+             * ========================== */
+            .fi-main,
+            .fi-page,
+            .fi-page-content,
+            .fi-section-content,
+            .fi-page-header,
+            .fi-page-header-content {
+                max-width: none !important;
+            }
+            .fi-page-content {
+                padding-left: 18px !important;
+                padding-right: 18px !important;
+            }
+
+            [x-cloak] { display: none !important; }
+
             .shp-root {
-                max-width: 1120px;
+                /* was: max-width: 1120px; */
+                max-width: none;
+                width: 100%;
                 margin: 0 auto;
                 display: flex;
                 flex-direction: column;
@@ -44,7 +64,7 @@
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
-                max-width: 640px;
+                max-width: 820px;
             }
 
             .shp-hero-title-row {
@@ -293,8 +313,6 @@
                 border-radius: 999px;
             }
 
-            /* Colors per status will be applied inline / via x-bind */
-
             .shp-progress-bar {
                 width: 100%;
                 height: 8px;
@@ -327,6 +345,50 @@
 
             .shp-progress-meta .shp-error-count {
                 font-weight: 600;
+            }
+
+            /* NEW: diagnostics alert (for importResult.last_error) */
+            .shp-alert {
+                margin-top: 10px;
+                border-radius: 14px;
+                padding: 10px 12px;
+                border: 1px solid rgba(148, 163, 184, 0.5);
+                background: #ffffff;
+            }
+            .shp-alert-err {
+                border-color: #fecaca;
+                background: #fef2f2;
+            }
+            .shp-alert-title {
+                font-size: 12px;
+                font-weight: 650;
+                color: #111827;
+            }
+            .shp-alert-body {
+                margin-top: 6px;
+                font-size: 11px;
+                color: #374151;
+                line-height: 1.45;
+            }
+            .shp-alert-mono {
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+                "Courier New", monospace;
+                font-size: 11px;
+                color: #334155;
+            }
+            .shp-trace {
+                margin-top: 8px;
+                border-radius: 12px;
+                background: #020617;
+                color: #e5e7eb;
+                padding: 10px 12px;
+                font-size: 11px;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+                "Courier New", monospace;
+                white-space: pre-wrap;
+                max-height: 240px;
+                overflow: auto;
+                border: 1px solid rgba(148, 163, 184, 0.35);
             }
 
             /* Console */
@@ -392,6 +454,73 @@
             .shp-console-footer {
                 font-size: 10px;
                 color: #9ca3af;
+            }
+
+            /* Recent products (mini previews) */
+            .shp-recent {
+                margin-top: 10px;
+                border-top: 1px solid rgba(148, 163, 184, 0.35);
+                padding-top: 10px;
+            }
+
+            .shp-recent-header {
+                display:flex;
+                align-items:center;
+                justify-content:space-between;
+                gap: 10px;
+                margin-bottom: 8px;
+            }
+
+            .shp-recent-title {
+                font-size: 11px;
+                font-weight: 600;
+                color: #111827;
+            }
+
+            .shp-recent-note {
+                font-size: 10px;
+                color: #6b7280;
+            }
+
+            .shp-recent-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .shp-recent-item {
+                border-radius: 12px;
+                border: 1px solid rgba(148, 163, 184, 0.35);
+                background: #ffffff;
+                padding: 10px 10px;
+            }
+
+            .shp-recent-top {
+                display:flex;
+                align-items:flex-start;
+                justify-content:space-between;
+                gap: 10px;
+            }
+
+            .shp-recent-name {
+                font-weight: 600;
+                color: #0f172a;
+                font-size: 12px;
+                line-height: 1.25;
+            }
+
+            .shp-recent-handle {
+                margin-top: 3px;
+                font-size: 11px;
+                color: #64748b;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+                "Courier New", monospace;
+            }
+
+            .shp-recent-meta {
+                margin-top: 8px;
+                font-size: 11px;
+                color: #475569;
             }
 
             /* Parse overview & import summary cards */
@@ -521,7 +650,7 @@
                 color: #6b7280;
             }
 
-            /* Status chips in import summary */
+            /* Status chips */
             .shp-chip {
                 display: inline-flex;
                 align-items: center;
@@ -538,45 +667,41 @@
                 border-radius: 999px;
             }
 
-            .shp-chip-imported {
+            /* plan chips (create/update/skip) */
+            .shp-chip-create {
                 background: #ecfdf3;
                 border-color: #bbf7d0;
                 color: #166534;
             }
+            .shp-chip-create .shp-chip-dot { background: #16a34a; }
 
-            .shp-chip-imported .shp-chip-dot {
-                background: #16a34a;
+            .shp-chip-update {
+                background: #e0f2fe;
+                border-color: #bae6fd;
+                color: #075985;
             }
+            .shp-chip-update .shp-chip-dot { background: #0284c7; }
 
-            .shp-chip-skipped {
+            .shp-chip-skip {
                 background: #fffbeb;
                 border-color: #fed7aa;
                 color: #92400e;
             }
-
-            .shp-chip-skipped .shp-chip-dot {
-                background: #f97316;
-            }
+            .shp-chip-skip .shp-chip-dot { background: #f97316; }
 
             .shp-chip-error {
                 background: #fef2f2;
                 border-color: #fecaca;
                 color: #b91c1c;
             }
-
-            .shp-chip-error .shp-chip-dot {
-                background: #ef4444;
-            }
+            .shp-chip-error .shp-chip-dot { background: #ef4444; }
 
             .shp-chip-unknown {
                 background: #f3f4f6;
                 border-color: #d1d5db;
                 color: #4b5563;
             }
-
-            .shp-chip-unknown .shp-chip-dot {
-                background: #6b7280;
-            }
+            .shp-chip-unknown .shp-chip-dot { background: #6b7280; }
 
             /* Details debug block */
             .shp-details-summary {
@@ -721,9 +846,13 @@
     @endpush
 
     <div
+        wire:poll.1500ms="refreshProgress"
         x-data="shopifyImportPage({
             progress: @entangle('importProgress'),
             consoleLines: @entangle('importConsole'),
+            recentProducts: @entangle('recentProducts'),
+            importResult: @entangle('importResult'),
+            runId: @entangle('currentRunId'),
         })"
         class="shp-root"
     >
@@ -739,6 +868,15 @@
                             <span class="shp-pill-dot"></span>
                             Butikk · POS · Stripe
                         </div>
+
+                        {{-- NEW: RunId pill --}}
+                        <template x-if="runId">
+                            <div class="shp-pill">
+                                <span style="width:6px;height:6px;border-radius:999px;background:#0ea5e9;"></span>
+                                Run:
+                                <span class="shp-hero-code" x-text="runId"></span>
+                            </div>
+                        </template>
                     </div>
 
                     <p class="shp-hero-text">
@@ -747,7 +885,7 @@
                         <span class="shp-hero-code">Analyser CSV</span>
                         for å kontrollere data, deretter
                         <span class="shp-hero-code">Kjør import</span>
-                        for å skrive til Stripe.
+                        for å skrive til Stripe (chunked queue – ingen timeouts).
                     </p>
 
                     <div class="shp-hero-steps">
@@ -808,13 +946,11 @@
                 </div>
 
                 <div>
-                    {{-- Filament form --}}
                     {{ $this->form }}
 
                     <p class="shp-body-text-small shp-mt-8">
-                        For større kataloger er det anbefalt å kjøre selve importen som en kø-jobb
-                        (<span class="shp-hero-code">php artisan</span>) og bruke denne siden som
-                        operatør-dashboard. Konsollen under viser løpende hendelser.
+                        For større kataloger kjøres importen som en kø-jobb. Denne siden er operatør-dashboard:
+                        viser plan, fremdrift, konsoll og mini previews.
                     </p>
                 </div>
             </div>
@@ -825,7 +961,7 @@
                     <div>
                         <div class="shp-card-title">Importstatus</div>
                         <div class="shp-card-subtitle">
-                            Siste kjøring og fremdrift.
+                            Siste kjøring og fremdrift (poller cache).
                         </div>
                     </div>
                     <div class="shp-status-pill-row">
@@ -856,12 +992,20 @@
                             ></span>
                             <span x-text="statusLabel()"></span>
                         </div>
+
                         <div class="shp-mt-8">
                             <span class="shp-table-mono">
-                                <span x-text="progress.current"></span> /
-                                <span x-text="progress.total"></span> produkter
+                                <span x-text="progress.current ?? 0"></span> /
+                                <span x-text="progress.total ?? 0"></span> produkter
                             </span>
                         </div>
+
+                        {{-- NEW: run id line --}}
+                        <template x-if="runId">
+                            <div class="shp-mt-8 shp-table-mono" style="opacity:.9;">
+                                run: <span x-text="runId"></span>
+                            </div>
+                        </template>
                     </div>
                 </div>
 
@@ -875,11 +1019,10 @@
                 <div class="shp-progress-meta">
                     <span class="shp-table-mono" x-text="(progress.percent ?? 0) + '%'"></span>
                     <span>
-                        Importert
-                        <strong x-text="progress.imported ?? 0"></strong>
-                        · Hoppet over
-                        <strong x-text="progress.skipped ?? 0"></strong>
-                        · Feil
+                        Created <strong x-text="progress.created ?? 0"></strong>
+                        · Updated <strong x-text="progress.updated ?? 0"></strong>
+                        · Skipped <strong x-text="progress.skipped ?? 0"></strong>
+                        · Errors
                         <span
                             class="shp-error-count"
                             :style="{ color: (progress.errors ?? 0) ? '#b91c1c' : '#111827' }"
@@ -888,6 +1031,31 @@
                     </span>
                 </div>
 
+                {{-- NEW: Last error diagnostics (from importResult.last_error) --}}
+                <template x-if="importResult && importResult.last_error">
+                    <div class="shp-alert shp-alert-err">
+                        <div class="shp-alert-title">Last error (diagnostics)</div>
+
+                        <div class="shp-alert-body">
+                            <div style="font-weight:600;" x-text="importResult.last_error.message"></div>
+
+                            <div class="shp-alert-mono" style="margin-top:6px;">
+                                <span x-text="importResult.last_error.at"></span>
+                                <template x-if="importResult.last_error.exception && importResult.last_error.exception.class">
+                                    <span> · <span x-text="importResult.last_error.exception.class"></span></span>
+                                </template>
+                                <template x-if="importResult.last_error.exception && importResult.last_error.exception.file">
+                                    <span> · <span x-text="importResult.last_error.exception.file"></span>:<span x-text="importResult.last_error.exception.line"></span></span>
+                                </template>
+                            </div>
+
+                            <template x-if="importResult.last_error.exception && importResult.last_error.exception.trace_head">
+                                <div class="shp-trace" x-text="importResult.last_error.exception.trace_head"></div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
                 {{-- Console --}}
                 <div class="shp-console-wrapper">
                     <div class="shp-console-header">
@@ -895,7 +1063,8 @@
                         <button
                             type="button"
                             class="shp-console-clear"
-                            @click="clearConsole()"
+                            wire:click="clearConsole"
+                            @click="clearConsoleLocal()"
                         >
                             Tøm
                         </button>
@@ -918,8 +1087,60 @@
                     </div>
 
                     <div class="shp-console-footer">
-                        Hver produkt/variant kan skrive til konsollen. I produksjon kan logg speiles til
-                        eget kanal for revisjon.
+                        Protip: Hvis det stopper, sjekk queue worker + Horizon/Forge logg.
+                    </div>
+                </div>
+
+                {{-- Recent / mini previews --}}
+                <div class="shp-recent">
+                    <div class="shp-recent-header">
+                        <div class="shp-recent-title">Latest products (live)</div>
+                        <div class="shp-recent-note">
+                            siste <span x-text="Math.min(10, (recentProducts?.length ?? 0))"></span>
+                        </div>
+                    </div>
+
+                    <div class="shp-recent-list">
+                        <template x-if="(recentProducts?.length ?? 0) === 0">
+                            <div class="shp-recent-item">
+                                <div class="shp-recent-name">Ingen produkter behandlet ennå</div>
+                                <div class="shp-recent-meta">Når køen kjører, dukker mini previews opp her.</div>
+                            </div>
+                        </template>
+
+                        <template x-for="(p, idx) in (recentProducts || []).slice(-10).reverse()" :key="idx">
+                            <div class="shp-recent-item">
+                                <div class="shp-recent-top">
+                                    <div style="min-width:0;">
+                                        <div class="shp-recent-name" x-text="p.title ?? '—'"></div>
+                                        <div class="shp-recent-handle" x-text="p.handle ?? ''"></div>
+                                    </div>
+                                    <div>
+                                        <span
+                                            class="shp-chip"
+                                            :class="{
+                                                'shp-chip-create': (p.status === 'created'),
+                                                'shp-chip-update': (p.status === 'updated'),
+                                                'shp-chip-skip': (p.status === 'skipped'),
+                                                'shp-chip-error': (p.status === 'error'),
+                                                'shp-chip-unknown': !['created','updated','skipped','error'].includes(p.status)
+                                            }"
+                                        >
+                                            <span class="shp-chip-dot"></span>
+                                            <span x-text="(p.status ?? 'unknown').toUpperCase()"></span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="shp-recent-meta">
+                                    variants: <strong x-text="p.variant_count ?? 0"></strong>
+                                    · images: <strong x-text="p.image_count ?? 0"></strong>
+                                    <template x-if="p.message">
+                                        <span> · <span x-text="p.message"></span></span>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -974,8 +1195,7 @@
                                     Eksempelprodukter (første {{ count($sampleProducts) }})
                                 </div>
                                 <div class="shp-section-subtitle">
-                                    Sjekk titler, handles, antall varianter, pris-intervall og bildekonto
-                                    før import.
+                                    Sjekk titler, handles, antall varianter, pris-intervall og bildekonto før import.
                                 </div>
                             </div>
                         </div>
@@ -1019,14 +1239,14 @@
                                         </td>
                                         <td style="text-align:right; font-variant-numeric: tabular-nums;">
                                             @if ($min !== null)
-                                                {{ number_format($min, 2, ',', ' ') }}
+                                                {{ number_format((float) $min, 2, ',', ' ') }}
                                             @else
                                                 &mdash;
                                             @endif
                                         </td>
                                         <td style="text-align:right; font-variant-numeric: tabular-nums;">
                                             @if ($max !== null)
-                                                {{ number_format($max, 2, ',', ' ') }}
+                                                {{ number_format((float) $max, 2, ',', ' ') }}
                                             @else
                                                 &mdash;
                                             @endif
@@ -1062,11 +1282,159 @@
             </section>
         @endif
 
+        {{-- IMPORT PLAN (NEW) --}}
+        @if ($planResult)
+            @php
+                $planItems  = $planResult['items'] ?? [];
+                $planSample = array_slice($planItems, 0, 18);
+                $pstats = $parseResult['stats'] ?? [];
+            @endphp
+
+            <section class="shp-section-card">
+                <div class="shp-section-header">
+                    <div>
+                        <div class="shp-section-title">Importplan</div>
+                        <div class="shp-section-subtitle">
+                            Dette er hva som vil skje (create / update / skip) basert på handle + stripe_account_id.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="shp-tiles">
+                    <div class="shp-tile">
+                        <div class="shp-tile-label">Total</div>
+                        <div class="shp-tile-value">{{ (int)($planResult['total_products'] ?? 0) }}</div>
+                    </div>
+                    <div class="shp-tile">
+                        <div class="shp-tile-label">Nye</div>
+                        <div class="shp-tile-value">{{ (int)($planResult['new'] ?? 0) }}</div>
+                    </div>
+                    <div class="shp-tile">
+                        <div class="shp-tile-label">Eksisterende</div>
+                        <div class="shp-tile-value">{{ (int)($planResult['existing'] ?? 0) }}</div>
+                    </div>
+                    <div class="shp-tile">
+                        <div class="shp-tile-label">Ville oppdatert</div>
+                        <div class="shp-tile-value">{{ (int)($planResult['would_update'] ?? 0) }}</div>
+                    </div>
+                    <div class="shp-tile">
+                        <div class="shp-tile-label">Ville skippet</div>
+                        <div class="shp-tile-value">{{ (int)($planResult['will_skip'] ?? 0) }}</div>
+                    </div>
+                    <div class="shp-tile">
+                        <div class="shp-tile-label">Bilder (CSV)</div>
+                        <div class="shp-tile-value">{{ (int)($pstats['total_images'] ?? 0) }}</div>
+                    </div>
+                </div>
+
+                @if (!empty($planSample))
+                    <div class="shp-mt-10">
+                        <div class="shp-section-header">
+                            <div>
+                                <div class="shp-section-title" style="font-size: 12px;">
+                                    Plan preview (første {{ count($planSample) }})
+                                </div>
+                                <div class="shp-section-subtitle">
+                                    “Diff” er best-effort (title/variants/images).
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="shp-table-wrapper">
+                            <table class="shp-table">
+                                <thead>
+                                <tr>
+                                    <th>Tittel</th>
+                                    <th>Handle</th>
+                                    <th>Plan</th>
+                                    <th style="text-align:right;">Var</th>
+                                    <th style="text-align:right;">Img</th>
+                                    <th>Diff</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach ($planSample as $row)
+                                    @php
+                                        $action = (string)($row['action'] ?? 'skip');
+                                        $chipClass =
+                                            $action === 'create' ? 'shp-chip shp-chip-create' :
+                                            ($action === 'update' ? 'shp-chip shp-chip-update' :
+                                                'shp-chip shp-chip-skip');
+                                        $diffs = (array)($row['diffs'] ?? []);
+                                    @endphp
+                                    <tr>
+                                        <td style="font-weight: 500;">
+                                            {{ $row['title'] ?? '—' }}
+                                            <div class="shp-table-meta">
+                                                {{ $row['vendor'] ?? '—' }} · {{ $row['type'] ?? '—' }}
+                                            </div>
+                                        </td>
+                                        <td class="shp-table-mono">{{ $row['handle'] ?? '' }}</td>
+                                        <td>
+                                            <span class="{{ $chipClass }}">
+                                                <span class="shp-chip-dot"></span>
+                                                <span>{{ strtoupper($action) }}</span>
+                                            </span>
+                                        </td>
+                                        <td style="text-align:right; font-variant-numeric: tabular-nums;">
+                                            {{ (int)($row['variant_count'] ?? 0) }}
+                                        </td>
+                                        <td style="text-align:right; font-variant-numeric: tabular-nums;">
+                                            {{ (int)($row['image_count'] ?? 0) }}
+                                        </td>
+                                        <td class="shp-table-meta">
+                                            {{ !empty($diffs) ? implode(', ', $diffs) : '—' }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endif
+
+                @if (! empty($planResult['existing_items']))
+                    <details class="shp-mt-10">
+                        <summary class="shp-details-summary">
+                            <span class="shp-details-bullet">❯</span>
+                            Eksisterende produkter (DB match på handle)
+                        </summary>
+                        <div class="shp-table-wrapper shp-mt-8">
+                            <table class="shp-table">
+                                <thead>
+                                <tr>
+                                    <th>Handle</th>
+                                    <th>Tittel</th>
+                                    <th>Stripe product</th>
+                                    <th>Oppdatert</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (array_slice($planResult['existing_items'], 0, 60) as $ex)
+                                    <tr>
+                                        <td class="shp-table-mono">{{ $ex['handle'] ?? '' }}</td>
+                                        <td style="font-weight: 500;">{{ $ex['title'] ?? '—' }}</td>
+                                        <td class="shp-table-mono">{{ $ex['stripe_product_id'] ?? '—' }}</td>
+                                        <td class="shp-table-meta">{{ $ex['updated_at'] ?? '—' }}</td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
+                @endif
+            </section>
+        @endif
+
         {{-- IMPORT SUMMARY --}}
         @if ($importResult)
             @php
-                $istats     = $importResult['stats']['import'] ?? [];
-                $errCount   = (int) ($importResult['error_count'] ?? ($istats['error_count'] ?? 0));
+                $istats     = data_get($importResult, 'stats.import', []);
+                $created    = (int) data_get($istats, 'created', 0);
+                $updated    = (int) data_get($istats, 'updated', 0);
+                $skipped    = (int) data_get($istats, 'skipped', 0);
+                $errCount   = (int) data_get($istats, 'error_count', 0);
+                $total      = (int) data_get($istats, 'total_products', 0);
                 $perProduct = $importResult['per_product'] ?? [];
             @endphp
 
@@ -1077,36 +1445,31 @@
                             Import – oppsummering
                         </div>
                         <div class="shp-section-subtitle">
-                            Resultat fra siste Stripe-import. Kombiner dette med applikasjonslogger for
-                            full revisjon.
+                            Resultat fra siste kjøring (fra cache/batch).
                         </div>
                     </div>
                 </div>
 
                 <div class="shp-tiles" style="margin-top: 4px;">
                     <div class="shp-tile">
-                        <div class="shp-tile-label">Importert</div>
-                        <div class="shp-tile-value">
-                            {{ $istats['imported'] ?? ($importResult['imported'] ?? 0) }}
-                        </div>
+                        <div class="shp-tile-label">Created</div>
+                        <div class="shp-tile-value">{{ $created }}</div>
                     </div>
                     <div class="shp-tile">
-                        <div class="shp-tile-label">Hoppet over</div>
-                        <div class="shp-tile-value">
-                            {{ $istats['skipped'] ?? ($importResult['skipped'] ?? 0) }}
-                        </div>
+                        <div class="shp-tile-label">Updated</div>
+                        <div class="shp-tile-value">{{ $updated }}</div>
+                    </div>
+                    <div class="shp-tile">
+                        <div class="shp-tile-label">Skipped</div>
+                        <div class="shp-tile-value">{{ $skipped }}</div>
                     </div>
                     <div class="shp-tile" style="background:#fef2f2;border-color:#fecaca;">
-                        <div class="shp-tile-label" style="color:#b91c1c;">Feil</div>
-                        <div class="shp-tile-value" style="color:#b91c1c;">
-                            {{ $errCount }}
-                        </div>
+                        <div class="shp-tile-label" style="color:#b91c1c;">Errors</div>
+                        <div class="shp-tile-value" style="color:#b91c1c;">{{ $errCount }}</div>
                     </div>
                     <div class="shp-tile">
-                        <div class="shp-tile-label">Totalt antall produkter</div>
-                        <div class="shp-tile-value">
-                            {{ $istats['total_products'] ?? 0 }}
-                        </div>
+                        <div class="shp-tile-label">Totalt</div>
+                        <div class="shp-tile-value">{{ $total }}</div>
                     </div>
                 </div>
 
@@ -1115,10 +1478,10 @@
                         <div class="shp-section-header">
                             <div>
                                 <div class="shp-section-title" style="font-size: 12px;">
-                                    Resultat per produkt (første {{ min(20, count($perProduct)) }})
+                                    Resultat per produkt (første {{ min(30, count($perProduct)) }})
                                 </div>
                                 <div class="shp-section-subtitle">
-                                    Bruk dette sammen med Stripe- og applikasjonslogg ved feilsøking.
+                                    created/updated/skipped/error + message (best-effort).
                                 </div>
                             </div>
                         </div>
@@ -1136,9 +1499,15 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @foreach (array_slice($perProduct, 0, 20) as $item)
+                                @foreach (array_slice($perProduct, 0, 30) as $item)
                                     @php
-                                        $status = data_get($item, 'status', 'ukjent');
+                                        $status = (string) data_get($item, 'status', 'unknown');
+                                        $chipClass =
+                                            $status === 'created' ? 'shp-chip shp-chip-create' :
+                                            ($status === 'updated' ? 'shp-chip shp-chip-update' :
+                                            ($status === 'skipped' ? 'shp-chip shp-chip-skip' :
+                                            ($status === 'error'   ? 'shp-chip shp-chip-error' :
+                                                                    'shp-chip shp-chip-unknown')));
                                     @endphp
                                     <tr>
                                         <td>
@@ -1150,23 +1519,16 @@
                                             {{ data_get($item, 'handle', '') }}
                                         </td>
                                         <td>
-                                            @php
-                                                $chipClass =
-                                                    $status === 'imported' ? 'shp-chip shp-chip-imported' :
-                                                    ($status === 'skipped' ? 'shp-chip shp-chip-skipped' :
-                                                    ($status === 'error'   ? 'shp-chip shp-chip-error'   :
-                                                                             'shp-chip shp-chip-unknown'));
-                                            @endphp
                                             <span class="{{ $chipClass }}">
-                                                    <span class="shp-chip-dot"></span>
-                                                    <span>{{ ucfirst($status) }}</span>
-                                                </span>
+                                                <span class="shp-chip-dot"></span>
+                                                <span>{{ strtoupper($status) }}</span>
+                                            </span>
                                         </td>
                                         <td style="text-align:right; font-variant-numeric: tabular-nums;">
-                                            {{ data_get($item, 'variant_count', 0) }}
+                                            {{ (int) data_get($item, 'variant_count', 0) }}
                                         </td>
                                         <td style="text-align:right; font-variant-numeric: tabular-nums;">
-                                            {{ data_get($item, 'image_count', 0) }}
+                                            {{ (int) data_get($item, 'image_count', 0) }}
                                         </td>
                                         <td>
                                             <div class="shp-table-meta">
@@ -1225,7 +1587,7 @@
                         <strong>før</strong> du kjører import mot Stripe.
                     </div>
                     <div class="shp-modal-hint">
-                        Tips: Ta vare på raw-payload for feilsøking etter at importen har kjørt i produksjon.
+                        Tips: Hvis mange blir “skipped”, slå på <strong>Update existing</strong> og kjør igjen.
                     </div>
                     <div class="shp-modal-footer">
                         <button
@@ -1259,13 +1621,13 @@
                         Kjør import til Stripe
                     </div>
                     <div class="shp-modal-body">
-                        Alle analyserte produkter og varianter importeres til valgt Stripe-konto.
+                        Importen kjører som kø-jobber (chunked). Dette skalerer til 2000+ produkter uten timeouts.
                         Hvis bildeimport er aktivert, lastes bilder ned via Spatie og lastes opp til Stripe.
                     </div>
                     <ul class="shp-modal-body-small" style="margin-left: 16px; list-style: disc;">
-                        <li>Produkter dedupliseres på Shopify-handle + Stripe-konto.</li>
-                        <li>Variable produkter gir varianter med egne Stripe-produkter/priser.</li>
-                        <li>Enkle produkter får én hovedpris (ingen DB-varianter).</li>
+                        <li>Dedupe på Shopify-handle + Stripe-konto.</li>
+                        <li>Update existing (toggle) styrer om eksisterende oppdateres eller skippes.</li>
+                        <li>Mini previews + konsoll viser live hva som skjer.</li>
                     </ul>
                     <div class="shp-modal-hint">
                         <span
@@ -1273,10 +1635,10 @@
                             :style="{ backgroundColor: progress.download_images ? '#22c55e' : '#f59e0b' }"
                         ></span>
                         <span x-show="progress.download_images" x-cloak>
-                            Bilder vil hentes fra Shopify og lastes opp til Stripe i denne kjøringen.
+                            Bilder vil hentes og lastes opp i denne kjøringen.
                         </span>
                         <span x-show="!progress.download_images">
-                            Bilder blir <strong>hoppet over</strong>. Slå på bilde-bryteren i skjemaet for å inkludere dem.
+                            Bilder blir <strong>hoppet over</strong>. Slå på bryteren i skjemaet for å inkludere dem.
                         </span>
                     </div>
                     <div class="shp-modal-footer">
@@ -1309,18 +1671,12 @@
                         showParse: false,
                         showImport: false,
 
-                        progress: Object.assign({
-                            status: 'idle',
-                            current: 0,
-                            total: 0,
-                            percent: 0,
-                            imported: 0,
-                            skipped: 0,
-                            errors: 0,
-                            download_images: false,
-                        }, payload.progress || {}),
-
+                        // IMPORTANT: keep entangle object reference (don’t replace it with Object.assign)
+                        progress: payload.progress,
                         consoleLines: payload.consoleLines || [],
+                        recentProducts: payload.recentProducts || [],
+                        importResult: payload.importResult || null,
+                        runId: payload.runId || null,
 
                         openParseModal()  { this.showParse  = true },
                         closeParseModal() { this.showParse  = false },
@@ -1328,8 +1684,8 @@
                         closeImportModal(){ this.showImport = false },
 
                         statusLabel() {
-                            switch (this.progress.status) {
-                                case 'pending':  return 'Klar til import';
+                            switch (this.progress?.status) {
+                                case 'pending':  return 'Klar';
                                 case 'running':  return 'Kjører…';
                                 case 'finished': return 'Ferdig';
                                 case 'failed':   return 'Feilet';
@@ -1350,11 +1706,37 @@
                             });
                         },
 
-                        clearConsole() {
+                        clearConsoleLocal() {
                             this.consoleLines = [];
+                            this.$nextTick(() => {
+                                const el = this.$refs.console;
+                                if (el) el.scrollTop = 0;
+                            });
                         },
 
                         init() {
+                            // fill missing defaults WITHOUT replacing entangled object
+                            const defaults = {
+                                status: 'idle',
+                                current: 0,
+                                total: 0,
+                                percent: 0,
+                                imported: 0,
+                                skipped: 0,
+                                updated: 0,
+                                created: 0,
+                                errors: 0,
+                                download_images: false,
+                                update_existing: true,
+                                chunk_size: 25,
+                            };
+
+                            if (this.progress && typeof this.progress === 'object') {
+                                for (const [k, v] of Object.entries(defaults)) {
+                                    if (typeof this.progress[k] === 'undefined') this.progress[k] = v;
+                                }
+                            }
+
                             this.$watch('consoleLines', () => {
                                 this.$nextTick(() => {
                                     const el = this.$refs.console;

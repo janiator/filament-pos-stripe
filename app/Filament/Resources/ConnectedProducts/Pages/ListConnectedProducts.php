@@ -15,9 +15,10 @@ class ListConnectedProducts extends ListRecords
     {
         return [
             Action::make('import')
-                ->label('Import from Shopify CSV')
+                ->label('Importer fra Shopify CSV') // NO label
                 ->icon('heroicon-o-arrow-up-tray')
-                ->url(ConnectedProductResource::getUrl('import-shopify-csv')),
+                // use a closure so URL is generated with correct tenant
+                ->url(fn () => ConnectedProductResource::getUrl('import-shopify-csv')),
             CreateAction::make(),
         ];
     }
