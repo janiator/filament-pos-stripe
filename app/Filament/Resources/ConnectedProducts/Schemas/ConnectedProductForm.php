@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use App\Models\Collection;
+use App\Models\Vendor;
 use Illuminate\Support\Str;
 
 class ConnectedProductForm
@@ -25,6 +26,7 @@ class ConnectedProductForm
         return $schema
             ->components([
                 // Create form - simple layout
+                // Store field is hidden on create and edit - automatically set from current tenant
                 Select::make('stripe_account_id')
                     ->label('Store')
                     ->options(function () {
@@ -35,7 +37,7 @@ class ConnectedProductForm
                     ->preload()
                     ->required()
                     ->helperText('The store/connected account this product belongs to')
-                    ->visibleOn('create'),
+                    ->hiddenOn(['create', 'edit']),
 
                 TextInput::make('name')
                     ->label('Product Name')
@@ -402,6 +404,97 @@ class ConnectedProductForm
                                     ])
                                     ->collapsible()
                                     ->collapsed(true)
+                                    ->visibleOn('edit'),
+
+                                // Vendor Section
+                                Section::make('Vendor')
+                                    ->description('Assign a vendor to this product')
+                                    ->schema([
+                                        Select::make('vendor_id')
+                                            ->label('Vendor')
+                                            ->relationship(
+                                                'vendor',
+                                                'name',
+                                                modifyQueryUsing: function ($query, $get, $record) {
+                                                    $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+                                                    
+                                                    if ($stripeAccountId) {
+                                                        return $query->where('stripe_account_id', $stripeAccountId)
+                                                            ->where('active', true)
+                                                            ->orderBy('name', 'asc');
+                                                    }
+                                                    return $query->where('active', true)->orderBy('name', 'asc');
+                                                }
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->helperText('Select the vendor for this product')
+                                            ->placeholder('No vendor')
+                                            ->hintAction(
+                                                Action::make('createVendor')
+                                                    ->label('Create New Vendor')
+                                                    ->icon('heroicon-o-plus')
+                                                    ->form([
+                                                        TextInput::make('name')
+                                                            ->label('Vendor Name')
+                                                            ->required()
+                                                            ->maxLength(255)
+                                                            ->helperText('The name of the vendor'),
+                                                        Textarea::make('description')
+                                                            ->label('Description')
+                                                            ->rows(3)
+                                                            ->helperText('Optional description for this vendor'),
+                                                        TextInput::make('contact_email')
+                                                            ->label('Contact Email')
+                                                            ->email()
+                                                            ->maxLength(255)
+                                                            ->helperText('Contact email address for this vendor'),
+                                                        TextInput::make('contact_phone')
+                                                            ->label('Contact Phone')
+                                                            ->tel()
+                                                            ->maxLength(255)
+                                                            ->helperText('Contact phone number for this vendor'),
+                                                        Toggle::make('active')
+                                                            ->label('Active')
+                                                            ->default(true)
+                                                            ->helperText('Only active vendors are visible'),
+                                                    ])
+                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
+                                                        // Get stripe_account_id from product record or form state
+                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+                                                        
+                                                        if (!$stripeAccountId) {
+                                                            throw new \Exception('Cannot create vendor: stripe_account_id is required');
+                                                        }
+                                                        
+                                                        // Get store_id from tenant
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $storeId = $tenant?->id;
+                                                        
+                                                        if (!$storeId) {
+                                                            throw new \Exception('Cannot create vendor: store_id is required');
+                                                        }
+                                                        
+                                                        // Create the vendor
+                                                        $vendor = Vendor::create([
+                                                            'store_id' => $storeId,
+                                                            'stripe_account_id' => $stripeAccountId,
+                                                            'name' => $data['name'],
+                                                            'description' => $data['description'] ?? null,
+                                                            'contact_email' => $data['contact_email'] ?? null,
+                                                            'contact_phone' => $data['contact_phone'] ?? null,
+                                                            'active' => $data['active'] ?? true,
+                                                        ]);
+                                                        
+                                                        // Set the new vendor as selected
+                                                        $set('vendor_id', $vendor->id);
+                                                    })
+                                                    ->successNotificationTitle('Vendor created')
+                                            )
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(false)
                                     ->visibleOn('edit'),
 
                                 // Collections Section

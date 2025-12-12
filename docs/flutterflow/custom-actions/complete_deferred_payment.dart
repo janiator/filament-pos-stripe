@@ -30,6 +30,9 @@ import 'package:flutter/material.dart';
 // - Stripe card payments (requires payment_intent_id)
 // - Other Stripe payment methods (requires payment_intent_id)
 //
+// Compliance: Automatically uses current active POS device/session from app state
+// to ensure proper audit trail and session tracking.
+//
 // IMPORTANT: FlutterFlow requires Future<dynamic> as return type
 
 import 'dart:convert';
@@ -96,9 +99,50 @@ Future<dynamic> completeDeferredPayment(
       metadata['payment_intent_id'] = paymentIntentId;
     }
     
+    // Get current POS device/session from app state for compliance
+    // This ensures the payment is completed on the current active session
+    // Priority: pos_device_id (auto-detects current session) > pos_session_id > original session
+    int? posDeviceId;
+    int? posSessionId;
+    
+    try {
+      final appState = FFAppState();
+      
+      // Try to get device ID from active POS device (preferred for compliance)
+      // This will auto-detect the current active session for that device
+      try {
+        final deviceId = appState.activePosDevice.id;
+        if (deviceId != null && deviceId > 0) {
+          posDeviceId = deviceId;
+        }
+      } catch (e) {
+        // Device ID not available, continue
+      }
+      
+      // Try to get session ID from current POS session (fallback if device ID not available)
+      if (posDeviceId == null) {
+        try {
+          final sessionId = appState.currentPosSession.id;
+          if (sessionId != null && sessionId > 0) {
+            posSessionId = sessionId;
+          }
+        } catch (e) {
+          // Session ID not available, continue
+        }
+      }
+    } catch (e) {
+      // If app state is not available, continue without device/session ID
+      // The backend will fall back to the original session where the deferred payment was created
+      print('Warning: Could not get POS device/session from app state: $e');
+    }
+    
     // Build request body
     final requestBody = <String, dynamic>{
       'payment_method_code': paymentMethodCode,
+      // Add pos_device_id if available (recommended for compliance - auto-detects current active session)
+      if (posDeviceId != null) 'pos_device_id': posDeviceId,
+      // OR add pos_session_id if device ID not available but session ID is
+      if (posDeviceId == null && posSessionId != null) 'pos_session_id': posSessionId,
       if (metadata.isNotEmpty) 'metadata': metadata,
     };
     

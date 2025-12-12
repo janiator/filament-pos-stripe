@@ -365,25 +365,25 @@
         </div>
     @endif
 
-    <!-- Sales by Category -->
-    @if(isset($report['sales_by_category']) && $report['sales_by_category']->count() > 0)
+    <!-- Sales by Vendor -->
+    @if(isset($report['sales_by_vendor']) && $report['sales_by_vendor']->count() > 0)
         <div class="z-report-section z-report-card">
-            <h4 class="z-report-title">Salg per Produktkategori</h4>
+            <h4 class="z-report-title">Salg per Leverandør</h4>
             <div style="overflow-x: auto;">
                 <table class="z-report-table">
                     <thead>
                         <tr>
-                            <th style="text-align: left;">Kategori</th>
+                            <th style="text-align: left;">Leverandør</th>
                             <th style="text-align: center;">Antall</th>
                             <th style="text-align: right;">Beløp</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($report['sales_by_category'] as $category)
+                        @foreach($report['sales_by_vendor'] as $vendor)
                             <tr>
-                                <td style="font-weight: 500; color: rgb(17 24 39);">{{ $category['name'] }}</td>
-                                <td style="text-align: center; color: rgb(17 24 39);">{{ $category['count'] }}</td>
-                                <td style="text-align: right; font-weight: 600; color: rgb(17 24 39);">{{ number_format($category['amount'] / 100, 2) }} NOK</td>
+                                <td style="font-weight: 500; color: rgb(17 24 39);">{{ $vendor['name'] }}</td>
+                                <td style="text-align: center; color: rgb(17 24 39);">{{ $vendor['count'] }}</td>
+                                <td style="text-align: right; font-weight: 600; color: rgb(17 24 39);">{{ number_format($vendor['amount'] / 100, 2) }} NOK</td>
                             </tr>
                         @endforeach
                     </tbody>

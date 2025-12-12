@@ -289,23 +289,23 @@
         </div>
     @endif
 
-    @if(isset($report['sales_by_category']) && $report['sales_by_category']->count() > 0)
+    @if(isset($report['sales_by_vendor']) && $report['sales_by_vendor']->count() > 0)
         <div class="section">
-            <div class="section-title">Salg per Produktkategori</div>
+            <div class="section-title">Salg per Leverandør</div>
             <table>
                 <thead>
                     <tr>
-                        <th>Kategori</th>
+                        <th>Leverandør</th>
                         <th class="text-center">Antall</th>
                         <th class="text-right">Beløp</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($report['sales_by_category'] as $category)
+                    @foreach($report['sales_by_vendor'] as $vendor)
                         <tr>
-                            <td>{{ $category['name'] }}</td>
-                            <td class="text-center">{{ $category['count'] }}</td>
-                            <td class="text-right">{{ number_format($category['amount'] / 100, 2) }} NOK</td>
+                            <td>{{ $vendor['name'] }}</td>
+                            <td class="text-center">{{ $vendor['count'] }}</td>
+                            <td class="text-right">{{ number_format($vendor['amount'] / 100, 2) }} NOK</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -338,3 +338,4 @@
     @endif
 </body>
 </html>
+

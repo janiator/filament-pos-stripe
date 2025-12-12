@@ -865,6 +865,8 @@ class PurchasesController extends BaseApiController
         $validator = Validator::make($request->all(), [
             'payment_method_code' => ['required', 'string'],
             'metadata' => ['nullable', 'array'],
+            'pos_session_id' => ['nullable', 'integer', 'exists:pos_sessions,id'],
+            'pos_device_id' => ['nullable', 'integer', 'exists:pos_devices,id'],
         ]);
 
         if ($validator->fails()) {
@@ -940,12 +942,61 @@ class PurchasesController extends BaseApiController
             }
         }
 
+        // Get POS session: priority order:
+        // 1. Explicitly provided pos_session_id
+        // 2. Current active session for provided pos_device_id (compliance: default to current session)
+        // 3. Charge's original session (fallback)
+        $posSession = null;
+        
+        if (isset($validated['pos_session_id'])) {
+            // Use explicitly provided session
+            $posSession = PosSession::find($validated['pos_session_id']);
+            
+            if (!$posSession) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'POS session not found',
+                ], 404);
+            }
+
+            // Verify session belongs to the same store
+            if ($posSession->store_id !== $charge->store->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'POS session does not belong to the same store as the charge',
+                ], 422);
+            }
+
+            // Verify session is open
+            if ($posSession->status !== 'open') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'POS session is not open',
+                ], 422);
+            }
+        } elseif (isset($validated['pos_device_id'])) {
+            // Auto-detect current active session for the device (compliance: ensures proper tracking)
+            $posSession = PosSession::where('store_id', $charge->store->id)
+                ->where('pos_device_id', $validated['pos_device_id'])
+                ->where('status', 'open')
+                ->first();
+            
+            if (!$posSession) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No open POS session found for the specified device',
+                ], 404);
+            }
+        }
+        // If neither pos_session_id nor pos_device_id provided, will use charge's original session (fallback)
+
         try {
             // Complete deferred payment
             $result = $this->purchaseService->completeDeferredPayment(
                 $charge,
                 $paymentMethod,
-                $validated['metadata'] ?? []
+                $validated['metadata'] ?? [],
+                $posSession
             );
 
             return response()->json([

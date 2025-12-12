@@ -522,13 +522,16 @@ class PurchaseService
      * @param ConnectedCharge $charge
      * @param PaymentMethod $paymentMethod
      * @param array $paymentData Additional payment data (e.g., payment_intent_id for Stripe)
+     * @param PosSession|null $posSession Optional POS session to use. If not provided, uses the charge's original session.
+     *                                    This allows completing deferred payments on different devices/sessions.
      * @return array
      * @throws \Exception
      */
     public function completeDeferredPayment(
         ConnectedCharge $charge,
         PaymentMethod $paymentMethod,
-        array $paymentData = []
+        array $paymentData = [],
+        ?PosSession $posSession = null
     ): array {
         DB::beginTransaction();
 
@@ -544,9 +547,29 @@ class PurchaseService
                 throw new \Exception('Payment method does not belong to this store');
             }
 
-            $posSession = $charge->posSession;
-            if (!$posSession || $posSession->status !== 'open') {
+            // Use provided session or fall back to charge's original session
+            if (!$posSession) {
+                $posSession = $charge->posSession;
+            }
+
+            // Validate POS session exists, is open, and belongs to the same store
+            if (!$posSession) {
+                throw new \Exception('POS session not found');
+            }
+
+            if ($posSession->status !== 'open') {
                 throw new \Exception('POS session is not open');
+            }
+
+            if ($posSession->store_id !== $store->id) {
+                throw new \Exception('POS session does not belong to the same store as the charge');
+            }
+
+            // If using a different session than the original, update the charge's pos_session_id
+            // This ensures proper tracking and that session totals are updated correctly
+            if ($charge->pos_session_id !== $posSession->id) {
+                $charge->pos_session_id = $posSession->id;
+                $charge->save();
             }
 
             // Process payment based on provider

@@ -106,6 +106,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/receipts/{id}/xml', [\App\Http\Controllers\Api\ReceiptsController::class, 'xml'])->name('api.receipts.xml');
     Route::post('/receipts/{id}/mark-printed', [\App\Http\Controllers\Api\ReceiptsController::class, 'markPrinted'])->name('api.receipts.mark-printed');
     Route::post('/receipts/{id}/reprint', [\App\Http\Controllers\Api\ReceiptsController::class, 'reprint'])->name('api.receipts.reprint');
+
+    // Product Declaration endpoints
+    Route::get('/product-declaration', [\App\Http\Controllers\Api\ProductDeclarationController::class, 'show'])->name('api.product-declaration.show');
+    Route::get('/product-declaration/display', [\App\Http\Controllers\Api\ProductDeclarationController::class, 'display'])->name('api.product-declaration.display');
     
     // Receipt Printer endpoints
     Route::get('/receipt-printers', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'index'])->name('api.receipt-printers.index');

@@ -302,7 +302,7 @@ class PosReports extends Page implements HasForms, HasTable
             'receipt_count' => $receiptCount,
             'charges' => $charges,
             'tips_enabled' => $tipsEnabled,
-            'sales_by_category' => $this->calculateSalesByCategory($session),
+            'sales_by_vendor' => $this->calculateSalesByVendor($session),
             'manual_discounts' => $manualDiscounts,
             'line_corrections' => $lineCorrections,
         ];
@@ -373,8 +373,8 @@ class PosReports extends Page implements HasForms, HasTable
         });
         $report['receipt_summary'] = $receiptSummary;
         
-        // Sales per category
-        $report['sales_by_category'] = $this->calculateSalesByCategory($session);
+        // Sales per vendor
+        $report['sales_by_vendor'] = $this->calculateSalesByVendor($session);
         
         return $report;
     }
@@ -408,13 +408,13 @@ class PosReports extends Page implements HasForms, HasTable
     }
 
     /**
-     * Calculate sales per product category (collection)
+     * Calculate sales per vendor
      */
-    protected function calculateSalesByCategory(PosSession $session): \Illuminate\Support\Collection
+    protected function calculateSalesByVendor(PosSession $session): \Illuminate\Support\Collection
     {
         $session->load(['receipts']);
         
-        $categorySales = collect();
+        $vendorSales = collect();
         
         // Get all sales receipts for this session
         $salesReceipts = $session->receipts->where('receipt_type', 'sales');
@@ -435,14 +435,14 @@ class PosReports extends Page implements HasForms, HasTable
             }
         }
         
-        // Eager load products and variants with collections
+        // Eager load products and variants with vendors
         $products = \App\Models\ConnectedProduct::whereIn('id', array_unique($productIds))
-            ->with('collections')
+            ->with('vendor')
             ->get()
             ->keyBy('id');
         
         $variants = \App\Models\ProductVariant::whereIn('id', array_unique($variantIds))
-            ->with('product.collections')
+            ->with('product.vendor')
             ->get()
             ->keyBy('id');
         
@@ -463,7 +463,7 @@ class PosReports extends Page implements HasForms, HasTable
                     $lineTotal = $unitPrice * $quantity;
                 }
                 
-                // Get product to find its collections
+                // Get product to find its vendor
                 $product = null;
                 if ($variantId && isset($variants[$variantId])) {
                     $product = $variants[$variantId]->product;
@@ -472,37 +472,35 @@ class PosReports extends Page implements HasForms, HasTable
                 }
                 
                 if ($product) {
-                    $collections = $product->collections;
+                    $vendor = $product->vendor;
                     
-                    if ($collections->isEmpty()) {
-                        // If no collections, use "Ingen kategori" (No category)
-                        $categoryName = 'Ingen kategori';
-                        $categoryId = 'no-category';
+                    if (!$vendor) {
+                        // If no vendor, use "Ingen leverandør" (No vendor)
+                        $vendorName = 'Ingen leverandør';
+                        $vendorId = 'no-vendor';
                     } else {
-                        // Use the first collection (products can belong to multiple)
-                        $collection = $collections->first();
-                        $categoryName = $collection->name;
-                        $categoryId = $collection->id;
+                        $vendorName = $vendor->name;
+                        $vendorId = $vendor->id;
                     }
                     
-                    if (!$categorySales->has($categoryId)) {
-                        $categorySales->put($categoryId, [
-                            'id' => $categoryId,
-                            'name' => $categoryName,
+                    if (!$vendorSales->has($vendorId)) {
+                        $vendorSales->put($vendorId, [
+                            'id' => $vendorId,
+                            'name' => $vendorName,
                             'count' => 0,
                             'amount' => 0,
                         ]);
                     }
                     
-                    $current = $categorySales->get($categoryId);
+                    $current = $vendorSales->get($vendorId);
                     $current['count'] += $quantity;
                     $current['amount'] += $lineTotal;
-                    $categorySales->put($categoryId, $current);
+                    $vendorSales->put($vendorId, $current);
                 }
             }
         }
         
-        return $categorySales->sortByDesc('amount')->values();
+        return $vendorSales->sortByDesc('amount')->values();
     }
 
     /**

@@ -144,7 +144,7 @@ await File('saf-t-export.xml').writeAsBytes(fileResponse.bodyBytes);
 ## Future Enhancements
 
 1. **Product-Level Tax**: Use actual tax rates from products
-2. **Digital Signatures**: Add digital signature validation
+2. **Digital Signatures**: Add digital signature validation - **See [Digital Signatures Requirements](../compliance/DIGITAL_SIGNATURES_REQUIREMENTS.md)**
 3. **Validation**: Validate XML against XSD schema
 4. **Scheduled Generation**: Automatic monthly SAF-T generation
 5. **Filament Admin**: Admin interface for SAF-T file management

@@ -18,6 +18,7 @@ class ConnectedProduct extends Model implements HasMedia
     protected $fillable = [
         'stripe_product_id',
         'stripe_account_id',
+        'vendor_id',
         'name',
         'description',
         'active',
@@ -189,6 +190,14 @@ class ConnectedProduct extends Model implements HasMedia
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class, 'stripe_account_id', 'stripe_account_id');
+    }
+
+    /**
+     * Get the vendor for this product
+     */
+    public function vendor(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class);
     }
 
     /**

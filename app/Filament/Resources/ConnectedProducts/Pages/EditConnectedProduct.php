@@ -12,6 +12,27 @@ class EditConnectedProduct extends EditRecord
 {
     protected static string $resource = ConnectedProductResource::class;
 
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        // Ensure the product belongs to the current tenant
+        $tenant = \Filament\Facades\Filament::getTenant();
+        if ($tenant && $tenant->slug !== 'visivo-admin') {
+            $product = $this->record;
+            // Check via stripe_account_id since ConnectedProduct doesn't have store_id
+            if ($product->stripe_account_id !== $tenant->stripe_account_id) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Access Denied')
+                    ->danger()
+                    ->body('This product does not belong to your store.')
+                    ->send();
+
+                $this->redirect($this->getResource()::getUrl('index'));
+            }
+        }
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         // Handle compare_at_price_decimal conversion

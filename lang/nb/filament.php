@@ -67,6 +67,11 @@ return [
             'plural' => 'Samlinger',
             'navigation' => 'Samlinger',
         ],
+        'vendor' => [
+            'label' => 'Leverandør',
+            'plural' => 'Leverandører',
+            'navigation' => 'Leverandører',
+        ],
         'coupon' => [
             'label' => 'Kupong',
             'plural' => 'Kuponger',

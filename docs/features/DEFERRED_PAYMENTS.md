@@ -54,6 +54,8 @@ When the customer returns to pay, use the complete payment endpoint:
 POST /api/purchases/{charge_id}/complete-payment
 {
   "payment_method_code": "cash",
+  "pos_device_id": 5,  // Recommended: Auto-uses current active session for this device (compliance)
+  "pos_session_id": 123,  // Optional: Explicitly specify a session (overrides pos_device_id)
   "metadata": {
     "payment_intent_id": "pi_xxx"  // Only for Stripe payments
   }
@@ -64,9 +66,19 @@ POST /api/purchases/{charge_id}/complete-payment
 - Charge status is updated to `'succeeded'` and `paid: true`
 - `paid_at` timestamp is set
 - A **sales receipt** is generated (replacing the delivery receipt)
-- POS session totals are updated
+- POS session totals are updated (on the session used for completion)
 - Cash drawer opens (for cash payments)
 - Receipt is automatically printed (if configured)
+
+**Session Selection Priority:**
+1. **`pos_session_id`** (if provided) - Uses the explicitly specified session
+2. **`pos_device_id`** (if provided) - Auto-detects and uses the current active open session for that device
+3. **Original session** (fallback) - Uses the session where the deferred payment was originally created
+
+**Compliance Note:** For proper audit trail and compliance with Norwegian cash register regulations, it's **recommended to provide `pos_device_id`** to ensure the payment is completed on the current active session the user is signed in to. This ensures:
+- Proper tracking of which device/session completed the payment
+- Accurate session totals and cash reconciliation
+- Complete audit trail in POS events
 
 ## Compliance with Kassasystemforskriften
 
@@ -86,6 +98,25 @@ The system complies with Norwegian cash register regulations:
 - **Receipt Numbering:** Format `{store_id}-D-{sequential_number}` (D = Delivery)
 - **Event Logging:** Still logs as sales receipt event (13012) for audit trail
 - **Transaction Status:** Charge remains `pending` until payment is completed
+
+### Completing Payments on Different Sessions
+
+**Compliance Status:** ✅ **COMPLIANT**
+
+The system allows completing deferred payments on different POS sessions (e.g., different devices/registers) while maintaining full compliance:
+
+1. **Audit Trail:** All payment completions are logged in POS events (13012, 13016, 13017, etc.) with the session ID where payment was completed
+2. **Session Tracking:** The charge's `pos_session_id` is updated to reflect the session where payment was actually completed
+3. **Session Totals:** Payment is correctly attributed to the session that received the payment, ensuring accurate cash reconciliation
+4. **Receipt Generation:** Sales receipt is generated for the session that completed the payment
+5. **Default Behavior:** System defaults to the current active session when `pos_device_id` is provided, ensuring the user completes payment on the session they're currently signed in to
+
+**Why This Is Compliant:**
+- Norwegian regulations require proper tracking of transactions, which is maintained through POS events
+- The system ensures each payment is properly attributed to a session for cash reconciliation
+- All transactions are logged with complete audit trail (session ID, device ID, user ID, timestamps)
+- The ability to complete on different sessions reflects real-world scenarios (customer returns to different register)
+- Defaulting to current active session ensures proper tracking without requiring explicit session selection
 
 ## Payment Methods
 
@@ -263,12 +294,20 @@ final response = await apiCall(
   '/api/purchases/$chargeId/complete-payment',
   {
     'payment_method_code': selectedPaymentMethod,
+    'pos_device_id': currentDeviceId,  // Recommended: Auto-uses current active session (compliance)
+    // OR explicitly specify:
+    // 'pos_session_id': currentSessionId,  // Optional: Explicitly specify session
     'metadata': {
       if (isStripePayment) 'payment_intent_id': paymentIntentId
     }
   }
 );
 ```
+
+**Note:** 
+- **`pos_device_id`** (recommended): Automatically uses the current active open session for that device. This ensures compliance by defaulting to the session the user is currently signed in to.
+- **`pos_session_id`** (optional): Explicitly specify a session. If both are provided, `pos_session_id` takes precedence.
+- If neither is provided, the payment will be completed on the original session where the deferred payment was created.
 
 ## Database Schema
 
@@ -359,3 +398,4 @@ This ensures accurate cash reconciliation.
 - [Kassasystemforskriften § 2-8-7](https://lovdata.no/dokument/SF/forskrift/2015-12-18-1616/%C2%A72-8-7)
 - [Compliance Documentation](../compliance/KASSASYSTEMFORSKRIFTEN_COMPLIANCE.md)
 - [Receipt Types](../compliance/RECEIPT_PRINT_COMPLIANCE.md)
+

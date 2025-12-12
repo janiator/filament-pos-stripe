@@ -196,6 +196,22 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * Get the product declarations for this store
+     */
+    public function productDeclarations()
+    {
+        return $this->hasMany(\App\Models\ProductDeclaration::class);
+    }
+
+    /**
+     * Get the active product declaration for this store
+     */
+    public function activeProductDeclaration()
+    {
+        return $this->hasOne(\App\Models\ProductDeclaration::class)->where('is_active', true);
+    }
+
+    /**
      * Get stores for syncing based on current tenant
      * Returns current store, or all stores if on admin store
      */

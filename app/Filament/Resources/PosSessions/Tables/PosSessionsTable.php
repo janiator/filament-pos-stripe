@@ -313,7 +313,7 @@ class PosSessionsTable
             'receipt_count' => $receiptCount,
             'charges' => $charges,
             'tips_enabled' => $tipsEnabled,
-            'sales_by_category' => self::calculateSalesByCategory($session),
+            'sales_by_vendor' => self::calculateSalesByVendor($session),
             'manual_discounts' => $manualDiscounts,
             'line_corrections' => $lineCorrections,
         ];
@@ -387,8 +387,8 @@ class PosSessionsTable
         });
         $report['receipt_summary'] = $receiptSummary;
         
-        // Sales per category
-        $report['sales_by_category'] = self::calculateSalesByCategory($session);
+        // Sales per vendor
+        $report['sales_by_vendor'] = self::calculateSalesByVendor($session);
         
         return $report;
     }
@@ -424,11 +424,11 @@ class PosSessionsTable
     /**
      * Calculate sales per product category (collection)
      */
-    protected static function calculateSalesByCategory(PosSession $session): \Illuminate\Support\Collection
+    protected static function calculateSalesByVendor(PosSession $session): \Illuminate\Support\Collection
     {
         $session->load(['receipts']);
         
-        $categorySales = collect();
+        $vendorSales = collect();
         
         // Get all sales receipts for this session
         $salesReceipts = $session->receipts->where('receipt_type', 'sales');
@@ -449,14 +449,14 @@ class PosSessionsTable
             }
         }
         
-        // Eager load products and variants with collections
+        // Eager load products and variants with vendors
         $products = \App\Models\ConnectedProduct::whereIn('id', array_unique($productIds))
-            ->with('collections')
+            ->with('vendor')
             ->get()
             ->keyBy('id');
         
         $variants = \App\Models\ProductVariant::whereIn('id', array_unique($variantIds))
-            ->with('product.collections')
+            ->with('product.vendor')
             ->get()
             ->keyBy('id');
         
@@ -477,7 +477,7 @@ class PosSessionsTable
                     $lineTotal = $unitPrice * $quantity;
                 }
                 
-                // Get product to find its collections
+                // Get product to find its vendor
                 $product = null;
                 if ($variantId && isset($variants[$variantId])) {
                     $product = $variants[$variantId]->product;
@@ -486,37 +486,35 @@ class PosSessionsTable
                 }
                 
                 if ($product) {
-                    $collections = $product->collections;
+                    $vendor = $product->vendor;
                     
-                    if ($collections->isEmpty()) {
-                        // If no collections, use "Ingen kategori" (No category)
-                        $categoryName = 'Ingen kategori';
-                        $categoryId = 'no-category';
+                    if (!$vendor) {
+                        // If no vendor, use "Ingen leverandør" (No vendor)
+                        $vendorName = 'Ingen leverandør';
+                        $vendorId = 'no-vendor';
                     } else {
-                        // Use the first collection (products can belong to multiple)
-                        $collection = $collections->first();
-                        $categoryName = $collection->name;
-                        $categoryId = $collection->id;
+                        $vendorName = $vendor->name;
+                        $vendorId = $vendor->id;
                     }
                     
-                    if (!$categorySales->has($categoryId)) {
-                        $categorySales->put($categoryId, [
-                            'id' => $categoryId,
-                            'name' => $categoryName,
+                    if (!$vendorSales->has($vendorId)) {
+                        $vendorSales->put($vendorId, [
+                            'id' => $vendorId,
+                            'name' => $vendorName,
                             'count' => 0,
                             'amount' => 0,
                         ]);
                     }
                     
-                    $current = $categorySales->get($categoryId);
+                    $current = $vendorSales->get($vendorId);
                     $current['count'] += $quantity;
                     $current['amount'] += $lineTotal;
-                    $categorySales->put($categoryId, $current);
+                    $vendorSales->put($vendorId, $current);
                 }
             }
         }
         
-        return $categorySales->sortByDesc('amount')->values();
+        return $vendorSales->sortByDesc('amount')->values();
     }
 
     /**
