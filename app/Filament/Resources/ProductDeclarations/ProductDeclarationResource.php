@@ -32,7 +32,7 @@ class ProductDeclarationResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('filament.navigation_groups.compliance');
+        return __('filament.navigation_groups.administration');
     }
 
     public static function getNavigationSort(): ?int

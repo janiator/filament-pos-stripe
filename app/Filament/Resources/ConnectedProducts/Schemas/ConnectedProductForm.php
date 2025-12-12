@@ -416,14 +416,29 @@ class ConnectedProductForm
                                                 'vendor',
                                                 'name',
                                                 modifyQueryUsing: function ($query, $get, $record) {
-                                                    $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+                                                    // Prioritize tenant's stripe_account_id (most reliable for preload)
+                                                    $stripeAccountId = null;
+                                                    
+                                                    try {
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $stripeAccountId = $tenant?->stripe_account_id;
+                                                    } catch (\Throwable $e) {
+                                                        // Fallback if Filament facade not available
+                                                    }
+                                                    
+                                                    // Fallback to record or form state if tenant not available
+                                                    if (!$stripeAccountId) {
+                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+                                                    }
                                                     
                                                     if ($stripeAccountId) {
                                                         return $query->where('stripe_account_id', $stripeAccountId)
                                                             ->where('active', true)
                                                             ->orderBy('name', 'asc');
                                                     }
-                                                    return $query->where('active', true)->orderBy('name', 'asc');
+                                                    
+                                                    // If no stripe_account_id, return empty query for safety
+                                                    return $query->whereRaw('1 = 0');
                                                 }
                                             )
                                             ->searchable()

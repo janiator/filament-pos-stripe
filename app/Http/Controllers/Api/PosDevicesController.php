@@ -139,7 +139,21 @@ class PosDevicesController extends BaseApiController
             'serial_number' => 'nullable|string|max:255',
             'device_status' => 'sometimes|string|in:active,inactive,maintenance,offline',
             'device_metadata' => 'nullable|array',
+            'default_printer_id' => 'nullable|exists:receipt_printers,id',
         ]);
+
+        // Validate that the printer belongs to the same store
+        if (isset($validated['default_printer_id'])) {
+            $printer = \App\Models\ReceiptPrinter::where('id', $validated['default_printer_id'])
+                ->where('store_id', $store->id)
+                ->first();
+            
+            if (!$printer) {
+                return response()->json([
+                    'message' => 'Receipt printer not found or does not belong to this store',
+                ], 422);
+            }
+        }
 
         $device->update($validated);
 

@@ -3,21 +3,26 @@
 namespace App\Filament\Resources\ConnectedProducts\Tables;
 
 use App\Models\ConnectedProduct;
+use App\Models\Vendor;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
 
 class ConnectedProductsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['store', 'prices', 'variants']))
+            ->modifyQueryUsing(fn ($query) => $query->with(['store', 'prices', 'variants', 'vendor']))
             ->columns([
                 TextColumn::make('name')
                     ->label('Name')
@@ -93,6 +98,47 @@ class ConnectedProductsTable
                     ->sortable()
                     ->formatStateUsing(fn ($state) => $state ?: '0'),
 
+                TextColumn::make('vendor.name')
+                    ->label('Vendor')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('warning')
+                    ->url(fn (ConnectedProduct $record) => $record->vendor
+                        ? \App\Filament\Resources\Vendors\VendorResource::getUrl('edit', ['record' => $record->vendor])
+                        : null)
+                    ->placeholder('No vendor')
+                    ->toggleable(),
+
+                TextColumn::make('product_code')
+                    ->label('Product Code')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('article_group_code')
+                    ->label('Article Group')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('gray')
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                IconColumn::make('shippable')
+                    ->label('Shippable')
+                    ->boolean()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                IconColumn::make('no_price_in_pos')
+                    ->label('No Price in POS')
+                    ->boolean()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('type')
                     ->label('Type')
                     ->badge()
@@ -135,6 +181,35 @@ class ConnectedProductsTable
                     ->relationship('store', 'name')
                     ->searchable()
                     ->preload(),
+
+                SelectFilter::make('vendor_id')
+                    ->label('Vendor')
+                    ->relationship('vendor', 'name', modifyQueryUsing: function ($query) {
+                        try {
+                            $tenant = \Filament\Facades\Filament::getTenant();
+                            if ($tenant && $tenant->slug !== 'visivo-admin' && $tenant->stripe_account_id) {
+                                return $query->where('stripe_account_id', $tenant->stripe_account_id)
+                                    ->where('active', true);
+                            }
+                        } catch (\Throwable $e) {
+                            // Fallback if Filament facade not available
+                        }
+                        return $query->where('active', true);
+                    })
+                    ->searchable()
+                    ->preload(),
+
+                TernaryFilter::make('shippable')
+                    ->label('Shippable')
+                    ->placeholder('All')
+                    ->trueLabel('Shippable only')
+                    ->falseLabel('Not shippable'),
+
+                TernaryFilter::make('no_price_in_pos')
+                    ->label('No Price in POS')
+                    ->placeholder('All')
+                    ->trueLabel('No price in POS')
+                    ->falseLabel('Has price in POS'),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -142,6 +217,61 @@ class ConnectedProductsTable
             ->defaultSort('created_at', 'desc')
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('setVendor')
+                        ->label('Set Vendor')
+                        ->icon('heroicon-o-building-storefront')
+                        ->color('info')
+                        ->form([
+                            Select::make('vendor_id')
+                                ->label('Vendor')
+                                ->options(function () {
+                                    // Get stripe_account_id from tenant (all products in list are from same tenant)
+                                    try {
+                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                        $stripeAccountId = $tenant?->stripe_account_id;
+                                        
+                                        if (!$stripeAccountId) {
+                                            return [];
+                                        }
+
+                                        return Vendor::where('stripe_account_id', $stripeAccountId)
+                                            ->where('active', true)
+                                            ->orderBy('name', 'asc')
+                                            ->pluck('name', 'id');
+                                    } catch (\Throwable $e) {
+                                        // Fallback if Filament facade not available
+                                        return [];
+                                    }
+                                })
+                                ->searchable()
+                                ->placeholder('Select a vendor')
+                                ->helperText('Select the vendor to assign to all selected products')
+                                ->required()
+                                ->live(),
+                        ])
+                        ->action(function (Collection $records, array $data): void {
+                            $vendorId = $data['vendor_id'] ?? null;
+                            
+                            if (!$vendorId) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Vendor selection required')
+                                    ->body('Please select a vendor to assign.')
+                                    ->send();
+                                return;
+                            }
+
+                            $updated = ConnectedProduct::whereIn('id', $records->pluck('id'))
+                                ->update(['vendor_id' => $vendorId]);
+
+                            Notification::make()
+                                ->success()
+                                ->title('Vendor assigned')
+                                ->body("Vendor has been assigned to {$updated} product(s).")
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion()
+                        ->successNotificationTitle('Vendor assigned successfully'),
                     DeleteBulkAction::make(),
                 ]),
             ]);

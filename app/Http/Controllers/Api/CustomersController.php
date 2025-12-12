@@ -59,7 +59,7 @@ class CustomersController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         $validated = $request->validate([
-            'stripe_customer_id' => 'required|string',
+            'stripe_customer_id' => 'nullable|string',
             'name' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
@@ -89,6 +89,35 @@ class CustomersController extends BaseApiController
         if (isset($validated['customer_address'])) {
             $validated['address'] = $validated['customer_address'];
             unset($validated['customer_address']);
+        }
+
+        // Create Stripe customer if stripe_customer_id is not provided
+        if (empty($validated['stripe_customer_id']) && $store->hasStripeAccount()) {
+            try {
+                $createAction = new \App\Actions\ConnectedCustomers\CreateConnectedCustomerInStripe();
+                $stripeCustomerId = $createAction($store, [
+                    'name' => $validated['name'] ?? null,
+                    'email' => $validated['email'] ?? null,
+                    'phone' => $validated['phone'] ?? null,
+                    'address' => $validated['address'] ?? null,
+                ]);
+                
+                if ($stripeCustomerId) {
+                    $validated['stripe_customer_id'] = $stripeCustomerId;
+                } else {
+                    return response()->json([
+                        'error' => 'Failed to create customer in Stripe'
+                    ], 500);
+                }
+            } catch (\Throwable $e) {
+                \Log::error('Error creating Stripe customer', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                return response()->json([
+                    'error' => 'Failed to create customer in Stripe: ' . $e->getMessage()
+                ], 500);
+            }
         }
 
         $customer = ConnectedCustomer::create($validated);

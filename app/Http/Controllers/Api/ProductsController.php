@@ -8,6 +8,7 @@ use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 
 class ProductsController extends BaseApiController
@@ -435,5 +436,216 @@ class ProductsController extends BaseApiController
 
         // Fallback: return as-is
         return $variant->image_url;
+    }
+
+    /**
+     * Store a newly created product
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['error' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'type' => 'nullable|string|in:service,good',
+            'active' => 'nullable|boolean',
+            'shippable' => 'nullable|boolean',
+            'price' => 'nullable|numeric|min:0',
+            'currency' => 'nullable|string|size:3',
+            'url' => 'nullable|url',
+            'tax_code' => 'nullable|string',
+            'unit_label' => 'nullable|string|max:12',
+            'statement_descriptor' => 'nullable|string|max:22',
+            'no_price_in_pos' => 'nullable|boolean',
+            'product_code' => 'nullable|string',
+            'article_group_code' => 'nullable|string',
+            'collection_ids' => 'nullable|array',
+            'collection_ids.*' => 'exists:collections,id',
+        ]);
+
+        try {
+            // Create product model
+            $product = new ConnectedProduct();
+            $product->stripe_account_id = $store->stripe_account_id;
+            $product->name = $validated['name'];
+            $product->description = $validated['description'] ?? null;
+            $product->type = $validated['type'] ?? 'service';
+            $product->active = $validated['active'] ?? true;
+            $product->shippable = $validated['shippable'] ?? false;
+            $product->url = $validated['url'] ?? null;
+            $product->tax_code = $validated['tax_code'] ?? null;
+            $product->unit_label = $validated['unit_label'] ?? null;
+            $product->statement_descriptor = $validated['statement_descriptor'] ?? null;
+            $product->no_price_in_pos = $validated['no_price_in_pos'] ?? false;
+            $product->product_code = $validated['product_code'] ?? null;
+            $product->article_group_code = $validated['article_group_code'] ?? null;
+            
+            // Set price if provided
+            if (isset($validated['price']) && !$product->no_price_in_pos) {
+                $product->price = $validated['price'];
+                $product->currency = strtolower($validated['currency'] ?? 'nok');
+            }
+
+            // Create product in Stripe first
+            $createAction = new \App\Actions\ConnectedProducts\CreateConnectedProductInStripe();
+            $stripeProductId = $createAction($product);
+
+            if (!$stripeProductId) {
+                return response()->json([
+                    'error' => 'Failed to create product in Stripe'
+                ], 500);
+            }
+
+            $product->stripe_product_id = $stripeProductId;
+            $product->save();
+
+            // Create price in Stripe if price is provided
+            if (isset($validated['price']) && !$product->no_price_in_pos) {
+                $createPriceAction = new \App\Actions\ConnectedPrices\CreateConnectedPriceInStripe();
+                $priceId = $createPriceAction(
+                    $product->stripe_account_id,
+                    $stripeProductId,
+                    (int) round($validated['price'] * 100),
+                    strtolower($validated['currency'] ?? 'nok')
+                );
+
+                if ($priceId) {
+                    $product->default_price = $priceId;
+                    $product->saveQuietly();
+                }
+            }
+
+            // Attach collections if provided
+            if (isset($validated['collection_ids']) && !empty($validated['collection_ids'])) {
+                $product->collections()->sync($validated['collection_ids']);
+            }
+
+            return response()->json([
+                'product' => $this->transformProductForPos($product->fresh()),
+            ], 201);
+        } catch (\Throwable $e) {
+            \Log::error('Error in ProductsController@store', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to create product: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update the specified product
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['error' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $product = ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
+            ->where(function ($query) use ($id) {
+                $query->where('id', $id)
+                      ->orWhere('stripe_product_id', $id);
+            })
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'description' => 'nullable|string',
+            'type' => 'nullable|string|in:service,good',
+            'active' => 'nullable|boolean',
+            'shippable' => 'nullable|boolean',
+            'price' => 'nullable|numeric|min:0',
+            'currency' => 'nullable|string|size:3',
+            'url' => 'nullable|url',
+            'tax_code' => 'nullable|string',
+            'unit_label' => 'nullable|string|max:12',
+            'statement_descriptor' => 'nullable|string|max:22',
+            'no_price_in_pos' => 'nullable|boolean',
+            'product_code' => 'nullable|string',
+            'article_group_code' => 'nullable|string',
+            'collection_ids' => 'nullable|array',
+            'collection_ids.*' => 'exists:collections,id',
+        ]);
+
+        try {
+            // Update product fields
+            if (isset($validated['name'])) {
+                $product->name = $validated['name'];
+            }
+            if (isset($validated['description'])) {
+                $product->description = $validated['description'];
+            }
+            if (isset($validated['type'])) {
+                $product->type = $validated['type'];
+            }
+            if (isset($validated['active'])) {
+                $product->active = $validated['active'];
+            }
+            if (isset($validated['shippable'])) {
+                $product->shippable = $validated['shippable'];
+            }
+            if (isset($validated['url'])) {
+                $product->url = $validated['url'];
+            }
+            if (isset($validated['tax_code'])) {
+                $product->tax_code = $validated['tax_code'];
+            }
+            if (isset($validated['unit_label'])) {
+                $product->unit_label = $validated['unit_label'];
+            }
+            if (isset($validated['statement_descriptor'])) {
+                $product->statement_descriptor = $validated['statement_descriptor'];
+            }
+            if (isset($validated['no_price_in_pos'])) {
+                $product->no_price_in_pos = $validated['no_price_in_pos'];
+            }
+            if (isset($validated['product_code'])) {
+                $product->product_code = $validated['product_code'];
+            }
+            if (isset($validated['article_group_code'])) {
+                $product->article_group_code = $validated['article_group_code'];
+            }
+
+            // Update price if provided
+            if (isset($validated['price']) && !$product->no_price_in_pos) {
+                $product->price = $validated['price'];
+                $product->currency = strtolower($validated['currency'] ?? 'nok');
+            }
+
+            // Save product (this will trigger Stripe sync via listener)
+            $product->save();
+
+            // Update collections if provided
+            if (isset($validated['collection_ids'])) {
+                $product->collections()->sync($validated['collection_ids']);
+            }
+
+            return response()->json([
+                'product' => $this->transformProductForPos($product->fresh()),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Error in ProductsController@update', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to update product: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

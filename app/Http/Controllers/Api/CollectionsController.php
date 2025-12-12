@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class CollectionsController extends BaseApiController
 {
@@ -191,6 +192,147 @@ class CollectionsController extends BaseApiController
 
         // Fallback: return as-is
         return $collection->image_url;
+    }
+
+    /**
+     * Store a newly created collection
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['error' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'handle' => 'nullable|string|max:255|unique:collections,handle,NULL,id,stripe_account_id,' . $store->stripe_account_id,
+            'image_url' => 'nullable|url',
+            'active' => 'nullable|boolean',
+            'sort_order' => 'nullable|integer',
+            'metadata' => 'nullable|array',
+        ]);
+
+        try {
+            $collection = new Collection();
+            $collection->store_id = $store->id;
+            $collection->stripe_account_id = $store->stripe_account_id;
+            $collection->name = $validated['name'];
+            $collection->description = $validated['description'] ?? null;
+            $collection->handle = $validated['handle'] ?? \Str::slug($validated['name']);
+            $collection->image_url = $validated['image_url'] ?? null;
+            $collection->active = $validated['active'] ?? true;
+            $collection->sort_order = $validated['sort_order'] ?? 0;
+            $collection->metadata = $validated['metadata'] ?? null;
+            $collection->save();
+
+            return response()->json([
+                'collection' => [
+                    'id' => $collection->id,
+                    'name' => $collection->name,
+                    'description' => $collection->description,
+                    'handle' => $collection->handle,
+                    'image_url' => $this->getCollectionImageUrl($collection),
+                    'active' => $collection->active,
+                    'sort_order' => $collection->sort_order,
+                    'products_count' => 0,
+                    'metadata' => $collection->metadata,
+                    'created_at' => $this->formatDateTimeOslo($collection->created_at),
+                    'updated_at' => $this->formatDateTimeOslo($collection->updated_at),
+                ],
+            ], 201);
+        } catch (\Throwable $e) {
+            \Log::error('Error in CollectionsController@store', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to create collection: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update the specified collection
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        
+        if (!$store) {
+            return response()->json(['error' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $collection = Collection::where('stripe_account_id', $store->stripe_account_id)
+            ->findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'description' => 'nullable|string',
+            'handle' => 'nullable|string|max:255|unique:collections,handle,' . $id . ',id,stripe_account_id,' . $store->stripe_account_id,
+            'image_url' => 'nullable|url',
+            'active' => 'nullable|boolean',
+            'sort_order' => 'nullable|integer',
+            'metadata' => 'nullable|array',
+        ]);
+
+        try {
+            if (isset($validated['name'])) {
+                $collection->name = $validated['name'];
+            }
+            if (isset($validated['description'])) {
+                $collection->description = $validated['description'];
+            }
+            if (isset($validated['handle'])) {
+                $collection->handle = $validated['handle'];
+            }
+            if (isset($validated['image_url'])) {
+                $collection->image_url = $validated['image_url'];
+            }
+            if (isset($validated['active'])) {
+                $collection->active = $validated['active'];
+            }
+            if (isset($validated['sort_order'])) {
+                $collection->sort_order = $validated['sort_order'];
+            }
+            if (isset($validated['metadata'])) {
+                $collection->metadata = $validated['metadata'];
+            }
+
+            $collection->save();
+
+            return response()->json([
+                'collection' => [
+                    'id' => $collection->id,
+                    'name' => $collection->name,
+                    'description' => $collection->description,
+                    'handle' => $collection->handle,
+                    'image_url' => $this->getCollectionImageUrl($collection),
+                    'active' => $collection->active,
+                    'sort_order' => $collection->sort_order,
+                    'products_count' => $collection->products()->count(),
+                    'metadata' => $collection->metadata,
+                    'created_at' => $this->formatDateTimeOslo($collection->created_at),
+                    'updated_at' => $this->formatDateTimeOslo($collection->updated_at),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Error in CollectionsController@update', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to update collection: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 

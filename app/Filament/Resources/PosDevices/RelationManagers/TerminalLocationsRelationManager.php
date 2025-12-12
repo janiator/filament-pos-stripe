@@ -23,8 +23,38 @@ class TerminalLocationsRelationManager extends RelationManager
         return $schema
             ->components([
                 Forms\Components\TextInput::make('display_name')
+                    ->label('Display name')
                     ->required()
                     ->maxLength(255),
+
+                Forms\Components\TextInput::make('line1')
+                    ->label('Address line 1')
+                    ->required()
+                    ->maxLength(255),
+
+                Forms\Components\TextInput::make('line2')
+                    ->label('Address line 2')
+                    ->maxLength(255),
+
+                Forms\Components\TextInput::make('city')
+                    ->required()
+                    ->maxLength(255),
+
+                Forms\Components\TextInput::make('state')
+                    ->label('State / County')
+                    ->maxLength(255),
+
+                Forms\Components\TextInput::make('postal_code')
+                    ->label('Postal code')
+                    ->required()
+                    ->maxLength(255),
+
+                Forms\Components\TextInput::make('country')
+                    ->label('Country (ISO 2-letter)')
+                    ->required()
+                    ->default('NO')
+                    ->maxLength(2)
+                    ->helperText('ISO 2-letter country code (e.g., NO, US)'),
             ]);
     }
 

@@ -70,8 +70,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Tenant-scoped API resources
     Route::apiResource('customers', \App\Http\Controllers\Api\CustomersController::class);
-    Route::apiResource('products', \App\Http\Controllers\Api\ProductsController::class)->only(['index', 'show']);
-    Route::apiResource('collections', \App\Http\Controllers\Api\CollectionsController::class)->only(['index', 'show']);
+    Route::apiResource('products', \App\Http\Controllers\Api\ProductsController::class)->only(['index', 'show', 'store', 'update']);
+    Route::apiResource('collections', \App\Http\Controllers\Api\CollectionsController::class)->only(['index', 'show', 'store', 'update']);
     
     // Inventory management endpoints
     Route::get('/products/{product}/inventory', [\App\Http\Controllers\Api\InventoryController::class, 'getProductInventory'])->name('api.products.inventory');
