@@ -53,9 +53,13 @@ class ExportProductsAndCollections extends Command
 
         // Create temporary directory for export
         $tempDir = storage_path('app/temp/export-' . time());
-        File::makeDirectory($tempDir, 0755, true);
+        if (!File::exists($tempDir)) {
+            File::makeDirectory($tempDir, 0755, true);
+        }
         $mediaDir = $tempDir . '/media';
-        File::makeDirectory($mediaDir, 0755, true);
+        if (!File::exists($mediaDir)) {
+            File::makeDirectory($mediaDir, 0755, true);
+        }
 
         try {
             // Export collections
@@ -238,7 +242,10 @@ class ExportProductsAndCollections extends Command
             if (file_exists($sourcePath)) {
                 $fileName = basename($relativePath);
                 $destPath = $mediaDir . '/collections/' . $fileName;
-                File::makeDirectory(dirname($destPath), 0755, true);
+                $destDir = dirname($destPath);
+                if (!File::exists($destDir)) {
+                    File::makeDirectory($destDir, 0755, true);
+                }
                 File::copy($sourcePath, $destPath);
                 return 'collections/' . $fileName;
             }
@@ -248,7 +255,10 @@ class ExportProductsAndCollections extends Command
             if (file_exists($sourcePath)) {
                 $fileName = basename($imageUrl);
                 $destPath = $mediaDir . '/collections/' . $fileName;
-                File::makeDirectory(dirname($destPath), 0755, true);
+                $destDir = dirname($destPath);
+                if (!File::exists($destDir)) {
+                    File::makeDirectory($destDir, 0755, true);
+                }
                 File::copy($sourcePath, $destPath);
                 return 'collections/' . $fileName;
             }
@@ -269,7 +279,10 @@ class ExportProductsAndCollections extends Command
 
             $fileName = $media->file_name;
             $destPath = $mediaDir . '/products/' . $prefix . '-' . $fileName;
-            File::makeDirectory(dirname($destPath), 0755, true);
+            $destDir = dirname($destPath);
+            if (!File::exists($destDir)) {
+                File::makeDirectory($destDir, 0755, true);
+            }
             File::copy($sourcePath, $destPath);
             
             return 'products/' . $prefix . '-' . $fileName;
@@ -295,7 +308,10 @@ class ExportProductsAndCollections extends Command
             if (file_exists($sourcePath)) {
                 $fileName = basename($relativePath);
                 $destPath = $mediaDir . '/variants/' . $prefix . '-' . $fileName;
-                File::makeDirectory(dirname($destPath), 0755, true);
+                $destDir = dirname($destPath);
+                if (!File::exists($destDir)) {
+                    File::makeDirectory($destDir, 0755, true);
+                }
                 File::copy($sourcePath, $destPath);
                 return 'variants/' . $prefix . '-' . $fileName;
             }
@@ -304,7 +320,10 @@ class ExportProductsAndCollections extends Command
             if (file_exists($sourcePath)) {
                 $fileName = basename($imageUrl);
                 $destPath = $mediaDir . '/variants/' . $prefix . '-' . $fileName;
-                File::makeDirectory(dirname($destPath), 0755, true);
+                $destDir = dirname($destPath);
+                if (!File::exists($destDir)) {
+                    File::makeDirectory($destDir, 0755, true);
+                }
                 File::copy($sourcePath, $destPath);
                 return 'variants/' . $prefix . '-' . $fileName;
             }

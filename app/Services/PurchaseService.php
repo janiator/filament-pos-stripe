@@ -784,10 +784,17 @@ class PurchaseService
             $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
             $originalPrice = $discountAmount > 0 ? ($unitPrice + $discountAmount) : null;
 
+            // For diverse products or products without price, use custom description if provided
+            // Otherwise use product name. Store both for flexibility.
+            $customDescription = $item['description'] ?? null;
+            $itemName = $customDescription ?? $productName;
+
             // Merge snapshot data with existing item data
             return array_merge($item, [
                 // Store snapshot of product information at purchase time
-                'product_name' => $productName,
+                'name' => $itemName, // Primary name for receipts (custom description or product name)
+                'description' => $customDescription, // Custom description if provided (for diverse products)
+                'product_name' => $productName, // Original product name (for reference)
                 'product_image_url' => $productImageUrl,
                 'original_price' => $originalPrice,
                 'article_group_code' => $articleGroupCode,

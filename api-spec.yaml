@@ -2422,6 +2422,14 @@ paths:
             - Article group code
             - Customer name, email, phone, or Stripe customer ID
             - Receipt number
+            - Purchase items (purchase_items) - searches in:
+              * Item names, product names, descriptions
+              * Product codes and article group codes
+              * SKUs and barcodes
+              * Item IDs (purchase_item_id)
+              * Product IDs and variant IDs (if search term is numeric)
+              * Product names via product relationships (from purchase_item_product_id or product_id)
+              * Variant SKUs, barcodes, and option values via variant relationships (from purchase_item_variant_id or variant_id)
           required: false
           schema:
             type: string
@@ -5206,6 +5214,11 @@ components:
                 nullable: true
                 description: Product name (includes variant name if applicable)
                 example: "Coffee - Large"
+              purchase_item_description:
+                type: string
+                nullable: true
+                description: Custom description for diverse products or products without price. This is used on receipts instead of product_name when provided.
+                example: "Various items - customer selection"
               purchase_item_product_image_url:
                 type: string
                 nullable: true
@@ -6317,6 +6330,12 @@ components:
                 type: integer
                 description: Price per unit in minor units (øre)
                 minimum: 0
+              description:
+                type: string
+                nullable: true
+                maxLength: 500
+                description: Custom description for diverse products or products without price. This will be used on receipts instead of the product name. Useful for items like "Various items", "Custom service", etc.
+                example: "Various items - customer selection"
                 example: 5000
               discount_amount:
                 type: integer

@@ -314,7 +314,7 @@ class ReceiptTemplateService
                             $item['name'] = $product->name;
                         }
                     }
-                    // Final fallback
+                    // Final fallback - prioritize custom description for diverse products
                     if (empty($item['name'])) {
                         $item['name'] = $item['description'] ?? $item['product_name'] ?? 'Vare';
                     }

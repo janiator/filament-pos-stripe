@@ -59,6 +59,13 @@ class ReceiptGenerationService
         
         if (isset($metadata['items']) && is_array($metadata['items'])) {
             $items = $metadata['items'];
+            // Ensure items have 'name' field for receipt display (prefer custom description, then product_name)
+            foreach ($items as &$item) {
+                if (empty($item['name'])) {
+                    $item['name'] = $item['description'] ?? $item['product_name'] ?? 'Vare';
+                }
+            }
+            unset($item); // Break reference
         } else {
             // Try to get product from charge metadata
             $productId = $metadata['product_id'] ?? null;
@@ -273,6 +280,13 @@ class ReceiptGenerationService
         
         if (isset($metadata['items']) && is_array($metadata['items'])) {
             $items = $metadata['items'];
+            // Ensure items have 'name' field for receipt display (prefer custom description, then product_name)
+            foreach ($items as &$item) {
+                if (empty($item['name'])) {
+                    $item['name'] = $item['description'] ?? $item['product_name'] ?? 'Vare/Tjeneste';
+                }
+            }
+            unset($item); // Break reference
         } else {
             // Fallback: single item
             $items[] = [

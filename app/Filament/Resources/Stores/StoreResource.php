@@ -146,6 +146,7 @@ class StoreResource extends Resource
         return [
             'index' => ListStores::route('/'),
             'create' => CreateStore::route('/create'),
+            'onboard' => \App\Filament\Resources\Stores\Pages\OnboardStore::route('/onboard'),
             'view' => ViewStore::route('/{record}'),
             'edit' => EditStore::route('/{record}/edit'),
         ];

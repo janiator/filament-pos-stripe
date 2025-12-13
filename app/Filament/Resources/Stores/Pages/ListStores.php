@@ -16,6 +16,13 @@ class ListStores extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('onboard')
+                ->label('Onboard Store')
+                ->icon(Heroicon::OutlinedPlusCircle)
+                ->color('success')
+                ->url(StoreResource::getUrl('onboard'))
+                ->visible(fn () => $this->canOnboardStore()),
+
             CreateAction::make(),
 
             Action::make('syncStripeAccounts')
@@ -27,5 +34,23 @@ class ListStores extends ListRecords
                     app(SyncStoresFromStripe::class)(notify: true);
                 }),
         ];
+    }
+
+    protected function canOnboardStore(): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        try {
+            $tenant = \Filament\Facades\Filament::getTenant();
+            if ($tenant) {
+                return $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists();
+            }
+            return $user->hasRole('super_admin');
+        } catch (\Throwable $e) {
+            return $user->hasRole('super_admin');
+        }
     }
 }

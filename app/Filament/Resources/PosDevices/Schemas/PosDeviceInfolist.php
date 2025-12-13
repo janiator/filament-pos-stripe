@@ -21,12 +21,17 @@ class PosDeviceInfolist
                             ->label('Device Name')
                             ->weight(FontWeight::Bold)
                             ->size(TextSize::Large),
-                        
+
                         TextEntry::make('device_identifier')
                             ->label('Device Identifier')
                             ->copyable()
                             ->copyMessage('Device ID copied!'),
-                        
+
+                        TextEntry::make('defaultPrinter.name')
+                            ->label('Default Receipt Printer')
+                            ->placeholder('No default printer set')
+                            ->default('No default printer set'),
+
                         TextEntry::make('platform')
                             ->label('Platform')
                             ->badge()
@@ -36,7 +41,7 @@ class PosDeviceInfolist
                                 default => 'gray',
                             })
                             ->formatStateUsing(fn (string $state): string => strtoupper($state)),
-                        
+
                         TextEntry::make('device_status')
                             ->label('Status')
                             ->badge()
@@ -49,45 +54,45 @@ class PosDeviceInfolist
                             }),
                     ])
                     ->columns(2),
-                
+
                 Section::make('Device Details')
                     ->schema([
                         TextEntry::make('device_model')
                             ->label('Model'),
-                        
+
                         TextEntry::make('device_brand')
                             ->label('Brand'),
-                        
+
                         TextEntry::make('device_manufacturer')
                             ->label('Manufacturer'),
-                        
+
                         TextEntry::make('device_product')
                             ->label('Product'),
-                        
+
                         TextEntry::make('device_hardware')
                             ->label('Hardware'),
-                        
+
                         TextEntry::make('machine_identifier')
                             ->label('Machine Identifier'),
-                        
+
                         TextEntry::make('system_name')
                             ->label('System Name'),
-                        
+
                         TextEntry::make('system_version')
                             ->label('System Version'),
-                        
+
                         TextEntry::make('vendor_identifier')
                             ->label('Vendor Identifier'),
-                        
+
                         TextEntry::make('android_id')
                             ->label('Android ID'),
-                        
+
                         TextEntry::make('serial_number')
                             ->label('Serial Number'),
                     ])
                     ->columns(2)
                     ->collapsible(),
-                
+
                 Section::make('Status & Activity')
                     ->schema([
                         TextEntry::make('last_seen_at')
@@ -96,17 +101,17 @@ class PosDeviceInfolist
                             ->since()
                             ->color(fn ($state) => $state && $state->isBefore(now()->subHours(24)) ? 'danger' : null)
                             ->icon(fn ($state) => $state && $state->isBefore(now()->subHours(24)) ? 'heroicon-o-exclamation-triangle' : null),
-                        
+
                         TextEntry::make('created_at')
                             ->label('Registered')
                             ->dateTime(),
-                        
+
                         TextEntry::make('updated_at')
                             ->label('Last Updated')
                             ->dateTime(),
                     ])
                     ->columns(3),
-                
+
                 Section::make('Device Metadata')
                     ->schema([
                         KeyValueEntry::make('device_metadata')
@@ -114,12 +119,12 @@ class PosDeviceInfolist
                     ])
                     ->collapsible()
                     ->visible(fn ($record) => !empty($record->device_metadata)),
-                
+
                 Section::make('Store')
                     ->schema([
                         TextEntry::make('store.name')
                             ->label('Store Name'),
-                        
+
                         TextEntry::make('store.slug')
                             ->label('Store Slug'),
                     ])

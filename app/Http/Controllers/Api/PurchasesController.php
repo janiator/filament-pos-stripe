@@ -85,22 +85,33 @@ class PurchasesController extends BaseApiController
         }
 
         // Filter by freetext search term if provided
-        // Searches across charge fields, customer info, receipt numbers, transaction codes, etc.
-        if ($request->has('search')) {
-            $search = $request->get('search');
+        // Searches across charge fields, customer info, receipt numbers, transaction codes, order items, etc.
+        if ($request->has('search') && !empty($request->get('search'))) {
+            $search = trim($request->get('search'));
             $query->where(function ($q) use ($search, $store) {
                 // Search in charge fields
-                // If search is numeric, try exact match on ID first
+                // If search is numeric, prioritize exact matches on ID and amount
                 if (is_numeric($search)) {
-                    $q->where('id', '=', (int) $search);
+                    $searchInt = (int) $search;
+                    // Search by purchase ID (exact match) - highest priority
+                    $q->where('id', '=', $searchInt);
+                    // Search by amount (in øre) - exact matches only
+                    // Amount is stored in øre (cents), so 519 could be:
+                    // - 519 øre (if someone searches for the exact øre amount)
+                    // - 51900 øre (if someone searches for 519.00 as price)
+                    $q->orWhere('amount', '=', $searchInt)
+                      ->orWhere('amount', '=', $searchInt * 100);
+                } else {
+                    // For non-numeric searches, search in all text fields
+                    $q->where('stripe_charge_id', 'ilike', "%{$search}%")
+                      ->orWhere('description', 'ilike', "%{$search}%")
+                      ->orWhere('transaction_code', 'ilike', "%{$search}%")
+                      ->orWhere('payment_code', 'ilike', "%{$search}%")
+                      ->orWhere('article_group_code', 'ilike', "%{$search}%")
+                      ->orWhereRaw('amount::text LIKE ?', ["%{$search}%"]);
                 }
-                $q->orWhere('stripe_charge_id', 'ilike', "%{$search}%")
-                  ->orWhere('description', 'ilike', "%{$search}%")
-                  ->orWhere('transaction_code', 'ilike', "%{$search}%")
-                  ->orWhere('payment_code', 'ilike', "%{$search}%")
-                  ->orWhere('article_group_code', 'ilike', "%{$search}%")
-                  // Search in customer fields
-                  ->orWhereHas('customer', function ($customerQuery) use ($search, $store) {
+                // Search in customer fields
+                $q->orWhereHas('customer', function ($customerQuery) use ($search, $store) {
                       $customerQuery->where('stripe_connected_customer_mappings.stripe_account_id', $store->stripe_account_id)
                           ->where(function ($cq) use ($search) {
                               $cq->where('stripe_connected_customer_mappings.name', 'ilike', "%{$search}%")
@@ -109,9 +120,100 @@ class PurchasesController extends BaseApiController
                                  ->orWhere('stripe_connected_customer_mappings.stripe_customer_id', 'ilike', "%{$search}%");
                           });
                   })
-                  // Search in receipt number
-                  ->orWhereHas('receipt', function ($receiptQuery) use ($search) {
-                      $receiptQuery->where('receipt_number', 'ilike', "%{$search}%");
+                  // Search in receipt number and purchase_items (combined in one receipt query)
+                  ->orWhereHas('receipt', function ($receiptQuery) use ($search, $store) {
+                      $receiptQuery->where(function ($rq) use ($search, $store) {
+                          // Search in receipt number
+                          $rq->where('receipt_number', 'ilike', "%{$search}%");
+                          
+                          // Search in purchase_items (from receipt_data->items)
+                          $rq->orWhere(function ($itemsQuery) use ($search, $store) {
+                              $itemsQuery->whereNotNull('receipt_data')
+                                  ->whereRaw(
+                                      "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
+                                      EXISTS (
+                                          SELECT 1 
+                                          FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
+                                          WHERE (
+                                              -- Search in item name fields
+                                              (item->>'name' IS NOT NULL AND item->>'name' ILIKE ?) OR
+                                              (item->>'product_name' IS NOT NULL AND item->>'product_name' ILIKE ?) OR
+                                              (item->>'description' IS NOT NULL AND item->>'description' ILIKE ?) OR
+                                              -- Search in product codes
+                                              (item->>'product_code' IS NOT NULL AND item->>'product_code' ILIKE ?) OR
+                                              (item->>'article_group_code' IS NOT NULL AND item->>'article_group_code' ILIKE ?) OR
+                                              -- Search in SKU and barcode
+                                              (item->>'sku' IS NOT NULL AND item->>'sku' ILIKE ?) OR
+                                              (item->>'barcode' IS NOT NULL AND item->>'barcode' ILIKE ?) OR
+                                              -- Search in item ID fields
+                                              (item->>'id' IS NOT NULL AND item->>'id' ILIKE ?) OR
+                                              (item->>'purchase_item_id' IS NOT NULL AND item->>'purchase_item_id' ILIKE ?)
+                                          )
+                                      )",
+                                      ["%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%"]
+                                  );
+                          });
+                          
+                          // Search for product_id or variant_id in purchase_items (if search is numeric)
+                          if (is_numeric($search)) {
+                              $rq->orWhere(function ($numericQuery) use ($search) {
+                                  $numericQuery->whereNotNull('receipt_data')
+                                      ->whereRaw(
+                                          "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
+                                          EXISTS (
+                                              SELECT 1 
+                                              FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
+                                              WHERE 
+                                                  (item->>'product_id')::int = ? OR 
+                                                  (item->>'variant_id')::int = ? OR
+                                                  (item->>'purchase_item_product_id')::int = ? OR
+                                                  (item->>'purchase_item_variant_id')::int = ?
+                                          )",
+                                          [(int) $search, (int) $search, (int) $search, (int) $search]
+                                      );
+                              });
+                          }
+                          
+                          // Search product names via relationships
+                          $rq->orWhere(function ($productQuery) use ($search, $store) {
+                              $productQuery->whereNotNull('receipt_data')
+                                  ->whereRaw(
+                                      "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
+                                      EXISTS (
+                                          SELECT 1 
+                                          FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
+                                          JOIN connected_products ON 
+                                              COALESCE((item->>'purchase_item_product_id')::int, (item->>'product_id')::int) = connected_products.id
+                                          WHERE connected_products.stripe_account_id = ? 
+                                            AND connected_products.name ILIKE ?
+                                      )",
+                                      [$store->stripe_account_id, "%{$search}%"]
+                                  );
+                          });
+                          
+                          // Search variant SKU, barcode, and option values via relationships
+                          $rq->orWhere(function ($variantQuery) use ($search, $store) {
+                              $variantQuery->whereNotNull('receipt_data')
+                                  ->whereRaw(
+                                      "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
+                                      EXISTS (
+                                          SELECT 1 
+                                          FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
+                                          JOIN product_variants ON 
+                                              COALESCE((item->>'purchase_item_variant_id')::int, (item->>'variant_id')::int) = product_variants.id
+                                          WHERE product_variants.stripe_account_id = ? 
+                                            AND (
+                                                product_variants.sku ILIKE ? OR
+                                                product_variants.barcode ILIKE ? OR
+                                                product_variants.option1_value ILIKE ? OR
+                                                product_variants.option2_value ILIKE ? OR
+                                                product_variants.option3_value ILIKE ?
+                                            )
+                                      )",
+                                      [$store->stripe_account_id, "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%"]
+                                  );
+                          });
+                      });
                   });
             });
         }
@@ -515,6 +617,7 @@ class PurchasesController extends BaseApiController
                     'purchase_item_product_id' => isset($item['product_id']) ? (string) $item['product_id'] : null,
                     'purchase_item_variant_id' => isset($item['variant_id']) ? (string) $item['variant_id'] : null,
                     'purchase_item_product_name' => $item['product_name'] ?? null,
+                    'purchase_item_description' => $item['description'] ?? null, // Custom description for diverse products
                     'purchase_item_product_image_url' => $item['product_image_url'] ?? null,
                     'purchase_item_unit_price' => $unitPrice,
                     'purchase_item_quantity' => isset($item['quantity']) ? (int) $item['quantity'] : 1,
@@ -619,6 +722,7 @@ class PurchasesController extends BaseApiController
                 'purchase_item_product_id' => $productId ? (string) $productId : null,
                 'purchase_item_variant_id' => $variantId ? (string) $variantId : null,
                 'purchase_item_product_name' => $productName,
+                'purchase_item_description' => $item['description'] ?? null, // Custom description for diverse products
                 'purchase_item_product_image_url' => $productImageUrl,
                 'purchase_item_unit_price' => $unitPrice,
                 'purchase_item_quantity' => isset($item['quantity']) ? (int) $item['quantity'] : 1,
@@ -704,6 +808,7 @@ class PurchasesController extends BaseApiController
             'cart.items.*.product_id' => ['required', 'integer'],
             'cart.items.*.quantity' => ['required', 'integer', 'min:1'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
+            'cart.items.*.description' => ['nullable', 'string', 'max:500'],
             'cart.total' => ['required', 'integer', 'min:1'],
             'cart.currency' => ['nullable', 'string', 'size:3'],
             'cart.customer_id' => ['nullable', 'integer'],
@@ -1050,6 +1155,7 @@ class PurchasesController extends BaseApiController
             'cart.items.*.product_id' => ['required', 'integer'],
             'cart.items.*.quantity' => ['required', 'integer', 'min:1'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
+            'cart.items.*.description' => ['nullable', 'string', 'max:500'],
             'cart.total' => ['required', 'integer', 'min:1'],
             'cart.currency' => ['nullable', 'string', 'size:3'],
             'cart.customer_id' => ['nullable', 'integer'],

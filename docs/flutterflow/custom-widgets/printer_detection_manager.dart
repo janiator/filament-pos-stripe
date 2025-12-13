@@ -1545,6 +1545,9 @@ class _PrinterDetectionManagerState extends State<PrinterDetectionManager> {
   }
 
   Widget _buildPrinterForm() {
+    // Debug: Log current POS device ID
+    debugPrint('_buildPrinterForm: currentPosDeviceId = ${widget.currentPosDeviceId}');
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -1668,18 +1671,21 @@ class _PrinterDetectionManagerState extends State<PrinterDetectionManager> {
           ),
           const SizedBox(height: 16),
           
-          // Set as default printer switch (only show if we have a current POS device)
-          if (widget.currentPosDeviceId != null)
-            SwitchListTile(
-              title: const Text('Set as default for this POS'),
-              subtitle: const Text('Make this printer the default receipt printer for the current POS device'),
-              value: _setAsDefault,
-              onChanged: (value) {
-                setState(() {
-                  _setAsDefault = value;
-                });
-              },
-            ),
+          // Set as default printer switch
+          SwitchListTile(
+            title: const Text('Set as default for this POS'),
+            subtitle: widget.currentPosDeviceId != null
+                ? const Text('Make this printer the default receipt printer for the current POS device')
+                : const Text('No current POS device - cannot set as default'),
+            value: _setAsDefault,
+            onChanged: widget.currentPosDeviceId != null
+                ? (value) {
+                    setState(() {
+                      _setAsDefault = value;
+                    });
+                  }
+                : null, // Setting onChanged to null disables the switch
+          ),
           const SizedBox(height: 24),
 
           // Register/Update button
