@@ -187,6 +187,15 @@ class ImportProductsZip extends Page implements HasForms
                 $stats['products']['skipped']
             );
 
+            // Check if any products were imported without Stripe IDs
+            $productsWithoutStripe = \App\Models\ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
+                ->whereNull('stripe_product_id')
+                ->count();
+
+            if ($productsWithoutStripe > 0) {
+                $message .= "\n\nNote: {$productsWithoutStripe} product(s) were imported without Stripe IDs. Run 'php artisan stripe:sync-products' to create them in Stripe.";
+            }
+
             Notification::make()
                 ->success()
                 ->title('Import completed')

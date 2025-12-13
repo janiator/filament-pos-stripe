@@ -283,6 +283,8 @@ class ProductZipImporter
             $product->vendor_id = $productData['vendor_id'] ?? null;
 
             // Only set Stripe IDs if they were included in export
+            // If not included (default behavior), stripe_product_id will be null
+            // Products can be synced to Stripe after import using: php artisan stripe:sync-products
             if (isset($productData['stripe_product_id']) && $productData['stripe_product_id']) {
                 $product->stripe_product_id = $productData['stripe_product_id'];
             }
@@ -290,6 +292,7 @@ class ProductZipImporter
                 $product->default_price = $productData['default_price'];
             }
 
+            // Save product (stripe_product_id may be null - will be created during sync)
             $product->save();
 
             // Import product images
