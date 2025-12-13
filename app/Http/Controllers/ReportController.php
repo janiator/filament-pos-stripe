@@ -57,8 +57,8 @@ class ReportController extends Controller
             'occurred_at' => now(),
         ]);
 
-        // Generate PDF
-        $html = view('reports.x-report-pdf', [
+        // Generate PDF using the same template as the preview
+        $html = view('reports.embed.x-report', [
             'session' => $session,
             'report' => $report,
         ])->render();
@@ -126,8 +126,8 @@ class ReportController extends Controller
             'occurred_at' => now(),
         ]);
 
-        // Generate PDF
-        $html = view('reports.z-report-pdf', [
+        // Generate PDF using the same template as the preview
+        $html = view('reports.embed.z-report', [
             'session' => $session,
             'report' => $report,
         ])->render();
@@ -269,8 +269,8 @@ class ReportController extends Controller
             'occurred_at' => now(),
         ]);
 
-        // Generate PDF
-        $html = view('reports.x-report-pdf', [
+        // Generate PDF using the same template as the preview
+        $html = view('reports.embed.x-report', [
             'session' => $session,
             'report' => $report,
         ])->render();
@@ -348,8 +348,8 @@ class ReportController extends Controller
             'occurred_at' => now(),
         ]);
 
-        // Generate PDF
-        $html = view('reports.z-report-pdf', [
+        // Generate PDF using the same template as the preview
+        $html = view('reports.embed.z-report', [
             'session' => $session,
             'report' => $report,
         ])->render();

@@ -64,6 +64,16 @@ class AppPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->navigationGroups([
+                __('filament.navigation_groups.pos_system'),
+                __('filament.navigation_groups.catalog'),
+                __('filament.navigation_groups.customers'),
+                __('filament.navigation_groups.payments'),
+                __('filament.navigation_groups.terminals_and_equipment'),
+                __('filament.navigation_groups.settings'),
+                __('filament.navigation_groups.system'),
+                __('filament.navigation_groups.administration'),
+            ])
             ->navigationItems([
                 NavigationItem::make('Horizon')
                     ->label(__('filament.navigation.horizon'))
