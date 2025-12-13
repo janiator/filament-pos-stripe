@@ -8,6 +8,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\FileUpload;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -54,6 +55,12 @@ class CollectionForm
 
                 Section::make('Media')
                     ->schema([
+                        // Show current image if it exists
+                        View::make('filament.resources.collections.components.image-preview')
+                            ->key('image-preview')
+                            ->visible(fn ($get, $record) => ($record && $record->image_url) || $get('image_url'))
+                            ->columnSpanFull(),
+
                         FileUpload::make('image')
                             ->label('Collection Image')
                             ->image()
@@ -91,6 +98,7 @@ class CollectionForm
                             ->label('Image URL')
                             ->url()
                             ->maxLength(255)
+                            ->live()
                             ->helperText('Image URL (automatically set when uploading a file, or enter manually for external URLs)')
                             ->columnSpanFull(),
                     ])

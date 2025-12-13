@@ -8,6 +8,7 @@ use App\Models\ProductVariant;
 use App\Models\Store;
 use App\Models\Vendor;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use ZipArchive;
 
@@ -216,13 +217,25 @@ class ProductZipImporter
 
             // Handle collection image
             if (isset($collectionData['image_path'])) {
+                // Image file is included in zip - copy it
                 $imagePath = $this->copyCollectionImage($collectionData['image_path'], $collection->handle);
                 if ($imagePath) {
                     $collection->image_url = $imagePath;
                 }
-            } elseif (isset($collectionData['image_url']) && !str_contains($collectionData['image_url'], '/storage/')) {
-                // External URL - keep as is
-                $collection->image_url = $collectionData['image_url'];
+            } elseif (isset($collectionData['image_url'])) {
+                // Image URL from export - check if it's a local storage URL that needs to be handled
+                $imageUrl = $collectionData['image_url'];
+                
+                // If it's a full storage URL from the source server, we can't use it directly
+                // Only keep external URLs (Stripe, CDN, etc.) or relative paths that will be copied
+                if (str_contains($imageUrl, '/storage/')) {
+                    // This is a storage URL from the source - skip it since the file should be in image_path
+                    // If image_path wasn't provided, the image won't be available
+                    $collection->image_url = null;
+                } else {
+                    // External URL (Stripe, CDN, etc.) - keep as is
+                    $collection->image_url = $imageUrl;
+                }
             }
 
             $collection->save();
@@ -499,7 +512,8 @@ class ProductZipImporter
         File::ensureDirectoryExists(dirname($fullDestPath), 0755);
         File::copy($sourcePath, $fullDestPath);
 
-        return '/storage/' . $destPath;
+        // Return full storage URL so API can properly generate signed URLs
+        return Storage::disk('public')->url($destPath);
     }
 
     protected function copyVariantImage(string $imagePath, int $productId, ?string $sku): ?string
@@ -520,6 +534,7 @@ class ProductZipImporter
         File::ensureDirectoryExists(dirname($fullDestPath), 0755);
         File::copy($sourcePath, $fullDestPath);
 
-        return '/storage/' . $destPath;
+        // Return full storage URL for consistency
+        return Storage::disk('public')->url($destPath);
     }
 }
