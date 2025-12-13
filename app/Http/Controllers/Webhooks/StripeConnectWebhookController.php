@@ -40,8 +40,38 @@ class StripeConnectWebhookController extends Controller
         HandlePaymentLinkWebhook $paymentLinkHandler,
         HandleTransferWebhook $transferHandler
     ) {
+        // Get raw payload - must be raw content, not parsed JSON
+        // Use getContent() first, fallback to php://input if empty (in case middleware consumed it)
         $payload = $request->getContent();
+        if (empty($payload)) {
+            $payload = file_get_contents('php://input');
+        }
+        
+        // Get signature header - check multiple possible header names (case-insensitive)
         $signature = $request->header('Stripe-Signature');
+        
+        // If not found, try alternative header names
+        if (empty($signature)) {
+            $allHeaders = $request->headers->all();
+            foreach ($allHeaders as $key => $value) {
+                if (strtolower($key) === 'stripe-signature') {
+                    $signature = is_array($value) ? ($value[0] ?? null) : $value;
+                    break;
+                }
+            }
+        }
+
+        // Validate signature header is present
+        if (empty($signature)) {
+            \Log::error('Stripe webhook signature header missing', [
+                'headers' => $request->headers->all(),
+                'has_content' => !empty($payload),
+                'content_length' => strlen($payload ?? ''),
+            ]);
+            return response()->json([
+                'message' => 'No signatures found matching the expected signature for payload',
+            ], 400);
+        }
 
         // Configure this in .env
         $secret =
@@ -51,10 +81,21 @@ class StripeConnectWebhookController extends Controller
 
         if (! $secret) {
             // Misconfiguration – don't throw to Stripe, just log.
+            \Log::error('Stripe webhook secret not configured');
             report(new \RuntimeException('Stripe webhook secret not configured.'));
             return response()->json([
                 'message' => 'Webhook misconfigured',
             ], 500);
+        }
+
+        // Validate payload is not empty
+        if (empty($payload)) {
+            \Log::error('Stripe webhook payload is empty', [
+                'signature' => $signature ? 'present' : 'missing',
+            ]);
+            return response()->json([
+                'message' => 'Invalid payload',
+            ], 400);
         }
 
         try {
@@ -65,13 +106,24 @@ class StripeConnectWebhookController extends Controller
             );
         } catch (UnexpectedValueException $e) {
             // Invalid payload
+            \Log::error('Stripe webhook invalid payload', [
+                'error' => $e->getMessage(),
+                'payload_length' => strlen($payload),
+                'signature_present' => !empty($signature),
+            ]);
             return response()->json([
                 'message' => 'Invalid payload',
             ], 400);
         } catch (SignatureVerificationException $e) {
             // Invalid signature
+            \Log::error('Stripe webhook signature verification failed', [
+                'error' => $e->getMessage(),
+                'signature' => $signature ? 'present' : 'missing',
+                'payload_length' => strlen($payload),
+                'secret_configured' => !empty($secret),
+            ]);
             return response()->json([
-                'message' => 'Invalid signature',
+                'message' => $e->getMessage() ?: 'Invalid signature',
             ], 400);
         }
 
