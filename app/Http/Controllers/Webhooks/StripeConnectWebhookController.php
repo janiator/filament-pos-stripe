@@ -47,26 +47,73 @@ class StripeConnectWebhookController extends Controller
             $payload = file_get_contents('php://input');
         }
         
-        // Get signature header - check multiple possible header names (case-insensitive)
+        // Get signature header - check multiple sources
+        // Laravel normalizes headers, but Stripe sends "Stripe-Signature"
+        // Check Laravel's header bag first
         $signature = $request->header('Stripe-Signature');
         
-        // If not found, try alternative header names
+        // If not found, check $_SERVER directly (for cases where Laravel doesn't capture it)
+        if (empty($signature)) {
+            // Check HTTP_STRIPE_SIGNATURE (Laravel converts headers to HTTP_* format)
+            $signature = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? null;
+        }
+        
+        // If still not found, check all headers case-insensitively
         if (empty($signature)) {
             $allHeaders = $request->headers->all();
             foreach ($allHeaders as $key => $value) {
-                if (strtolower($key) === 'stripe-signature') {
+                if (strtolower(str_replace('_', '-', $key)) === 'stripe-signature') {
                     $signature = is_array($value) ? ($value[0] ?? null) : $value;
                     break;
                 }
             }
         }
-
-        // Validate signature header is present
+        
+        // Last resort: check $_SERVER for any variation
         if (empty($signature)) {
+            foreach ($_SERVER as $key => $value) {
+                if (stripos($key, 'STRIPE_SIGNATURE') !== false || stripos($key, 'STRIPE-SIGNATURE') !== false) {
+                    $signature = $value;
+                    break;
+                }
+            }
+        }
+        
+        // Trim whitespace from signature if found
+        if (!empty($signature)) {
+            $signature = trim($signature);
+        }
+
+        // Validate signature header is present and not empty
+        if (empty($signature)) {
+            // Collect all HTTP headers from $_SERVER for debugging
+            $httpHeaders = [];
+            foreach ($_SERVER as $key => $value) {
+                if (strpos($key, 'HTTP_') === 0 || stripos($key, 'STRIPE') !== false) {
+                    $httpHeaders[$key] = $value;
+                }
+            }
+            
+            // Get all HTTP_* keys for debugging
+            $httpKeys = [];
+            foreach (array_keys($_SERVER) as $key) {
+                if (strpos($key, 'HTTP_') === 0) {
+                    $httpKeys[] = $key;
+                }
+            }
+            
+            // Log comprehensive debugging information
             \Log::error('Stripe webhook signature header missing', [
-                'headers' => $request->headers->all(),
+                'method' => $request->method(),
+                'url' => $request->fullUrl(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'laravel_headers' => $request->headers->all(),
+                'server_headers' => $httpHeaders,
                 'has_content' => !empty($payload),
                 'content_length' => strlen($payload ?? ''),
+                'content_type' => $request->header('Content-Type'),
+                'all_http_keys' => $httpKeys,
             ]);
             return response()->json([
                 'message' => 'No signatures found matching the expected signature for payload',
@@ -115,12 +162,20 @@ class StripeConnectWebhookController extends Controller
                 'message' => 'Invalid payload',
             ], 400);
         } catch (SignatureVerificationException $e) {
-            // Invalid signature
+            // Invalid signature - log with signature format info (truncated for security)
+            $signaturePreview = $signature ? (substr($signature, 0, 50) . '...') : 'missing';
+            $signatureParts = $signature ? explode(',', $signature) : [];
+            
             \Log::error('Stripe webhook signature verification failed', [
                 'error' => $e->getMessage(),
-                'signature' => $signature ? 'present' : 'missing',
+                'error_class' => get_class($e),
+                'signature_present' => !empty($signature),
+                'signature_length' => strlen($signature ?? ''),
+                'signature_preview' => $signaturePreview,
+                'signature_parts_count' => count($signatureParts),
                 'payload_length' => strlen($payload),
                 'secret_configured' => !empty($secret),
+                'secret_length' => strlen($secret ?? ''),
             ]);
             return response()->json([
                 'message' => $e->getMessage() ?: 'Invalid signature',

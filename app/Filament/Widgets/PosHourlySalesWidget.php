@@ -11,14 +11,14 @@ class PosHourlySalesWidget extends ChartWidget
 {
     protected ?string $heading = 'Hourly Sales Distribution (Last 7 Days)';
 
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 4;
 
     protected int | string | array $columnSpan = [
         'default' => 'full',
         'sm' => 'full',
         'md' => 'full',
-        'lg' => 'full',
-        'xl' => 'full',
+        'lg' => 4,
+        'xl' => 4,
     ];
 
     protected function getData(): array

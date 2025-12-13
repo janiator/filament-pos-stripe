@@ -223,5 +223,149 @@ class SyncEverythingFromStripe
             'errors' => $allErrors,
         ];
     }
+
+    /**
+     * Sync everything from Stripe for a single store
+     */
+    public function syncStore(Store $store, bool $notify = false): array
+    {
+        $totalCreated = 0;
+        $totalUpdated = 0;
+        $totalFound = 0;
+        $allErrors = [];
+
+        // Refresh the store to ensure we have the latest data
+        $store->refresh();
+
+        // Skip if store doesn't have stripe_account_id
+        if (!$store->stripe_account_id) {
+            if ($notify) {
+                Notification::make()
+                    ->title('Store not connected to Stripe')
+                    ->body('This store does not have a Stripe account ID.')
+                    ->warning()
+                    ->send();
+            }
+            return [
+                'total' => 0,
+                'created' => 0,
+                'updated' => 0,
+                'errors' => ['Store does not have a Stripe account ID'],
+            ];
+        }
+
+        // Sync customers
+        $customerSync = new SyncConnectedCustomersFromStripe();
+        $result = $customerSync($store, false);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        $allErrors = array_merge($allErrors, $result['errors']);
+
+        // Sync products (also syncs prices and variants)
+        $productSync = new SyncConnectedProductsFromStripe();
+        $result = $productSync($store, false);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        $allErrors = array_merge($allErrors, $result['errors']);
+
+        // Sync subscriptions
+        $subscriptionSync = new SyncConnectedSubscriptionsFromStripe();
+        $result = $subscriptionSync($store, false);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        $allErrors = array_merge($allErrors, $result['errors']);
+
+        // Sync payment intents
+        $paymentIntentSync = new SyncConnectedPaymentIntentsFromStripe();
+        $result = $paymentIntentSync($store, false);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        $allErrors = array_merge($allErrors, $result['errors']);
+
+        // Sync charges
+        $chargeSync = new SyncConnectedChargesFromStripe();
+        $result = $chargeSync($store, false);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        $allErrors = array_merge($allErrors, $result['errors']);
+
+        // Sync transfers
+        $transferSync = new SyncConnectedTransfersFromStripe();
+        $result = $transferSync($store, false);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        $allErrors = array_merge($allErrors, $result['errors']);
+
+        // Sync payment methods
+        $paymentMethodSync = new SyncConnectedPaymentMethodsFromStripe();
+        $result = $paymentMethodSync($store, false);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        $allErrors = array_merge($allErrors, $result['errors']);
+
+        // Sync payment links
+        $paymentLinkSync = new SyncConnectedPaymentLinksFromStripe();
+        $result = $paymentLinkSync($store, false);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        $allErrors = array_merge($allErrors, $result['errors']);
+
+        // Sync terminal locations
+        $terminalLocationSync = new SyncStoreTerminalLocationsFromStripe();
+        $result = $terminalLocationSync($store);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        if ($result['error']) {
+            $allErrors[] = "Terminal locations: {$result['error']}";
+        }
+
+        // Sync terminal readers
+        $terminalReaderSync = new SyncStoreTerminalReadersFromStripe();
+        $result = $terminalReaderSync($store);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        if ($result['error']) {
+            $allErrors[] = "Terminal readers: {$result['error']}";
+        }
+
+        if ($notify) {
+            if (! empty($allErrors)) {
+                $errorDetails = implode("\n", array_slice($allErrors, 0, 5));
+                if (count($allErrors) > 5) {
+                    $errorDetails .= "\n... and " . (count($allErrors) - 5) . " more error(s)";
+                }
+
+                Notification::make()
+                    ->title('Sync completed with errors')
+                    ->body("Found {$totalFound} items. {$totalCreated} created, {$totalUpdated} updated.\n\nErrors:\n{$errorDetails}")
+                    ->warning()
+                    ->persistent()
+                    ->send();
+            } else {
+                Notification::make()
+                    ->title('Sync complete')
+                    ->body("Found {$totalFound} items. {$totalCreated} created, {$totalUpdated} updated.")
+                    ->success()
+                    ->send();
+            }
+        }
+
+        return [
+            'total' => $totalFound,
+            'created' => $totalCreated,
+            'updated' => $totalUpdated,
+            'errors' => $allErrors,
+        ];
+    }
 }
 

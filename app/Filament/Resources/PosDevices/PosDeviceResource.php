@@ -47,7 +47,7 @@ class PosDeviceResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('filament.navigation_groups.terminals');
+        return __('filament.navigation_groups.terminals_and_equipment');
     }
 
     public static function form(Schema $schema): Schema
@@ -68,9 +68,11 @@ class PosDeviceResource extends Resource
     public static function getRelations(): array
     {
         return [
+            \App\Filament\Resources\PosDevices\RelationManagers\PosSessionsRelationManager::class,
+            \App\Filament\Resources\PosDevices\RelationManagers\PosEventsRelationManager::class,
+            \App\Filament\Resources\PosDevices\RelationManagers\ReceiptsRelationManager::class,
             \App\Filament\Resources\PosDevices\RelationManagers\TerminalLocationsRelationManager::class,
             \App\Filament\Resources\PosDevices\RelationManagers\ReceiptPrintersRelationManager::class,
-            \App\Filament\Resources\PosDevices\RelationManagers\PosSessionsRelationManager::class,
         ];
     }
 

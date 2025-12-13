@@ -5,14 +5,12 @@ return [
     'navigation_groups' => [
         'catalog' => 'Katalog',
         'customers' => 'Kunder',
-        'terminals' => 'Terminaler',
+        'terminals_and_equipment' => 'Terminaler og utstyr',
         'settings' => 'Innstillinger',
         'administration' => 'Administrasjon',
         'system' => 'System',
         'pos_system' => 'POS-system',
         'payments' => 'Betalinger',
-        'subscriptions' => 'Abonnementer',
-        'pos' => 'POS',
     ],
 
     // Resources
@@ -83,9 +81,9 @@ return [
             'navigation' => 'Rabatter',
         ],
         'payment_method' => [
-            'label' => 'Betalingsmetodetype',
-            'plural' => 'Betalingsmetodetyper',
-            'navigation' => 'Betalingsmetodetyper',
+            'label' => 'Betalingsmetode',
+            'plural' => 'Betalingsmetoder',
+            'navigation' => 'Betalingsmetoder',
         ],
         'pos_device' => [
             'label' => 'POS-enhet',

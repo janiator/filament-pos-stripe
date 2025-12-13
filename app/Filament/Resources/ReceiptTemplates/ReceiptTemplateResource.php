@@ -53,7 +53,12 @@ class ReceiptTemplateResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('filament.navigation_groups.pos');
+        return __('filament.navigation_groups.pos_system');
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 6;
     }
 
     public static function form(Schema $schema): Schema

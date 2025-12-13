@@ -24,6 +24,9 @@ class ReceiptResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    // Hide from navigation - displayed via relation manager on PosDevice
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function getNavigationLabel(): string
     {
         return __('filament.resources.receipt.navigation');
@@ -36,7 +39,7 @@ class ReceiptResource extends Resource
 
     public static function getNavigationSort(): ?int
     {
-        return 3;
+        return 4;
     }
 
     public static function form(Schema $schema): Schema

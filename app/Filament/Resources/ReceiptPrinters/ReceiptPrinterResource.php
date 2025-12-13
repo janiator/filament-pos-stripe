@@ -44,7 +44,7 @@ class ReceiptPrinterResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('filament.navigation_groups.terminals');
+        return __('filament.navigation_groups.terminals_and_equipment');
     }
 
     public static function form(Schema $schema): Schema

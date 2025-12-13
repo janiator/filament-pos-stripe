@@ -44,7 +44,12 @@ class PaymentMethodResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('filament.navigation_groups.settings');
+        return __('filament.navigation_groups.pos_system');
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 5;
     }
 
     public static function form(Schema $schema): Schema

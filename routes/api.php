@@ -63,6 +63,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pos-sessions/{id}/z-report', [\App\Http\Controllers\Api\PosSessionsController::class, 'zReport'])->name('api.pos-sessions.z-report');
     Route::get('/pos-sessions/{id}', [\App\Http\Controllers\Api\PosSessionsController::class, 'show'])->name('api.pos-sessions.show');
     Route::post('/pos-sessions/daily-closing', [\App\Http\Controllers\Api\PosSessionsController::class, 'createDailyClosing'])->name('api.pos-sessions.daily-closing');
+    
+    // POS Report PDF download endpoints (API with Bearer token auth)
+    Route::get('/pos-sessions/{id}/x-report/pdf', [\App\Http\Controllers\ReportController::class, 'downloadXReportPdfApi'])->name('api.pos-sessions.x-report.pdf');
+    Route::get('/pos-sessions/{id}/z-report/pdf', [\App\Http\Controllers\ReportController::class, 'downloadZReportPdfApi'])->name('api.pos-sessions.z-report.pdf');
 
     // Terminal endpoints (Stripe-specific, require authentication)
     Route::get('/terminals/locations', [\App\Http\Controllers\Api\TerminalLocationsController::class, 'index'])->name('api.terminals.locations');

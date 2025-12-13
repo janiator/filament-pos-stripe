@@ -13,7 +13,13 @@ class PosSalesByPaymentMethodWidget extends ChartWidget
 
     protected static ?int $sort = 2;
 
-    protected int | string | array $columnSpan = 'full';
+    protected int | string | array $columnSpan = [
+        'default' => 'full',
+        'sm' => 'full',
+        'md' => 'full',
+        'lg' => 4,
+        'xl' => 4,
+    ];
 
     protected function getData(): array
     {

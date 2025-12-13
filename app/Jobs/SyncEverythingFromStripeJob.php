@@ -2,12 +2,14 @@
 
 namespace App\Jobs;
 
-use App\Actions\SyncEverythingFromStripe;
+use App\Models\Store;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 
 class SyncEverythingFromStripeJob implements ShouldQueue
@@ -27,7 +29,12 @@ class SyncEverythingFromStripeJob implements ShouldQueue
     /**
      * The maximum number of seconds the job can run.
      */
-    public int $timeout = 600; // 10 minutes
+    public int $timeout = 300; // 5 minutes (reduced since we're just dispatching)
+
+    /**
+     * The batch size for dispatching jobs.
+     */
+    public int $batchSize = 50;
 
     /**
      * Create a new job instance.
@@ -42,21 +49,81 @@ class SyncEverythingFromStripeJob implements ShouldQueue
      */
     public function handle(): void
     {
-        Log::info('Starting sync everything from Stripe job');
+        Log::info('Starting sync everything from Stripe job - dispatching smaller jobs in batches');
 
         try {
-            $syncAction = new SyncEverythingFromStripe();
-            $result = $syncAction(false); // Don't send notifications from job
+            // First, sync stores synchronously to ensure we have the latest store data
+            // This is important because new stores might exist in Stripe
+            Log::info('Syncing stores from Stripe');
+            $storeSyncJob = new SyncStoresFromStripeJob();
+            $storeSyncJob->handle();
 
-            Log::info('Sync everything from Stripe completed', [
-                'total' => $result['total'],
-                'created' => $result['created'],
-                'updated' => $result['updated'],
-                'errors_count' => count($result['errors']),
+            // Get stores after syncing to get any newly created stores
+            $stores = Store::getStoresForSync();
+
+            if ($stores->isEmpty()) {
+                Log::warning('No stores found for sync after syncing stores');
+                return;
+            }
+
+            Log::info('Found stores for sync', [
+                'store_count' => $stores->count(),
             ]);
 
-            // Note: Notifications are sent by the widget when the job is dispatched
-            // The sync action itself handles notifications when called directly
+            // Collect all jobs to dispatch
+            $jobs = collect();
+
+            // For each store, create jobs for each sync type
+            foreach ($stores as $store) {
+                // Refresh store to ensure we have latest data
+                $store->refresh();
+
+                // Skip if store doesn't have stripe_account_id
+                if (!$store->stripe_account_id) {
+                    Log::debug('Skipping store without stripe_account_id', [
+                        'store_id' => $store->id,
+                    ]);
+                    continue;
+                }
+
+                // Add all sync jobs for this store
+                $jobs->push(
+                    new SyncStoreCustomersFromStripeJob($store),
+                    new SyncStoreProductsFromStripeJob($store),
+                    new SyncStoreSubscriptionsFromStripeJob($store),
+                    new SyncStorePaymentIntentsFromStripeJob($store),
+                    new SyncStoreChargesFromStripeJob($store),
+                    new SyncStoreTransfersFromStripeJob($store),
+                    new SyncStorePaymentMethodsFromStripeJob($store),
+                    new SyncStorePaymentLinksFromStripeJob($store),
+                    new SyncStoreTerminalLocationsFromStripeJob($store),
+                    new SyncStoreTerminalReadersFromStripeJob($store),
+                );
+            }
+
+            if ($jobs->isEmpty()) {
+                Log::warning('No sync jobs to dispatch - all stores may be missing stripe_account_id');
+                return;
+            }
+
+            Log::info('Dispatching sync jobs in batches', [
+                'total_jobs' => $jobs->count(),
+                'batch_size' => $this->batchSize,
+            ]);
+
+            // Dispatch jobs in batches
+            $batchesCreated = 0;
+            $jobs->chunk($this->batchSize)->each(function (Collection $chunk) use (&$batchesCreated) {
+                Bus::batch($chunk->toArray())
+                    ->name('Sync from Stripe - Batch ' . ($batchesCreated + 1))
+                    ->dispatch();
+                $batchesCreated++;
+            });
+
+            Log::info('Sync everything from Stripe job completed - all sync jobs dispatched', [
+                'total_jobs_dispatched' => $jobs->count(),
+                'batches_created' => $batchesCreated,
+            ]);
         } catch (\Throwable $e) {
             Log::error('Sync everything from Stripe job failed', [
                 'error' => $e->getMessage(),

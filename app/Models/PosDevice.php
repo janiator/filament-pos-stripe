@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class PosDevice extends Model
 {
@@ -73,5 +74,21 @@ class PosDevice extends Model
     public function posSessions(): HasMany
     {
         return $this->hasMany(PosSession::class);
+    }
+
+    /**
+     * Get all POS events for this device
+     */
+    public function posEvents(): HasMany
+    {
+        return $this->hasMany(PosEvent::class);
+    }
+
+    /**
+     * Get all receipts for this device (through sessions)
+     */
+    public function receipts(): HasManyThrough
+    {
+        return $this->hasManyThrough(Receipt::class, PosSession::class);
     }
 }

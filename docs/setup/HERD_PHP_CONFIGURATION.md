@@ -42,7 +42,10 @@ set_time_limit(300);
 
 The `SyncEverythingFromStripe` action is now dispatched as a queued job (`SyncEverythingFromStripeJob`) which:
 - Runs in the background
-- Has a 10-minute timeout
+- Spawns smaller individual sync jobs in batches (50 jobs per batch)
+- Each individual sync job handles one sync type (customers, products, subscriptions, etc.) for one store
+- The main job has a 5-minute timeout (reduced since it only dispatches other jobs)
+- Individual sync jobs have a 10-minute timeout
 - Retries up to 3 times on failure
 - Sends notifications when complete
 

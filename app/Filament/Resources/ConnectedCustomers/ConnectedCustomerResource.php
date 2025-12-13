@@ -50,6 +50,11 @@ class ConnectedCustomerResource extends Resource
         return __('filament.navigation_groups.customers');
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ConnectedCustomerForm::configure($schema);

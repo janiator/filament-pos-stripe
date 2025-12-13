@@ -29,6 +29,9 @@ class PosSessionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    // Hide from navigation - displayed via relation manager on PosDevice
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function getNavigationLabel(): string
     {
         return __('filament.resources.pos_session.navigation');
@@ -41,7 +44,7 @@ class PosSessionResource extends Resource
 
     public static function getNavigationSort(): ?int
     {
-        return 2;
+        return 1;
     }
 
     public static function form(Schema $schema): Schema

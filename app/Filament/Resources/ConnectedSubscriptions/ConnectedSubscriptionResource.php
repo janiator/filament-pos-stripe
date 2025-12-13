@@ -47,7 +47,12 @@ class ConnectedSubscriptionResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('filament.navigation_groups.subscriptions');
+        return __('filament.navigation_groups.customers');
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 2;
     }
 
     public static function form(Schema $schema): Schema
