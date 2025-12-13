@@ -23,9 +23,10 @@ class ConnectedTransferForm
                     ->searchable()
                     ->preload()
                     ->required()
+                    ->default(fn () => \Filament\Facades\Filament::getTenant()?->stripe_account_id)
                     ->helperText('The store/connected account this transfer belongs to')
                     ->live()
-                    ->visibleOn('create'),
+                    ->hiddenOn(['create', 'edit']),
 
                 TextInput::make('amount')
                     ->label('Amount (in cents)')
@@ -38,13 +39,14 @@ class ConnectedTransferForm
                 Select::make('currency')
                     ->label('Currency')
                     ->options([
+                        'nok' => 'NOK',
                         'usd' => 'USD',
                         'eur' => 'EUR',
                         'gbp' => 'GBP',
                         'cad' => 'CAD',
                         'aud' => 'AUD',
                     ])
-                    ->default('usd')
+                    ->default('nok')
                     ->required()
                     ->visibleOn('create'),
 

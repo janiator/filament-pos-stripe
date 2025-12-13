@@ -22,9 +22,10 @@ class CouponForm
                             ->label('Store')
                             ->relationship('store', 'name')
                             ->required()
+                            ->default(fn () => \Filament\Facades\Filament::getTenant()?->id)
                             ->searchable()
                             ->preload()
-                            ->visibleOn('create'),
+                            ->hiddenOn(['create', 'edit']),
 
                         TextInput::make('code')
                             ->label('Coupon Code')

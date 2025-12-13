@@ -23,9 +23,10 @@ class ConnectedCustomerForm
                     ->searchable()
                     ->preload()
                     ->required()
+                    ->default(fn () => \Filament\Facades\Filament::getTenant()?->stripe_account_id)
                     ->helperText('The store/connected account this customer belongs to')
                     ->live()
-                    ->visibleOn('create'),
+                    ->hiddenOn(['create', 'edit']),
 
                 TextInput::make('stripe_customer_id')
                     ->label('Stripe Customer ID')
@@ -103,6 +104,7 @@ class ConnectedCustomerForm
                                 TextInput::make('address.country')
                                     ->label('Country (ISO 2-letter)')
                                     ->maxLength(2)
+                                    ->default('NO')
                                     ->helperText('Two-letter country code (e.g., NO, US)')
                                     ->visibleOn(['create', 'edit']),
                             ]),

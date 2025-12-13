@@ -23,9 +23,10 @@ class ConnectedChargeForm
                     ->searchable()
                     ->preload()
                     ->required()
+                    ->default(fn () => \Filament\Facades\Filament::getTenant()?->stripe_account_id)
                     ->helperText('The store/connected account this charge belongs to')
                     ->live()
-                    ->visibleOn('create'),
+                    ->hiddenOn(['create', 'edit']),
 
                 Select::make('stripe_customer_id')
                     ->label('Customer')
@@ -132,14 +133,14 @@ class ConnectedChargeForm
                 Select::make('currency')
                     ->label('Currency')
                     ->options([
+                        'nok' => 'NOK',
                         'usd' => 'USD',
                         'eur' => 'EUR',
                         'gbp' => 'GBP',
                         'cad' => 'CAD',
                         'aud' => 'AUD',
-                        'nok' => 'NOK',
                     ])
-                    ->default('usd')
+                    ->default('nok')
                     ->required()
                     ->visibleOn('create'),
 

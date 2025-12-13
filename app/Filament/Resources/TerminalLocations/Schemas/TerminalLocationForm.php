@@ -56,7 +56,7 @@ class TerminalLocationForm
                 TextInput::make('country')
                     ->label('Country (ISO 2-letter)')
                     ->required()
-                    ->default('US')
+                    ->default('NO')
                     ->maxLength(2)
                     ->helperText(fn ($record) => $record && $record->stripe_location_id 
                         ? 'Country code (ISO 2-letter). This field will sync to Stripe when saved.'
