@@ -54,7 +54,7 @@ class DatabaseSeeder extends Seeder
             $admin->stores()->attach($store);
         }
 
-        $this->command->info('Admin user created: admin@pos.visivo.no / admin');
+        $this->command->info('Admin user created: admin@visivo.no / admin');
         $this->command->info('Admin store created: ' . $store->name);
 
         // Run Stripe sync after seeding (only if not in testing environment)
