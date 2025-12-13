@@ -786,20 +786,28 @@ class PurchaseService
 
             // For diverse products or products without price, use custom description if provided
             // Otherwise use product name. Store both for flexibility.
+            // Preserve description from original item (may come from cart)
             $customDescription = $item['description'] ?? null;
+            // If description is empty string, treat as null
+            if ($customDescription === '') {
+                $customDescription = null;
+            }
             $itemName = $customDescription ?? $productName;
 
             // Merge snapshot data with existing item data
-            return array_merge($item, [
+            // array_merge preserves all original item fields (including description if present)
+            $enrichedItem = array_merge($item, [
                 // Store snapshot of product information at purchase time
                 'name' => $itemName, // Primary name for receipts (custom description or product name)
-                'description' => $customDescription, // Custom description if provided (for diverse products)
+                'description' => $customDescription, // Custom description if provided (for diverse products) - explicitly set
                 'product_name' => $productName, // Original product name (for reference)
                 'product_image_url' => $productImageUrl,
                 'original_price' => $originalPrice,
                 'article_group_code' => $articleGroupCode,
                 'product_code' => $productCode,
             ]);
+            
+            return $enrichedItem;
         }, $items);
     }
 
@@ -1159,7 +1167,8 @@ class PurchaseService
         ConnectedCharge $charge,
         ?int $amount = null,
         ?string $reason = null,
-        ?int $userId = null
+        ?int $userId = null,
+        ?array $refundedItems = null
     ): array {
         DB::beginTransaction();
 
@@ -1229,7 +1238,7 @@ class PurchaseService
             // Update charge
             $metadata = $charge->metadata ?? [];
             $refunds = $metadata['refunds'] ?? [];
-            $refunds[] = [
+            $refundData = [
                 'amount' => $refundAmount,
                 'amount_refunded' => $newAmountRefunded,
                 'reason' => $reason,
@@ -1237,6 +1246,26 @@ class PurchaseService
                 'refunded_by' => $userId,
                 'stripe_refund_id' => $stripeRefundId,
             ];
+            
+            // Track refunded items if provided
+            if ($refundedItems !== null && !empty($refundedItems)) {
+                $refundData['items'] = $refundedItems;
+                
+                // Update item-level refund tracking in metadata
+                $itemRefunds = $metadata['item_refunds'] ?? [];
+                foreach ($refundedItems as $refundedItem) {
+                    $itemId = $refundedItem['item_id'] ?? null;
+                    if ($itemId) {
+                        if (!isset($itemRefunds[$itemId])) {
+                            $itemRefunds[$itemId] = 0;
+                        }
+                        $itemRefunds[$itemId] += $refundedItem['quantity'] ?? 1;
+                    }
+                }
+                $metadata['item_refunds'] = $itemRefunds;
+            }
+            
+            $refunds[] = $refundData;
             $metadata['refunds'] = $refunds;
             $metadata['last_refund_at'] = now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s');
             $metadata['last_refund_by'] = $userId;

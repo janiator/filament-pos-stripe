@@ -36,7 +36,7 @@ class DatabaseSeeder extends Seeder
 
         // Create admin user
         $admin = User::firstOrCreate(
-            ['email' => 'admin@pos.visivo.no'],
+            ['email' => 'admin@visivo.no'],
             [
                 'name' => 'Admin User',
                 'password' => Hash::make('admin'),
@@ -61,16 +61,16 @@ class DatabaseSeeder extends Seeder
         if (!app()->environment('testing')) {
             $this->command->newLine();
             $this->command->info('Syncing everything from Stripe...');
-            
+
             try {
                 $syncAction = new SyncEverythingFromStripe();
                 $result = $syncAction(false); // Don't send notifications from seeder
-                
+
                 $this->command->info("✓ Sync completed!");
                 $this->command->line("  Found: {$result['total']} items");
                 $this->command->line("  Created: {$result['created']} items");
                 $this->command->line("  Updated: {$result['updated']} items");
-                
+
                 if (!empty($result['errors'])) {
                     $errorCount = count($result['errors']);
                     $this->command->warn("  Errors: {$errorCount} error(s) occurred");

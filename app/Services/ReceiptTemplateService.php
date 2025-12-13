@@ -298,8 +298,9 @@ class ReceiptTemplateService
             
             // Normalize and enrich items with product information
             foreach ($items as &$item) {
-                // Ensure name is present - get from product if missing
+                // Ensure product name is set (don't replace with description)
                 if (empty($item['name'])) {
+                    // Get name from product if missing
                     if (isset($item['variant_id']) && $item['variant_id']) {
                         $variant = \App\Models\ProductVariant::find($item['variant_id']);
                         if ($variant && $variant->product) {
@@ -314,10 +315,17 @@ class ReceiptTemplateService
                             $item['name'] = $product->name;
                         }
                     }
-                    // Final fallback - prioritize custom description for diverse products
+                    // Final fallback - use product_name or 'Vare'
                     if (empty($item['name'])) {
-                        $item['name'] = $item['description'] ?? $item['product_name'] ?? 'Vare';
+                        $item['name'] = $item['product_name'] ?? 'Vare';
                     }
+                }
+                
+                // Preserve description separately (don't overwrite name with description)
+                // Description will be shown on a separate line if it exists
+                if (empty($item['description']) && !empty($item['product_name'])) {
+                    // If description is not set but we have product_name, description stays empty
+                    // (we'll show only product name)
                 }
                 
                 // Ensure quantity is present
@@ -459,6 +467,22 @@ class ReceiptTemplateService
                 // Format the complete line with proper spacing
                 // Pad name to fixed width, then add price section
                 $item['formatted_line'] = sprintf('%-' . $maxNameLength . 's        %s', $productName, $priceSection);
+                
+                // If description exists and is different from product name, add it as a separate line
+                $description = $item['description'] ?? null;
+                if (!empty($description) && $description !== $productName && $description !== $item['product_name']) {
+                    // Truncate description if too long (leave room for tab indent)
+                    $maxDescLength = 48 - 4; // 4 chars for tab indent
+                    $descriptionText = $description;
+                    if (mb_strlen($descriptionText) > $maxDescLength) {
+                        $descriptionText = mb_substr($descriptionText, 0, $maxDescLength - 3) . '...';
+                    }
+                    // Store description line with tab indent (4 spaces)
+                    $item['description_line'] = '    ' . $descriptionText;
+                } else {
+                    $item['description_line'] = null;
+                }
+                
                 // Also keep the original name (truncated) for backwards compatibility
                 $item['name'] = $productName;
             }

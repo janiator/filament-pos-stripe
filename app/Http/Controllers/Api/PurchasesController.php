@@ -476,7 +476,9 @@ class PurchasesController extends BaseApiController
 
         // Add purchase items - enrich with product information
         if (!empty($items) && is_array($items)) {
-            $data['purchase_items'] = $this->enrichPurchaseItems($items, $purchase->stripe_account_id);
+            // Get item refunds from metadata for refund status tracking
+            $itemRefunds = $cleanMetadata['item_refunds'] ?? [];
+            $data['purchase_items'] = $this->enrichPurchaseItems($items, $purchase->stripe_account_id, $itemRefunds);
             
             // Calculate totals from items if metadata values are missing or 0
             $calculatedSubtotal = 0;
@@ -592,9 +594,10 @@ class PurchasesController extends BaseApiController
      *
      * @param array $items
      * @param string $stripeAccountId
+     * @param array $itemRefunds Item refunds tracking (item_id => quantity_refunded)
      * @return array
      */
-    protected function enrichPurchaseItems(array $items, string $stripeAccountId): array
+    protected function enrichPurchaseItems(array $items, string $stripeAccountId, array $itemRefunds = []): array
     {
         if (empty($items)) {
             return [];
@@ -605,22 +608,32 @@ class PurchasesController extends BaseApiController
 
         // If snapshots exist, use them directly (preserves historical data)
         if ($hasSnapshots) {
-            return array_map(function ($item) {
+            return array_map(function ($item) use ($itemRefunds) {
                 $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
                 $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
                 // original_price is stored as integer (øre) in snapshot, or calculate if missing
                 $originalPrice = isset($item['original_price']) ? (int) $item['original_price'] : ($discountAmount > 0 ? ($unitPrice + $discountAmount) : null);
 
+                // Get refund status for this item
+                $itemId = $item['id'] ?? null;
+                $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
+                $quantityRefunded = $itemId ? ($itemRefunds[$itemId] ?? 0) : 0;
+                $isFullyRefunded = $quantityRefunded >= $quantity;
+                $isPartiallyRefunded = $quantityRefunded > 0 && $quantityRefunded < $quantity;
+
                 // Format item with purchase_item_ prefix for FlutterFlow
                 return [
-                    'purchase_item_id' => $item['id'] ?? null,
+                    'purchase_item_id' => $itemId,
                     'purchase_item_product_id' => isset($item['product_id']) ? (string) $item['product_id'] : null,
                     'purchase_item_variant_id' => isset($item['variant_id']) ? (string) $item['variant_id'] : null,
                     'purchase_item_product_name' => $item['product_name'] ?? null,
                     'purchase_item_description' => $item['description'] ?? null, // Custom description for diverse products
                     'purchase_item_product_image_url' => $item['product_image_url'] ?? null,
                     'purchase_item_unit_price' => $unitPrice,
-                    'purchase_item_quantity' => isset($item['quantity']) ? (int) $item['quantity'] : 1,
+                    'purchase_item_quantity' => $quantity,
+                    'purchase_item_quantity_refunded' => $quantityRefunded > 0 ? $quantityRefunded : null,
+                    'purchase_item_is_refunded' => $isFullyRefunded,
+                    'purchase_item_is_partially_refunded' => $isPartiallyRefunded,
                     'purchase_item_original_price' => $originalPrice,
                     'purchase_item_discount_amount' => $discountAmount > 0 ? $discountAmount : null,
                     'purchase_item_discount_reason' => $item['discount_reason'] ?? null,
@@ -659,7 +672,7 @@ class PurchasesController extends BaseApiController
             ->keyBy('id');
 
         // Enrich each item from current product data
-        return array_map(function ($item) use ($products, $variants) {
+        return array_map(function ($item) use ($products, $variants, $itemRefunds) {
             $productId = isset($item['product_id']) ? (int) $item['product_id'] : null;
             $variantId = isset($item['variant_id']) ? (int) $item['variant_id'] : null;
             
@@ -716,16 +729,26 @@ class PurchasesController extends BaseApiController
                 $productCode = $product->product_code;
             }
 
+            // Get refund status for this item
+            $itemId = $item['id'] ?? null;
+            $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
+            $quantityRefunded = $itemId ? ($itemRefunds[$itemId] ?? 0) : 0;
+            $isFullyRefunded = $quantityRefunded >= $quantity;
+            $isPartiallyRefunded = $quantityRefunded > 0 && $quantityRefunded < $quantity;
+
             // Format item with purchase_item_ prefix for FlutterFlow
             return [
-                'purchase_item_id' => $item['id'] ?? null,
+                'purchase_item_id' => $itemId,
                 'purchase_item_product_id' => $productId ? (string) $productId : null,
                 'purchase_item_variant_id' => $variantId ? (string) $variantId : null,
                 'purchase_item_product_name' => $productName,
                 'purchase_item_description' => $item['description'] ?? null, // Custom description for diverse products
                 'purchase_item_product_image_url' => $productImageUrl,
                 'purchase_item_unit_price' => $unitPrice,
-                'purchase_item_quantity' => isset($item['quantity']) ? (int) $item['quantity'] : 1,
+                'purchase_item_quantity' => $quantity,
+                'purchase_item_quantity_refunded' => $quantityRefunded > 0 ? $quantityRefunded : null,
+                'purchase_item_is_refunded' => $isFullyRefunded,
+                'purchase_item_is_partially_refunded' => $isPartiallyRefunded,
                 'purchase_item_original_price' => $originalPrice,
                 'purchase_item_discount_amount' => $discountAmount > 0 ? $discountAmount : null,
                 'purchase_item_discount_reason' => $item['discount_reason'] ?? null,
@@ -1487,6 +1510,9 @@ class PurchasesController extends BaseApiController
         $validator = Validator::make($request->all(), [
             'amount' => ['nullable', 'integer', 'min:1'],
             'reason' => ['nullable', 'string', 'max:500'],
+            'items' => ['nullable', 'array'],
+            'items.*.item_id' => ['nullable', 'string'],
+            'items.*.quantity' => ['nullable', 'integer', 'min:1'],
         ]);
 
         if ($validator->fails()) {
@@ -1552,7 +1578,8 @@ class PurchasesController extends BaseApiController
                 $purchase,
                 $validated['amount'] ?? null,
                 $validated['reason'] ?? null,
-                $request->user()->id
+                $request->user()->id,
+                $validated['items'] ?? null
             );
 
             // Reload relationships

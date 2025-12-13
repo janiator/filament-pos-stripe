@@ -59,11 +59,13 @@ class ReceiptGenerationService
         
         if (isset($metadata['items']) && is_array($metadata['items'])) {
             $items = $metadata['items'];
-            // Ensure items have 'name' field for receipt display (prefer custom description, then product_name)
+            // Ensure items have 'name' field for receipt display (keep both name and description)
             foreach ($items as &$item) {
+                // Ensure name is set (use product_name if name is empty)
                 if (empty($item['name'])) {
-                    $item['name'] = $item['description'] ?? $item['product_name'] ?? 'Vare';
+                    $item['name'] = $item['product_name'] ?? 'Vare';
                 }
+                // Description is kept separate and will be shown on a new line if it exists
             }
             unset($item); // Break reference
         } else {
@@ -280,11 +282,13 @@ class ReceiptGenerationService
         
         if (isset($metadata['items']) && is_array($metadata['items'])) {
             $items = $metadata['items'];
-            // Ensure items have 'name' field for receipt display (prefer custom description, then product_name)
+            // Ensure items have 'name' field for receipt display (keep both name and description)
             foreach ($items as &$item) {
+                // Ensure name is set (use product_name if name is empty)
                 if (empty($item['name'])) {
-                    $item['name'] = $item['description'] ?? $item['product_name'] ?? 'Vare/Tjeneste';
+                    $item['name'] = $item['product_name'] ?? 'Vare/Tjeneste';
                 }
+                // Description is kept separate and will be shown on a new line if it exists
             }
             unset($item); // Break reference
         } else {

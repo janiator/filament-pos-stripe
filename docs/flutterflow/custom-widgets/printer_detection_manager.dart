@@ -1072,6 +1072,30 @@ class _PrinterDetectionManagerState extends State<PrinterDetectionManager> {
           debugPrint('✓ Cleared default printer for POS device $posDeviceId');
           debugPrint('  Response default_printer_id: $updatedDefaultPrinterId');
         }
+        
+        // Update activePosDevice app state with the new printer settings
+        if (device != null) {
+          try {
+            // Ensure device_metadata is a string (DevicesStruct expects String)
+            final deviceMap = Map<String, dynamic>.from(device);
+            if (deviceMap['device_metadata'] != null && deviceMap['device_metadata'] is! String) {
+              deviceMap['device_metadata'] = jsonEncode(deviceMap['device_metadata']);
+            }
+            
+            // Build DevicesStruct from the updated device data
+            final devicesStruct = DevicesStruct.fromMap(deviceMap);
+            
+            // Update global app state
+            FFAppState().update(() {
+              FFAppState().activePosDevice = devicesStruct;
+            });
+            
+            debugPrint('✓ Updated activePosDevice app state with new default printer settings');
+          } catch (e) {
+            debugPrint('⚠ Error updating activePosDevice app state: $e');
+            // Don't throw - this is a secondary operation
+          }
+        }
       } else {
         final errorBody = response.body;
         debugPrint('⚠ Failed to update POS device default printer: ${response.statusCode}');

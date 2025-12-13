@@ -42,6 +42,10 @@
 {{^formatted_line}}
 <text>{{name}}        {{quantity}} x -{{unit_price}}</text>
 {{/formatted_line}}
+{{#description_line}}
+<feed/>
+<text>{{description_line}}</text>
+{{/description_line}}
 <feed/>
 <text lang="en"/>
 {{/items}}
