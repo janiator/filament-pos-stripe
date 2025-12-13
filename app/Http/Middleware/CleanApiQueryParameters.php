@@ -20,6 +20,14 @@ class CleanApiQueryParameters
     {
         // Only apply to API routes
         if ($request->is('api/*')) {
+            // Skip cleaning for signed URL routes (signature validation requires exact query params)
+            // Also skip for saf-t download route which uses signed URLs
+            if ($request->has('signature') || 
+                $request->has('expires') || 
+                $request->is('api/saf-t/download/*')) {
+                return $next($request);
+            }
+            
             $query = $request->query->all();
             
             // Filter out null, empty strings, whitespace-only strings, and string "null"

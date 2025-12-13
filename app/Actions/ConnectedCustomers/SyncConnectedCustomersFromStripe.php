@@ -59,11 +59,10 @@ class SyncConnectedCustomersFromStripe
 
             $stripe = new StripeClient($secret);
             
-            // Log for debugging
-            \Log::debug('Syncing customers for store', [
+            // Log summary only
+            \Log::info('Syncing customers for store', [
                 'store_id' => $store->id,
                 'store_name' => $store->name,
-                'stripe_account_id' => $stripeAccountId,
             ]);
 
             // Get customers from the connected account
@@ -103,14 +102,6 @@ class SyncConnectedCustomersFromStripe
                         // Explicitly set stripe_account_id again to be safe
                         $customerRecord->stripe_account_id = $stripeAccountId;
                         
-                        // Log before save for debugging
-                        \Log::debug('Updating customer', [
-                            'customer_id' => $customer->id,
-                            'stripe_account_id' => $stripeAccountId,
-                            'record_id' => $customerRecord->id,
-                            'attributes' => $customerRecord->getAttributes(),
-                        ]);
-                        
                         // Use saveQuietly to prevent triggering sync back to Stripe
                         $customerRecord->saveQuietly();
                         $result['updated']++;
@@ -141,11 +132,6 @@ class SyncConnectedCustomersFromStripe
                             $customerRecord = $existingCustomer;
                         } else {
                             // Create new record with all required fields
-                            \Log::debug('Creating new customer', [
-                                'customer_id' => $customer->id,
-                                'stripe_account_id' => $stripeAccountId,
-                            ]);
-                            
                             // Create without triggering events
                             $customerRecord = ConnectedCustomer::withoutEvents(function () use ($customer, $stripeAccountId) {
                                 return ConnectedCustomer::create([
@@ -172,12 +158,8 @@ class SyncConnectedCustomersFromStripe
                             'store_id' => $store->id,
                             'store_stripe_account_id' => $stripeAccountId,
                         ]);
-                    } else {
-                        \Log::debug('Customer saved successfully', [
-                            'customer_id' => $customer->id,
-                            'stripe_account_id' => $customerRecord->stripe_account_id,
-                        ]);
                     }
+                    // Customer saved successfully - no need to log every successful save
                 } catch (Throwable $e) {
                     $result['errors'][] = "Customer {$customer->id}: {$e->getMessage()}";
                     \Log::error('Error syncing customer', [

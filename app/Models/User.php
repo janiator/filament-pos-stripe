@@ -32,6 +32,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
         'email',
         'password',
         'current_store_id',
+        'email_verified_at',
     ];
 
     /**

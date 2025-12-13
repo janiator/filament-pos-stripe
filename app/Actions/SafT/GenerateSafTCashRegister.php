@@ -142,8 +142,8 @@ class GenerateSafTCashRegister
                     $this->addElement($xml, $line, 'ArticleGroupCode', $charge->article_group_code);
                 }
                 
-                $this->addElement($xml, $line, 'SourceDocumentID', $charge->stripe_charge_id);
-                $this->addElement($xml, $line, 'Description', $charge->description ?? "Salg {$charge->stripe_charge_id}");
+                $this->addElement($xml, $line, 'SourceDocumentID', $charge->stripe_charge_id ?? (string) $charge->id);
+                $this->addElement($xml, $line, 'Description', $charge->description ?? ("Salg " . ($charge->stripe_charge_id ?? $charge->id)));
                 $this->addElement($xml, $line, 'DebitAmount', (string) $charge->amount);
                 $this->addElement($xml, $line, 'CreditAmount', '0');
                 $this->addElement($xml, $line, 'TransactionDate', $charge->paid_at?->format('Y-m-d') ?? $charge->created_at->format('Y-m-d'));
@@ -164,7 +164,7 @@ class GenerateSafTCashRegister
                     $this->addElement($xml, $tipLine, 'RecordID', (string) ($charge->id . '-tip'));
                     $this->addElement($xml, $tipLine, 'AccountID', '3001'); // Tips account
                     $this->addElement($xml, $tipLine, 'RaiseCode', '10001'); // PredefinedBasicID-10
-                    $this->addElement($xml, $tipLine, 'SourceDocumentID', $charge->stripe_charge_id);
+                    $this->addElement($xml, $tipLine, 'SourceDocumentID', $charge->stripe_charge_id ?? (string) $charge->id);
                     $this->addElement($xml, $tipLine, 'Description', 'Drikkepenger/Tips');
                     $this->addElement($xml, $tipLine, 'DebitAmount', (string) $charge->tip_amount);
                     $this->addElement($xml, $tipLine, 'CreditAmount', '0');
@@ -177,8 +177,8 @@ class GenerateSafTCashRegister
 
                 $this->addElement($xml, $creditLine, 'RecordID', (string) ($charge->id . '-credit'));
                 $this->addElement($xml, $creditLine, 'AccountID', '3000'); // Revenue account
-                $this->addElement($xml, $creditLine, 'SourceDocumentID', $charge->stripe_charge_id);
-                $this->addElement($xml, $creditLine, 'Description', $charge->description ?? "Salg {$charge->stripe_charge_id}");
+                $this->addElement($xml, $creditLine, 'SourceDocumentID', $charge->stripe_charge_id ?? (string) $charge->id);
+                $this->addElement($xml, $creditLine, 'Description', $charge->description ?? ("Salg " . ($charge->stripe_charge_id ?? $charge->id)));
                 $this->addElement($xml, $creditLine, 'DebitAmount', '0');
                 $this->addElement($xml, $creditLine, 'CreditAmount', (string) $charge->amount);
                 $this->addElement($xml, $creditLine, 'TransactionDate', $charge->paid_at?->format('Y-m-d') ?? $charge->created_at->format('Y-m-d'));
@@ -196,14 +196,20 @@ class GenerateSafTCashRegister
                     
                     $this->addElement($xml, $eventElement, 'EventCode', $event->event_code);
                     $this->addElement($xml, $eventElement, 'EventType', $event->event_type);
-                    $this->addElement($xml, $eventElement, 'Description', $event->description ?? $event->event_description);
+                    $this->addElement($xml, $eventElement, 'Description', $event->description ?? $event->event_description ?? 'N/A');
                     $this->addElement($xml, $eventElement, 'OccurredAt', $event->occurred_at->format('Y-m-d\TH:i:s'));
                     
                     if ($event->event_data) {
                         $eventDataElement = $xml->createElement('EventData');
                         $eventElement->appendChild($eventDataElement);
                         foreach ($event->event_data as $key => $value) {
-                            $this->addElement($xml, $eventDataElement, $key, (string) $value);
+                            // Convert value to string, handling null and arrays/objects
+                            $stringValue = match(true) {
+                                is_null($value) => '',
+                                is_array($value) || is_object($value) => json_encode($value),
+                                default => (string) $value,
+                            };
+                            $this->addElement($xml, $eventDataElement, $key, $stringValue);
                         }
                     }
                 }
@@ -216,8 +222,10 @@ class GenerateSafTCashRegister
     /**
      * Add element to parent
      */
-    protected function addElement(DOMDocument $xml, DOMElement $parent, string $name, string $value): void
+    protected function addElement(DOMDocument $xml, DOMElement $parent, string $name, ?string $value): void
     {
+        // Convert null to empty string
+        $value = $value ?? '';
         $element = $xml->createElement($name, htmlspecialchars($value, ENT_XML1, 'UTF-8'));
         $parent->appendChild($element);
     }

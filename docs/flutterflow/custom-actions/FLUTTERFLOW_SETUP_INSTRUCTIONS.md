@@ -207,3 +207,4 @@ Result Handling:
 - For cash payments, it's a record update (manual cash return)
 - All refunds are logged in POS events for compliance
 - Return receipts are automatically generated
+

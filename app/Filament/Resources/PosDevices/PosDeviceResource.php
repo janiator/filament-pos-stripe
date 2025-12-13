@@ -70,6 +70,7 @@ class PosDeviceResource extends Resource
         return [
             \App\Filament\Resources\PosDevices\RelationManagers\TerminalLocationsRelationManager::class,
             \App\Filament\Resources\PosDevices\RelationManagers\ReceiptPrintersRelationManager::class,
+            \App\Filament\Resources\PosDevices\RelationManagers\PosSessionsRelationManager::class,
         ];
     }
 

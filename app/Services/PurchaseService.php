@@ -1168,7 +1168,9 @@ class PurchaseService
         ?int $amount = null,
         ?string $reason = null,
         ?int $userId = null,
-        ?array $refundedItems = null
+        ?array $refundedItems = null,
+        ?PosSession $currentPosSession = null,
+        ?PosSession $originalPosSession = null
     ): array {
         DB::beginTransaction();
 
@@ -1194,10 +1196,25 @@ class PurchaseService
                 throw new \Exception("Refund amount ({$refundAmount}) exceeds remaining refundable amount ({$remainingRefundable})");
             }
 
-            // Get POS session
-            $posSession = $charge->posSession;
+            // Determine which POS session to use
+            // For compliance: If original session is closed, use current open session
+            // Original session totals should not be modified
+            if ($currentPosSession !== null) {
+                $posSession = $currentPosSession;
+                $originalPosSession = $originalPosSession ?? $charge->posSession;
+            } else {
+                // Fallback: use original session (for backward compatibility)
+                $posSession = $charge->posSession;
+                $originalPosSession = $charge->posSession;
+            }
+            
             if (!$posSession) {
                 throw new \Exception('POS session not found for charge');
+            }
+            
+            // Ensure current session is open (for compliance)
+            if ($posSession->status !== 'open') {
+                throw new \Exception('Current POS session must be open for refunds. Closed sessions cannot be modified.');
             }
 
             // Get payment method
@@ -1209,11 +1226,15 @@ class PurchaseService
                 throw new \Exception('Payment method not found');
             }
 
-            // Process Stripe refund if applicable
+            // Process refund based on payment provider
             $stripeRefundId = null;
             $stripeRefundError = null;
+            $refundProcessedAutomatically = false;
+            $requiresManualProcessing = false;
+            $manualProcessingMessage = null;
             
             if ($charge->stripe_charge_id && $paymentMethod->provider === 'stripe') {
+                // Stripe payments can be refunded automatically
                 $refundResult = $this->processStripeRefund(
                     $charge->stripe_charge_id,
                     $charge->stripe_account_id,
@@ -1228,8 +1249,14 @@ class PurchaseService
                     // Stripe refund failed - abort transaction
                     throw new \Exception("Stripe refund failed: {$stripeRefundError}");
                 }
+                
+                $refundProcessedAutomatically = true;
+            } else {
+                // For non-Stripe payments (cash, Vipps, gift tokens, etc.), refund must be processed manually
+                $requiresManualProcessing = true;
+                $paymentMethodName = $paymentMethod->name ?? $paymentMethod->code ?? 'payment method';
+                $manualProcessingMessage = "Refund for {$paymentMethodName} must be processed manually. Please process the refund through the payment provider's system.";
             }
-            // For cash refunds, we just update the local record (manual process)
 
             // Calculate new refunded amounts
             $newAmountRefunded = $charge->amount_refunded + $refundAmount;
@@ -1245,6 +1272,9 @@ class PurchaseService
                 'refunded_at' => now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s'),
                 'refunded_by' => $userId,
                 'stripe_refund_id' => $stripeRefundId,
+                'refund_processed_automatically' => $refundProcessedAutomatically,
+                'requires_manual_processing' => $requiresManualProcessing,
+                'manual_processing_message' => $manualProcessingMessage,
             ];
             
             // Track refunded items if provided
@@ -1299,11 +1329,12 @@ class PurchaseService
             // Generate return receipt (pass current refund amount for this specific refund)
             $returnReceipt = $this->receiptService->generateReturnReceipt($charge, $originalReceipt, $refundAmount);
 
-            // Log return receipt event (13013)
+            // Log return receipt event (13013) in current session
+            // Store reference to original session for audit trail
             $posEvent = PosEvent::create([
                 'store_id' => $posSession->store_id,
                 'pos_device_id' => $posSession->pos_device_id,
-                'pos_session_id' => $posSession->id,
+                'pos_session_id' => $posSession->id, // Current open session
                 'user_id' => $userId ?? $posSession->user_id,
                 'related_charge_id' => $charge->id,
                 'event_code' => PosEvent::EVENT_RETURN_RECEIPT,
@@ -1322,6 +1353,9 @@ class PurchaseService
                     'receipt_number' => $returnReceipt->receipt_number,
                     'original_receipt_id' => $originalReceipt->id,
                     'original_receipt_number' => $originalReceipt->receipt_number,
+                    'original_pos_session_id' => $originalPosSession->id, // Reference to original session
+                    'original_pos_session_number' => $originalPosSession->session_number,
+                    'refund_in_current_session' => $posSession->id !== $originalPosSession->id, // True if refunding from closed session
                 ],
                 'occurred_at' => now(),
             ]);
@@ -1340,6 +1374,9 @@ class PurchaseService
                 'charge' => $charge->fresh(),
                 'receipt' => $returnReceipt,
                 'pos_event' => $posEvent,
+                'refund_processed_automatically' => $refundProcessedAutomatically,
+                'requires_manual_processing' => $requiresManualProcessing,
+                'manual_processing_message' => $manualProcessingMessage,
             ];
         } catch (Throwable $e) {
             DB::rollBack();
@@ -1426,7 +1463,11 @@ class PurchaseService
 
     /**
      * Update POS session totals after refund
-     * Decrements transaction count, total amount, and expected cash (for cash payments)
+     * 
+     * For compliance: Only updates the current open session totals.
+     * Closed sessions should not be modified per Kassasystemforskriften.
+     * 
+     * Decrements total amount and expected cash (for cash payments) in the current session.
      */
     protected function updatePosSessionTotalsForRefund(
         PosSession $posSession,
@@ -1434,16 +1475,27 @@ class PurchaseService
         PaymentMethod $paymentMethod,
         int $refundAmount
     ): void {
-        // Decrement total amount
+        // Only update if session is open (compliance: closed sessions should not be modified)
+        if ($posSession->status !== 'open') {
+            \Log::warning('Attempted to update totals for closed POS session - skipped for compliance', [
+                'pos_session_id' => $posSession->id,
+                'pos_session_status' => $posSession->status,
+                'charge_id' => $charge->id,
+                'refund_amount' => $refundAmount,
+            ]);
+            return;
+        }
+
+        // Decrement total amount in current session
         $posSession->decrement('total_amount', $refundAmount);
 
-        // For cash payments, decrement expected cash
+        // For cash payments, decrement expected cash in current session
         if ($paymentMethod->isCash()) {
             $posSession->decrement('expected_cash', $refundAmount);
         }
 
         // Note: We don't decrement transaction_count because the original transaction still exists
-        // The refund is tracked as a separate event (return receipt)
+        // The refund is tracked as a separate event (return receipt) in the current session
 
         $posSession->save();
     }

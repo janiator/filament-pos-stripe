@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ConnectedProducts;
 
 use App\Filament\Resources\ConnectedProducts\Pages\CreateConnectedProduct;
 use App\Filament\Resources\ConnectedProducts\Pages\EditConnectedProduct;
+use App\Filament\Resources\ConnectedProducts\Pages\ImportProductsZip;
 use App\Filament\Resources\ConnectedProducts\Pages\ImportShopifyCsv;
 use App\Filament\Resources\ConnectedProducts\Pages\ListConnectedProducts;
 use App\Filament\Resources\ConnectedProducts\Pages\ViewConnectedProduct;
@@ -79,9 +80,10 @@ class ConnectedProductResource extends Resource
         return [
             'index' => ListConnectedProducts::route('/'),
             'create' => CreateConnectedProduct::route('/create'),
+            'import-shopify-csv' => ImportShopifyCsv::route('/import-shopify-csv'),
+            'import-products-zip' => ImportProductsZip::route('/import-products-zip'),
             'view' => ViewConnectedProduct::route('/{record}'),
             'edit' => EditConnectedProduct::route('/{record}/edit'),
-            'import-shopify-csv' => ImportShopifyCsv::route('/import-shopify-csv'),
         ];
     }
 }

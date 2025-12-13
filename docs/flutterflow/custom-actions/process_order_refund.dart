@@ -467,6 +467,10 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
 /// Opens a modal to select which items from the order should be refunded,
 /// then processes the refund using the appropriate payment method (cash or Stripe).
 /// 
+/// For compliance: If the original POS session is closed, the refund will be tracked
+/// in the current open session. The original session totals remain unchanged.
+/// The backend automatically detects the current open session if original is closed.
+/// 
 /// Parameters:
 /// - context: BuildContext required for showing the dialog
 /// - purchase: The purchase/order struct containing all purchase information
@@ -494,6 +498,8 @@ Future<dynamic> processOrderRefund(
     final purchaseAmount = purchase.amount ?? 0;
     final amountRefunded = purchase.amountRefunded ?? 0;
     final paymentMethod = purchase.paymentMethod ?? '';
+    final originalSession = purchase.purchaseSession;
+    final isOriginalSessionClosed = originalSession?.status == 'closed';
 
     // Validate inputs
     if (purchaseId <= 0) {
@@ -531,6 +537,7 @@ Future<dynamic> processOrderRefund(
         'message': 'Purchase is already fully refunded',
       };
     }
+
 
     // Show modal to select items
     // Use default values if width/height are null (FlutterFlow compatibility)
@@ -590,6 +597,9 @@ Future<dynamic> processOrderRefund(
       requestBody['reason'] = reason;
     }
 
+    // Backend automatically detects current open session if original session is closed
+    // No need to pass pos_device_id or pos_session_id - backend handles it for compliance
+
     final response = await http.post(
       Uri.parse('$apiBaseUrl/api/purchases/$purchaseId/refund'),
       headers: {
@@ -605,13 +615,25 @@ Future<dynamic> processOrderRefund(
     // Check HTTP status code
     if (response.statusCode >= 200 && response.statusCode < 300) {
       // Success
+      final data = responseData['data'] as Map<String, dynamic>? ?? {};
+      final refundProcessedAutomatically = data['refund_processed_automatically'] ?? false;
+      final requiresManualProcessing = data['requires_manual_processing'] ?? false;
+      final manualProcessingMessage = data['manual_processing_message'] as String?;
+      final receipt = data['receipt'] as Map<String, dynamic>?;
+      
       return {
         'success': responseData['success'] ?? true,
-        'data': responseData['data'],
+        'data': data,
         'message': responseData['message'] ?? 'Refund processed successfully',
         'statusCode': response.statusCode,
         'refundAmount': refundAmount,
         'selectedItems': modalResult['selectedItems'],
+        'refundProcessedAutomatically': refundProcessedAutomatically,
+        'requiresManualProcessing': requiresManualProcessing,
+        'manualProcessingMessage': manualProcessingMessage,
+        'receipt': receipt,
+        'receiptId': receipt?['id'],
+        'receiptNumber': receipt?['receipt_number'],
       };
     } else {
       // Error
@@ -632,3 +654,4 @@ Future<dynamic> processOrderRefund(
     };
   }
 }
+

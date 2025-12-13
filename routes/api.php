@@ -23,6 +23,10 @@ Route::get('/products/{product}/images/{media}', [\App\Http\Controllers\Api\Prod
 Route::get('/collections/{collectionId}/image', [\App\Http\Controllers\Api\CollectionImagesController::class, 'serve'])
     ->name('api.collections.image.serve');
 
+// SAF-T file download with signed URLs (public route, secured by signature validation)
+Route::get('/saf-t/download/{filename}', [\App\Http\Controllers\Api\SafTController::class, 'download'])
+    ->name('api.saf-t.download');
+
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth endpoints
@@ -83,7 +87,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // SAF-T endpoints (Kassasystemforskriften compliance)
     Route::post('/saf-t/generate', [\App\Http\Controllers\Api\SafTController::class, 'generate'])->name('api.saf-t.generate');
     Route::get('/saf-t/content', [\App\Http\Controllers\Api\SafTController::class, 'content'])->name('api.saf-t.content');
-    Route::get('/saf-t/download/{filename}', [\App\Http\Controllers\Api\SafTController::class, 'download'])->name('api.saf-t.download');
 
     // POS Event endpoints
     Route::get('/pos-events', [\App\Http\Controllers\Api\PosEventsController::class, 'index'])->name('api.pos-events.index');

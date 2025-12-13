@@ -7,6 +7,7 @@ use App\Models\ReceiptTemplate;
 use App\Models\ConnectedCharge;
 use App\Models\Store;
 use App\Models\PosSession;
+use App\Models\PaymentMethod;
 use Mustache_Engine;
 use Illuminate\Support\Facades\File;
 
@@ -500,16 +501,17 @@ class ReceiptTemplateService
         // Format payment method display (handle split payments)
         $receiptData = $receipt->receipt_data ?? [];
         $isSplitPayment = $receiptData['is_split_payment'] ?? false;
+        $storeId = $store->id;
         
         if ($isSplitPayment && isset($receiptData['payments'])) {
             $paymentMethods = [];
             foreach ($receiptData['payments'] as $payment) {
-                $paymentMethods[] = $this->formatPaymentMethod($payment['method'] ?? 'unknown') . 
+                $paymentMethods[] = $this->formatPaymentMethod($payment['method'] ?? 'unknown', $storeId) . 
                     ' ' . number_format($payment['amount'], 2, ',', ' ') . ' kr';
             }
             $paymentMethodDisplay = implode(' + ', $paymentMethods);
         } else {
-            $paymentMethodDisplay = $this->formatPaymentMethod($charge?->payment_method ?? 'unknown');
+            $paymentMethodDisplay = $this->formatPaymentMethod($charge?->payment_method ?? 'unknown', $storeId);
         }
 
         // Format date/time in Oslo timezone
@@ -571,10 +573,19 @@ class ReceiptTemplateService
 
     /**
      * Format payment method for display
+     * 
+     * @param string|null $paymentMethodCode Payment method code (e.g., 'cash', 'vipps', 'card')
+     * @param int|null $storeId Store ID to look up payment method name from database
+     * @return string Display name for payment method
      */
-    protected function formatPaymentMethod(?string $paymentMethod): string
+    protected function formatPaymentMethod(?string $paymentMethodCode, ?int $storeId = null): string
     {
-        return match($paymentMethod) {
+        if (!$paymentMethodCode) {
+            return 'Ukjent';
+        }
+
+        // First check hardcoded mappings for common payment methods
+        $hardcoded = match($paymentMethodCode) {
             'cash' => 'Kontant',
             'card' => 'Kort',
             'credit_card' => 'Kredittkort',
@@ -582,8 +593,27 @@ class ReceiptTemplateService
             'gift_token' => 'Gavekort',
             'customer_card' => 'Kundekort',
             'loyalty' => 'Lojalitetspoeng',
-            default => 'Ukjent',
+            'vipps' => 'Vipps',
+            default => null,
         };
+
+        if ($hardcoded !== null) {
+            return $hardcoded;
+        }
+
+        // If not in hardcoded list and we have store ID, look up from database
+        if ($storeId) {
+            $paymentMethod = PaymentMethod::where('store_id', $storeId)
+                ->where('code', $paymentMethodCode)
+                ->first();
+            
+            if ($paymentMethod && $paymentMethod->name) {
+                return $paymentMethod->name;
+            }
+        }
+
+        // Fallback: return capitalized code or 'Ukjent'
+        return ucfirst($paymentMethodCode) ?: 'Ukjent';
     }
 
     /**

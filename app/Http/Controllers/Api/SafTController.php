@@ -77,13 +77,30 @@ class SafTController extends BaseApiController
      */
     public function download(Request $request, string $filename): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $store = $this->getTenantStore($request);
-        
+        // Verify the signed URL first - this provides the security
+        if (!\Illuminate\Support\Facades\URL::hasValidSignature($request)) {
+            \Log::warning('Invalid SAF-T download signature', [
+                'filename' => $filename,
+                'url' => $request->fullUrl(),
+                'query' => $request->query->all(),
+                'signature' => $request->query('signature'),
+                'expires' => $request->query('expires'),
+            ]);
+            abort(403, 'Invalid or expired URL');
+        }
+
+        // Extract store slug from filename to verify ownership
+        // Format: SAF-T_{store-slug}_{from_date}_{to_date}.xml
+        if (!preg_match('/^SAF-T_([^_]+)_/', $filename, $matches)) {
+            abort(400, 'Invalid filename format');
+        }
+
+        $storeSlug = $matches[1];
+        $store = Store::where('slug', $storeSlug)->first();
+
         if (!$store) {
             abort(404, 'Store not found');
         }
-
-        $this->authorizeTenant($request, $store);
 
         // Verify filename belongs to this store
         if (!str_starts_with($filename, "SAF-T_{$store->slug}_")) {

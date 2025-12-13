@@ -26,6 +26,11 @@ final result = await processOrderRefund(
 );
 ```
 
+**That's it!** The backend automatically:
+- Uses original session if it's still open
+- Auto-detects current open session if original is closed (prefers same device, then any open session)
+- Handles compliance automatically (closed sessions remain unchanged)
+
 ### With Custom Modal Size
 
 ```dart
@@ -49,16 +54,69 @@ if (result['success'] == true) {
   final refundData = result['data'];
   final refundAmount = result['refundAmount'];
   final selectedItems = result['selectedItems'];
+  final refundProcessedAutomatically = result['refundProcessedAutomatically'] ?? false;
+  final requiresManualProcessing = result['requiresManualProcessing'] ?? false;
+  final manualProcessingMessage = result['manualProcessingMessage'] as String?;
+  final receiptNumber = result['receiptNumber'] as String?;
+  
+  // Show success message
+  if (requiresManualProcessing && manualProcessingMessage != null) {
+    // Show warning that manual processing is required
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Refund recorded'),
+            Text(
+              manualProcessingMessage,
+              style: TextStyle(fontSize: 12),
+            ),
+            if (receiptNumber != null)
+              Text('Return receipt: $receiptNumber'),
+          ],
+        ),
+        backgroundColor: Colors.orange,
+        duration: Duration(seconds: 8),
+      ),
+    );
+  } else {
+    // Automatic refund successful
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Refund processed successfully'),
+            if (receiptNumber != null)
+              Text('Return receipt: $receiptNumber'),
+          ],
+        ),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
   
   // Refresh purchase data to show updated refund status
   // The purchase items will now have refund status fields:
   // - purchase_item_quantity_refunded
   // - purchase_item_is_refunded
   // - purchase_item_is_partially_refunded
+  
+  // Note: Return receipt is automatically printed if auto-print is enabled
+  // You can also retrieve the receipt XML for manual printing:
+  // GET /api/receipts/{receiptId}/xml
 } else {
   // Handle error
   final errorMessage = result['message'];
-  // Show error to user
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(errorMessage),
+      backgroundColor: Colors.red,
+    ),
+  );
 }
 ```
 
@@ -98,6 +156,9 @@ The action returns a `Map<String, dynamic>` with the following structure:
       'id': 789,
       'event_code': '13013',
     },
+    'refund_processed_automatically': true,  // true for Stripe, false for others
+    'requires_manual_processing': false,    // true for Vipps/cash/etc
+    'manual_processing_message': null,      // Message if manual processing needed
   },
   'message': 'Refund processed successfully',
   'statusCode': 200,
@@ -106,8 +167,20 @@ The action returns a `Map<String, dynamic>` with the following structure:
     'item-uuid-1': 2,
     'item-uuid-2': 1,
   },
+  'refundProcessedAutomatically': true,
+  'requiresManualProcessing': false,
+  'manualProcessingMessage': null,
+  'receipt': { ... },
+  'receiptId': 456,
+  'receiptNumber': 'RET-2025-000123',
 }
 ```
+
+**Note**: For payment methods without direct integration (Vipps, cash, etc.):
+- `refund_processed_automatically` will be `false`
+- `requires_manual_processing` will be `true`
+- `manual_processing_message` will contain instructions
+- The refund is still recorded locally, but must be processed manually through the payment provider
 
 ### Error Response
 
@@ -306,12 +379,58 @@ void _handleRefund(PurchaseStruct purchase) async {
   );
 
   if (result['success'] == true) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Refusjon prosessert'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    final requiresManualProcessing = result['requiresManualProcessing'] ?? false;
+    final manualProcessingMessage = result['manualProcessingMessage'] as String?;
+    final receiptNumber = result['receiptNumber'] as String?;
+    
+    if (requiresManualProcessing && manualProcessingMessage != null) {
+      // Show warning for manual processing
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Refusjon registrert'),
+              SizedBox(height: 4),
+              Text(
+                manualProcessingMessage,
+                style: TextStyle(fontSize: 12),
+              ),
+              if (receiptNumber != null) ...[
+                SizedBox(height: 4),
+                Text(
+                  'Returkvittering: $receiptNumber',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 8),
+        ),
+      );
+    } else {
+      // Automatic refund successful
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Refusjon prosessert'),
+              if (receiptNumber != null)
+                Text(
+                  'Returkvittering: $receiptNumber',
+                  style: TextStyle(fontSize: 12),
+                ),
+            ],
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+    
     // Refresh purchase data
     await _refreshPurchase(purchase.id);
   } else {
@@ -332,3 +451,64 @@ void _handleRefund(PurchaseStruct purchase) async {
 - The action handles both full order refunds and partial item refunds
 - Refunded items are tracked in purchase metadata for audit purposes
 - The UI should refresh purchase data after a successful refund to show updated status
+
+## Session Handling
+
+The backend automatically handles POS session selection for compliance:
+
+- **If original session is open:** Uses the original session
+- **If original session is closed:** Auto-detects current open session
+  - First tries: Same device as original (if it has an open session)
+  - Then tries: Any open session for the store (most recent)
+
+You don't need to pass any session information - the backend handles it automatically!
+
+## Compliance with Kassasystemforskriften
+
+**Important**: For refunds from closed POS sessions (e.g., orders from previous days):
+
+- **Original session totals remain unchanged** - Closed sessions cannot be modified per Kassasystemforskriften
+- **Refund is tracked in current open session** - The refund transaction is logged in the current active session
+- **Auto-detection** - Backend automatically finds current open session (no frontend action needed)
+- **Audit trail maintained** - The POS event stores reference to both original session and current session
+
+The backend automatically:
+- Detects if the original session is closed
+- Auto-detects current open session (priority: same device → any open session for store)
+- Uses current open session for POS event logging and receipt printing
+- Only update totals on the current open session (never modify closed sessions)
+
+**You don't need to pass anything** - the backend handles it automatically for compliance!
+
+## Payment Method Handling
+
+### Automatic Refunds (Stripe)
+- **Stripe payments** (`provider === 'stripe'`) are refunded automatically via Stripe API
+- Refund is processed immediately and funds are returned to the customer
+- `refund_processed_automatically` will be `true`
+
+### Manual Refunds (Other Payment Methods)
+- **Cash payments**: Refund is recorded locally, but cash must be physically returned to customer
+- **Vipps payments**: Refund is recorded locally, but must be processed manually through Vipps system
+- **Gift tokens/Credit notes**: Refund is recorded locally, but must be processed through the provider
+- `requires_manual_processing` will be `true`
+- `manual_processing_message` will contain instructions
+
+**Important**: Even for manual refunds:
+- The refund is recorded in the system
+- A return receipt is generated and printed automatically
+- POS session totals are updated
+- The refund is logged in POS events for compliance
+
+## Receipt Printing
+
+Return receipts are automatically:
+1. **Generated** when a refund is processed
+2. **Printed** automatically if `pos.auto_print_receipts` config is enabled (default: true)
+3. **Available** via API at `/api/receipts/{receiptId}/xml` for manual printing if needed
+
+The receipt information is included in the response:
+- `receipt.id` - Receipt ID for API calls
+- `receipt.receipt_number` - Receipt number to display (e.g., "RET-2025-000123")
+- `receipt.receipt_type` - Always "return" for refund receipts
+

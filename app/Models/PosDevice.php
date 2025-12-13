@@ -66,4 +66,12 @@ class PosDevice extends Model
     {
         return $this->belongsTo(ReceiptPrinter::class, 'default_printer_id');
     }
+
+    /**
+     * Get all POS sessions for this device
+     */
+    public function posSessions(): HasMany
+    {
+        return $this->hasMany(PosSession::class);
+    }
 }

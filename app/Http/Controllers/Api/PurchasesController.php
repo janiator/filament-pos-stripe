@@ -1513,6 +1513,8 @@ class PurchasesController extends BaseApiController
             'items' => ['nullable', 'array'],
             'items.*.item_id' => ['nullable', 'string'],
             'items.*.quantity' => ['nullable', 'integer', 'min:1'],
+            'pos_device_id' => ['nullable', 'integer', 'exists:pos_devices,id'], // Optional: auto-detected if not provided
+            'pos_session_id' => ['nullable', 'integer', 'exists:pos_sessions,id'], // Optional: auto-detected if not provided
         ]);
 
         if ($validator->fails()) {
@@ -1563,13 +1565,77 @@ class PurchasesController extends BaseApiController
             }
         }
 
-        // Get POS session
-        $posSession = $purchase->posSession;
-        if (!$posSession || $posSession->status !== 'open') {
+        // Get original POS session (for reference)
+        $originalPosSession = $purchase->posSession;
+        if (!$originalPosSession) {
             return response()->json([
                 'success' => false,
-                'message' => 'POS session is not open',
+                'message' => 'POS session not found for purchase',
             ], 422);
+        }
+
+        // For compliance: If original session is closed, use current open session
+        // Closed sessions should not be modified per Kassasystemforskriften
+        $currentPosSession = null;
+        
+        if ($originalPosSession->status === 'closed') {
+            // Original session is closed - auto-detect current open session
+            // Priority: 1) Explicitly provided, 2) Same device, 3) Any open session for store
+            
+            if (isset($validated['pos_session_id'])) {
+                // Use explicitly provided session (if frontend wants to specify)
+                $currentPosSession = PosSession::where('id', $validated['pos_session_id'])
+                    ->where('store_id', $store->id)
+                    ->where('status', 'open')
+                    ->first();
+                
+                if (!$currentPosSession) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Provided POS session is not open or does not belong to this store',
+                    ], 422);
+                }
+            } elseif (isset($validated['pos_device_id'])) {
+                // Use explicitly provided device (if frontend wants to specify)
+                $currentPosSession = PosSession::where('store_id', $store->id)
+                    ->where('pos_device_id', $validated['pos_device_id'])
+                    ->where('status', 'open')
+                    ->first();
+                
+                if (!$currentPosSession) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No open POS session found for the specified device. Please open a session first.',
+                    ], 422);
+                }
+            } else {
+                // Auto-detect: Try same device first, then any open session for the store
+                // Priority 1: Same device as original session (if it has an open session)
+                if ($originalPosSession->pos_device_id) {
+                    $currentPosSession = PosSession::where('store_id', $store->id)
+                        ->where('pos_device_id', $originalPosSession->pos_device_id)
+                        ->where('status', 'open')
+                        ->first();
+                }
+                
+                // Priority 2: Any open session for this store (most recent)
+                if (!$currentPosSession) {
+                    $currentPosSession = PosSession::where('store_id', $store->id)
+                        ->where('status', 'open')
+                        ->orderBy('opened_at', 'desc')
+                        ->first();
+                }
+                
+                if (!$currentPosSession) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Original POS session is closed and no open session found for this store. Please open a POS session first.',
+                    ], 422);
+                }
+            }
+        } else {
+            // Original session is still open - use it
+            $currentPosSession = $originalPosSession;
         }
 
         try {
@@ -1579,7 +1645,9 @@ class PurchasesController extends BaseApiController
                 $validated['amount'] ?? null,
                 $validated['reason'] ?? null,
                 $request->user()->id,
-                $validated['items'] ?? null
+                $validated['items'] ?? null,
+                $currentPosSession,
+                $originalPosSession
             );
 
             // Reload relationships
@@ -1587,7 +1655,9 @@ class PurchasesController extends BaseApiController
 
             return response()->json([
                 'success' => true,
-                'message' => 'Refund processed successfully',
+                'message' => $result['requires_manual_processing'] 
+                    ? 'Refund recorded. Manual processing required for this payment method.'
+                    : 'Refund processed successfully',
                 'data' => [
                     'charge' => [
                         'id' => $result['charge']->id,
@@ -1609,6 +1679,9 @@ class PurchasesController extends BaseApiController
                         'event_code' => $result['pos_event']->event_code,
                         'description' => $result['pos_event']->description,
                     ],
+                    'refund_processed_automatically' => $result['refund_processed_automatically'] ?? false,
+                    'requires_manual_processing' => $result['requires_manual_processing'] ?? false,
+                    'manual_processing_message' => $result['manual_processing_message'] ?? null,
                 ],
             ], 200);
         } catch (\Exception $e) {

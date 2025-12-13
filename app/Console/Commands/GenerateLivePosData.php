@@ -203,7 +203,7 @@ class GenerateLivePosData extends Command
 
         $this->newLine();
         $this->info('✅ Live POS data generated successfully!');
-        $this->info("📊 You can now view the data in Filament at: /pos-reports");
+        $this->info("📊 You can now view the data in Filament at: /pos-sessions");
         $this->newLine();
         $this->info("Summary:");
         $this->line("  - Store: {$store->name}");
