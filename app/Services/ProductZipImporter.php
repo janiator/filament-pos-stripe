@@ -32,8 +32,14 @@ class ProductZipImporter
             throw new \Exception("Store does not have a Stripe account ID");
         }
 
-        // Extract zip file
-        $this->tempDir = storage_path('app/temp/import-' . time());
+        // Extract zip file - use unique directory name with microseconds
+        $this->tempDir = storage_path('app/temp/import-' . time() . '-' . uniqid());
+        
+        // Clean up if directory exists (shouldn't happen, but be safe)
+        if (File::exists($this->tempDir)) {
+            File::deleteDirectory($this->tempDir);
+        }
+        
         File::makeDirectory($this->tempDir, 0755, true);
 
         try {
@@ -90,8 +96,14 @@ class ProductZipImporter
             throw new \Exception("File not found: {$zipFilePath}");
         }
 
-        // Extract zip file
-        $this->tempDir = storage_path('app/temp/preview-' . time());
+        // Extract zip file - use unique directory name with microseconds
+        $this->tempDir = storage_path('app/temp/preview-' . time() . '-' . uniqid());
+        
+        // Clean up if directory exists (shouldn't happen, but be safe)
+        if (File::exists($this->tempDir)) {
+            File::deleteDirectory($this->tempDir);
+        }
+        
         File::makeDirectory($this->tempDir, 0755, true);
 
         try {
