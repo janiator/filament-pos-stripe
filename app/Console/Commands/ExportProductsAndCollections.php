@@ -98,6 +98,19 @@ class ExportProductsAndCollections extends Command
             foreach ($products as $product) {
                 $productData = $product->toArray();
                 
+                // Include vendor information if product has a vendor
+                if ($product->vendor_id && $product->vendor) {
+                    $productData['vendor'] = [
+                        'id' => $product->vendor->id,
+                        'name' => $product->vendor->name,
+                        'description' => $product->vendor->description,
+                        'contact_email' => $product->vendor->contact_email,
+                        'contact_phone' => $product->vendor->contact_phone,
+                        'active' => $product->vendor->active,
+                        'metadata' => $product->vendor->metadata,
+                    ];
+                }
+                
                 // Export product images (Spatie Media Library)
                 $productImages = [];
                 $mediaItems = $product->getMedia('images');

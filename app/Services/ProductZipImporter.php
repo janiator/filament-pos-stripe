@@ -6,6 +6,7 @@ use App\Models\Collection;
 use App\Models\ConnectedProduct;
 use App\Models\ProductVariant;
 use App\Models\Store;
+use App\Models\Vendor;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use ZipArchive;
@@ -280,7 +281,64 @@ class ProductZipImporter
             $product->product_code = $productData['product_code'] ?? null;
             $product->product_meta = $productData['product_meta'] ?? [];
             $product->images = $productData['images'] ?? [];
-            $product->vendor_id = $productData['vendor_id'] ?? null;
+            
+            // Handle vendor_id - create vendor if it doesn't exist
+            // Vendors are store-specific, so we need to find or create them in the target store
+            if (isset($productData['vendor_id']) && $productData['vendor_id']) {
+                // Try to find vendor by ID in target store
+                $vendor = Vendor::where('id', $productData['vendor_id'])
+                    ->where('stripe_account_id', $store->stripe_account_id)
+                    ->first();
+                
+                if (!$vendor) {
+                    // Vendor doesn't exist - try to get vendor name from product data
+                    // The export might include vendor relationship data
+                    $vendorName = null;
+                    
+                    // Check if vendor data is included in export (from relationship)
+                    if (isset($productData['vendor']) && is_array($productData['vendor'])) {
+                        $vendorName = $productData['vendor']['name'] ?? null;
+                    }
+                    
+                    // Fallback to vendor name from metadata or use generic name
+                    if (!$vendorName) {
+                        $vendorName = $productData['vendor_name'] ?? 
+                                      ($productData['product_meta']['vendor_name'] ?? null) ??
+                                      'Imported Vendor ' . $productData['vendor_id'];
+                    }
+                    
+                    // Check if a vendor with this name already exists
+                    $vendor = Vendor::where('name', $vendorName)
+                        ->where('stripe_account_id', $store->stripe_account_id)
+                        ->first();
+                    
+                    if (!$vendor) {
+                        // Create new vendor with available data
+                        $vendor = new Vendor();
+                        $vendor->store_id = $store->id;
+                        $vendor->stripe_account_id = $store->stripe_account_id;
+                        $vendor->name = $vendorName;
+                        
+                        // Set vendor details if available from export
+                        if (isset($productData['vendor']) && is_array($productData['vendor'])) {
+                            $vendor->description = $productData['vendor']['description'] ?? 'Imported vendor';
+                            $vendor->contact_email = $productData['vendor']['contact_email'] ?? null;
+                            $vendor->contact_phone = $productData['vendor']['contact_phone'] ?? null;
+                            $vendor->active = $productData['vendor']['active'] ?? true;
+                            $vendor->metadata = $productData['vendor']['metadata'] ?? [];
+                        } else {
+                            $vendor->description = 'Imported vendor';
+                            $vendor->active = true;
+                        }
+                        
+                        $vendor->save();
+                    }
+                }
+                
+                $product->vendor_id = $vendor->id;
+            } else {
+                $product->vendor_id = null;
+            }
 
             // Only set Stripe IDs if they were included in export
             // If not included (default behavior), stripe_product_id will be null
