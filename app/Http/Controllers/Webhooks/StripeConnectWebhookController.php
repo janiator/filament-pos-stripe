@@ -162,8 +162,12 @@ class StripeConnectWebhookController extends Controller
         }
 
         // Configure this in .env
+        // Cashier For Connect uses CONNECT_WEBHOOK_SECRET, but we also support STRIPE_CONNECT_WEBHOOK_SECRET
         $secret =
-            config('services.stripe.connect_webhook_secret')
+            config('cashierconnect.webhook.secret')
+            ?? config('services.stripe.connect_webhook_secret')
+            ?? env('CONNECT_WEBHOOK_SECRET')
+            ?? env('STRIPE_CONNECT_WEBHOOK_SECRET')
             ?? config('services.stripe.webhook_secret')
             ?? env('STRIPE_WEBHOOK_SECRET');
 
@@ -207,9 +211,13 @@ class StripeConnectWebhookController extends Controller
             $signaturePreview = $signature ? (substr($signature, 0, 50) . '...') : 'missing';
             $signatureParts = $signature ? explode(',', $signature) : [];
             
+            // Check if the error is about missing signatures (this should have been caught earlier)
+            $isMissingSignatureError = stripos($e->getMessage(), 'No signatures found') !== false;
+            
             \Log::error('Stripe webhook signature verification failed', [
                 'error' => $e->getMessage(),
                 'error_class' => get_class($e),
+                'is_missing_signature_error' => $isMissingSignatureError,
                 'signature_present' => !empty($signature),
                 'signature_length' => strlen($signature ?? ''),
                 'signature_preview' => $signaturePreview,
@@ -218,6 +226,12 @@ class StripeConnectWebhookController extends Controller
                 'secret_configured' => !empty($secret),
                 'secret_length' => strlen($secret ?? ''),
             ]);
+            
+            // Return the exact error message from Stripe
+            // Note: If you see 403 in Stripe dashboard but we return 400, check:
+            // 1. Proxy/load balancer converting status codes
+            // 2. Server-level configuration blocking requests
+            // 3. Middleware returning 403 before reaching this controller
             return response()->json([
                 'message' => $e->getMessage() ?: 'Invalid signature',
             ], 400);
