@@ -49,16 +49,47 @@ class StripeConnectWebhookController extends Controller
         
         // Get signature header - check multiple sources
         // Laravel normalizes headers, but Stripe sends "Stripe-Signature"
-        // Check Laravel's header bag first
-        $signature = $request->header('Stripe-Signature');
+        // Try to get raw headers first (before Laravel processing)
+        $signature = null;
         
-        // If not found, check $_SERVER directly (for cases where Laravel doesn't capture it)
+        // Method 1: Try PHP's native getallheaders() function (if available)
+        if (function_exists('getallheaders')) {
+            $rawHeaders = getallheaders();
+            if ($rawHeaders) {
+                foreach ($rawHeaders as $key => $value) {
+                    if (strtolower($key) === 'stripe-signature') {
+                        $signature = $value;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Method 2: Try apache_request_headers() (Apache-specific)
+        if (empty($signature) && function_exists('apache_request_headers')) {
+            $apacheHeaders = apache_request_headers();
+            if ($apacheHeaders) {
+                foreach ($apacheHeaders as $key => $value) {
+                    if (strtolower($key) === 'stripe-signature') {
+                        $signature = $value;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Method 3: Check Laravel's header bag
         if (empty($signature)) {
-            // Check HTTP_STRIPE_SIGNATURE (Laravel converts headers to HTTP_* format)
+            $signature = $request->header('Stripe-Signature');
+        }
+        
+        // Method 4: Check $_SERVER directly (Laravel converts headers to HTTP_* format)
+        if (empty($signature)) {
+            // Check HTTP_STRIPE_SIGNATURE (Laravel converts "Stripe-Signature" to "HTTP_STRIPE_SIGNATURE")
             $signature = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? null;
         }
         
-        // If still not found, check all headers case-insensitively
+        // Method 5: Check all Laravel headers case-insensitively
         if (empty($signature)) {
             $allHeaders = $request->headers->all();
             foreach ($allHeaders as $key => $value) {
@@ -69,7 +100,7 @@ class StripeConnectWebhookController extends Controller
             }
         }
         
-        // Last resort: check $_SERVER for any variation
+        // Method 6: Last resort - check $_SERVER for any variation
         if (empty($signature)) {
             foreach ($_SERVER as $key => $value) {
                 if (stripos($key, 'STRIPE_SIGNATURE') !== false || stripos($key, 'STRIPE-SIGNATURE') !== false) {
@@ -83,9 +114,14 @@ class StripeConnectWebhookController extends Controller
         if (!empty($signature)) {
             $signature = trim($signature);
         }
+        
+        // Check if signature is empty or just whitespace
+        // empty() will catch null, false, 0, '', '0', [], etc.
+        // But we also want to catch strings that are only whitespace
+        $signatureIsValid = !empty($signature) && strlen(trim($signature ?? '')) > 0;
 
         // Validate signature header is present and not empty
-        if (empty($signature)) {
+        if (!$signatureIsValid) {
             // Collect all HTTP headers from $_SERVER for debugging
             $httpHeaders = [];
             foreach ($_SERVER as $key => $value) {
@@ -115,6 +151,11 @@ class StripeConnectWebhookController extends Controller
                 'content_type' => $request->header('Content-Type'),
                 'all_http_keys' => $httpKeys,
             ]);
+            // Return 400 (Bad Request) - this indicates the request is malformed
+            // Note: If you're seeing 403 (Forbidden) in Stripe's dashboard, it might be:
+            // 1. A proxy/load balancer (like Herd's Nginx) stripping the header
+            // 2. Server-level configuration blocking the request
+            // 3. The header being stripped before it reaches Laravel
             return response()->json([
                 'message' => 'No signatures found matching the expected signature for payload',
             ], 400);
