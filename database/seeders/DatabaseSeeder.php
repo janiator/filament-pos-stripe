@@ -30,7 +30,7 @@ class DatabaseSeeder extends Seeder
             ['slug' => 'visivo-admin'],
             [
                 'name' => 'Visivo Admin',
-                'email' => 'admin@pos.visivo.no',
+                'email' => 'admin@visivo.no',
             ]
         );
 
