@@ -32,15 +32,28 @@ class ProductZipImporter
             throw new \Exception("Store does not have a Stripe account ID");
         }
 
-        // Extract zip file - use unique directory name with microseconds
-        $this->tempDir = storage_path('app/temp/import-' . time() . '-' . uniqid());
+        // Extract zip file - use unique directory name with microseconds and random
+        // Keep trying until we get a unique directory name
+        $maxAttempts = 10;
+        $attempts = 0;
+        do {
+            $this->tempDir = storage_path('app/temp/import-' . time() . '-' . uniqid('', true) . '-' . mt_rand(1000, 9999));
+            $attempts++;
+            if ($attempts >= $maxAttempts) {
+                throw new \Exception("Failed to create unique temporary directory after {$maxAttempts} attempts");
+            }
+        } while (File::exists($this->tempDir));
         
-        // Clean up if directory exists (shouldn't happen, but be safe)
-        if (File::exists($this->tempDir)) {
-            File::deleteDirectory($this->tempDir);
+        // Ensure parent directory exists
+        $parentDir = dirname($this->tempDir);
+        if (!File::exists($parentDir)) {
+            File::makeDirectory($parentDir, 0755, true);
         }
         
-        File::makeDirectory($this->tempDir, 0755, true);
+        // Create the directory - use @ to suppress warning if it exists (shouldn't happen due to check above)
+        if (!@mkdir($this->tempDir, 0755, true) && !is_dir($this->tempDir)) {
+            throw new \Exception("Failed to create temporary directory: {$this->tempDir}");
+        }
 
         try {
             // Extract zip file
@@ -96,15 +109,28 @@ class ProductZipImporter
             throw new \Exception("File not found: {$zipFilePath}");
         }
 
-        // Extract zip file - use unique directory name with microseconds
-        $this->tempDir = storage_path('app/temp/preview-' . time() . '-' . uniqid());
+        // Extract zip file - use unique directory name with microseconds and random
+        // Keep trying until we get a unique directory name
+        $maxAttempts = 10;
+        $attempts = 0;
+        do {
+            $this->tempDir = storage_path('app/temp/preview-' . time() . '-' . uniqid('', true) . '-' . mt_rand(1000, 9999));
+            $attempts++;
+            if ($attempts >= $maxAttempts) {
+                throw new \Exception("Failed to create unique temporary directory after {$maxAttempts} attempts");
+            }
+        } while (File::exists($this->tempDir));
         
-        // Clean up if directory exists (shouldn't happen, but be safe)
-        if (File::exists($this->tempDir)) {
-            File::deleteDirectory($this->tempDir);
+        // Ensure parent directory exists
+        $parentDir = dirname($this->tempDir);
+        if (!File::exists($parentDir)) {
+            File::makeDirectory($parentDir, 0755, true);
         }
         
-        File::makeDirectory($this->tempDir, 0755, true);
+        // Create the directory - use @ to suppress warning if it exists (shouldn't happen due to check above)
+        if (!@mkdir($this->tempDir, 0755, true) && !is_dir($this->tempDir)) {
+            throw new \Exception("Failed to create temporary directory: {$this->tempDir}");
+        }
 
         try {
             // Extract zip file
