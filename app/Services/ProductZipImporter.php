@@ -32,28 +32,28 @@ class ProductZipImporter
             throw new \Exception("Store does not have a Stripe account ID");
         }
 
-        // Extract zip file - use unique directory name with microseconds and random
-        // Keep trying until we get a unique directory name
+        // Extract zip file - use unique directory name
+        // Use sys_get_temp_dir() for better cross-platform support, or storage temp
+        $baseTempDir = storage_path('app/temp');
+        File::ensureDirectoryExists($baseTempDir);
+        
+        // Generate unique directory name
+        $this->tempDir = $baseTempDir . '/import-' . uniqid('', true) . '-' . bin2hex(random_bytes(4));
+        
+        // If directory somehow exists, keep generating until we get a unique one
         $maxAttempts = 10;
         $attempts = 0;
-        do {
-            $this->tempDir = storage_path('app/temp/import-' . time() . '-' . uniqid('', true) . '-' . mt_rand(1000, 9999));
+        while (is_dir($this->tempDir) && $attempts < $maxAttempts) {
+            $this->tempDir = $baseTempDir . '/import-' . uniqid('', true) . '-' . bin2hex(random_bytes(4));
             $attempts++;
-            if ($attempts >= $maxAttempts) {
-                throw new \Exception("Failed to create unique temporary directory after {$maxAttempts} attempts");
-            }
-        } while (File::exists($this->tempDir));
-        
-        // Ensure parent directory exists
-        $parentDir = dirname($this->tempDir);
-        if (!File::exists($parentDir)) {
-            File::makeDirectory($parentDir, 0755, true);
         }
         
-        // Create the directory - use @ to suppress warning if it exists (shouldn't happen due to check above)
-        if (!@mkdir($this->tempDir, 0755, true) && !is_dir($this->tempDir)) {
-            throw new \Exception("Failed to create temporary directory: {$this->tempDir}");
+        if ($attempts >= $maxAttempts) {
+            throw new \Exception("Failed to generate unique temporary directory after {$maxAttempts} attempts");
         }
+        
+        // Use File::ensureDirectoryExists which handles existing directories gracefully
+        File::ensureDirectoryExists($this->tempDir, 0755);
 
         try {
             // Extract zip file
@@ -109,28 +109,28 @@ class ProductZipImporter
             throw new \Exception("File not found: {$zipFilePath}");
         }
 
-        // Extract zip file - use unique directory name with microseconds and random
-        // Keep trying until we get a unique directory name
+        // Extract zip file - use unique directory name
+        // Use sys_get_temp_dir() for better cross-platform support, or storage temp
+        $baseTempDir = storage_path('app/temp');
+        File::ensureDirectoryExists($baseTempDir);
+        
+        // Generate unique directory name
+        $this->tempDir = $baseTempDir . '/preview-' . uniqid('', true) . '-' . bin2hex(random_bytes(4));
+        
+        // If directory somehow exists, keep generating until we get a unique one
         $maxAttempts = 10;
         $attempts = 0;
-        do {
-            $this->tempDir = storage_path('app/temp/preview-' . time() . '-' . uniqid('', true) . '-' . mt_rand(1000, 9999));
+        while (is_dir($this->tempDir) && $attempts < $maxAttempts) {
+            $this->tempDir = $baseTempDir . '/preview-' . uniqid('', true) . '-' . bin2hex(random_bytes(4));
             $attempts++;
-            if ($attempts >= $maxAttempts) {
-                throw new \Exception("Failed to create unique temporary directory after {$maxAttempts} attempts");
-            }
-        } while (File::exists($this->tempDir));
-        
-        // Ensure parent directory exists
-        $parentDir = dirname($this->tempDir);
-        if (!File::exists($parentDir)) {
-            File::makeDirectory($parentDir, 0755, true);
         }
         
-        // Create the directory - use @ to suppress warning if it exists (shouldn't happen due to check above)
-        if (!@mkdir($this->tempDir, 0755, true) && !is_dir($this->tempDir)) {
-            throw new \Exception("Failed to create temporary directory: {$this->tempDir}");
+        if ($attempts >= $maxAttempts) {
+            throw new \Exception("Failed to generate unique temporary directory after {$maxAttempts} attempts");
         }
+        
+        // Use File::ensureDirectoryExists which handles existing directories gracefully
+        File::ensureDirectoryExists($this->tempDir, 0755);
 
         try {
             // Extract zip file
@@ -435,7 +435,7 @@ class ProductZipImporter
         $destPath = 'collections/' . $collectionHandle . '-' . $fileName;
         $fullDestPath = storage_path('app/public/' . $destPath);
 
-        File::makeDirectory(dirname($fullDestPath), 0755, true);
+        File::ensureDirectoryExists(dirname($fullDestPath), 0755);
         File::copy($sourcePath, $fullDestPath);
 
         return '/storage/' . $destPath;
@@ -456,7 +456,7 @@ class ProductZipImporter
         $destPath = 'variants/' . $prefix . '-' . $fileName;
         $fullDestPath = storage_path('app/public/' . $destPath);
 
-        File::makeDirectory(dirname($fullDestPath), 0755, true);
+        File::ensureDirectoryExists(dirname($fullDestPath), 0755);
         File::copy($sourcePath, $fullDestPath);
 
         return '/storage/' . $destPath;
