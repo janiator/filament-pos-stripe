@@ -168,6 +168,12 @@ class PosPeriodicActionsServiceImpl {
       return;
     }
 
+    // Skip drawer check if default printer ID is 0 or unset
+    final defaultPrinterId = FFAppState().activePosDevice.defaultPrinterId;
+    if (defaultPrinterId == null || defaultPrinterId == 0) {
+      return;
+    }
+
     try {
       // Get printer status
       final printerStatusOutput = await ReceiptPrinterGroup.printerStatusCall.call(
@@ -197,45 +203,83 @@ class PosPeriodicActionsServiceImpl {
       // Check if drawer is open
       final isDrawerOpen = printerStatusParsed.contains('Drawer open');
 
-      // Update app state safely
-      FFAppState().update(() {
-        if (isDrawerOpen) {
-          if (FFAppState().drawerShouldBeOpen) {
-            // Drawer should be open and is open - unlock if locked
-            if (FFAppState().posLockStatus.posLocked) {
-              FFAppState().posLockStatus = PosLockDataStruct(
-                posLocked: false,
-                posLockedReason: 'OK',
-              );
-              FFAppState().drawerStillOpenCounter = 0;
-            }
-          } else {
-            // Drawer should be closed but is open - lock POS
-            FFAppState().posLockStatus = PosLockDataStruct(
-              posLocked: true,
-              posLockedReason: 'Lukk kassaskuffen for å fortsette',
-            );
+      // Get current state before making changes
+      final currentPosLocked = FFAppState().posLockStatus.posLocked;
+      final currentPosLockedReason = FFAppState().posLockStatus.posLockedReason;
+      final currentDrawerStillOpenCounter = FFAppState().drawerStillOpenCounter;
+      final drawerShouldBeOpen = FFAppState().drawerShouldBeOpen;
 
-            // Report nullinnstall on first detection
-            if (FFAppState().drawerStillOpenCounter == 0) {
-              FFAppState().drawerStillOpenCounter = 1;
-              _reportNullinnstall();
-            } else {
-              FFAppState().drawerStillOpenCounter =
-                  FFAppState().drawerStillOpenCounter + 1;
-            }
+      // Determine what the new state should be
+      bool needsUpdate = false;
+      bool newPosLocked = currentPosLocked;
+      String newPosLockedReason = currentPosLockedReason;
+      int newDrawerStillOpenCounter = currentDrawerStillOpenCounter;
+      bool shouldReportNullinnstall = false;
+
+      if (isDrawerOpen) {
+        if (drawerShouldBeOpen) {
+          // Drawer should be open and is open - unlock if locked
+          if (currentPosLocked) {
+            newPosLocked = false;
+            newPosLockedReason = 'OK';
+            newDrawerStillOpenCounter = 0;
+            needsUpdate = true;
+          } else if (currentDrawerStillOpenCounter != 0) {
+            // Reset counter if drawer is properly open
+            newDrawerStillOpenCounter = 0;
+            needsUpdate = true;
           }
         } else {
-          // Drawer is closed - unlock if locked
-          if (FFAppState().posLockStatus.posLocked) {
-            FFAppState().posLockStatus = PosLockDataStruct(
-              posLocked: false,
-              posLockedReason: 'OK',
-            );
-            FFAppState().drawerStillOpenCounter = 0;
+          // Drawer should be closed but is open - lock POS
+          if (!currentPosLocked || currentPosLockedReason != 'Lukk kassaskuffen for å fortsette') {
+            newPosLocked = true;
+            newPosLockedReason = 'Lukk kassaskuffen for å fortsette';
+            needsUpdate = true;
+          }
+
+          // Report nullinnstall on first detection
+          if (currentDrawerStillOpenCounter == 0) {
+            newDrawerStillOpenCounter = 1;
+            shouldReportNullinnstall = true;
+            needsUpdate = true;
+          } else {
+            // Increment counter (only if it would actually change)
+            final nextCounter = currentDrawerStillOpenCounter + 1;
+            if (newDrawerStillOpenCounter != nextCounter) {
+              newDrawerStillOpenCounter = nextCounter;
+              needsUpdate = true;
+            }
           }
         }
-      });
+      } else {
+        // Drawer is closed - unlock if locked
+        if (currentPosLocked) {
+          newPosLocked = false;
+          newPosLockedReason = 'OK';
+          newDrawerStillOpenCounter = 0;
+          needsUpdate = true;
+        } else if (currentDrawerStillOpenCounter != 0) {
+          // Reset counter if drawer is closed
+          newDrawerStillOpenCounter = 0;
+          needsUpdate = true;
+        }
+      }
+
+      // Only update app state if something actually changed
+      if (needsUpdate) {
+        FFAppState().update(() {
+          FFAppState().posLockStatus = PosLockDataStruct(
+            posLocked: newPosLocked,
+            posLockedReason: newPosLockedReason,
+          );
+          FFAppState().drawerStillOpenCounter = newDrawerStillOpenCounter;
+        });
+
+        // Report nullinnstall outside of update block
+        if (shouldReportNullinnstall) {
+          _reportNullinnstall();
+        }
+      }
     } catch (e) {
       print('Drawer check error: $e');
     }

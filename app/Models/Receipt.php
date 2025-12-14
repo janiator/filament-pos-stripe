@@ -125,4 +125,46 @@ class Receipt extends Model
         $this->reprint_count++;
         $this->save();
     }
+
+    /**
+     * Check if receipt can be printed according to Kassasystemforskriften § 2-8-4
+     * 
+     * Rules:
+     * - Original sales receipts: can only be printed once (no reprints)
+     * - Return receipts: can only be printed once (no reprints)
+     * - Copy receipts: can only be printed once (no reprints)
+     * - Delivery receipts: can only be printed once (no reprints)
+     * - STEB receipts: can be printed multiple times (exception for tax-free shops)
+     * - Other receipt types: can only be printed once
+     * 
+     * @return bool
+     */
+    public function canBePrinted(): bool
+    {
+        // STEB receipts can be printed multiple times (exception for tax-free shops)
+        if ($this->receipt_type === 'steb') {
+            $maxReprints = config('receipts.max_reprints_steb', 10);
+            return $this->reprint_count < $maxReprints;
+        }
+
+        // For all other receipt types (sales, return, copy, delivery, etc.):
+        // According to § 2-8-4: original receipts can only be printed once,
+        // and only one copy receipt can be printed per original
+        // Copy and delivery receipts also follow this rule - they can only be printed once
+        // This means: if already printed, cannot be reprinted
+        return !$this->printed;
+    }
+
+    /**
+     * Check if a copy receipt already exists for this receipt
+     * According to § 2-8-4: only one copy receipt can be printed per original
+     * 
+     * @return bool
+     */
+    public function hasCopyReceipt(): bool
+    {
+        return static::where('original_receipt_id', $this->id)
+            ->where('receipt_type', 'copy')
+            ->exists();
+    }
 }

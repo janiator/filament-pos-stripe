@@ -92,11 +92,11 @@ class ConnectedProductsTable
                 ActionableColumn::make('active')
                     ->label('Active')
                     ->badge()
-                    ->color(fn (ConnectedProduct $record) => $record->active ? 'success' : 'gray')
-                    ->formatStateUsing(fn (ConnectedProduct $record) => $record->active ? 'Active' : 'Inactive')
+                    ->color(fn ($state) => $state ? 'success' : 'danger')
+                    ->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive')
                     ->sortable()
-                    ->actionIcon(Heroicon::PencilSquare)
-                    ->actionIconColor('warning')
+                    ->actionIcon(Heroicon::CheckCircle)
+                    ->actionIconColor('success')
                     ->clickableColumn()
                     ->tapAction(
                         Action::make('toggleActive')
@@ -150,8 +150,8 @@ class ConnectedProductsTable
                         return number_format((float) $state, 2, '.', '') . ' ' . $currency;
                     })
                     ->toggleable()
-                    ->actionIcon(Heroicon::PencilSquare)
-                    ->actionIconColor('warning')
+                    ->actionIcon(Heroicon::CurrencyDollar)
+                    ->actionIconColor('success')
                     ->clickableColumn()
                     ->tapAction(
                         Action::make('editPrice')
@@ -162,9 +162,8 @@ class ConnectedProductsTable
                                     ->label('Price')
                                     ->numeric()
                                     ->step(0.01)
-                                    ->prefix(fn ($get) => strtoupper($get('currency') ?? 'NOK'))
-                                    ->required()
-                                    ->helperText('Enter the product price'),
+                                    ->prefix(fn ($get, $record) => strtoupper($get('currency') ?? ($record?->currency ?? 'NOK')))
+                                    ->helperText('Enter the product price. This will create or update the Stripe price automatically.'),
                                 
                                 Select::make('currency')
                                     ->label('Currency')
@@ -175,8 +174,7 @@ class ConnectedProductsTable
                                         'sek' => 'SEK',
                                         'dkk' => 'DKK',
                                     ])
-                                    ->default('nok')
-                                    ->required(),
+                                    ->helperText('Currency for this product'),
                             ])
                             ->fillForm(function (ConnectedProduct $record) {
                                 // Get current price value
@@ -197,19 +195,29 @@ class ConnectedProductsTable
                                 ];
                             })
                             ->action(function (ConnectedProduct $record, array $data) {
-                                // Convert price to string format for storage
-                                $price = $data['price'] ? str_replace(',', '.', str_replace(' ', '', (string) $data['price'])) : null;
+                                $updates = [];
                                 
-                                $record->update([
-                                    'price' => $price,
-                                    'currency' => $data['currency'],
-                                ]);
+                                // Convert price to string format for storage (handle empty values)
+                                if (isset($data['price']) && $data['price'] !== null && $data['price'] !== '') {
+                                    $updates['price'] = str_replace(',', '.', str_replace(' ', '', (string) $data['price']));
+                                } elseif (isset($data['price']) && ($data['price'] === null || $data['price'] === '')) {
+                                    // Allow clearing the price
+                                    $updates['price'] = null;
+                                }
                                 
-                                Notification::make()
-                                    ->success()
-                                    ->title('Product price updated')
-                                    ->body('The product price has been updated successfully.')
-                                    ->send();
+                                if (isset($data['currency'])) {
+                                    $updates['currency'] = $data['currency'];
+                                }
+                                
+                                if (!empty($updates)) {
+                                    $record->update($updates);
+                                    
+                                    Notification::make()
+                                        ->success()
+                                        ->title('Product price updated')
+                                        ->body('The product price has been updated successfully.')
+                                        ->send();
+                                }
                             })
                     ),
 
@@ -281,12 +289,38 @@ class ConnectedProductsTable
                     ->toggleable(),
 
                 // Additional Information Group
-                TextColumn::make('product_code')
+                ActionableColumn::make('product_code')
                     ->label('Product Code')
                     ->searchable()
                     ->sortable()
                     ->copyable()
                     ->placeholder('-')
+                    ->actionIcon(Heroicon::Hashtag)
+                    ->actionIconColor('gray')
+                    ->clickableColumn()
+                    ->tapAction(
+                        Action::make('editProductCode')
+                            ->label('Edit Product Code')
+                            ->tooltip('Click to edit product code (PLU)')
+                            ->schema([
+                                TextInput::make('product_code')
+                                    ->label('Product Code (PLU)')
+                                    ->maxLength(50)
+                                    ->helperText('PLU code (BasicType-02)'),
+                            ])
+                            ->fillForm(fn (ConnectedProduct $record) => [
+                                'product_code' => $record->product_code,
+                            ])
+                            ->action(function (ConnectedProduct $record, array $data) {
+                                $record->update(['product_code' => $data['product_code'] ?? null]);
+                                
+                                Notification::make()
+                                    ->success()
+                                    ->title('Product code updated')
+                                    ->body('The product code has been updated successfully.')
+                                    ->send();
+                            })
+                    )
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('article_group_code')

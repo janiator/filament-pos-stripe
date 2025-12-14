@@ -1664,6 +1664,12 @@ paths:
           required: false
           schema:
             type: integer
+        - name: charge_id
+          in: query
+          description: Filter by charge ID (purchase ID) to get all receipts for a single purchase
+          required: false
+          schema:
+            type: integer
         - name: printed
           in: query
           description: Filter by printed status
@@ -1693,18 +1699,77 @@ paths:
             default: 20
       responses:
         '200':
-          description: List of receipts
+          description: List of receipts (simplified format)
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  receipts:
+                  simpleReceiptList:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Receipt'
-                  pagination:
-                    $ref: '#/components/schemas/PaginationMeta'
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          nullable: true
+                          description: Receipt ID (only present when is_generated is true)
+                          example: 1
+                        receipt_type:
+                          type: string
+                          enum: [sales, return, copy, steb, provisional, training, delivery, correction]
+                          description: Receipt type code
+                          example: sales
+                        receipt_type_display_name:
+                          type: string
+                          description: Receipt type display name in Norwegian
+                          example: Salgskvittering
+                        created_at:
+                          type: string
+                          format: date-time
+                          description: Date and time when receipt was created (Oslo timezone)
+                          example: "2025-12-02T10:30:00+01:00"
+                        cashier_name:
+                          type: string
+                          nullable: true
+                          description: Name of the cashier who created the receipt
+                          example: "John Doe"
+                        reprint_count:
+                          type: integer
+                          description: Number of times the receipt has been reprinted
+                          example: 2
+                        can_be_printed:
+                          type: boolean
+                          description: |
+                            Whether the receipt can still be printed/reprinted according to Kassasystemforskriften § 2-8-4:
+                            - Original sales receipts: can only be printed once (no reprints)
+                            - Copy receipts: can only be printed once
+                            - STEB receipts: can be printed multiple times (exception for tax-free shops)
+                            - Other receipt types: can only be printed once
+                          example: true
+                        is_generated:
+                          type: boolean
+                          description: |
+                            Whether this receipt has been generated or is just available to generate.
+                            - true: Receipt exists in the database (has id)
+                            - false: Receipt type is available but not yet generated (no id)
+                          example: true
+                  current_page:
+                    type: integer
+                    description: Current page number (0-based)
+                    example: 0
+                  last_page:
+                    type: integer
+                    description: Last page number (0-based)
+                    example: 9
+                  per_page:
+                    type: integer
+                    description: Number of items per page
+                    example: 20
+                  total:
+                    type: integer
+                    description: Total number of items
+                    example: 180
         '404':
           description: Store not found
         '401':
@@ -3963,6 +4028,14 @@ paths:
           schema:
             type: integer
             default: 15
+        - name: page
+          in: query
+          description: Page number (0-based, starts at 0)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
         - name: X-Tenant
           in: header
           description: Store slug (optional, defaults to user's first store)
@@ -3983,10 +4056,12 @@ paths:
                       $ref: '#/components/schemas/Customer'
                   current_page:
                     type: integer
-                    example: 1
+                    example: 0
+                    description: Current page number (0-based)
                   last_page:
                     type: integer
-                    example: 10
+                    example: 9
+                    description: Last page number (0-based)
                   per_page:
                     type: integer
                     example: 15

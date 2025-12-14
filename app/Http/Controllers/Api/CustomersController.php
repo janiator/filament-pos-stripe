@@ -22,9 +22,12 @@ class CustomersController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         $perPage = min($request->get('per_page', 15), 100); // Max 100 per page
+        // Convert zero-indexed page from FlutterFlow to 1-indexed for Laravel
+        $page = max(1, (int) $request->get('page', 0) + 1);
+        
         $paginatedCustomers = ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id)
             ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage, ['*'], 'page', $page);
 
         // Transform customers to exclude internal mapping fields and rename address
         $customers = $paginatedCustomers->getCollection()->map(function ($customer) {
@@ -36,10 +39,11 @@ class CustomersController extends BaseApiController
             return $customerData;
         });
 
+        // Convert back to zero-indexed for FlutterFlow
         return response()->json([
             'customers' => $customers,
-            'current_page' => $paginatedCustomers->currentPage(),
-            'last_page' => $paginatedCustomers->lastPage(),
+            'current_page' => $paginatedCustomers->currentPage() - 1,
+            'last_page' => $paginatedCustomers->lastPage() - 1,
             'per_page' => $paginatedCustomers->perPage(),
             'total' => $paginatedCustomers->total(),
         ]);

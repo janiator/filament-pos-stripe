@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ConnectedCharge extends Model
 {
@@ -91,6 +92,17 @@ class ConnectedCharge extends Model
         return $this->hasOne(Receipt::class, 'charge_id')
             ->orderByRaw("CASE WHEN receipt_type = 'sales' THEN 0 ELSE 1 END") // Prioritize sales receipts first
             ->orderByDesc('created_at'); // Then get latest if multiple sales receipts exist
+    }
+
+    /**
+     * Get all receipts for this charge
+     * Returns all receipt types (sales, return, copy, delivery, etc.) associated with this charge
+     */
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(Receipt::class, 'charge_id')
+            ->orderByRaw("CASE WHEN receipt_type = 'sales' THEN 0 ELSE 1 END") // Prioritize sales receipts first
+            ->orderByDesc('created_at'); // Then order by creation date
     }
 
     public function getFormattedAmountAttribute(): string

@@ -8,31 +8,12 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/actions/index.dart'; // Imports other custom actions
 import '/flutter_flow/custom_functions.dart'; // Imports custom functions
 import 'package:flutter/material.dart';
-import 'dart:async';
 
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-// ============================================================================
-// POS Periodic Actions Service (Singleton) - Included for self-containment
-// ============================================================================
-
-class PosPeriodicActionsServiceImpl {
-  static PosPeriodicActionsServiceImpl? _instance;
-  
-  String? _authToken;
-  
-  PosPeriodicActionsServiceImpl._();
-
-  static PosPeriodicActionsServiceImpl get instance {
-    _instance ??= PosPeriodicActionsServiceImpl._();
-    return _instance!;
-  }
-
-  void updateAuthToken(String newAuthToken) {
-    _authToken = newAuthToken;
-  }
-}
+// Import the centralized service
+import '/custom_code/actions/pos_periodic_actions_service.dart';
 
 // ============================================================================
 // FlutterFlow Custom Action
@@ -47,7 +28,7 @@ class PosPeriodicActionsServiceImpl {
 Future<dynamic> updatePosPeriodicActionsToken(
   String newAuthToken,
 ) async {
-  PosPeriodicActionsServiceImpl.instance.updateAuthToken(newAuthToken);
+  posPeriodicActionsServiceInstance.updateAuthToken(newAuthToken);
 
   return {
     'success': true,
