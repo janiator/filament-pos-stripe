@@ -276,3 +276,4 @@ Future<dynamic> completePosPurchase(
     };
   }
 }
+

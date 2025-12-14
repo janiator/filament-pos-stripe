@@ -316,3 +316,4 @@ class SyncProductsToStripe extends Command
         }
     }
 }
+

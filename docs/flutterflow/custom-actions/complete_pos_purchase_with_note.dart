@@ -491,3 +491,4 @@ Future<dynamic> completePosPurchase(
   }
 
 }
+

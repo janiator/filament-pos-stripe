@@ -36,12 +36,6 @@ class CollectionImagesController extends BaseApiController
             // Check if it's a local storage URL
             $imageUrl = $collection->image_url;
             
-            // Log the original URL for debugging
-            \Log::debug('Collection image URL', [
-                'collection_id' => $collection->id,
-                'image_url' => $imageUrl,
-            ]);
-            
             // Check if it's an external URL (doesn't contain /storage/)
             if (!str_contains($imageUrl, '/storage/') && !str_starts_with($imageUrl, '/storage/')) {
                 // External URL - redirect to it
@@ -87,16 +81,6 @@ class CollectionImagesController extends BaseApiController
             
             // Remove query parameters and fragments if present
             $relativePath = parse_url($relativePath, PHP_URL_PATH) ?? $relativePath;
-            
-            // Log extracted path for debugging
-            \Log::debug('Collection image path extraction', [
-                'collection_id' => $collection->id,
-                'original_url' => $imageUrl,
-                'extracted_path' => $relativePath,
-                'storage_exists' => Storage::disk('public')->exists($relativePath),
-                'full_path' => storage_path('app/public/' . $relativePath),
-                'file_exists' => file_exists(storage_path('app/public/' . $relativePath)),
-            ]);
             
             // Check if file exists
             if (!Storage::disk('public')->exists($relativePath)) {

@@ -81,9 +81,28 @@ If you prefer to manage Horizon via systemd (not recommended for Forge), see `HO
 
 ### Horizon Not Restarting After Deployment
 
+**Symptoms:** Horizon shows as inactive after deployment, even though `horizon:terminate` is called.
+
+**Root Cause:** When `horizon:terminate` is called, it gracefully stops Horizon. If Horizon is set up as a Forge daemon, it should automatically restart. However, sometimes the daemon doesn't restart automatically, especially if:
+- The daemon was stopped/disabled
+- There's a timing issue where the daemon hasn't had time to restart
+- The daemon configuration isn't set to auto-restart
+
+**Solution:** The deployment script now includes explicit restart logic that:
+1. Calls `horizon:terminate` to gracefully stop Horizon
+2. Waits a few seconds for the graceful termination
+3. Checks if Horizon is running
+4. If not running, attempts to restart it via `supervisorctl`
+5. Provides helpful error messages if restart fails
+
+**Verification Steps:**
 1. Ensure your deployment script includes: `$FORGE_PHP artisan horizon:terminate`
 2. Check deployment logs in Forge to see if the command executed successfully
-3. Verify Horizon daemon is enabled in Forge dashboard
+3. Verify Horizon daemon is enabled in Forge dashboard (Application tab → Laravel Horizon toggle)
+4. Check the Daemons tab in Forge to see if the Horizon daemon is running
+5. Check Horizon logs in Forge (Logs tab → Select Horizon daemon)
+
+**Note:** If you're using `$RESTART_QUEUES()` in your deployment script, you should remove it when using Horizon. The `$RESTART_QUEUES()` macro is for regular Laravel queue workers, not Horizon. According to Forge documentation, when using Zero Downtime deployments, `$RESTART_QUEUES()` should handle Horizon automatically, but the queues documentation recommends using `horizon:terminate` instead.
 
 ### Viewing Horizon Dashboard
 

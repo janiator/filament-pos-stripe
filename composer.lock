@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a7e2235ce0c1757f6dbeb4450ae3d625",
+    "content-hash": "b92345284a81af17fb5517ce2e5524f7",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -6297,6 +6297,65 @@
                 }
             ],
             "time": "2022-12-17T21:53:22+00:00"
+        },
+        {
+            "name": "shreejan/actionable-column",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/shreejanpandit/actionable-column.git",
+                "reference": "91ca6f35baa7ef295a30901b8e2abaf14a504f69"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/shreejanpandit/actionable-column/zipball/91ca6f35baa7ef295a30901b8e2abaf14a504f69",
+                "reference": "91ca6f35baa7ef295a30901b8e2abaf14a504f69",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^4.0",
+                "illuminate/database": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.4",
+                "spatie/laravel-package-tools": "*"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Shreejan\\ActionableColumn\\ActionableColumnServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Shreejan\\ActionableColumn\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Shreejan Pandit",
+                    "email": "shreezanpandit@gmail.com"
+                }
+            ],
+            "description": "Interactive table column with clickable actions for Filament v4",
+            "keywords": [
+                "actionable-column",
+                "clickable-column",
+                "filament",
+                "filament-plugin",
+                "interactive-column",
+                "table-columns"
+            ],
+            "support": {
+                "issues": "https://github.com/shreejanpandit/actionable-column/issues",
+                "source": "https://github.com/shreejanpandit/actionable-column/tree/v1.0.0"
+            },
+            "time": "2025-12-04T07:24:21+00:00"
         },
         {
             "name": "spatie/image",

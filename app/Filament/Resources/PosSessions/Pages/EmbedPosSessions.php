@@ -16,3 +16,4 @@ class EmbedPosSessions extends ListRecords
         return []; // No header actions for embed view
     }
 }
+

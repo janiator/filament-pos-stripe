@@ -42,6 +42,7 @@ class ConnectedChargeForm
                         }
 
                         return \App\Models\ConnectedCustomer::where('stripe_account_id', $accountId)
+                            ->whereNotNull('stripe_customer_id')
                             ->get()
                             ->mapWithKeys(function ($customer) {
                                 $label = $customer->name ?? $customer->email ?? $customer->stripe_customer_id;

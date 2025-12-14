@@ -337,3 +337,4 @@ If you try to report nullinnslag without an active session:
 ```
 
 **Solution**: Verify the device ID is correct and belongs to the current store.
+

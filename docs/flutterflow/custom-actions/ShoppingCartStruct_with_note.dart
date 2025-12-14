@@ -544,3 +544,4 @@ ShoppingCartStruct createShoppingCartStruct({
       cartTotalTax: cartTotalTax,
       cartTotalCartPrice: cartTotalCartPrice,
     );
+

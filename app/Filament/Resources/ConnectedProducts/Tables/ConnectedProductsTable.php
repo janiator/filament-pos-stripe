@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ConnectedProducts\Tables;
 
 use App\Models\ConnectedProduct;
 use App\Models\Vendor;
+use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -16,6 +17,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -24,6 +26,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Shreejan\ActionableColumn\Tables\Columns\ActionableColumn;
 
 class ConnectedProductsTable
 {
@@ -33,7 +36,7 @@ class ConnectedProductsTable
             ->modifyQueryUsing(fn ($query) => $query->with(['store', 'prices', 'variants', 'vendor']))
             ->columns([
                 // Primary Information Group
-                TextColumn::make('name')
+                ActionableColumn::make('name')
                     ->label('Name')
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query->where(function (Builder $query) use ($search) {
@@ -51,7 +54,33 @@ class ConnectedProductsTable
                     })
                     ->sortable()
                     ->weight('bold')
-                    ->placeholder('-'),
+                    ->placeholder('-')
+                    ->actionIcon(Heroicon::PencilSquare)
+                    ->actionIconColor('primary')
+                    ->clickableColumn()
+                    ->tapAction(
+                        Action::make('editName')
+                            ->label('Edit Name')
+                            ->tooltip('Click to edit product name')
+                            ->schema([
+                                TextInput::make('name')
+                                    ->label('Product Name')
+                                    ->required()
+                                    ->maxLength(255),
+                            ])
+                            ->fillForm(fn (ConnectedProduct $record) => [
+                                'name' => $record->name,
+                            ])
+                            ->action(function (ConnectedProduct $record, array $data) {
+                                $record->update(['name' => $data['name']]);
+                                
+                                Notification::make()
+                                    ->success()
+                                    ->title('Product name updated')
+                                    ->body('The product name has been updated successfully.')
+                                    ->send();
+                            })
+                    ),
 
                 TextColumn::make('description')
                     ->label('Description')
@@ -60,14 +89,40 @@ class ConnectedProductsTable
                     ->limit(50)
                     ->toggleable(),
 
-                IconColumn::make('active')
+                ActionableColumn::make('active')
                     ->label('Active')
-                    ->boolean()
+                    ->badge()
+                    ->color(fn (ConnectedProduct $record) => $record->active ? 'success' : 'gray')
+                    ->formatStateUsing(fn (ConnectedProduct $record) => $record->active ? 'Active' : 'Inactive')
                     ->sortable()
-                    ->toggleable(),
+                    ->actionIcon(Heroicon::PencilSquare)
+                    ->actionIconColor('warning')
+                    ->clickableColumn()
+                    ->tapAction(
+                        Action::make('toggleActive')
+                            ->label('Toggle Active Status')
+                            ->tooltip('Click to toggle active status')
+                            ->schema([
+                                Toggle::make('active')
+                                    ->label('Active')
+                                    ->helperText('Active products are visible in Stripe'),
+                            ])
+                            ->fillForm(fn (ConnectedProduct $record) => [
+                                'active' => $record->active,
+                            ])
+                            ->action(function (ConnectedProduct $record, array $data) {
+                                $record->update(['active' => $data['active']]);
+                                
+                                Notification::make()
+                                    ->success()
+                                    ->title('Product status updated')
+                                    ->body('The product active status has been updated successfully.')
+                                    ->send();
+                            })
+                    ),
 
                 // Pricing Group
-                TextColumn::make('price')
+                ActionableColumn::make('price')
                     ->label('Price')
                     ->badge()
                     ->color('success')
@@ -94,7 +149,69 @@ class ConnectedProductsTable
                         // Price is already in decimal format from the accessor
                         return number_format((float) $state, 2, '.', '') . ' ' . $currency;
                     })
-                    ->toggleable(),
+                    ->toggleable()
+                    ->actionIcon(Heroicon::PencilSquare)
+                    ->actionIconColor('warning')
+                    ->clickableColumn()
+                    ->tapAction(
+                        Action::make('editPrice')
+                            ->label('Edit Price')
+                            ->tooltip('Click to edit product price')
+                            ->schema([
+                                TextInput::make('price')
+                                    ->label('Price')
+                                    ->numeric()
+                                    ->step(0.01)
+                                    ->prefix(fn ($get) => strtoupper($get('currency') ?? 'NOK'))
+                                    ->required()
+                                    ->helperText('Enter the product price'),
+                                
+                                Select::make('currency')
+                                    ->label('Currency')
+                                    ->options([
+                                        'nok' => 'NOK (kr)',
+                                        'usd' => 'USD ($)',
+                                        'eur' => 'EUR (€)',
+                                        'sek' => 'SEK',
+                                        'dkk' => 'DKK',
+                                    ])
+                                    ->default('nok')
+                                    ->required(),
+                            ])
+                            ->fillForm(function (ConnectedProduct $record) {
+                                // Get current price value
+                                $price = $record->price;
+                                if (!$price && $record->default_price && $record->stripe_account_id) {
+                                    $defaultPrice = \App\Models\ConnectedPrice::where('stripe_price_id', $record->default_price)
+                                        ->where('stripe_account_id', $record->stripe_account_id)
+                                        ->first();
+                                    
+                                    if ($defaultPrice && $defaultPrice->unit_amount) {
+                                        $price = number_format($defaultPrice->unit_amount / 100, 2, '.', '');
+                                    }
+                                }
+                                
+                                return [
+                                    'price' => $price,
+                                    'currency' => $record->currency ?: 'nok',
+                                ];
+                            })
+                            ->action(function (ConnectedProduct $record, array $data) {
+                                // Convert price to string format for storage
+                                $price = $data['price'] ? str_replace(',', '.', str_replace(' ', '', (string) $data['price'])) : null;
+                                
+                                $record->update([
+                                    'price' => $price,
+                                    'currency' => $data['currency'],
+                                ]);
+                                
+                                Notification::make()
+                                    ->success()
+                                    ->title('Product price updated')
+                                    ->body('The product price has been updated successfully.')
+                                    ->send();
+                            })
+                    ),
 
                 TextColumn::make('compare_at_price_amount')
                     ->label('Compare at Price')

@@ -4006,7 +4006,7 @@ paths:
       tags:
         - Customers
       summary: Create customer
-      description: Create a new customer for the current store
+      description: Create a new customer for the current store. The Stripe customer will be created automatically after the local customer is created.
       operationId: createCustomer
       parameters:
         - name: X-Tenant
@@ -4021,13 +4021,7 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - stripe_customer_id
               properties:
-                stripe_customer_id:
-                  type: string
-                  description: Stripe customer ID
-                  example: cus_1234567890
                 name:
                   type: string
                   maxLength: 255
@@ -4048,41 +4042,6 @@ paths:
                   nullable: true
                   description: URL to the customer profile image
                   example: "https://example.com/images/profile.jpg"
-                address:
-                  type: object
-                  nullable: true
-                  description: Customer address (deprecated, use customer_address instead)
-                  properties:
-                    line1:
-                      type: string
-                      nullable: true
-                      description: Address line 1 (street, PO Box, or company name)
-                      example: "123 Main St"
-                    line2:
-                      type: string
-                      nullable: true
-                      description: Address line 2 (apartment, suite, unit, or building)
-                      example: "Apt 4B"
-                    city:
-                      type: string
-                      nullable: true
-                      description: City, district, suburb, town, or village
-                      example: "Oslo"
-                    state:
-                      type: string
-                      nullable: true
-                      description: State, county, province, or region
-                      example: "Oslo"
-                    postal_code:
-                      type: string
-                      nullable: true
-                      description: ZIP or postal code
-                      example: "0001"
-                    country:
-                      type: string
-                      nullable: true
-                      description: Two-letter country code (ISO 3166-1 alpha-2)
-                      example: "NO"
                 customer_address:
                   type: object
                   nullable: true
@@ -4118,16 +4077,6 @@ paths:
                       nullable: true
                       description: Two-letter country code (ISO 3166-1 alpha-2)
                       example: "NO"
-                model:
-                  type: string
-                  nullable: true
-                model_id:
-                  type: integer
-                  nullable: true
-                model_uuid:
-                  type: string
-                  format: uuid
-                  nullable: true
       responses:
         '201':
           description: Customer created successfully
@@ -4226,41 +4175,6 @@ paths:
                   nullable: true
                   description: URL to the customer profile image
                   example: "https://example.com/images/profile.jpg"
-                address:
-                  type: object
-                  nullable: true
-                  description: Customer address (deprecated, use customer_address instead)
-                  properties:
-                    line1:
-                      type: string
-                      nullable: true
-                      description: Address line 1 (street, PO Box, or company name)
-                      example: "123 Main St"
-                    line2:
-                      type: string
-                      nullable: true
-                      description: Address line 2 (apartment, suite, unit, or building)
-                      example: "Apt 4B"
-                    city:
-                      type: string
-                      nullable: true
-                      description: City, district, suburb, town, or village
-                      example: "Oslo"
-                    state:
-                      type: string
-                      nullable: true
-                      description: State, county, province, or region
-                      example: "Oslo"
-                    postal_code:
-                      type: string
-                      nullable: true
-                      description: ZIP or postal code
-                      example: "0001"
-                    country:
-                      type: string
-                      nullable: true
-                      description: Two-letter country code (ISO 3166-1 alpha-2)
-                      example: "NO"
                 customer_address:
                   type: object
                   nullable: true

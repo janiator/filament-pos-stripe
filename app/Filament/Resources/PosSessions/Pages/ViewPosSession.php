@@ -19,7 +19,3 @@ class ViewPosSession extends ViewRecord
     }
 }
 
-
-
-
-

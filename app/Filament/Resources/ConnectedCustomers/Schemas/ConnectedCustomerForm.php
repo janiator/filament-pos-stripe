@@ -30,8 +30,7 @@ class ConnectedCustomerForm
 
                 TextInput::make('stripe_customer_id')
                     ->label('Stripe Customer ID')
-                    ->required()
-                    ->helperText('The Stripe customer ID from the connected account')
+                    ->helperText('Optional: The Stripe customer ID. If not provided, a Stripe customer will be created automatically after saving.')
                     ->visibleOn('create'),
 
                 TextInput::make('name')

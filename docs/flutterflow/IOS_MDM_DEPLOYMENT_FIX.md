@@ -349,3 +349,4 @@ security cms -D -i build/ios/ipa/POSitiv.app/embedded.mobileprovision | grep Pro
 - [Jamf App Deployment Documentation](https://docs.jamf.com/)
 - [Flutter iOS Deployment Guide](https://docs.flutter.dev/deployment/ios)
 - [Managing Device UDIDs in Apple Developer](https://developer.apple.com/account/resources/devices/list)
+

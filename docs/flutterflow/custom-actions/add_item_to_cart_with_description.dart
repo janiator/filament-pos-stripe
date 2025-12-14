@@ -178,3 +178,4 @@ Future addItemToCart(
   // Update cart totals after adding/updating item
   await updateCartTotals();
 }
+

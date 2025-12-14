@@ -10,3 +10,4 @@
     @include('filament.resources.pos-reports.modals.x-report', ['session' => $session, 'report' => $report])
 </body>
 </html>
+

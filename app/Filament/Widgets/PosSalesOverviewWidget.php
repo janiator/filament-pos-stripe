@@ -126,3 +126,4 @@ class PosSalesOverviewWidget extends BaseWidget
         ];
     }
 }
+

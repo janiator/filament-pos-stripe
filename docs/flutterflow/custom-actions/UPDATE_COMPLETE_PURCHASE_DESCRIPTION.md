@@ -187,3 +187,4 @@ The code supports both implementation options:
 - `docs/flutterflow/custom-actions/ADD_DESCRIPTION_TO_CART_ITEMS.md` - How to add description to cart items
 - `docs/TROUBLESHOOTING_DESCRIPTION_FIELD.md` - Troubleshooting guide
 - `docs/features/DIVERSE_PRODUCTS_CUSTOM_DESCRIPTIONS.md` - Feature documentation
+

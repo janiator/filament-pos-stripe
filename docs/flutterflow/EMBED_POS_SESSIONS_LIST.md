@@ -285,3 +285,4 @@ try {
 - [POS Sessions API Documentation](../api/POS_SESSIONS_API.md)
 - [Filament Embedding Guide](./FILAMENT_IFRAME_EMBEDDING.md)
 - [Authentication Guide](./AUTHENTICATION.md)
+

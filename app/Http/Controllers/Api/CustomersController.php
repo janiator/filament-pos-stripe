@@ -59,18 +59,10 @@ class CustomersController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         $validated = $request->validate([
-            'stripe_customer_id' => 'nullable|string',
             'name' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
             'profile_image_url' => 'nullable|url|max:500',
-            'address' => 'nullable|array',
-            'address.line1' => 'nullable|string|max:255',
-            'address.line2' => 'nullable|string|max:255',
-            'address.city' => 'nullable|string|max:255',
-            'address.state' => 'nullable|string|max:255',
-            'address.postal_code' => 'nullable|string|max:255',
-            'address.country' => 'nullable|string|size:2',
             'customer_address' => 'nullable|array',
             'customer_address.line1' => 'nullable|string|max:255',
             'customer_address.line2' => 'nullable|string|max:255',
@@ -78,21 +70,21 @@ class CustomersController extends BaseApiController
             'customer_address.state' => 'nullable|string|max:255',
             'customer_address.postal_code' => 'nullable|string|max:255',
             'customer_address.country' => 'nullable|string|size:2',
-            'model' => 'nullable|string',
-            'model_id' => 'nullable|integer',
-            'model_uuid' => 'nullable|uuid',
         ]);
 
         $validated['stripe_account_id'] = $store->stripe_account_id;
 
-        // Handle customer_address in request (map to address for database)
+        // Map customer_address to address for database storage
         if (isset($validated['customer_address'])) {
             $validated['address'] = $validated['customer_address'];
             unset($validated['customer_address']);
         }
 
-        // Create Stripe customer if stripe_customer_id is not provided
-        if (empty($validated['stripe_customer_id']) && $store->hasStripeAccount()) {
+        // Create local customer first
+        $customer = ConnectedCustomer::create($validated);
+
+        // Create Stripe customer after local customer is created
+        if ($store->hasStripeAccount()) {
             try {
                 $createAction = new \App\Actions\ConnectedCustomers\CreateConnectedCustomerInStripe();
                 $stripeCustomerId = $createAction($store, [
@@ -103,24 +95,43 @@ class CustomersController extends BaseApiController
                 ]);
                 
                 if ($stripeCustomerId) {
-                    $validated['stripe_customer_id'] = $stripeCustomerId;
+                    // Update with stripe_customer_id and trigger a sync to ensure all data is synced
+                    // Use updateQuietly first to set the ID, then save to trigger sync
+                    $customer->stripe_customer_id = $stripeCustomerId;
+                    $customer->saveQuietly(); // Set the ID without triggering events
+                    
+                    // Now trigger a sync to ensure all customer data is synced to Stripe
+                    // This ensures that if there were any differences, they get synced
+                    try {
+                        $updateAction = new \App\Actions\ConnectedCustomers\UpdateConnectedCustomerToStripe();
+                        $updateAction($customer);
+                    } catch (\Throwable $e) {
+                        // Log but don't fail - the customer was created in Stripe with the data already
+                        \Log::warning('Failed to sync customer data to Stripe after setting stripe_customer_id', [
+                            'customer_id' => $customer->id,
+                            'stripe_customer_id' => $stripeCustomerId,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                    
+                    $customer->refresh();
                 } else {
-                    return response()->json([
-                        'error' => 'Failed to create customer in Stripe'
-                    ], 500);
+                    // If Stripe creation fails, we still have the local customer
+                    // Log the error but don't fail the request
+                    \Log::warning('Failed to create customer in Stripe after local creation', [
+                        'customer_id' => $customer->id,
+                    ]);
                 }
             } catch (\Throwable $e) {
-                \Log::error('Error creating Stripe customer', [
+                // If Stripe creation fails, we still have the local customer
+                // Log the error but don't fail the request
+                \Log::error('Error creating Stripe customer after local creation', [
+                    'customer_id' => $customer->id,
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString(),
                 ]);
-                return response()->json([
-                    'error' => 'Failed to create customer in Stripe: ' . $e->getMessage()
-                ], 500);
             }
         }
-
-        $customer = ConnectedCustomer::create($validated);
 
         // Transform response to rename address to customer_address
         $customerData = $customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
@@ -182,13 +193,6 @@ class CustomersController extends BaseApiController
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
             'profile_image_url' => 'nullable|url|max:500',
-            'address' => 'nullable|array',
-            'address.line1' => 'nullable|string|max:255',
-            'address.line2' => 'nullable|string|max:255',
-            'address.city' => 'nullable|string|max:255',
-            'address.state' => 'nullable|string|max:255',
-            'address.postal_code' => 'nullable|string|max:255',
-            'address.country' => 'nullable|string|size:2',
             'customer_address' => 'nullable|array',
             'customer_address.line1' => 'nullable|string|max:255',
             'customer_address.line2' => 'nullable|string|max:255',
@@ -196,12 +200,9 @@ class CustomersController extends BaseApiController
             'customer_address.state' => 'nullable|string|max:255',
             'customer_address.postal_code' => 'nullable|string|max:255',
             'customer_address.country' => 'nullable|string|size:2',
-            'model' => 'nullable|string',
-            'model_id' => 'nullable|integer',
-            'model_uuid' => 'nullable|uuid',
         ]);
 
-        // Handle customer_address in request (map to address for database)
+        // Map customer_address to address for database storage
         if (isset($validated['customer_address'])) {
             $validated['address'] = $validated['customer_address'];
             unset($validated['customer_address']);

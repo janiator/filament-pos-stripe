@@ -77,3 +77,4 @@ $spansMultipleDays = $sessionStartDate !== $sessionEndDate;
 
 - [Kassasystemforskriften FOR-2015-12-18-1616](https://lovdata.no/dokument/SF/forskrift/2015-12-18-1616)
 - [Skatteetaten - Daily Settlement Requirements](https://www.skatteetaten.no/en/rettskilder/type/handboker/merverdiavgiftshandboken/gjeldende/M-15/M-15-10/M-15-10.6/)
+

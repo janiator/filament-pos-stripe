@@ -131,3 +131,4 @@ class SyncStripeProducts extends Command
         }
     }
 }
+

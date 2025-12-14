@@ -328,3 +328,4 @@ Future<dynamic> completePosPurchase(
     };
   }
 }
+

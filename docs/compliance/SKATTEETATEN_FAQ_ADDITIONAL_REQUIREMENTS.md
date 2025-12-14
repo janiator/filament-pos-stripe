@@ -288,3 +288,4 @@ This document captures important compliance clarifications and requirements from
 
 - [Skatteetaten FAQ - Spørsmål og svar om nye kassasystemer](https://www.skatteetaten.no/bedrift-og-organisasjon/starte-og-drive/rutiner-regnskap-og-kassasystem/kassasystem/sporsmal-og-svar-om-nye-kassasystemer/)
 - [Kassasystemforskriften FOR-2015-12-18-1616](https://lovdata.no/dokument/SF/forskrift/2015-12-18-1616)
+

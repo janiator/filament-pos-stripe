@@ -227,3 +227,4 @@ The implementation ensures compliance with Norwegian receipt requirements:
 Full API documentation is available in `api-spec.yaml`:
 - Request schema: `PurchaseCart.items[].description`
 - Response schema: `Purchase.purchase_items[].purchase_item_description`
+

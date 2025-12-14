@@ -154,3 +154,4 @@ cartItems.add(cartItemMap);
 **Best Practice:** Add `cartItemDescription` field to `CartItemsStruct` and use Option 1. This is cleaner and more explicit.
 
 **Quick Fix:** If you can't modify the struct right now, use Option 2 with metadata.
+
