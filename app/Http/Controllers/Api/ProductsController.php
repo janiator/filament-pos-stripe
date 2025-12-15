@@ -85,7 +85,8 @@ class ProductsController extends BaseApiController
             }
 
             // Get paginated results
-            $perPage = min($request->get('per_page', 100), 100); // Max 100 per page
+            //TODO restore this $perPage = min($request->get('per_page', 100), 100); // Max 100 per page
+            $perPage = 100; // Max 100 per page
             $products = $query->orderBy('name')
                 ->paginate($perPage);
 
