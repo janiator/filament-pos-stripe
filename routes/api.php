@@ -27,6 +27,10 @@ Route::get('/collections/{collectionId}/image', [\App\Http\Controllers\Api\Colle
 Route::get('/saf-t/download/{filename}', [\App\Http\Controllers\Api\SafTController::class, 'download'])
     ->name('api.saf-t.download');
 
+//TODO remove later
+Route::post('/pos-sessions/open', [\App\Http\Controllers\Api\PosSessionsController::class, 'open'])->name('api.pos-sessions.open');
+//remove later
+
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth endpoints
@@ -63,7 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pos-sessions/{id}/z-report', [\App\Http\Controllers\Api\PosSessionsController::class, 'zReport'])->name('api.pos-sessions.z-report');
     Route::get('/pos-sessions/{id}', [\App\Http\Controllers\Api\PosSessionsController::class, 'show'])->name('api.pos-sessions.show');
     Route::post('/pos-sessions/daily-closing', [\App\Http\Controllers\Api\PosSessionsController::class, 'createDailyClosing'])->name('api.pos-sessions.daily-closing');
-    
+
     // POS Report PDF download endpoints (API with Bearer token auth)
     Route::get('/pos-sessions/{id}/x-report/pdf', [\App\Http\Controllers\ReportController::class, 'downloadXReportPdfApi'])->name('api.pos-sessions.x-report.pdf');
     Route::get('/pos-sessions/{id}/z-report/pdf', [\App\Http\Controllers\ReportController::class, 'downloadZReportPdfApi'])->name('api.pos-sessions.z-report.pdf');
@@ -80,14 +84,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('customers', \App\Http\Controllers\Api\CustomersController::class);
     Route::apiResource('products', \App\Http\Controllers\Api\ProductsController::class)->only(['index', 'show', 'store', 'update']);
     Route::apiResource('collections', \App\Http\Controllers\Api\CollectionsController::class)->only(['index', 'show', 'store', 'update']);
-    
+
     // Inventory management endpoints
     Route::get('/products/{product}/inventory', [\App\Http\Controllers\Api\InventoryController::class, 'getProductInventory'])->name('api.products.inventory');
     Route::put('/variants/{variant}/inventory', [\App\Http\Controllers\Api\InventoryController::class, 'updateVariant'])->name('api.variants.inventory.update');
     Route::post('/variants/{variant}/inventory/adjust', [\App\Http\Controllers\Api\InventoryController::class, 'adjustInventory'])->name('api.variants.inventory.adjust');
     Route::post('/variants/{variant}/inventory/set', [\App\Http\Controllers\Api\InventoryController::class, 'setInventory'])->name('api.variants.inventory.set');
     Route::post('/inventory/bulk-update', [\App\Http\Controllers\Api\InventoryController::class, 'bulkUpdate'])->name('api.inventory.bulk-update');
-    
+
     // SAF-T endpoints (Kassasystemforskriften compliance)
     Route::post('/saf-t/generate', [\App\Http\Controllers\Api\SafTController::class, 'generate'])->name('api.saf-t.generate');
     Route::get('/saf-t/content', [\App\Http\Controllers\Api\SafTController::class, 'content'])->name('api.saf-t.content');
@@ -117,7 +121,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Product Declaration endpoints
     Route::get('/product-declaration', [\App\Http\Controllers\Api\ProductDeclarationController::class, 'show'])->name('api.product-declaration.show');
     Route::get('/product-declaration/display', [\App\Http\Controllers\Api\ProductDeclarationController::class, 'display'])->name('api.product-declaration.display');
-    
+
     // Receipt Printer endpoints
     Route::get('/receipt-printers', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'index'])->name('api.receipt-printers.index');
     Route::post('/receipt-printers', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'store'])->name('api.receipt-printers.store');
@@ -127,7 +131,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/receipt-printers/{id}', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'destroy'])->name('api.receipt-printers.destroy');
     Route::post('/receipt-printers/{id}/test-connection', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'testConnection'])->name('api.receipt-printers.test-connection');
     Route::post('/receipt-printers/{id}/test-print', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'testPrint'])->name('api.receipt-printers.test-print');
-    
+
     // Purchase endpoints
     Route::get('/purchases/payment-methods', [\App\Http\Controllers\Api\PurchasesController::class, 'getPaymentMethods'])->name('api.purchases.payment-methods');
     Route::get('/purchases', [\App\Http\Controllers\Api\PurchasesController::class, 'index'])->name('api.purchases.index');
@@ -138,7 +142,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/purchases/{id}/refund', [\App\Http\Controllers\Api\PurchasesController::class, 'refund'])->name('api.purchases.refund');
     Route::put('/purchases/{id}/customer', [\App\Http\Controllers\Api\PurchasesController::class, 'updateCustomer'])->name('api.purchases.update-customer');
     Route::patch('/purchases/{id}/customer', [\App\Http\Controllers\Api\PurchasesController::class, 'updateCustomer'])->name('api.purchases.update-customer.patch');
-    
+
     // Note: Add more API resources here following the same pattern:
     // Route::apiResource('subscriptions', \App\Http\Controllers\Api\SubscriptionsController::class);
     // Route::apiResource('charges', \App\Http\Controllers\Api\ChargesController::class);
