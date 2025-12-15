@@ -55,7 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pos-devices/{id}/heartbeat', [\App\Http\Controllers\Api\PosDevicesController::class, 'heartbeat'])->name('api.pos-devices.heartbeat');
     Route::post('/pos-devices/{id}/start', [\App\Http\Controllers\Api\PosDevicesController::class, 'start'])->name('api.pos-devices.start');
     Route::post('/pos-devices/{id}/shutdown', [\App\Http\Controllers\Api\PosDevicesController::class, 'shutdown'])->name('api.pos-devices.shutdown');
-    Route::post('/pos-devices/{id}/cash-drawer/open', [\App\Http\Controllers\Api\PosDevicesController::class, 'openCashDrawer'])->name('api.pos-devices.cash-drawer.open');
+    //Route::post('/pos-devices/{id}/cash-drawer/open', [\App\Http\Controllers\Api\PosDevicesController::class, 'openCashDrawer'])->name('api.pos-devices.cash-drawer.open');
     Route::post('/pos-devices/{id}/cash-drawer/close', [\App\Http\Controllers\Api\PosDevicesController::class, 'closeCashDrawer'])->name('api.pos-devices.cash-drawer.close');
 
     // POS Session endpoints (Kassasystemforskriften compliance)
