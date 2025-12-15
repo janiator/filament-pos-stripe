@@ -7,6 +7,8 @@ use App\Http\Controllers\Stores\StoreTerminalConnectionTokenController;
 use App\Http\Controllers\Webhooks\StripeConnectWebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\PosSessionsController;
+
 
 // Public webhook endpoint (no authentication required)
 Route::post('/stripe/connect/webhook', StripeConnectWebhookController::class)
@@ -55,13 +57,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pos-devices/{id}/heartbeat', [\App\Http\Controllers\Api\PosDevicesController::class, 'heartbeat'])->name('api.pos-devices.heartbeat');
     Route::post('/pos-devices/{id}/start', [\App\Http\Controllers\Api\PosDevicesController::class, 'start'])->name('api.pos-devices.start');
     Route::post('/pos-devices/{id}/shutdown', [\App\Http\Controllers\Api\PosDevicesController::class, 'shutdown'])->name('api.pos-devices.shutdown');
-    //Route::post('/pos-devices/{id}/cash-drawer/open', [\App\Http\Controllers\Api\PosDevicesController::class, 'openCashDrawer'])->name('api.pos-devices.cash-drawer.open');
+    Route::post('/pos-devices/{id}/cash-drawer/open', [\App\Http\Controllers\Api\PosDevicesController::class, 'openCashDrawer'])->name('api.pos-devices.cash-drawer.open');
     Route::post('/pos-devices/{id}/cash-drawer/close', [\App\Http\Controllers\Api\PosDevicesController::class, 'closeCashDrawer'])->name('api.pos-devices.cash-drawer.close');
 
     // POS Session endpoints (Kassasystemforskriften compliance)
     Route::get('/pos-sessions', [\App\Http\Controllers\Api\PosSessionsController::class, 'index'])->name('api.pos-sessions.index');
     Route::get('/pos-sessions/current', [\App\Http\Controllers\Api\PosSessionsController::class, 'current'])->name('api.pos-sessions.current');
-    Route::post('/pos-sessions/open', [\App\Http\Controllers\Api\PosSessionsController::class, 'open'])->name('api.pos-sessions.open');
+    //Route::post('/pos-sessions/open', [\App\Http\Controllers\Api\PosSessionsController::class, 'open'])->name('api.pos-sessions.open');
     Route::post('/pos-sessions/{id}/close', [\App\Http\Controllers\Api\PosSessionsController::class, 'close'])->name('api.pos-sessions.close');
     Route::post('/pos-sessions/{id}/x-report', [\App\Http\Controllers\Api\PosSessionsController::class, 'xReport'])->name('api.pos-sessions.x-report');
     Route::post('/pos-sessions/{id}/z-report', [\App\Http\Controllers\Api\PosSessionsController::class, 'zReport'])->name('api.pos-sessions.z-report');
