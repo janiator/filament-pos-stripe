@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PosDevices\RelationManagers;
 
+use Filament\Actions\ViewAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -65,7 +66,7 @@ class ReceiptsRelationManager extends RelationManager
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
-                Tables\Actions\ViewAction::make(),
+                ViewAction::make(),
             ]);
     }
 }

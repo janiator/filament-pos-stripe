@@ -20,7 +20,7 @@ class ProductsController extends BaseApiController
     {
         try {
             $store = $this->getTenantStore($request);
-            
+
             if (!$store) {
                 return response()->json(['error' => 'Store not found'], 404);
             }
@@ -72,11 +72,11 @@ class ProductsController extends BaseApiController
                 } else {
                     $query->whereHas('collections', function ($q) use ($request, $store) {
                         $q->where('collections.stripe_account_id', $store->stripe_account_id);
-                        
+
                         if ($request->has('collection_id')) {
                             $q->where('collections.id', $request->get('collection_id'));
                         }
-                        
+
                         if ($request->has('collection_slug')) {
                             $q->where('collections.handle', $request->get('collection_slug'));
                         }
@@ -85,7 +85,7 @@ class ProductsController extends BaseApiController
             }
 
             // Get paginated results
-            $perPage = min($request->get('per_page', 50), 100); // Max 100 per page
+            $perPage = min($request->get('per_page', 100), 100); // Max 100 per page
             $products = $query->orderBy('name')
                 ->paginate($perPage);
 
@@ -157,7 +157,7 @@ class ProductsController extends BaseApiController
     public function show(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
+
         if (!$store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
@@ -193,7 +193,7 @@ class ProductsController extends BaseApiController
                     ->where('active', true)
                     ->first();
             }
-            
+
             // If no default price found, get the first active price
             if (!$defaultPrice) {
                 $defaultPrice = ConnectedPrice::where('stripe_product_id', $product->stripe_product_id)
@@ -274,18 +274,18 @@ class ProductsController extends BaseApiController
                 // - This avoids null type issues with FlutterFlow's non-nullable schema
                 $priceAmount = $variant->price_amount ?? 0;
                 $currency = strtoupper($variant->currency ?? 'NOK');
-                
+
                 // Format price - return "0.00" if no price set (frontend checks price_amount === 0)
                 $amountFormatted = $priceAmount > 0
-                    ? number_format($priceAmount / 100, 2, '.', '') 
+                    ? number_format($priceAmount / 100, 2, '.', '')
                     : '0.00';
-                
+
                 // Format compare_at_price consistently
                 $compareAtPriceFormatted = null;
                 if ($variant->compare_at_price_amount && $variant->compare_at_price_amount > 0) {
                     $compareAtPriceFormatted = number_format($variant->compare_at_price_amount / 100, 2, '.', '');
                 }
-                
+
                 return [
                     'id' => $variant->id,
                     'stripe_product_id' => $variant->stripe_product_id ?? null,
@@ -347,7 +347,7 @@ class ProductsController extends BaseApiController
                     $totalInventory = 0;
                 }
                 $totalInventory += $variant['variant_inventory']['quantity'] ?? 0;
-                
+
                 if ($variant['variant_inventory']['in_stock']) {
                     $inStockVariants++;
                 } else {
@@ -416,7 +416,7 @@ class ProductsController extends BaseApiController
         }
 
         // If it's an external URL (Stripe, CDN, etc.), return as-is
-        if (filter_var($variant->image_url, FILTER_VALIDATE_URL) && 
+        if (filter_var($variant->image_url, FILTER_VALIDATE_URL) &&
             !str_starts_with($variant->image_url, config('app.url')) &&
             !str_starts_with($variant->image_url, request()->getSchemeAndHttpHost())) {
             return $variant->image_url;
@@ -444,7 +444,7 @@ class ProductsController extends BaseApiController
     public function store(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
+
         if (!$store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
@@ -486,7 +486,7 @@ class ProductsController extends BaseApiController
             $product->no_price_in_pos = $validated['no_price_in_pos'] ?? false;
             $product->product_code = $validated['product_code'] ?? null;
             $product->article_group_code = $validated['article_group_code'] ?? null;
-            
+
             // Set price if provided
             if (isset($validated['price']) && !$product->no_price_in_pos) {
                 $product->price = $validated['price'];
@@ -535,7 +535,7 @@ class ProductsController extends BaseApiController
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'error' => 'Failed to create product: ' . $e->getMessage()
             ], 500);
@@ -548,7 +548,7 @@ class ProductsController extends BaseApiController
     public function update(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
+
         if (!$store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
@@ -642,7 +642,7 @@ class ProductsController extends BaseApiController
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'error' => 'Failed to update product: ' . $e->getMessage()
             ], 500);
