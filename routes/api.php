@@ -29,9 +29,8 @@ Route::get('/collections/{collectionId}/image', [\App\Http\Controllers\Api\Colle
 Route::get('/saf-t/download/{filename}', [\App\Http\Controllers\Api\SafTController::class, 'download'])
     ->name('api.saf-t.download');
 
-//TODO remove later
-Route::post('/pos-sessions/open', [PosSessionsController::class, 'openPublicForJobberiet'])
-    ->name('api.pos-sessions.open');//remove later
+//Route::post('/pos-sessions/open', [PosSessionsController::class, 'openPublicForJobberiet'])
+//    ->name('api.pos-sessions.open');//remove later
 
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -63,7 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // POS Session endpoints (Kassasystemforskriften compliance)
     Route::get('/pos-sessions', [\App\Http\Controllers\Api\PosSessionsController::class, 'index'])->name('api.pos-sessions.index');
     Route::get('/pos-sessions/current', [\App\Http\Controllers\Api\PosSessionsController::class, 'current'])->name('api.pos-sessions.current');
-    //Route::post('/pos-sessions/open', [\App\Http\Controllers\Api\PosSessionsController::class, 'open'])->name('api.pos-sessions.open');
+    Route::post('/pos-sessions/open', [\App\Http\Controllers\Api\PosSessionsController::class, 'open'])->name('api.pos-sessions.open');
     Route::post('/pos-sessions/{id}/close', [\App\Http\Controllers\Api\PosSessionsController::class, 'close'])->name('api.pos-sessions.close');
     Route::post('/pos-sessions/{id}/x-report', [\App\Http\Controllers\Api\PosSessionsController::class, 'xReport'])->name('api.pos-sessions.x-report');
     Route::post('/pos-sessions/{id}/z-report', [\App\Http\Controllers\Api\PosSessionsController::class, 'zReport'])->name('api.pos-sessions.z-report');
