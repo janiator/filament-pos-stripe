@@ -28,8 +28,8 @@ Route::get('/saf-t/download/{filename}', [\App\Http\Controllers\Api\SafTControll
     ->name('api.saf-t.download');
 
 //TODO remove later
-Route::post('/pos-sessions/open', [\App\Http\Controllers\Api\PosSessionsController::class, 'open'])->name('api.pos-sessions.open');
-//remove later
+Route::post('/pos-sessions/open', [PosSessionsController::class, 'openPublicForJobberiet'])
+    ->name('api.pos-sessions.open');//remove later
 
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {

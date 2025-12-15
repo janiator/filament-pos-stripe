@@ -8,6 +8,7 @@ use App\Models\PosDevice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class PosSessionsController extends BaseApiController
 {
@@ -17,7 +18,7 @@ class PosSessionsController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
+
         if (!$store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
@@ -64,7 +65,7 @@ class PosSessionsController extends BaseApiController
     public function current(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
+
         if (!$store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
@@ -92,13 +93,86 @@ class PosSessionsController extends BaseApiController
         );
     }
 
+class PosSessionsController extends BaseApiController
+{
+    /**
+     * Public endpoint: Open a POS session scoped to the jobberiet-as tenant,
+     * using fixed user id 2.
+     */
+    public function openPublicForJobberiet(Request $request): JsonResponse
+    {
+        // 1) Resolve store by fixed slug
+        $store = Store::where('slug', 'jobberiet-as')->first();
+
+        if (!$store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        // 2) Validate input and ensure the device belongs to this store
+        $validated = $request->validate([
+            'pos_device_id' => [
+                'required',
+                'integer',
+                Rule::exists('pos_devices', 'id')->where(function ($query) use ($store) {
+                    $query->where('store_id', $store->id);
+                }),
+            ],
+            'opening_balance' => 'nullable|integer|min:0',
+            'opening_notes' => 'nullable|string|max:1000',
+            'opening_data' => 'nullable|array',
+        ]);
+
+        // 3) Ensure this device doesn't already have an open session
+        $existingSession = PosSession::where('store_id', $store->id)
+            ->where('pos_device_id', $validated['pos_device_id'])
+            ->where('status', 'open')
+            ->first();
+
+        if ($existingSession) {
+            return response()->json([
+                'message' => 'Device already has an open session',
+                'session' => $this->formatSessionResponse($existingSession),
+            ], 409);
+        }
+
+        // 4) Get next session number for this store
+        $lastSession = PosSession::where('store_id', $store->id)
+            ->orderBy('session_number', 'desc')
+            ->first();
+
+        $sessionNumber = $lastSession
+            ? (int) $lastSession->session_number + 1
+            : 1;
+
+        // 5) Create session, always with user_id = 2
+        $session = PosSession::create([
+            'store_id' => $store->id,
+            'pos_device_id' => $validated['pos_device_id'],
+            'user_id' => 2, // <- fixed user id
+            'session_number' => str_pad($sessionNumber, 6, '0', STR_PAD_LEFT),
+            'status' => 'open',
+            'opened_at' => now(),
+            'opening_balance' => $validated['opening_balance'] ?? 0,
+            'opening_notes' => $validated['opening_notes'] ?? null,
+            'opening_data' => $validated['opening_data'] ?? null,
+        ]);
+
+        return response()->json([
+            'message' => 'Session opened successfully',
+            'session' => $this->formatSessionResponse(
+                $session->load(['posDevice', 'user'])
+            ),
+        ], 201);
+    }
+}
+
     /**
      * Open a new POS session
      */
     public function open(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
+
         if (!$store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
@@ -130,8 +204,8 @@ class PosSessionsController extends BaseApiController
             ->orderBy('session_number', 'desc')
             ->first();
 
-        $sessionNumber = $lastSession 
-            ? (int) $lastSession->session_number + 1 
+        $sessionNumber = $lastSession
+            ? (int) $lastSession->session_number + 1
             : 1;
 
         $session = PosSession::create([
@@ -158,7 +232,7 @@ class PosSessionsController extends BaseApiController
     public function close(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
+
         if (!$store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
@@ -196,12 +270,12 @@ class PosSessionsController extends BaseApiController
         // Generate Z-report data first (using shared method from PosSessionsTable)
         $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
         $report = \App\Filament\Resources\PosSessions\Tables\PosSessionsTable::generateZReport($session);
-        
+
         // Convert dates to ISO format for API response
         $report['opened_at'] = $this->formatDateTimeOslo($session->opened_at);
         $report['closed_at'] = $session->closed_at ? $this->formatDateTimeOslo($session->closed_at) : null;
         $report['report_generated_at'] = $this->formatDateTimeOslo($report['report_generated_at']);
-        
+
         // Log Z-report event (13009) with complete report data for electronic journal compliance
         \App\Models\PosEvent::create([
             'store_id' => $store->id,
@@ -232,7 +306,7 @@ class PosSessionsController extends BaseApiController
     public function show(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
+
         if (!$store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
@@ -255,7 +329,7 @@ class PosSessionsController extends BaseApiController
     public function xReport(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
+
         if (!$store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
@@ -277,11 +351,11 @@ class PosSessionsController extends BaseApiController
         // Generate report data first (using shared method from PosSessionsTable)
         $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
         $report = \App\Filament\Resources\PosSessions\Tables\PosSessionsTable::generateXReport($session);
-        
+
         // Convert dates to ISO format for API response
         $report['opened_at'] = $this->formatDateTimeOslo($session->opened_at);
         $report['report_generated_at'] = $this->formatDateTimeOslo($report['report_generated_at']);
-        
+
         // Log X-report event (13008) with complete report data for electronic journal compliance
         \App\Models\PosEvent::create([
             'store_id' => $store->id,
@@ -311,7 +385,7 @@ class PosSessionsController extends BaseApiController
     public function zReport(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
+
         if (!$store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
@@ -346,12 +420,12 @@ class PosSessionsController extends BaseApiController
         // Generate Z-report data first (using shared method from PosSessionsTable)
         $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
         $report = \App\Filament\Resources\PosSessions\Tables\PosSessionsTable::generateZReport($session);
-        
+
         // Convert dates to ISO format for API response
         $report['opened_at'] = $this->formatDateTimeOslo($session->opened_at);
         $report['closed_at'] = $session->closed_at ? $this->formatDateTimeOslo($session->closed_at) : null;
         $report['report_generated_at'] = $this->formatDateTimeOslo($report['report_generated_at']);
-        
+
         // Log Z-report event (13009) with complete report data for electronic journal compliance
         \App\Models\PosEvent::create([
             'store_id' => $store->id,
@@ -383,7 +457,7 @@ class PosSessionsController extends BaseApiController
     {
         // Ensure all relationships are loaded
         $session->loadMissing(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
-        
+
         $charges = $session->charges->where('status', 'succeeded');
         $totalAmount = $charges->sum('amount');
         $cashAmount = $charges->where('payment_method', 'cash')->sum('amount');
@@ -391,17 +465,17 @@ class PosSessionsController extends BaseApiController
         $mobileAmount = $charges->where('payment_method', 'mobile')->sum('amount');
         $otherAmount = $totalAmount - $cashAmount - $cardAmount - $mobileAmount;
         $totalTips = $charges->sum('tip_amount');
-        
+
         // Calculate VAT (25% standard in Norway)
         $vatRate = 0.25;
         $vatBase = round($totalAmount / (1 + $vatRate), 0);
         $vatAmount = $totalAmount - $vatBase;
-        
+
         // Cash drawer events
         $cashDrawerOpens = $session->events->where('event_code', \App\Models\PosEvent::EVENT_CASH_DRAWER_OPEN)->count();
         $nullinnslagCount = $session->events->where('event_code', \App\Models\PosEvent::EVENT_CASH_DRAWER_OPEN)
             ->where('event_data->nullinnslag', true)->count();
-        
+
         // Event summary
         $eventSummary = $session->events->groupBy('event_code')->map(function ($group) {
             $firstEvent = $group->first();
@@ -411,7 +485,7 @@ class PosSessionsController extends BaseApiController
                 'count' => $group->count(),
             ];
         });
-        
+
         // Receipt summary
         $receiptSummary = $session->receipts->groupBy('receipt_type')->map(function ($group) {
             return [
@@ -516,7 +590,7 @@ class PosSessionsController extends BaseApiController
     public function createDailyClosing(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
+
         if (!$store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
