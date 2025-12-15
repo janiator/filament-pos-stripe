@@ -93,8 +93,6 @@ class PosSessionsController extends BaseApiController
         );
     }
 
-class PosSessionsController extends BaseApiController
-{
     /**
      * Public endpoint: Open a POS session scoped to the jobberiet-as tenant,
      * using fixed user id 2.
@@ -164,7 +162,7 @@ class PosSessionsController extends BaseApiController
             ),
         ], 201);
     }
-}
+
 
     /**
      * Open a new POS session
