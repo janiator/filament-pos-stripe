@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('connected_products', function (Blueprint $table) {
-            $table->decimal('vat_percent', 5, 2)->nullable()->after('article_group_code');
+            $table->foreignId('quantity_unit_id')->nullable()->after('unit_label')
+                ->constrained('quantity_units')->onDelete('set null');
         });
     }
 
@@ -22,7 +23,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('connected_products', function (Blueprint $table) {
-            $table->dropColumn('vat_percent');
+            $table->dropForeign(['quantity_unit_id']);
+            $table->dropColumn('quantity_unit_id');
         });
     }
 };

@@ -3,9 +3,12 @@
 namespace App\Filament\Resources\PosPurchases\Schemas;
 
 use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
@@ -167,10 +170,10 @@ class PosPurchaseInfolist
                     ->columns(2)
                     ->icon(Heroicon::OutlinedDocumentText),
 
-                // Cart Items - Clean list display using stored product snapshots
+                // Cart Items - Display using RepeatableEntry for better layout
                 Section::make('Items Purchased')
                     ->schema([
-                        TextEntry::make('items_display')
+                        RepeatableEntry::make('items')
                             ->label('')
                             ->state(function ($record) {
                                 // Get metadata directly - it's already cast as array by the model
@@ -188,183 +191,142 @@ class PosPurchaseInfolist
                                                     $cleanedItem[$key] = $value;
                                                 }
                                             }
+                                            
+                                            // Calculate derived values for display
+                                            $quantity = $cleanedItem['quantity'] ?? 1;
+                                            $unitPrice = ($cleanedItem['unit_price'] ?? 0) / 100;
+                                            $discountAmount = ($cleanedItem['discount_amount'] ?? 0) / 100;
+                                            $originalPrice = isset($cleanedItem['original_price']) ? ($cleanedItem['original_price'] / 100) : null;
+                                            $lineTotal = ($unitPrice * $quantity) - ($discountAmount * $quantity);
+                                            
+                                            // Get product name from snapshot or fetch from database
+                                            $productName = $cleanedItem['product_name'] ?? null;
+                                            if (!$productName) {
+                                                $productId = $cleanedItem['product_id'] ?? null;
+                                                $variantId = $cleanedItem['variant_id'] ?? null;
+                                                
+                                                if ($variantId) {
+                                                    $variant = \App\Models\ProductVariant::find($variantId);
+                                                    if ($variant && $variant->product) {
+                                                        $productName = $variant->product->name;
+                                                        if ($variant->variant_name !== 'Default') {
+                                                            $productName .= ' - ' . $variant->variant_name;
+                                                        }
+                                                    } elseif ($productId) {
+                                                        $product = \App\Models\ConnectedProduct::find($productId);
+                                                        $productName = $product ? $product->name : "Product #{$productId}";
+                                                    }
+                                                } elseif ($productId) {
+                                                    $product = \App\Models\ConnectedProduct::find($productId);
+                                                    $productName = $product ? $product->name : "Product #{$productId}";
+                                                }
+                                                
+                                                if (!$productName) {
+                                                    $productName = 'Unknown Product';
+                                                }
+                                            }
+                                            
+                                            // Add calculated values to item
+                                            $cleanedItem['display_name'] = $productName;
+                                            $cleanedItem['display_quantity'] = $quantity;
+                                            $cleanedItem['display_unit_price'] = $unitPrice;
+                                            $cleanedItem['display_original_price'] = $originalPrice;
+                                            $cleanedItem['display_discount_amount'] = $discountAmount;
+                                            $cleanedItem['display_line_total'] = $lineTotal;
+                                            
                                             $items[] = $cleanedItem;
                                         }
                                     }
                                 }
-
-                                if (empty($items)) {
-                                    return 'No items in this purchase';
-                                }
-
-                                $lines = [];
                                 
-                                foreach ($items as $index => $item) {
-                                    $quantity = $item['quantity'] ?? 1;
-                                    $unitPrice = ($item['unit_price'] ?? 0) / 100;
-                                    $discountAmount = ($item['discount_amount'] ?? 0) / 100;
-                                    $originalPrice = isset($item['original_price']) ? ($item['original_price'] / 100) : null;
-                                    
-                                    // Calculate line total
-                                    $lineTotal = ($unitPrice * $quantity) - ($discountAmount * $quantity);
-
-                                    // Use stored product snapshot (preserves historical data)
-                                    $productName = $item['product_name'] ?? null;
-                                    
-                                    // Fallback to fetching product if snapshot not available (old purchases)
-                                    if (!$productName) {
-                                        $productId = $item['product_id'] ?? null;
-                                        $variantId = $item['variant_id'] ?? null;
-                                        
-                                        if ($variantId) {
-                                            // Try to get variant first
-                                            $variant = \App\Models\ProductVariant::find($variantId);
-                                            if ($variant && $variant->product) {
-                                                $productName = $variant->product->name;
-                                                if ($variant->variant_name !== 'Default') {
-                                                    $productName .= ' - ' . $variant->variant_name;
-                                                }
-                                            } elseif ($productId) {
-                                                $product = \App\Models\ConnectedProduct::find($productId);
-                                                $productName = $product ? $product->name : "Product #{$productId}";
-                                            }
-                                        } elseif ($productId) {
-                                            $product = \App\Models\ConnectedProduct::find($productId);
-                                            $productName = $product ? $product->name : "Product #{$productId}";
-                                        }
-                                        
-                                        // Final fallback
-                                        if (!$productName) {
-                                            $productName = 'Unknown Product';
-                                        }
-                                    }
-
-                                    // Build item line
-                                    $line = "• {$quantity}x {$productName}";
-                                    
-                                    // Add product code if available (from snapshot or item)
-                                    $productCode = $item['product_code'] ?? $item['article_group_code'] ?? null;
-                                    if ($productCode) {
-                                        $line .= " [{$productCode}]";
-                                    }
-                                    
-                                    // Add variant info if available
-                                    $variantId = $item['variant_id'] ?? null;
-                                    if ($variantId) {
-                                        $line .= " (Variant #{$variantId})";
-                                    }
-                                    
-                                    // Add pricing info
-                                    if ($originalPrice && $originalPrice > $unitPrice) {
-                                        // Show original price if discounted
-                                        $line .= "\n  " . number_format($originalPrice, 2) . ' NOK (original)';
-                                        $line .= " → " . number_format($unitPrice, 2) . ' NOK (after discount)';
-                                    } else {
-                                        $line .= "\n  " . number_format($unitPrice, 2) . ' NOK';
-                                    }
-                                    
-                                    $line .= " × {$quantity}";
-                                    
-                                    // Add discount if applicable
-                                    if ($discountAmount > 0) {
-                                        $line .= " (Discount: -" . number_format($discountAmount, 2) . ' NOK per unit)';
-                                    }
-                                    
-                                    // Add total
-                                    $line .= " = " . number_format($lineTotal, 2) . ' NOK';
-
-                                    $lines[] = $line;
-                                }
-
-                                return implode("\n\n", $lines);
+                                return $items;
                             })
-                            ->listWithLineBreaks()
-                            ->placeholder('No items')
+                            ->table([
+                                TableColumn::make('Product'),
+                                TableColumn::make('Qty')
+                                    ->alignment(Alignment::Center)
+                                    ->width('60px'),
+                                TableColumn::make('Unit Price')
+                                    ->alignment(Alignment::End),
+                                TableColumn::make('Discount')
+                                    ->alignment(Alignment::End),
+                                TableColumn::make('Total')
+                                    ->alignment(Alignment::End),
+                            ])
+                            ->schema([
+                                TextEntry::make('display_name')
+                                    ->label('Product')
+                                    ->weight('bold'),
+                                
+                                TextEntry::make('display_quantity')
+                                    ->label('Qty')
+                                    ->formatStateUsing(fn ($state) => $state ?? 1)
+                                    ->badge()
+                                    ->color('gray'),
+                                
+                                TextEntry::make('display_unit_price')
+                                    ->label('Unit Price')
+                                    ->formatStateUsing(function ($state, $get) {
+                                        $originalPrice = $get('display_original_price');
+                                        
+                                        if ($originalPrice && $originalPrice > $state) {
+                                            return '<span style="text-decoration: line-through; color: #9ca3af;">' . number_format($originalPrice, 2) . '</span> ' . number_format($state, 2) . ' NOK';
+                                        }
+                                        
+                                        return number_format($state, 2) . ' NOK';
+                                    })
+                                    ->html(),
+                                
+                                TextEntry::make('display_discount_amount')
+                                    ->label('Discount')
+                                    ->formatStateUsing(fn ($state) => $state > 0 ? '-' . number_format($state, 2) . ' NOK' : '-')
+                                    ->badge()
+                                    ->color(fn ($get) => ($get('display_discount_amount') ?? 0) > 0 ? 'success' : 'gray'),
+                                
+                                TextEntry::make('display_line_total')
+                                    ->label('Total')
+                                    ->formatStateUsing(fn ($state) => number_format($state, 2) . ' NOK')
+                                    ->weight('bold')
+                                    ->badge()
+                                    ->color('primary'),
+                            ])
                             ->columnSpanFull(),
                     ])
                     ->icon(Heroicon::OutlinedShoppingBag),
 
-                // Purchase Summary with VAT Breakdown
+                // Purchase Summary
                 Section::make('Purchase Summary')
                     ->schema([
-                        TextEntry::make('subtotal_excluding_tax')
-                            ->label('Subtotal (Excluding VAT)')
-                            ->formatStateUsing(function ($state, $record) {
+                        TextEntry::make('subtotal_display')
+                            ->label('Subtotal')
+                            ->state(function ($record) {
+                                // Use same calculation logic as API (PurchasesController)
                                 $metadata = $record->metadata ?? [];
+                                $items = $metadata['items'] ?? [];
                                 
-                                // Try to get values from metadata (in øre)
-                                $subtotal = isset($metadata['subtotal']) && $metadata['subtotal'] > 0
-                                    ? (int) $metadata['subtotal'] 
-                                    : null;
-                                $totalTax = isset($metadata['total_tax']) && $metadata['total_tax'] > 0
-                                    ? (int) $metadata['total_tax'] 
-                                    : null;
-                                
-                                // If metadata values are missing or 0, calculate from items
-                                if (($subtotal === null || $subtotal <= 0) || ($totalTax === null || $totalTax <= 0)) {
-                                    $items = $metadata['items'] ?? [];
-                                    $calculatedSubtotal = 0;
-                                    $calculatedTax = 0;
-                                    
+                                // Calculate subtotal from items (same as API)
+                                $calculatedSubtotal = 0;
+                                if (!empty($items) && is_array($items)) {
                                     foreach ($items as $item) {
                                         if (!is_array($item)) {
                                             continue;
                                         }
-                                        
                                         $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
                                         $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
-                                        $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
-                                        
-                                        $lineTotal = ($unitPrice * $quantity) - ($discountAmount * $quantity);
-                                        $calculatedSubtotal += $lineTotal;
-                                        
-                                        // Calculate tax for this item
-                                        // Try to get VAT percent from multiple sources
-                                        $vatPercent = null;
-                                        
-                                        if (isset($item['vat_percent'])) {
-                                            $vatPercent = (float) $item['vat_percent'];
-                                        } elseif (isset($item['article_group_code'])) {
-                                            $vatPercent = \App\Services\SafTCodeMapper::getVatPercentFromArticleGroupCode($item['article_group_code']);
-                                        } elseif (isset($item['product_id'])) {
-                                            // Fetch product from database
-                                            try {
-                                                $product = \App\Models\ConnectedProduct::find($item['product_id']);
-                                                if ($product) {
-                                                    if ($product->vat_percent) {
-                                                        $vatPercent = (float) $product->vat_percent;
-                                                    } elseif ($product->article_group_code) {
-                                                        $vatPercent = \App\Services\SafTCodeMapper::getVatPercentFromArticleGroupCode($product->article_group_code);
-                                                    }
-                                                }
-                                            } catch (\Exception $e) {
-                                                // Product might be deleted, continue with default
-                                            }
-                                        }
-                                        
-                                        // Default to 25% if no VAT info found
-                                        if ($vatPercent === null) {
-                                            $vatPercent = 25.0;
-                                        }
-                                        
-                                        // Tax-inclusive: Tax = Total × (Rate / (100 + Rate))
-                                        $itemTax = (int) round($lineTotal * ($vatPercent / (100 + $vatPercent)));
-                                        $calculatedTax += $itemTax;
+                                        $lineSubtotal = $unitPrice * $quantity;
+                                        $calculatedSubtotal += $lineSubtotal;
                                     }
-                                    
-                                    // Apply cart-level discounts
-                                    $cartDiscounts = isset($metadata['total_discounts']) 
-                                        ? (int) $metadata['total_discounts'] 
-                                        : 0;
-                                    
-                                    $subtotal = $calculatedSubtotal > 0 ? $calculatedSubtotal : ($record->amount - $cartDiscounts);
-                                    $totalTax = $calculatedTax > 0 ? $calculatedTax : 0;
                                 }
                                 
-                                // Calculate subtotal excluding tax
-                                $subtotalExcludingTax = $subtotal - $totalTax;
+                                // Get metadata values
+                                $metadataSubtotal = isset($metadata['subtotal']) ? (int) $metadata['subtotal'] : null;
                                 
-                                return number_format($subtotalExcludingTax / 100, 2) . ' NOK';
+                                // Use calculated subtotal if metadata is missing or 0 (same as API)
+                                $subtotal = ($metadataSubtotal === null || ($metadataSubtotal === 0 && $calculatedSubtotal > 0))
+                                    ? $calculatedSubtotal
+                                    : ($metadataSubtotal ?? $record->amount);
+                                
+                                return number_format($subtotal / 100, 2) . ' NOK';
                             })
                             ->size(TextSize::Large)
                             ->icon(Heroicon::OutlinedCalculator),
@@ -384,252 +346,70 @@ class PosPurchaseInfolist
                             ->icon(Heroicon::OutlinedTag)
                             ->visible(fn ($record) => ($record->metadata['total_discounts'] ?? 0) > 0),
 
-                        // VAT Breakdown Section
-                        TextEntry::make('vat_breakdown')
-                            ->label('VAT Breakdown')
-                            ->formatStateUsing(function ($state, $record) {
+                        TextEntry::make('tax_display')
+                            ->label('Tax')
+                            ->state(function ($record) {
+                                // Use same calculation logic as API (PurchasesController)
                                 $metadata = $record->metadata ?? [];
                                 $items = $metadata['items'] ?? [];
                                 
-                                // If no items, try to calculate from total amount
-                                if (empty($items) || !is_array($items)) {
-                                    $totalTax = isset($metadata['total_tax']) && $metadata['total_tax'] > 0
-                                        ? (int) $metadata['total_tax'] 
-                                        : null;
-                                    
-                                    // If no tax in metadata, calculate from total amount (assuming 25% VAT)
-                                    if ($totalTax === null || $totalTax <= 0) {
-                                        $totalAmount = $record->amount;
-                                        $vatRate = 0.25; // Default 25%
-                                        $totalTax = (int) round($totalAmount * ($vatRate / (1 + $vatRate)));
+                                // Calculate subtotal from items (same as API)
+                                $calculatedSubtotal = 0;
+                                if (!empty($items) && is_array($items)) {
+                                    foreach ($items as $item) {
+                                        if (!is_array($item)) {
+                                            continue;
+                                        }
+                                        $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
+                                        $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
+                                        $lineSubtotal = $unitPrice * $quantity;
+                                        $calculatedSubtotal += $lineSubtotal;
                                     }
-                                    
-                                    if ($totalTax > 0) {
-                                        $subtotal = isset($metadata['subtotal']) && $metadata['subtotal'] > 0
-                                            ? (int) $metadata['subtotal'] 
-                                            : $record->amount;
-                                        $subtotalExcludingTax = $subtotal - $totalTax;
-                                        $vatRate = $subtotalExcludingTax > 0 
-                                            ? ($totalTax / $subtotalExcludingTax) * 100 
-                                            : 25.0;
-                                        return sprintf(
-                                            'Total VAT: %.2f NOK (%.2f%%)',
-                                            $totalTax / 100,
-                                            $vatRate
-                                        );
-                                    }
-                                    return 'No VAT';
                                 }
                                 
-                                // Group items by VAT rate
-                                $vatGroups = [];
-                                foreach ($items as $item) {
-                                    if (!is_array($item)) {
-                                        continue;
-                                    }
-                                    
-                                    // All prices in øre (cents)
-                                    $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
-                                    $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
-                                    $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
-                                    
-                                    // Line total in øre
-                                    $lineTotal = ($unitPrice * $quantity) - ($discountAmount * $quantity);
-                                    
-                                    if ($lineTotal <= 0) {
-                                        continue;
-                                    }
-                                    
-                                    // Get VAT percent from item (as percentage, e.g., 25.0 for 25%)
-                                    // Try multiple sources: vat_percent, article_group_code mapping, product lookup, or default
-                                    $vatPercent = null;
-                                    
-                                    if (isset($item['vat_percent'])) {
-                                        $vatPercent = (float) $item['vat_percent'];
-                                    } elseif (isset($item['article_group_code'])) {
-                                        // Try to get VAT from article group code
-                                        $vatPercent = \App\Services\SafTCodeMapper::getVatPercentFromArticleGroupCode($item['article_group_code']);
-                                    } elseif (isset($item['product_id'])) {
-                                        // Fetch product from database to get vat_percent or article_group_code
-                                        try {
-                                            $product = \App\Models\ConnectedProduct::find($item['product_id']);
-                                            if ($product) {
-                                                if ($product->vat_percent) {
-                                                    $vatPercent = (float) $product->vat_percent;
-                                                } elseif ($product->article_group_code) {
-                                                    $vatPercent = \App\Services\SafTCodeMapper::getVatPercentFromArticleGroupCode($product->article_group_code);
-                                                }
-                                            }
-                                        } catch (\Exception $e) {
-                                            // Product might be deleted, continue with default
+                                // Get metadata values
+                                $metadataSubtotal = isset($metadata['subtotal']) ? (int) $metadata['subtotal'] : null;
+                                $metadataDiscounts = isset($metadata['total_discounts']) ? (int) $metadata['total_discounts'] : null;
+                                $metadataTax = isset($metadata['total_tax']) ? (int) $metadata['total_tax'] : null;
+                                
+                                // Calculate cart-level discounts
+                                $cartLevelDiscounts = 0;
+                                if (isset($metadata['discounts']) && is_array($metadata['discounts'])) {
+                                    foreach ($metadata['discounts'] as $discount) {
+                                        if (isset($discount['amount']) && is_numeric($discount['amount'])) {
+                                            $cartLevelDiscounts += (int) $discount['amount'];
                                         }
                                     }
-                                    
-                                    // If still not available, try to calculate from item tax
-                                    if ($vatPercent === null) {
-                                        $itemTax = isset($item['tax_amount']) 
-                                            ? (int) $item['tax_amount'] 
-                                            : 0;
-                                        
-                                        if ($itemTax > 0) {
-                                            // Calculate VAT rate: tax / (total - tax) * 100
-                                            $baseAmount = $lineTotal - $itemTax;
-                                            $vatPercent = $baseAmount > 0 
-                                                ? ($itemTax / $baseAmount) * 100 
-                                                : 25.0;
-                                        } else {
-                                            // Default to 25% if no tax info
-                                            $vatPercent = 25.0;
-                                        }
-                                    }
-                                    
-                                    $vatKey = number_format($vatPercent, 2) . '%';
-                                    if (!isset($vatGroups[$vatKey])) {
-                                        $vatGroups[$vatKey] = [
-                                            'rate' => $vatPercent,
-                                            'subtotal' => 0, // in øre
-                                            'tax' => 0,      // in øre
-                                        ];
-                                    }
-                                    
-                                    // Calculate tax for this item (tax-inclusive pricing)
-                                    // Tax = Total × (Rate / (100 + Rate))
-                                    $itemTax = (int) round($lineTotal * ($vatPercent / (100 + $vatPercent)));
-                                    $itemBase = $lineTotal - $itemTax;
-                                    
-                                    $vatGroups[$vatKey]['subtotal'] += $itemBase;
-                                    $vatGroups[$vatKey]['tax'] += $itemTax;
                                 }
                                 
-                                if (empty($vatGroups)) {
-                                    // Fallback: calculate total VAT from amount (assuming 25% default)
-                                    $totalAmount = $record->amount;
-                                    $vatRate = 0.25; // Default 25%
-                                    $totalTax = (int) round($totalAmount * ($vatRate / (1 + $vatRate)));
-                                    $subtotalExcludingTax = $totalAmount - $totalTax;
-                                    
-                                    return sprintf(
-                                        'Total VAT: %.2f NOK (%.2f%%, Base: %.2f NOK)',
-                                        $totalTax / 100,
-                                        $vatRate * 100,
-                                        $subtotalExcludingTax / 100
-                                    );
-                                }
+                                // Use calculated subtotal if metadata is missing or 0 (same as API)
+                                $subtotal = ($metadataSubtotal === null || ($metadataSubtotal === 0 && $calculatedSubtotal > 0))
+                                    ? $calculatedSubtotal
+                                    : ($metadataSubtotal ?? $record->amount);
                                 
-                                $lines = [];
-                                $totalTaxCalculated = 0;
-                                $totalBaseCalculated = 0;
+                                // Use calculated discounts if metadata is missing or 0 (same as API)
+                                $totalDiscounts = ($metadataDiscounts === null || ($metadataDiscounts === 0 && $cartLevelDiscounts > 0))
+                                    ? $cartLevelDiscounts
+                                    : ($metadataDiscounts ?? 0);
                                 
-                                foreach ($vatGroups as $rate => $group) {
-                                    $totalTaxCalculated += $group['tax'];
-                                    $totalBaseCalculated += $group['subtotal'];
-                                    $lines[] = sprintf(
-                                        '%s: %.2f NOK (Base: %.2f NOK)',
-                                        $rate,
-                                        $group['tax'] / 100,
-                                        $group['subtotal'] / 100
-                                    );
-                                }
+                                // Calculate subtotal after discounts
+                                $subtotalAfterDiscounts = $subtotal - $totalDiscounts;
                                 
-                                // Add total line
-                                if (count($vatGroups) > 1) {
-                                    $lines[] = sprintf(
-                                        'Total: %.2f NOK (Base: %.2f NOK)',
-                                        $totalTaxCalculated / 100,
-                                        $totalBaseCalculated / 100
-                                    );
-                                }
-                                
-                                return implode("\n", $lines);
-                            })
-                            ->listWithLineBreaks()
-                            ->size(TextSize::Medium)
-                            ->icon(Heroicon::OutlinedReceiptPercent)
-                            ->columnSpanFull(),
-
-                        TextEntry::make('total_tax_display')
-                            ->label('Total VAT')
-                            ->formatStateUsing(function ($state, $record) {
-                                $metadata = $record->metadata ?? [];
-                                
-                                // Try to get from metadata first
-                                $tax = isset($metadata['total_tax']) && $metadata['total_tax'] > 0
-                                    ? (int) $metadata['total_tax'] 
-                                    : null;
-                                
-                                // If not available or 0, calculate from items
-                                if ($tax === null || $tax <= 0) {
-                                    $items = $metadata['items'] ?? [];
-                                    $calculatedTax = 0;
-                                    
-                                    if (!empty($items) && is_array($items)) {
-                                        foreach ($items as $item) {
-                                            if (!is_array($item)) {
-                                                continue;
-                                            }
-                                            
-                                            $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
-                                            $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
-                                            $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
-                                            
-                                            $lineTotal = ($unitPrice * $quantity) - ($discountAmount * $quantity);
-                                            
-                                            if ($lineTotal <= 0) {
-                                                continue;
-                                            }
-                                            
-                                            // Get VAT percent from item - try multiple sources
-                                            $vatPercent = null;
-                                            
-                                            if (isset($item['vat_percent'])) {
-                                                $vatPercent = (float) $item['vat_percent'];
-                                            } elseif (isset($item['article_group_code'])) {
-                                                $vatPercent = \App\Services\SafTCodeMapper::getVatPercentFromArticleGroupCode($item['article_group_code']);
-                                            } elseif (isset($item['product_id'])) {
-                                                try {
-                                                    $product = \App\Models\ConnectedProduct::find($item['product_id']);
-                                                    if ($product) {
-                                                        if ($product->vat_percent) {
-                                                            $vatPercent = (float) $product->vat_percent;
-                                                        } elseif ($product->article_group_code) {
-                                                            $vatPercent = \App\Services\SafTCodeMapper::getVatPercentFromArticleGroupCode($product->article_group_code);
-                                                        }
-                                                    }
-                                                } catch (\Exception $e) {
-                                                    // Product might be deleted, continue with default
-                                                }
-                                            }
-                                            
-                                            // Default to 25% if no VAT info found
-                                            if ($vatPercent === null) {
-                                                $vatPercent = 25.0;
-                                            }
-                                            
-                                            // Tax-inclusive: Tax = Total × (Rate / (100 + Rate))
-                                            $itemTax = (int) round($lineTotal * ($vatPercent / (100 + $vatPercent)));
-                                            $calculatedTax += $itemTax;
-                                        }
-                                    }
-                                    
-                                    // If still no tax calculated, calculate from total amount (fallback)
-                                    if ($calculatedTax <= 0) {
-                                        $totalAmount = $record->amount;
-                                        $vatRate = 0.25; // Default 25%
-                                        $calculatedTax = (int) round($totalAmount * ($vatRate / (1 + $vatRate)));
-                                    }
-                                    
-                                    $tax = $calculatedTax;
-                                }
-                                
-                                if ($tax <= 0) {
-                                    return '0.00 NOK';
+                                // Calculate tax (same as API: tax-inclusive pricing)
+                                // Tax = Subtotal × (Tax Rate / (1 + Tax Rate))
+                                // Default 25% VAT in Norway
+                                if ($metadataTax === null || ($metadataTax === 0 && $subtotalAfterDiscounts > 0)) {
+                                    $taxRate = 0.25; // 25% VAT default (same as API)
+                                    $tax = $subtotalAfterDiscounts > 0 
+                                        ? (int) round($subtotalAfterDiscounts * ($taxRate / (1 + $taxRate)))
+                                        : 0;
+                                } else {
+                                    $tax = $metadataTax;
                                 }
                                 
                                 return number_format($tax / 100, 2) . ' NOK';
                             })
                             ->size(TextSize::Large)
-                            ->badge()
-                            ->color('info')
                             ->icon(Heroicon::OutlinedReceiptPercent),
 
                         TextEntry::make('tip_display')

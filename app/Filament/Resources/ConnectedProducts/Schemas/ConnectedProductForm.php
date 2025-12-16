@@ -17,6 +17,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use App\Models\Collection;
 use App\Models\Vendor;
+use App\Models\ArticleGroupCode;
 use Illuminate\Support\Str;
 
 class ConnectedProductForm
@@ -98,6 +99,101 @@ class ConnectedProductForm
                             ->default('nok')
                             ->visibleOn('create'),
                     ])
+                    ->visibleOn('create'),
+
+                Select::make('quantity_unit_id')
+                    ->label('Quantity Unit')
+                    ->relationship(
+                        'quantityUnit',
+                        'name',
+                        modifyQueryUsing: function ($query, $get) {
+                            $stripeAccountId = null;
+                            try {
+                                $tenant = \Filament\Facades\Filament::getTenant();
+                                $stripeAccountId = $tenant?->stripe_account_id;
+                            } catch (\Throwable $e) {
+                                // Fallback
+                            }
+
+                            if (!$stripeAccountId) {
+                                $stripeAccountId = $get('stripe_account_id');
+                            }
+
+                            if ($stripeAccountId) {
+                                return $query->where(function ($q) use ($stripeAccountId) {
+                                    $q->where('stripe_account_id', $stripeAccountId)
+                                      ->orWhere(function ($q2) use ($stripeAccountId) {
+                                          // Only include global units that don't have a store-specific version
+                                          $q2->whereNull('stripe_account_id')
+                                             ->where('is_standard', true)
+                                             ->whereNotExists(function ($subQuery) use ($stripeAccountId) {
+                                                 $subQuery->select(\DB::raw(1))
+                                                          ->from('quantity_units as q2')
+                                                          ->whereColumn('q2.name', 'quantity_units.name')
+                                                          ->where(function ($q3) {
+                                                              $q3->whereColumn('q2.symbol', 'quantity_units.symbol')
+                                                                 ->orWhere(function ($q4) {
+                                                                     $q4->whereNull('q2.symbol')
+                                                                        ->whereNull('quantity_units.symbol');
+                                                                 });
+                                                          })
+                                                          ->where('q2.stripe_account_id', $stripeAccountId)
+                                                          ->where('q2.active', true);
+                                             });
+                                      });
+                                })
+                                ->where('active', true)
+                                ->orderByRaw('CASE WHEN stripe_account_id IS NOT NULL THEN 0 ELSE 1 END')
+                                ->orderBy('name', 'asc');
+                            }
+
+                            return $query->whereNull('stripe_account_id')
+                                ->where('is_standard', true)
+                                ->where('active', true)
+                                ->orderBy('name', 'asc');
+                        }
+                    )
+                    ->getOptionLabelFromRecordUsing(function ($record) {
+                        return $record->name . ($record->symbol ? ' (' . $record->symbol . ')' : '');
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->default(function ($get) {
+                        // Default to "Piece" (stk) for new products
+                        $stripeAccountId = null;
+                        try {
+                            $tenant = \Filament\Facades\Filament::getTenant();
+                            $stripeAccountId = $tenant?->stripe_account_id;
+                        } catch (\Throwable $e) {
+                            // Fallback
+                        }
+
+                        if (!$stripeAccountId) {
+                            $stripeAccountId = $get('stripe_account_id');
+                        }
+
+                        // Find "Piece" quantity unit
+                        $pieceUnit = \App\Models\QuantityUnit::where(function ($q) use ($stripeAccountId) {
+                            if ($stripeAccountId) {
+                                $q->where('stripe_account_id', $stripeAccountId)
+                                  ->orWhere(function ($q2) {
+                                      $q2->whereNull('stripe_account_id')
+                                         ->where('is_standard', true);
+                                  });
+                            } else {
+                                $q->whereNull('stripe_account_id')
+                                  ->where('is_standard', true);
+                            }
+                        })
+                        ->where('name', 'Piece')
+                        ->where('active', true)
+                        ->first();
+
+                        return $pieceUnit?->id;
+                    })
+                    ->helperText('Select the quantity unit for this product. Defaults to Piece (stk).')
+                    ->placeholder('Select quantity unit')
+                    ->helperText('Unit label will be automatically set from the quantity unit symbol.')
                     ->visibleOn('create'),
 
                 TextInput::make('compare_at_price_decimal')
@@ -265,35 +361,35 @@ class ConnectedProductForm
                                                         if ($state) {
                                                             return $state;
                                                         }
-                                                        
+
                                                         if (!$record || !$record->stripe_product_id || !$record->stripe_account_id) {
                                                             return $state;
                                                         }
-                                                        
+
                                                         // Try to load from default_price first
                                                         if ($record->default_price) {
                                                             $defaultPrice = \App\Models\ConnectedPrice::where('stripe_price_id', $record->default_price)
                                                                 ->where('stripe_account_id', $record->stripe_account_id)
                                                                 ->first();
-                                                            
+
                                                             if ($defaultPrice && $defaultPrice->unit_amount) {
                                                                 // Format as decimal number (e.g., 299.00)
                                                                 return number_format($defaultPrice->unit_amount / 100, 2, '.', '');
                                                             }
                                                         }
-                                                        
+
                                                         // Fallback: get the first active price for this product
                                                         $activePrice = \App\Models\ConnectedPrice::where('stripe_product_id', $record->stripe_product_id)
                                                             ->where('stripe_account_id', $record->stripe_account_id)
                                                             ->where('active', true)
                                                             ->orderBy('created_at', 'desc')
                                                             ->first();
-                                                        
+
                                                         if ($activePrice && $activePrice->unit_amount) {
                                                             // Format as decimal number (e.g., 299.00)
                                                             return number_format($activePrice->unit_amount / 100, 2, '.', '');
                                                         }
-                                                        
+
                                                         return $state;
                                                     })
                                                     ->dehydrateStateUsing(function ($state) {
@@ -319,33 +415,33 @@ class ConnectedProductForm
                                                         if ($state) {
                                                             return $state;
                                                         }
-                                                        
+
                                                         if (!$record || !$record->stripe_product_id || !$record->stripe_account_id) {
                                                             return $state ?: 'nok';
                                                         }
-                                                        
+
                                                         // Try to load from default_price first
                                                         if ($record->default_price) {
                                                             $defaultPrice = \App\Models\ConnectedPrice::where('stripe_price_id', $record->default_price)
                                                                 ->where('stripe_account_id', $record->stripe_account_id)
                                                                 ->first();
-                                                            
+
                                                             if ($defaultPrice && $defaultPrice->currency) {
                                                                 return $defaultPrice->currency;
                                                             }
                                                         }
-                                                        
+
                                                         // Fallback: get currency from the first active price for this product
                                                         $activePrice = \App\Models\ConnectedPrice::where('stripe_product_id', $record->stripe_product_id)
                                                             ->where('stripe_account_id', $record->stripe_account_id)
                                                             ->where('active', true)
                                                             ->orderBy('created_at', 'desc')
                                                             ->first();
-                                                        
+
                                                         if ($activePrice && $activePrice->currency) {
                                                             return $activePrice->currency;
                                                         }
-                                                        
+
                                                         return $state ?: 'nok';
                                                     })
                                                     ->helperText('Currency for this product'),
@@ -418,25 +514,25 @@ class ConnectedProductForm
                                                 modifyQueryUsing: function ($query, $get, $record) {
                                                     // Prioritize tenant's stripe_account_id (most reliable for preload)
                                                     $stripeAccountId = null;
-                                                    
+
                                                     try {
                                                         $tenant = \Filament\Facades\Filament::getTenant();
                                                         $stripeAccountId = $tenant?->stripe_account_id;
                                                     } catch (\Throwable $e) {
                                                         // Fallback if Filament facade not available
                                                     }
-                                                    
+
                                                     // Fallback to record or form state if tenant not available
                                                     if (!$stripeAccountId) {
                                                         $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
                                                     }
-                                                    
+
                                                     if ($stripeAccountId) {
                                                         return $query->where('stripe_account_id', $stripeAccountId)
                                                             ->where('active', true)
                                                             ->orderBy('name', 'asc');
                                                     }
-                                                    
+
                                                     // If no stripe_account_id, return empty query for safety
                                                     return $query->whereRaw('1 = 0');
                                                 }
@@ -477,19 +573,19 @@ class ConnectedProductForm
                                                     ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
                                                         // Get stripe_account_id from product record or form state
                                                         $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-                                                        
+
                                                         if (!$stripeAccountId) {
                                                             throw new \Exception('Cannot create vendor: stripe_account_id is required');
                                                         }
-                                                        
+
                                                         // Get store_id from tenant
                                                         $tenant = \Filament\Facades\Filament::getTenant();
                                                         $storeId = $tenant?->id;
-                                                        
+
                                                         if (!$storeId) {
                                                             throw new \Exception('Cannot create vendor: store_id is required');
                                                         }
-                                                        
+
                                                         // Create the vendor
                                                         $vendor = Vendor::create([
                                                             'store_id' => $storeId,
@@ -500,7 +596,7 @@ class ConnectedProductForm
                                                             'contact_phone' => $data['contact_phone'] ?? null,
                                                             'active' => $data['active'] ?? true,
                                                         ]);
-                                                        
+
                                                         // Set the new vendor as selected
                                                         $set('vendor_id', $vendor->id);
                                                     })
@@ -523,11 +619,11 @@ class ConnectedProductForm
                                                 'name',
                                                 modifyQueryUsing: function ($query, $get, $record) {
                                                     $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-                                                    
+
                                                     // Clear any existing orderBy clauses from the relationship
                                                     // (the relationship has orderByPivot which causes PostgreSQL DISTINCT issues)
                                                     $query->getQuery()->orders = [];
-                                                    
+
                                                     if ($stripeAccountId) {
                                                         // Select specific columns to avoid PostgreSQL JSON distinct issue
                                                         // Order by name (which is in SELECT) instead of pivot sort_order
@@ -570,15 +666,15 @@ class ConnectedProductForm
                                                     ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
                                                         // Get stripe_account_id from product record or form state
                                                         $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-                                                        
+
                                                         if (!$stripeAccountId) {
                                                             throw new \Exception('Cannot create collection: stripe_account_id is required');
                                                         }
-                                                        
+
                                                         // Get store_id from tenant
                                                         $tenant = \Filament\Facades\Filament::getTenant();
                                                         $storeId = $tenant?->id;
-                                                        
+
                                                         // Create the collection
                                                         $collection = Collection::create([
                                                             'store_id' => $storeId,
@@ -588,7 +684,7 @@ class ConnectedProductForm
                                                             'description' => $data['description'] ?? null,
                                                             'active' => $data['active'] ?? true,
                                                         ]);
-                                                        
+
                                                         // Add the new collection to the selected collections
                                                         $currentCollections = $get('collections') ?? [];
                                                         if (!is_array($currentCollections)) {
@@ -615,9 +711,6 @@ class ConnectedProductForm
                                                     ->maxLength(22)
                                                     ->helperText('Appears on customer statements (max 22 characters)'),
 
-                                                TextInput::make('tax_code')
-                                                    ->label('Tax Code (Stripe)')
-                                                    ->helperText('Stripe tax code ID for tax calculation (optional)'),
                                             ])
                                             ->columnSpanFull(),
 
@@ -625,18 +718,87 @@ class ConnectedProductForm
                                             ->schema([
                                                 Select::make('article_group_code')
                                                     ->label('Article Group Code (SAF-T)')
-                                                    ->options(\App\Services\SafTCodeMapper::getArticleGroupCodes())
-                                                    ->searchable()
-                                                    ->helperText('PredefinedBasicID-04: Product category for SAF-T reporting')
+                                                    ->relationship(
+                                                        'articleGroupCode',
+                                                        'name',
+                                                        modifyQueryUsing: function ($query, $get, $record) {
+                                                            // Prioritize tenant's stripe_account_id
+                                                            $stripeAccountId = null;
+                                                            try {
+                                                                $tenant = \Filament\Facades\Filament::getTenant();
+                                                                $stripeAccountId = $tenant?->stripe_account_id;
+                                                            } catch (\Throwable $e) {
+                                                                // Fallback
+                                                            }
+
+                                                            if (!$stripeAccountId) {
+                                                                $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+                                                            }
+
+                                                            // Show store-specific codes and global standard codes
+                                                            if ($stripeAccountId) {
+                                                                return $query->where(function ($q) use ($stripeAccountId) {
+                                                                    $q->where('stripe_account_id', $stripeAccountId)
+                                                                      ->orWhere(function ($q2) {
+                                                                          $q2->whereNull('stripe_account_id')
+                                                                             ->where('is_standard', true);
+                                                                      });
+                                                                })
+                                                                ->where('active', true)
+                                                                ->orderBy('sort_order', 'asc')
+                                                                ->orderBy('code', 'asc');
+                                                            }
+
+                                                            // If no stripe_account_id, return global standard codes
+                                                            return $query->whereNull('stripe_account_id')
+                                                                ->where('is_standard', true)
+                                                                ->where('active', true)
+                                                                ->orderBy('sort_order', 'asc')
+                                                                ->orderBy('code', 'asc');
+                                                        }
+                                                    )
+                                                    ->getOptionLabelFromRecordUsing(function ($record) {
+                                                        return $record->code . ' - ' . $record->name;
+                                                    })
+                                                    ->searchable(['code', 'name'])
+                                                    ->preload()
+                                                    ->default(function ($record) {
+                                                        // Default to '04999' (Øvrige) for new products
+                                                        if (!$record) {
+                                                            return '04999';
+                                                        }
+                                                        return $record->article_group_code;
+                                                    })
+                                                    ->helperText('PredefinedBasicID-04: Product category for SAF-T reporting. VAT rate will be set from the selected code.')
                                                     ->placeholder('Select article group')
-                                                    ->reactive()
-                                                    ->afterStateUpdated(function ($state, callable $set) {
-                                                        // Auto-set VAT percent based on article group code
-                                                        $vatPercent = \App\Services\SafTCodeMapper::getVatPercentFromArticleGroupCode($state);
-                                                        if ($vatPercent !== null) {
-                                                            $set('vat_percent', $vatPercent);
+                                                    ->live(onBlur: false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        // Auto-set VAT from article group code immediately when changed
+                                                        if ($state) {
+                                                            $articleGroupCode = ArticleGroupCode::where('code', $state)->first();
+                                                            if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
+                                                                // Always update VAT when article group code changes
+                                                                $set('vat_percent', $articleGroupCode->default_vat_percent * 100);
+                                                            } else {
+                                                                // Clear VAT if article group code has no default
+                                                                $set('vat_percent', null);
+                                                            }
+                                                        } else {
+                                                            // Clear VAT if article group code is cleared
+                                                            $set('vat_percent', null);
                                                         }
                                                     }),
+
+                                                TextInput::make('vat_percent')
+                                                    ->label('VAT Percentage (%)')
+                                                    ->numeric()
+                                                    ->step(0.01)
+                                                    ->minValue(0)
+                                                    ->maxValue(100)
+                                                    ->suffix('%')
+                                                    ->helperText('VAT percentage for this product. Auto-set from article group code, but can be manually overridden.')
+                                                    ->placeholder('Auto from article group code')
+                                                    ->reactive(),
 
                                                 TextInput::make('product_code')
                                                     ->label('Product Code (PLU)')
@@ -645,20 +807,165 @@ class ConnectedProductForm
                                             ])
                                             ->columnSpanFull(),
 
-                                        TextInput::make('vat_percent')
-                                            ->label('VAT Percent (%)')
-                                            ->numeric()
-                                            ->step(0.01)
-                                            ->minValue(0)
-                                            ->maxValue(100)
-                                            ->suffix('%')
-                                            ->helperText('VAT percentage for this product. Auto-filled based on article group code.')
-                                            ->placeholder('25.00')
-                                            ->columnSpanFull(),
+                                        Select::make('quantity_unit_id')
+                                            ->label('Quantity Unit')
+                                            ->relationship(
+                                                'quantityUnit',
+                                                'name',
+                                                modifyQueryUsing: function ($query, $get, $record) {
+                                                    // Prioritize tenant's stripe_account_id (most reliable for preload)
+                                                    $stripeAccountId = null;
 
-                                        TextInput::make('unit_label')
-                                            ->label('Unit Label')
-                                            ->helperText('Unit label (e.g., "kg", "lb", "oz")')
+                                                    try {
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $stripeAccountId = $tenant?->stripe_account_id;
+                                                    } catch (\Throwable $e) {
+                                                        // Fallback if Filament facade not available
+                                                    }
+
+                                                    // Fallback to record or form state if tenant not available
+                                                    if (!$stripeAccountId) {
+                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+                                                    }
+
+                                                    // Include store-specific units first, then global standard units as fallback
+                                                    // Only show global units if they don't have a store-specific version
+                                                    if ($stripeAccountId) {
+                                                        return $query->where(function ($q) use ($stripeAccountId) {
+                                                            $q->where('stripe_account_id', $stripeAccountId)
+                                                              ->orWhere(function ($q2) use ($stripeAccountId) {
+                                                                  // Only include global units that don't have a store-specific version
+                                                                  $q2->whereNull('stripe_account_id')
+                                                                     ->where('is_standard', true)
+                                                                     ->whereNotExists(function ($subQuery) use ($stripeAccountId) {
+                                                                         $subQuery->select(\DB::raw(1))
+                                                                                  ->from('quantity_units as q2')
+                                                                                  ->whereColumn('q2.name', 'quantity_units.name')
+                                                                                  ->where(function ($q3) {
+                                                                                      $q3->whereColumn('q2.symbol', 'quantity_units.symbol')
+                                                                                         ->orWhere(function ($q4) {
+                                                                                             $q4->whereNull('q2.symbol')
+                                                                                                ->whereNull('quantity_units.symbol');
+                                                                                         });
+                                                                                  })
+                                                                                  ->where('q2.stripe_account_id', $stripeAccountId)
+                                                                                  ->where('q2.active', true);
+                                                                     });
+                                                              });
+                                                        })
+                                                        ->where('active', true)
+                                                        ->orderByRaw('CASE WHEN stripe_account_id IS NOT NULL THEN 0 ELSE 1 END')
+                                                        ->orderBy('name', 'asc');
+                                                    }
+
+                                                    // If no stripe_account_id, return global standard units
+                                                    return $query->whereNull('stripe_account_id')
+                                                        ->where('is_standard', true)
+                                                        ->where('active', true)
+                                                        ->orderBy('name', 'asc');
+                                                }
+                                            )
+                                            ->getOptionLabelFromRecordUsing(function ($record) {
+                                                return $record->name . ($record->symbol ? ' (' . $record->symbol . ')' : '');
+                                            })
+                                            ->searchable()
+                                            ->preload()
+                                            ->default(function ($get, $record) {
+                                                // If editing and already has a quantity unit, use it
+                                                if ($record && $record->quantity_unit_id) {
+                                                    return $record->quantity_unit_id;
+                                                }
+
+                                                // Default to "Piece" (stk) for new products
+                                                $stripeAccountId = null;
+                                                try {
+                                                    $tenant = \Filament\Facades\Filament::getTenant();
+                                                    $stripeAccountId = $tenant?->stripe_account_id;
+                                                } catch (\Throwable $e) {
+                                                    // Fallback
+                                                }
+
+                                                if (!$stripeAccountId) {
+                                                    $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+                                                }
+
+                                                // Find "Piece" quantity unit
+                                                $pieceUnit = \App\Models\QuantityUnit::where(function ($q) use ($stripeAccountId) {
+                                                    if ($stripeAccountId) {
+                                                        $q->where('stripe_account_id', $stripeAccountId)
+                                                          ->orWhere(function ($q2) {
+                                                              $q2->whereNull('stripe_account_id')
+                                                                 ->where('is_standard', true);
+                                                          });
+                                                    } else {
+                                                        $q->whereNull('stripe_account_id')
+                                                          ->where('is_standard', true);
+                                                    }
+                                                })
+                                                ->where('name', 'Piece')
+                                                ->where('active', true)
+                                                ->first();
+
+                                                return $pieceUnit?->id;
+                                            })
+                                            ->helperText('Select the quantity unit for this product (e.g., per piece, per kg, per meter). This determines how the price is calculated. Defaults to Piece (stk).')
+                                            ->placeholder('Select quantity unit')
+                                            ->hintAction(
+                                                Action::make('createQuantityUnit')
+                                                    ->label('Create New Quantity Unit')
+                                                    ->icon('heroicon-o-plus')
+                                                    ->form([
+                                                        TextInput::make('name')
+                                                            ->label('Name')
+                                                            ->required()
+                                                            ->maxLength(255)
+                                                            ->helperText('The name of the quantity unit (e.g., "Piece", "Kilogram")'),
+                                                        TextInput::make('symbol')
+                                                            ->label('Symbol')
+                                                            ->maxLength(20)
+                                                            ->helperText('The symbol or abbreviation (e.g., "stk", "kg")'),
+                                                        Textarea::make('description')
+                                                            ->label('Description')
+                                                            ->rows(3)
+                                                            ->helperText('Optional description for this quantity unit'),
+                                                        Toggle::make('active')
+                                                            ->label('Active')
+                                                            ->default(true),
+                                                    ])
+                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
+                                                        // Get stripe_account_id from product record or form state
+                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+
+                                                        if (!$stripeAccountId) {
+                                                            throw new \Exception('Cannot create quantity unit: stripe_account_id is required');
+                                                        }
+
+                                                        // Get store_id from tenant
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $storeId = $tenant?->id;
+
+                                                        if (!$storeId) {
+                                                            throw new \Exception('Cannot create quantity unit: store_id is required');
+                                                        }
+
+                                                        // Create the quantity unit
+                                                        $quantityUnit = \App\Models\QuantityUnit::create([
+                                                            'store_id' => $storeId,
+                                                            'stripe_account_id' => $stripeAccountId,
+                                                            'name' => $data['name'],
+                                                            'symbol' => $data['symbol'] ?? null,
+                                                            'description' => $data['description'] ?? null,
+                                                            'active' => $data['active'] ?? true,
+                                                            'is_standard' => false,
+                                                        ]);
+
+                                                        // Set the new quantity unit as selected
+                                                        $set('quantity_unit_id', $quantityUnit->id);
+                                                    })
+                                                    ->successNotificationTitle('Quantity unit created')
+                                            )
+                                            ->columnSpanFull()
+                                            ->helperText('Unit label will be automatically set from the quantity unit symbol.')
                                             ->columnSpanFull(),
 
                                         TextInput::make('url')

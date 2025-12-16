@@ -42,6 +42,7 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> _vendors = [];
+  List<Map<String, dynamic>> _quantityUnits = [];
   bool _isLoading = false;
   String? _errorMessage;
   String _searchQuery = '';
@@ -55,6 +56,7 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
   List<int> _selectedCollectionIds = [];
   int? _selectedVendorId;
   String? _selectedArticleGroupCode;
+  int? _selectedQuantityUnitId;
 
   @override
   void initState() {
@@ -73,6 +75,7 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
         _loadProducts(),
         _loadCategories(),
         _loadVendors(),
+        _loadQuantityUnits(),
       ]);
     } catch (e) {
       if (mounted) {
@@ -306,6 +309,7 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
           _selectedCollectionIds = [];
           _selectedVendorId = null;
           _selectedArticleGroupCode = null;
+          _selectedQuantityUnitId = null;
         });
         await _loadData();
         if (mounted) {
@@ -419,6 +423,9 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
       _selectedVendorId = vendor?['id'] as int? ?? product['vendor_id'] as int?;
       // Extract article_group_code
       _selectedArticleGroupCode = product['article_group_code'] as String?;
+      // Extract quantity_unit_id
+      final quantityUnit = product['quantity_unit'] as Map<String, dynamic>?;
+      _selectedQuantityUnitId = quantityUnit?['id'] as int? ?? product['quantity_unit_id'] as int?;
     });
   }
 
@@ -430,6 +437,24 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
   }
 
   void _newProduct() {
+    // Find default quantity unit (Piece/stk)
+    int? defaultQuantityUnitId;
+    try {
+      final pieceUnit = _quantityUnits.firstWhere(
+        (unit) => (unit['name'] as String? ?? '').toLowerCase() == 'piece' ||
+                  (unit['symbol'] as String? ?? '').toLowerCase() == 'stk',
+        orElse: () => <String, dynamic>{},
+      );
+      if (pieceUnit.isNotEmpty) {
+        defaultQuantityUnitId = pieceUnit['id'] as int?;
+      }
+    } catch (e) {
+      // If no Piece unit found, use first unit or null
+      if (_quantityUnits.isNotEmpty) {
+        defaultQuantityUnitId = _quantityUnits.first['id'] as int?;
+      }
+    }
+
     setState(() {
       _editingProduct = {
         'name': '',
@@ -443,7 +468,8 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
       };
       _selectedCollectionIds = [];
       _selectedVendorId = null;
-      _selectedArticleGroupCode = null;
+      _selectedArticleGroupCode = '04999'; // Default to '04999 - Øvrige'
+      _selectedQuantityUnitId = defaultQuantityUnitId;
       _showProductForm = true;
     });
   }
@@ -478,29 +504,67 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final vendors = (data['vendors'] as List<dynamic>?)
-                ?.map((v) => v as Map<String, dynamic>)
-                .toList() ??
-            (data['data'] as List<dynamic>?)
+        final responseBody = jsonDecode(response.body);
+        
+        // Try multiple possible response formats
+        List<dynamic>? vendorsList;
+        
+        if (responseBody is Map<String, dynamic>) {
+          final data = responseBody;
+          if (data.containsKey('vendors')) {
+            vendorsList = data['vendors'] as List<dynamic>?;
+          } else if (data.containsKey('data')) {
+            // Check if data is a list or has a data property
+            final dataValue = data['data'];
+            if (dataValue is List) {
+              vendorsList = dataValue;
+            } else if (dataValue is Map) {
+              final dataMap = dataValue as Map;
+              if (dataMap.containsKey('data') && dataMap['data'] is List) {
+                vendorsList = dataMap['data'] as List<dynamic>?;
+              }
+            }
+          } else if (data.containsKey('vendor')) {
+            vendorsList = data['vendor'] as List<dynamic>?;
+          }
+        } else if (responseBody is List) {
+          // Response might be a direct list
+          vendorsList = responseBody;
+        }
+
+        final vendors = vendorsList
                 ?.map((v) => v as Map<String, dynamic>)
                 .toList() ??
             [];
 
-        setState(() {
-          _vendors = vendors;
-        });
+        if (mounted) {
+          setState(() {
+            _vendors = vendors;
+          });
+        }
+      } else if (response.statusCode == 404) {
+        // Endpoint doesn't exist - silently set empty list
+        if (mounted) {
+          setState(() {
+            _vendors = [];
+          });
+        }
       } else {
-        // If vendors endpoint doesn't exist, set empty list
+        // Other error - log but don't show error message for missing endpoint
+        if (mounted) {
+          setState(() {
+            _vendors = [];
+          });
+        }
+      }
+    } catch (e) {
+      // If vendors endpoint doesn't exist or other error, set empty list
+      // Don't show error to user as this is optional functionality
+      if (mounted) {
         setState(() {
           _vendors = [];
         });
       }
-    } catch (e) {
-      // If vendors endpoint doesn't exist, set empty list
-      setState(() {
-        _vendors = [];
-      });
     }
   }
 
@@ -582,9 +646,93 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
         'contact_email': '',
         'contact_phone': '',
         'active': true,
+        'commission_percent': null,
       };
       _showVendorForm = true;
     });
+  }
+
+  Future<void> _loadQuantityUnits() async {
+    try {
+      final uri = Uri.parse('${widget.apiBaseUrl}/api/quantity-units').replace(
+        queryParameters: {
+          'per_page': '100',
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer ${widget.authToken}',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        
+        // Try multiple possible response formats
+        List<dynamic>? unitsList;
+        
+        if (responseBody is Map<String, dynamic>) {
+          final data = responseBody;
+          if (data.containsKey('quantity_units')) {
+            unitsList = data['quantity_units'] as List<dynamic>?;
+          } else if (data.containsKey('data')) {
+            final dataValue = data['data'];
+            if (dataValue is List) {
+              unitsList = dataValue;
+            } else if (dataValue is Map) {
+              final dataMap = dataValue as Map;
+              if (dataMap.containsKey('data') && dataMap['data'] is List) {
+                unitsList = dataMap['data'] as List<dynamic>?;
+              }
+            }
+          }
+        } else if (responseBody is List) {
+          unitsList = responseBody;
+        }
+
+        // Map and deduplicate by ID
+        final unitsMap = <int, Map<String, dynamic>>{};
+        if (unitsList != null) {
+          for (var unit in unitsList) {
+            final unitMap = unit as Map<String, dynamic>;
+            final id = unitMap['id'] as int?;
+            if (id != null && !unitsMap.containsKey(id)) {
+              unitsMap[id] = unitMap;
+            }
+          }
+        }
+
+        final units = unitsMap.values.toList();
+
+        if (mounted) {
+          setState(() {
+            _quantityUnits = units;
+          });
+        }
+      } else if (response.statusCode == 404) {
+        if (mounted) {
+          setState(() {
+            _quantityUnits = [];
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _quantityUnits = [];
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _quantityUnits = [];
+        });
+      }
+    }
   }
 
   String _formatPrice(int? amount) {
@@ -1281,6 +1429,7 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
                     _selectedCollectionIds = [];
                     _selectedVendorId = null;
                     _selectedArticleGroupCode = null;
+                    _selectedQuantityUnitId = null;
                   });
                 },
               ),
@@ -1354,6 +1503,34 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Quantity unit / Unit label selection
+                    DropdownButtonFormField<int?>(
+                      value: _selectedQuantityUnitId,
+                      decoration: const InputDecoration(
+                        labelText: 'Enhet',
+                        helperText: 'Velg enhet for produktet',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('Ingen enhet'),
+                        ),
+                        ..._quantityUnits.map((unit) {
+                          return DropdownMenuItem<int?>(
+                            value: unit['id'] as int?,
+                            child: Text(unit['display_name'] as String? ?? 
+                                '${unit['name']}${unit['symbol'] != null ? ' (${unit['symbol']})' : ''}'),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedQuantityUnitId = value;
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
                     // Vendor selection
@@ -1640,6 +1817,16 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
             onPressed: _isLoading
                 ? null
                 : () {
+                    // Get unit_label from selected quantity unit
+                    String? unitLabel;
+                    if (_selectedQuantityUnitId != null) {
+                      final selectedUnit = _quantityUnits.firstWhere(
+                        (u) => u['id'] == _selectedQuantityUnitId,
+                        orElse: () => <String, dynamic>{},
+                      );
+                      unitLabel = selectedUnit['symbol'] as String?;
+                    }
+
                     final productData = {
                       if (product['id'] != null) 'id': product['id'],
                       'name': nameController.text,
@@ -1656,6 +1843,8 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
                       'collection_ids': _selectedCollectionIds,
                       if (_selectedVendorId != null) 'vendor_id': _selectedVendorId,
                       if (_selectedArticleGroupCode != null) 'article_group_code': _selectedArticleGroupCode,
+                      if (_selectedQuantityUnitId != null) 'quantity_unit_id': _selectedQuantityUnitId,
+                      if (unitLabel != null) 'unit_label': unitLabel,
                     };
                     _saveProduct(productData);
                   },
@@ -1774,13 +1963,15 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
                                                 fontWeight: FontWeight.w600,
                                               ),
                                         ),
-                                        if (vendor['contact_email'] != null || vendor['contact_phone'] != null) ...[
+                                        if (vendor['contact_email'] != null || vendor['contact_phone'] != null || vendor['commission_percent'] != null) ...[
                                           const SizedBox(height: 4.0),
                                           Text(
                                             [
                                               if (vendor['contact_email'] != null) vendor['contact_email'],
                                               if (vendor['contact_phone'] != null) vendor['contact_phone'],
-                                            ].join(' • '),
+                                              if (vendor['commission_percent'] != null) 
+                                                'Provision: ${(vendor['commission_percent'] as num).toStringAsFixed(1)}%',
+                                            ].where((item) => item != null).join(' • '),
                                             style: FlutterFlowTheme.of(context).labelMedium.override(
                                                   fontFamily: 'Inter',
                                                   fontSize: 16.0,
@@ -1845,6 +2036,10 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
         text: vendor['contact_email'] as String? ?? '');
     final contactPhoneController = TextEditingController(
         text: vendor['contact_phone'] as String? ?? '');
+    final commissionPercentController = TextEditingController(
+        text: vendor['commission_percent'] != null
+            ? (vendor['commission_percent'] as num).toString()
+            : '');
     bool formActive = vendor['active'] as bool? ?? true;
 
     return SingleChildScrollView(
@@ -1906,6 +2101,16 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
             keyboardType: TextInputType.phone,
           ),
           const SizedBox(height: 16),
+          TextField(
+            controller: commissionPercentController,
+            decoration: const InputDecoration(
+              labelText: 'Provision (%)',
+              helperText: 'Provision i prosent som leverandøren mottar ved salg (0-100)',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: 16),
           StatefulBuilder(
             builder: (context, setStateLocal) {
               return SwitchListTile(
@@ -1938,6 +2143,8 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
                           ? null
                           : contactPhoneController.text,
                       'active': formActive,
+                      if (commissionPercentController.text.isNotEmpty)
+                        'commission_percent': double.tryParse(commissionPercentController.text),
                     };
                     _saveVendor(vendorData);
                   },

@@ -18,7 +18,6 @@ class ConnectedProduct extends Model implements HasMedia
     protected $fillable = [
         'stripe_product_id',
         'stripe_account_id',
-        'vendor_id',
         'name',
         'description',
         'active',
@@ -28,7 +27,6 @@ class ConnectedProduct extends Model implements HasMedia
         'url',
         'package_dimensions',
         'shippable',
-        'no_price_in_pos',
         'statement_descriptor',
         'tax_code',
         'unit_label',
@@ -37,8 +35,10 @@ class ConnectedProduct extends Model implements HasMedia
         'currency',
         'compare_at_price_amount',
         'article_group_code',
-        'product_code',
         'vat_percent',
+        'product_code',
+        'quantity_unit_id',
+        'vendor_id',
     ];
 
     protected $casts = [
@@ -48,7 +48,6 @@ class ConnectedProduct extends Model implements HasMedia
         'package_dimensions' => 'array',
         'shippable' => 'boolean',
         'compare_at_price_amount' => 'integer',
-        'no_price_in_pos' => 'boolean',
         'vat_percent' => 'decimal:2',
     ];
 
@@ -58,11 +57,6 @@ class ConnectedProduct extends Model implements HasMedia
      */
     public function getPriceAttribute($value)
     {
-        // If no_price_in_pos is set, don't restore price from default_price
-        if ($this->no_price_in_pos) {
-            return $value ? str_replace(',', '.', (string) $value) : null;
-        }
-
         // If price is set, return it (convert comma to dot if needed)
         if ($value) {
             return str_replace(',', '.', (string) $value);
@@ -109,23 +103,27 @@ class ConnectedProduct extends Model implements HasMedia
 
     protected static function booted(): void
     {
+        // Auto-set unit_label from quantity_unit when saving
+        static::saving(function (ConnectedProduct $product) {
+            if ($product->quantity_unit_id && !$product->unit_label) {
+                $quantityUnit = QuantityUnit::find($product->quantity_unit_id);
+                if ($quantityUnit && $quantityUnit->symbol) {
+                    $product->unit_label = $quantityUnit->symbol;
+                }
+            }
+        });
+
         static::saved(function (ConnectedProduct $product) {
             // For variable products: Only sync product details, not prices (variants handle pricing)
             // For single products: Sync both product details and prices
             
             // Sync price if it changed (only on update, create is handled in afterCreate hook)
-            // Only sync prices for single products and if no_price_in_pos is NOT enabled
-            if (!$product->isVariable() && !$product->wasRecentlyCreated && !$product->no_price_in_pos && ($product->wasChanged('price') || $product->wasChanged('currency'))) {
+            // Only sync prices for single products
+            if (!$product->isVariable() && !$product->wasRecentlyCreated && ($product->wasChanged('price') || $product->wasChanged('currency'))) {
                 if ($product->price && $product->stripe_product_id && $product->stripe_account_id) {
                     $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice();
                     $syncPriceAction($product);
                 }
-            }
-
-            // If no_price_in_pos is enabled and price is empty, clear default_price
-            if ($product->no_price_in_pos && empty($product->price) && $product->default_price) {
-                $product->default_price = null;
-                $product->saveQuietly();
             }
             
             // Use saved event to ensure it fires for both create and update
@@ -195,14 +193,6 @@ class ConnectedProduct extends Model implements HasMedia
     }
 
     /**
-     * Get the vendor for this product
-     */
-    public function vendor(): BelongsTo
-    {
-        return $this->belongsTo(Vendor::class);
-    }
-
-    /**
      * Get the prices for this product
      */
     public function prices(): HasMany
@@ -233,6 +223,31 @@ class ConnectedProduct extends Model implements HasMedia
         )->withPivot('sort_order')
           ->withTimestamps()
           ->orderByPivot('sort_order');
+    }
+
+    /**
+     * Get the quantity unit for this product
+     */
+    public function quantityUnit(): BelongsTo
+    {
+        return $this->belongsTo(QuantityUnit::class);
+    }
+
+    /**
+     * Get the vendor for this product
+     */
+    public function vendor(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class);
+    }
+
+    /**
+     * Get the article group code for this product
+     * Note: Uses the code string, not a foreign key
+     */
+    public function articleGroupCode(): BelongsTo
+    {
+        return $this->belongsTo(ArticleGroupCode::class, 'article_group_code', 'code');
     }
 
     /**

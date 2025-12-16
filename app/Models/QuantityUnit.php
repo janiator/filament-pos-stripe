@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Vendor extends Model
+class QuantityUnit extends Model
 {
     use HasFactory;
 
@@ -15,22 +15,19 @@ class Vendor extends Model
         'store_id',
         'stripe_account_id',
         'name',
+        'symbol',
         'description',
-        'contact_email',
-        'contact_phone',
+        'is_standard',
         'active',
-        'commission_percent',
-        'metadata',
     ];
 
     protected $casts = [
+        'is_standard' => 'boolean',
         'active' => 'boolean',
-        'commission_percent' => 'decimal:2',
-        'metadata' => 'array',
     ];
 
     /**
-     * Get the store that owns this vendor
+     * Get the store that owns this quantity unit
      */
     public function store(): BelongsTo
     {
@@ -38,10 +35,18 @@ class Vendor extends Model
     }
 
     /**
-     * Get the products for this vendor
+     * Get the products using this quantity unit
      */
     public function products(): HasMany
     {
         return $this->hasMany(ConnectedProduct::class);
+    }
+
+    /**
+     * Get display name (name with symbol)
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->name . ($this->symbol ? ' (' . $this->symbol . ')' : '');
     }
 }

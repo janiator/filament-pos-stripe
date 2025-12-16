@@ -7,30 +7,31 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Vendor extends Model
+class ArticleGroupCode extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'store_id',
         'stripe_account_id',
+        'code',
         'name',
         'description',
-        'contact_email',
-        'contact_phone',
+        'default_vat_percent',
+        'is_standard',
         'active',
-        'commission_percent',
-        'metadata',
+        'sort_order',
     ];
 
     protected $casts = [
+        'default_vat_percent' => 'decimal:2',
+        'is_standard' => 'boolean',
         'active' => 'boolean',
-        'commission_percent' => 'decimal:2',
-        'metadata' => 'array',
+        'sort_order' => 'integer',
     ];
 
     /**
-     * Get the store that owns this vendor
+     * Get the store that owns this article group code
      */
     public function store(): BelongsTo
     {
@@ -38,10 +39,11 @@ class Vendor extends Model
     }
 
     /**
-     * Get the products for this vendor
+     * Get the products using this article group code
+     * Note: Uses the code string, not a foreign key
      */
     public function products(): HasMany
     {
-        return $this->hasMany(ConnectedProduct::class);
+        return $this->hasMany(ConnectedProduct::class, 'article_group_code', 'code');
     }
 }

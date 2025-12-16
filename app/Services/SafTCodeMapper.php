@@ -227,45 +227,4 @@ class SafTCodeMapper
             '12999' => 'Øvrige',
         ];
     }
-
-    /**
-     * Get VAT percent from article group code
-     * Maps SAF-T article group codes to VAT percentages (Norwegian rates)
-     * 
-     * @param string|null $articleGroupCode SAF-T article group code
-     * @return float VAT percentage (e.g., 25.00 for 25%)
-     */
-    public static function getVatPercentFromArticleGroupCode(?string $articleGroupCode): ?float
-    {
-        if (!$articleGroupCode) {
-            return null;
-        }
-
-        // Map article group codes to VAT percentages (Norwegian rates)
-        return match($articleGroupCode) {
-            '04003' => 25.00, // Varesalg - Standard VAT
-            '04004' => 25.00, // Salg av behandlingstjenester - Standard VAT
-            '04005' => 25.00, // Salg av hårklipp - Standard VAT
-            '04006' => 15.00, // Mat - Reduced rate (food)
-            '04007' => 25.00, // Øl - Standard VAT
-            '04008' => 25.00, // Vin - Standard VAT
-            '04009' => 25.00, // Brennevin - Standard VAT
-            '04010' => 25.00, // Rusbrus/Cider - Standard VAT
-            '04011' => 25.00, // Mineralvann (brus) - Standard VAT
-            '04012' => 15.00, // Annen drikke (te, kaffe etc) - Reduced rate
-            '04013' => 25.00, // Tobakk - Standard VAT
-            '04014' => 25.00, // Andre varer - Standard VAT
-            '04015' => 25.00, // Inngangspenger - Standard VAT
-            '04016' => 25.00, // Inngangspenger fri adgang - Standard VAT
-            '04017' => 25.00, // Garderobeavgift - Standard VAT
-            '04018' => 25.00, // Garderobeavgift fri garderobe - Standard VAT
-            '04019' => 15.00, // Helfullpensjon - Reduced rate (food service)
-            '04020' => 15.00, // Halvpensjon - Reduced rate (food service)
-            '04021' => 15.00, // Overnatting med frokost - Reduced rate (food service)
-            '04001' => 0.00,  // Uttak av behandlingstjenester - Zero rate (withdrawal)
-            '04002' => 0.00,  // Uttak av behandlingsvarer - Zero rate (withdrawal)
-            '04999' => 25.00, // Øvrige - Default to standard VAT
-            default => null,  // Unknown code - return null to use product's vat_percent or default
-        };
-    }
 }
