@@ -49,6 +49,11 @@ class PosEvent extends Model
     public const EVENT_OTHER_PAYMENT = '13019';
     public const EVENT_SESSION_OPENED = '13020';
     public const EVENT_SESSION_CLOSED = '13021';
+    public const EVENT_GIFT_CARD_PURCHASED = '13023';
+    public const EVENT_GIFT_CARD_REDEEMED = '13024';
+    public const EVENT_GIFT_CARD_REFUNDED = '13025';
+    public const EVENT_GIFT_CARD_VOIDED = '13026';
+    public const EVENT_GIFT_CARD_BALANCE_ADJUSTED = '13027';
 
     /**
      * Get the store for this event
@@ -114,6 +119,11 @@ class PosEvent extends Model
             self::EVENT_OTHER_PAYMENT => 'Other payment method',
             self::EVENT_SESSION_OPENED => 'Session opened',
             self::EVENT_SESSION_CLOSED => 'Session closed',
+            self::EVENT_GIFT_CARD_PURCHASED => 'Gift card purchased',
+            self::EVENT_GIFT_CARD_REDEEMED => 'Gift card redeemed',
+            self::EVENT_GIFT_CARD_REFUNDED => 'Gift card refunded',
+            self::EVENT_GIFT_CARD_VOIDED => 'Gift card voided',
+            self::EVENT_GIFT_CARD_BALANCE_ADJUSTED => 'Gift card balance adjusted',
             default => 'Unknown event',
         };
     }

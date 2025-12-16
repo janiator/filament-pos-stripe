@@ -18,7 +18,7 @@ class CartItem {
   final String productName;           // Product name for display
   final String? productImageUrl;      // Product image URL
   final int unitPrice;                // Price per unit in øre (smallest currency unit)
-  final int quantity;                 // Quantity of this item
+  final double quantity;              // Quantity of this item (supports decimals for continuous units like meters, kilograms)
   final int? originalPrice;           // Original price before discount (if discounted)
   final int? discountAmount;          // Discount amount in øre (if applicable)
   final String? discountReason;       // Reason for discount (e.g., "Manager override")
@@ -27,8 +27,8 @@ class CartItem {
   final Map<String, dynamic>? metadata; // Additional item metadata
   
   // Calculated properties
-  int get subtotal => unitPrice * quantity;
-  int get totalDiscount => (discountAmount ?? 0) * quantity;
+  int get subtotal => (unitPrice * quantity).round();
+  int get totalDiscount => ((discountAmount ?? 0) * quantity).round();
   int get total => subtotal - totalDiscount;
   
   CartItem({
@@ -54,7 +54,7 @@ class CartItem {
     String? productName,
     String? productImageUrl,
     int? unitPrice,
-    int? quantity,
+    double? quantity,
     int? originalPrice,
     int? discountAmount,
     String? discountReason,
@@ -105,7 +105,7 @@ class CartItem {
       productName: json['product_name'] as String,
       productImageUrl: json['product_image_url'] as String?,
       unitPrice: json['unit_price'] as int,
-      quantity: json['quantity'] as int? ?? 1,
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 1.0,
       originalPrice: json['original_price'] as int?,
       discountAmount: json['discount_amount'] as int?,
       discountReason: json['discount_reason'] as String?,
@@ -216,7 +216,7 @@ class ShoppingCart {
   }
   
   int get itemCount {
-    return items.fold(0, (sum, item) => sum + item.quantity);
+    return items.fold(0, (sum, item) => sum + item.quantity.round());
   }
   
   bool get isEmpty => items.isEmpty;
@@ -296,7 +296,7 @@ class ShoppingCart {
   }
   
   // Update item quantity
-  ShoppingCart updateItemQuantity(String itemId, int quantity) {
+  ShoppingCart updateItemQuantity(String itemId, double quantity) {
     if (quantity <= 0) {
       return removeItem(itemId);
     }

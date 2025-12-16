@@ -1,6 +1,6 @@
 // FlutterFlow Custom Action: Apply Item Discount
 // This action applies or removes a discount to/from a cart item
-// Supports: "Ingen" (remove), "Prosent" (percentage), "Verdi" (fixed amount in kroner)
+// Supports: "Ingen" (remove), "Prosent" (percentage), "Verdi" (fixed amount in øre)
 
 // Automatic FlutterFlow imports
 import '/backend/schema/structs/index.dart';
@@ -9,23 +9,23 @@ import '/backend/supabase/supabase.dart';
 import '/actions/actions.dart' as action_blocks;
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import 'index.dart'; // Imports other custom actions
+import '/custom_code/actions/index.dart'; // Imports other custom actions
 import '/flutter_flow/custom_functions.dart'; // Imports custom functions
 import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 /// Apply or remove a discount from a cart item
-/// 
+///
 /// Parameters:
 /// - cartItemId: The ID of the cart item
 /// - discountType: "Ingen" (remove), "Prosent" (percentage), or "Verdi" (fixed amount)
-/// - discountValue: 
+/// - discountValue:
 ///   - For "Prosent": Percentage 0-100 (e.g., 10 for 10%)
 ///   - For "Verdi": Amount in øre (e.g., 5000 for 50.00 NOK)
 ///   - For "Ingen": Ignored
 /// - discountReason: Optional reason for the discount
-/// 
+///
 /// After applying/removing discount, recalculates cart totals
 Future applyItemDiscount(
   String cartItemId,
@@ -59,21 +59,22 @@ Future applyItemDiscount(
     // Percentage discount: calculate from unit price
     // discountValue is percentage 0-100 (e.g., 10 for 10%)
     // discountAmount = (unitPrice * discountValue / 100).round()
-    int calculatedDiscount = (existingItem.cartItemUnitPrice * discountValue / 100).round();
-    
+    int calculatedDiscount =
+        (existingItem.cartItemUnitPrice * discountValue / 100).round();
+
     // Ensure discount doesn't exceed item price
-    discountAmount = calculatedDiscount > existingItem.cartItemUnitPrice 
-        ? existingItem.cartItemUnitPrice 
+    discountAmount = calculatedDiscount > existingItem.cartItemUnitPrice
+        ? existingItem.cartItemUnitPrice
         : calculatedDiscount;
-    
+
     finalDiscountReason = discountReason;
   } else if (discountType.toLowerCase() == 'verdi') {
     // Fixed amount discount: discountValue is already in øre
     int discountInOre = discountValue.round();
-    
+
     // Ensure discount doesn't exceed item price
-    discountAmount = discountInOre > existingItem.cartItemUnitPrice 
-        ? existingItem.cartItemUnitPrice 
+    discountAmount = discountInOre > existingItem.cartItemUnitPrice
+        ? existingItem.cartItemUnitPrice
         : discountInOre;
     
     finalDiscountReason = discountReason;

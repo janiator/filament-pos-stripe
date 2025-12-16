@@ -14,6 +14,7 @@ use App\Services\ReceiptGenerationService;
 use App\Services\CashDrawerService;
 use App\Services\ReceiptPrintService;
 use App\Services\SafTCodeMapper;
+use App\Services\GiftCardService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -25,6 +26,7 @@ class PurchaseService
     protected ReceiptGenerationService $receiptService;
     protected CashDrawerService $cashDrawerService;
     protected ReceiptPrintService $receiptPrintService;
+    protected ?GiftCardService $giftCardService = null;
     protected ?StripeClient $stripeClient = null;
 
     public function __construct(
@@ -35,6 +37,17 @@ class PurchaseService
         $this->receiptService = $receiptService;
         $this->cashDrawerService = $cashDrawerService;
         $this->receiptPrintService = $receiptPrintService;
+    }
+
+    /**
+     * Get or create GiftCardService instance (lazy loading to avoid circular dependency)
+     */
+    protected function getGiftCardService(): GiftCardService
+    {
+        if (!$this->giftCardService) {
+            $this->giftCardService = app(GiftCardService::class);
+        }
+        return $this->giftCardService;
     }
 
     /**
@@ -406,6 +419,11 @@ class PurchaseService
     ): ConnectedCharge {
         $store = $posSession->store;
 
+        // Handle gift card redemption
+        if ($paymentMethod->code === 'gift_token' || $paymentMethod->code === 'gift_card') {
+            return $this->processGiftCardPayment($posSession, $paymentMethod, $amount, $currency, $cartData, $metadata);
+        }
+
         // Resolve customer ID (local ID -> Stripe customer ID)
         $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id);
 
@@ -446,6 +464,78 @@ class PurchaseService
 
         // Log payment event using the payment method's event code
         $this->logPaymentEvent($posSession, $charge, $paymentMethod, $eventCode);
+
+        return $charge;
+    }
+
+    /**
+     * Process gift card payment (redemption)
+     */
+    protected function processGiftCardPayment(
+        PosSession $posSession,
+        PaymentMethod $paymentMethod,
+        int $amount,
+        string $currency,
+        array $cartData,
+        array $metadata
+    ): ConnectedCharge {
+        $store = $posSession->store;
+
+        // Get gift card code from metadata
+        $giftCardCode = $metadata['gift_card_code'] ?? null;
+        $giftCardPin = $metadata['gift_card_pin'] ?? null;
+
+        if (!$giftCardCode) {
+            throw new \Exception('Gift card code is required for gift card payment');
+        }
+
+        // Resolve customer ID
+        $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id);
+
+        // Create charge first (before redeeming gift card to ensure we have charge ID)
+        $charge = ConnectedCharge::create([
+            'stripe_charge_id' => null,
+            'stripe_account_id' => $store->stripe_account_id,
+            'pos_session_id' => $posSession->id,
+            'stripe_customer_id' => $stripeCustomerId,
+            'amount' => $amount,
+            'currency' => $currency,
+            'status' => 'succeeded',
+            'payment_method' => $paymentMethod->code,
+            'payment_code' => $paymentMethod->saf_t_payment_code ?? SafTCodeMapper::mapPaymentMethodToCode($paymentMethod->code, $paymentMethod->provider_method),
+            'transaction_code' => SafTCodeMapper::mapTransactionToCodeForPayment($paymentMethod->code),
+            'description' => $metadata['description'] ?? 'Gift card payment',
+            'captured' => true,
+            'refunded' => false,
+            'paid' => true,
+            'paid_at' => now(),
+            'metadata' => array_merge([
+                'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
+                'discounts' => $cartData['discounts'] ?? [],
+                'customer_id' => $cartData['customer_id'] ?? null,
+                'customer_name' => $cartData['customer_name'] ?? null,
+                'tip_amount' => $cartData['tip_amount'] ?? 0,
+                'subtotal' => $cartData['subtotal'] ?? 0,
+                'total_discounts' => $cartData['total_discounts'] ?? 0,
+                'total_tax' => $cartData['total_tax'] ?? 0,
+                'total' => $amount,
+                'note' => $cartData['note'] ?? null,
+                'gift_card_code' => $giftCardCode,
+            ], $metadata),
+        ]);
+
+        // Redeem gift card (this will create transaction and log POS event)
+        try {
+            $giftCardService = $this->getGiftCardService();
+            $giftCardService->redeemGiftCard($giftCardCode, $amount, $charge, $posSession, $giftCardPin);
+        } catch (\Exception $e) {
+            // If redemption fails, delete the charge and rethrow
+            $charge->delete();
+            throw $e;
+        }
+
+        // Log payment event (13019 - Other payment, which includes gift cards)
+        $this->logPaymentEvent($posSession, $charge, $paymentMethod, '13019');
 
         return $charge;
     }

@@ -27,6 +27,7 @@ class Setting extends Model
         'locale',
         'tax_included',
         'tips_enabled',
+        'gift_card_expiration_days',
         // Additional settings stored as JSON
         'additional_settings',
     ];
@@ -38,6 +39,7 @@ class Setting extends Model
         'default_vat_rate' => 'decimal:2',
         'tax_included' => 'boolean',
         'tips_enabled' => 'boolean',
+        'gift_card_expiration_days' => 'integer',
         'additional_settings' => 'array',
     ];
 

@@ -117,6 +117,7 @@ class SafTCodeMapper
             'cash' => '11001', // Cash sale
             'card', 'card_present', 'credit_card' => '11002', // Credit sale
             'mobile', 'vipps' => '11002', // Credit sale (mobile/Vipps is also credit)
+            'gift_token', 'gift_card' => '11002', // Credit sale (gift card redemption is a sale)
             default => '11002', // Default to credit sale
         };
     }

@@ -5253,9 +5253,11 @@ components:
                 description: Price per unit in øre
                 example: 5000
               purchase_item_quantity:
-                type: integer
-                description: Quantity purchased
-                example: 2
+                type: number
+                format: float
+                description: Quantity purchased (supports decimals for continuous units like meters, kilograms)
+                minimum: 0.01
+                example: 4.3
               purchase_item_original_price:
                 type: integer
                 nullable: true
@@ -6346,9 +6348,11 @@ components:
                 nullable: true
                 example: 456
               quantity:
-                type: integer
-                minimum: 1
-                example: 2
+                type: number
+                format: float
+                description: Quantity of this item (supports decimals for continuous units like meters, kilograms)
+                minimum: 0.01
+                example: 4.3
               unit_price:
                 type: integer
                 description: Price per unit in minor units (øre)
@@ -6359,7 +6363,6 @@ components:
                 maxLength: 500
                 description: Custom description for diverse products or products without price. This will be used on receipts instead of the product name. Useful for items like "Various items", "Custom service", etc.
                 example: "Various items - customer selection"
-                example: 5000
               discount_amount:
                 type: integer
                 description: Discount amount per unit in minor units

@@ -8,6 +8,7 @@
 // - Single and split payments
 // - Cash and Stripe payments
 // - Deferred payments (payment on pickup) - use payment_method_code: "deferred" or set metadata.deferred_payment: true
+// - Estimated pickup date for deferred payments - pass as DateTime? parameter (use null constant if not needed) or include in additionalMetadataJson
 //
 // IMPORTANT: FlutterFlow requires Future<dynamic> as return type, not Map<String, dynamic>?
 //
@@ -21,7 +22,7 @@
 //   String? additionalMetadataJson,  // Optional, pass as JSON string. For deferred payments, include: {"deferred_payment": true, "deferred_reason": "Payment on pickup"}
 //   bool isSplitPayment,  // Default: false
 //   String? splitPaymentsJson,  // Optional, pass as JSON string for split payments
-//   String? customerId,  // Optional, local customer ID (database ID, integer as string). Overrides cart customer ID if provided.
+//   DateTime? estimatedPickupDate,  // Optional, estimated pickup date for deferred payments. Pass null constant if not needed. Only added to metadata if payment is deferred.
 // ) async
 
 import 'dart:convert';
@@ -36,7 +37,7 @@ Future<dynamic> completePosPurchase(
   String? additionalMetadataJson,
   bool isSplitPayment,
   String? splitPaymentsJson,
-  String? customerId,
+  DateTime? estimatedPickupDate, // Optional: Pass null constant if not needed. Only added to metadata if payment is deferred.
 ) async {
   try {
     // Parse additional metadata from JSON string
@@ -168,17 +169,12 @@ Future<dynamic> completePosPurchase(
     final total = cart.cartTotalCartPrice; // in øre
     final tipAmount = cart.cartTipAmount; // in øre
     
-    // Determine customer ID: use passed parameter if provided, otherwise use cart's customer ID
+    // Get customer ID from cart
     // Note: customer_id should be the local database ID (integer), not the Stripe customer ID
     // The backend will resolve the local ID to the Stripe customer ID automatically
-    final String? finalCustomerId = customerId != null && customerId.isNotEmpty
-        ? customerId
-        : (cart.cartCustomerId.isNotEmpty ? cart.cartCustomerId : null);
-    
-    // Convert customer ID to integer if it's numeric (local ID)
-    // Backend will handle conversion: numeric ID -> lookup Stripe ID, Stripe ID (starts with 'cus_') -> use directly
-    final dynamic customerIdForApi = finalCustomerId != null && finalCustomerId.isNotEmpty
-        ? (int.tryParse(finalCustomerId) ?? finalCustomerId) // Try to parse as int, fallback to string
+    // cartCustomerId is already an integer (local database ID)
+    final dynamic customerIdForApi = cart.cartCustomerId != null && cart.cartCustomerId! > 0
+        ? cart.cartCustomerId
         : null;
     
     // Build cart object
@@ -194,6 +190,33 @@ Future<dynamic> completePosPurchase(
       'total': total,
       'currency': 'nok',
     };
+    
+    // Check if this is a deferred payment
+    final isDeferredPayment = paymentMethodCode == 'deferred' || 
+        (additionalMetadata['deferred_payment'] == true);
+    
+    // Handle estimated pickup date from parameter or metadata
+    // Priority: parameter > metadata
+    if (isDeferredPayment) {
+      if (estimatedPickupDate != null) {
+        // Use parameter value, convert to ISO 8601 format
+        additionalMetadata['estimated_pickup_date'] = estimatedPickupDate.toIso8601String();
+      } else if (additionalMetadata.containsKey('estimated_pickup_date')) {
+        // Use metadata value if parameter is null, ensure it's in ISO 8601 format
+        final metadataDate = additionalMetadata['estimated_pickup_date'];
+        if (metadataDate != null && metadataDate.toString().trim().isNotEmpty) {
+          try {
+            // Try to parse as DateTime first (handles various formats)
+            final dateTime = DateTime.parse(metadataDate.toString());
+            // Convert to ISO 8601 format (e.g., "2025-12-20T00:00:00Z")
+            additionalMetadata['estimated_pickup_date'] = dateTime.toIso8601String();
+          } catch (e) {
+            // If parsing fails, use the string as-is (might already be in correct format)
+            // Keep the original value
+          }
+        }
+      }
+    }
     
     // Build request body
     Map<String, dynamic> requestBody;

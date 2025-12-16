@@ -146,6 +146,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/purchases/{id}/customer', [\App\Http\Controllers\Api\PurchasesController::class, 'updateCustomer'])->name('api.purchases.update-customer');
     Route::patch('/purchases/{id}/customer', [\App\Http\Controllers\Api\PurchasesController::class, 'updateCustomer'])->name('api.purchases.update-customer.patch');
 
+    // Gift card endpoints
+    Route::post('/gift-cards/purchase', [\App\Http\Controllers\Api\GiftCardsController::class, 'purchase'])->name('api.gift-cards.purchase');
+    Route::post('/gift-cards/validate', [\App\Http\Controllers\Api\GiftCardsController::class, 'validate'])->name('api.gift-cards.validate');
+    Route::get('/gift-cards', [\App\Http\Controllers\Api\GiftCardsController::class, 'index'])->name('api.gift-cards.index');
+    Route::get('/gift-cards/{code}', [\App\Http\Controllers\Api\GiftCardsController::class, 'show'])->name('api.gift-cards.show');
+    Route::get('/gift-cards/{id}/transactions', [\App\Http\Controllers\Api\GiftCardsController::class, 'transactions'])->name('api.gift-cards.transactions');
+    Route::post('/gift-cards/{id}/refund', [\App\Http\Controllers\Api\GiftCardsController::class, 'refund'])->name('api.gift-cards.refund');
+    Route::post('/gift-cards/{id}/void', [\App\Http\Controllers\Api\GiftCardsController::class, 'void'])->name('api.gift-cards.void');
+    Route::post('/gift-cards/{id}/adjust-balance', [\App\Http\Controllers\Api\GiftCardsController::class, 'adjustBalance'])->name('api.gift-cards.adjust-balance');
+
     // Note: Add more API resources here following the same pattern:
     // Route::apiResource('subscriptions', \App\Http\Controllers\Api\SubscriptionsController::class);
     // Route::apiResource('charges', \App\Http\Controllers\Api\ChargesController::class);

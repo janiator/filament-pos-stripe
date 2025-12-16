@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
 <feed line="1"/>
+{{#store_logo_url}}
+<image src="{{store_logo_url}}" width="auto" height="auto"/>
+{{/store_logo_url}}
+{{^store_logo_url}}
 <logo key1="34" key2="48"/>
+{{/store_logo_url}}
 <text lang="en"/>
 <text width="1" height="1"/>
 <text reverse="false" ul="false" em="true" color="color_1"/>
@@ -31,11 +36,19 @@
 <feed/>
 <text lang="en"/>
 <text>Dato: {{date_time}}</text>
+{{#customer_name}}
 <feed/>
-{{#original_receipt_number}}
-<text>Original kvittering: {{original_receipt_number}}</text>
+<text>Kunde: {{customer_name}}</text>
+{{/customer_name}}
+{{#customer_phone}}
 <feed/>
-{{/original_receipt_number}}
+<text>Telefon: {{customer_phone}}</text>
+{{/customer_phone}}
+{{#customer_email}}
+<feed/>
+<text>E-post: {{customer_email}}</text>
+{{/customer_email}}
+<feed/>
 <text>—————————————————————————————————————————————</text>
 <feed/>
 <feed/>
@@ -57,7 +70,7 @@
 <text>—————————————————————————————————————————————</text>
 <feed/>
 <text reverse="false" ul="false" em="true" color="color_1"/>
-<text>Total                         {{total_amount}} {{currency}}</text>
+<text>Total                         {{total_amount}} NOK</text>
 <feed/>
 <text>—————————————————————————————————————————————</text>
 <feed/>
@@ -70,7 +83,7 @@
 <feed/>
 <text>Betalingsmiddel: {{payment_method_display}}</text>
 <feed/>
-<text>Totalbeløp: {{currency}} {{total_amount}}</text>
+<text>Totalbeløp: NOK {{total_amount}}</text>
 <feed line="2"/>
 <barcode type="code128_auto" hri="none" font="font_a" width="2" height="40">{{receipt_number}}</barcode>
 <feed/>

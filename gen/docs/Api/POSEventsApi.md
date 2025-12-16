@@ -1,5 +1,7 @@
 # OpenAPI\Client\POSEventsApi
 
+
+
 All URIs are relative to https://pos.visivo.no/api, except if the operation defines another base path.
 
 | Method | HTTP request | Description |
@@ -132,7 +134,7 @@ try {
 ## `listPosEvents()`
 
 ```php
-listPosEvents($event_code, $event_type, $pos_session_id, $from_date, $to_date, $per_page): \OpenAPI\Client\Model\ListPosEvents200Response
+listPosEvents($event_code, $event_type, $pos_session_id, $from_date, $to_date, $per_page, $nullinnslag): \OpenAPI\Client\Model\ListPosEvents200Response
 ```
 
 List POS events
@@ -159,12 +161,13 @@ $apiInstance = new OpenAPI\Client\Api\POSEventsApi(
 $event_code = 'event_code_example'; // string | Filter by event code (e.g., 13012, 13020)
 $event_type = 'event_type_example'; // string | Filter by event type
 $pos_session_id = 56; // int | Filter by POS session ID
-$from_date = new \DateTime("2013-10-20T19:20:30+01:00"); // \DateTime | Filter from date (YYYY-MM-DD)
-$to_date = new \DateTime("2013-10-20T19:20:30+01:00"); // \DateTime | Filter to date (YYYY-MM-DD)
+$from_date = new \DateTime('2013-10-20T19:20:30+01:00'); // \DateTime | Filter from date (YYYY-MM-DD)
+$to_date = new \DateTime('2013-10-20T19:20:30+01:00'); // \DateTime | Filter to date (YYYY-MM-DD)
 $per_page = 50; // int | Number of items per page
+$nullinnslag = True; // bool | Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them.
 
 try {
-    $result = $apiInstance->listPosEvents($event_code, $event_type, $pos_session_id, $from_date, $to_date, $per_page);
+    $result = $apiInstance->listPosEvents($event_code, $event_type, $pos_session_id, $from_date, $to_date, $per_page, $nullinnslag);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling POSEventsApi->listPosEvents: ', $e->getMessage(), PHP_EOL;
@@ -181,6 +184,7 @@ try {
 | **from_date** | **\DateTime**| Filter from date (YYYY-MM-DD) | [optional] |
 | **to_date** | **\DateTime**| Filter to date (YYYY-MM-DD) | [optional] |
 | **per_page** | **int**| Number of items per page | [optional] [default to 50] |
+| **nullinnslag** | **bool**| Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them. | [optional] |
 
 ### Return type
 

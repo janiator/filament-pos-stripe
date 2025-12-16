@@ -1,5 +1,7 @@
 # OpenAPI\Client\StoresApi
 
+Store management operations
+
 All URIs are relative to https://pos.visivo.no/api, except if the operation defines another base path.
 
 | Method | HTTP request | Description |

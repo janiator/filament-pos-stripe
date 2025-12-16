@@ -486,11 +486,12 @@ class PurchasesController extends BaseApiController
             
             foreach ($items as $item) {
                 $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
-                $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
+                $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
                 $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
                 
-                $lineSubtotal = $unitPrice * $quantity;
-                $lineDiscount = $discountAmount * $quantity;
+                // Calculate line totals with decimal quantities, then round to integer (øre)
+                $lineSubtotal = (int) round($unitPrice * $quantity);
+                $lineDiscount = (int) round($discountAmount * $quantity);
                 
                 $calculatedSubtotal += $lineSubtotal;
                 $calculatedDiscounts += $lineDiscount;
@@ -829,7 +830,7 @@ class PurchasesController extends BaseApiController
             'cart' => ['required', 'array'],
             'cart.items' => ['required', 'array', 'min:1'],
             'cart.items.*.product_id' => ['required', 'integer'],
-            'cart.items.*.quantity' => ['required', 'integer', 'min:1'],
+            'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
             'cart.total' => ['required', 'integer', 'min:1'],
@@ -1176,7 +1177,7 @@ class PurchasesController extends BaseApiController
             'cart' => ['required', 'array'],
             'cart.items' => ['required', 'array', 'min:1'],
             'cart.items.*.product_id' => ['required', 'integer'],
-            'cart.items.*.quantity' => ['required', 'integer', 'min:1'],
+            'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
             'cart.total' => ['required', 'integer', 'min:1'],

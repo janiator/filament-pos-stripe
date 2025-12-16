@@ -143,6 +143,20 @@ class SettingsForm
                     ->columns(2)
                     ->collapsible()
                     ->collapsed(false),
+
+                Section::make('Gift Card Settings')
+                    ->schema([
+                        TextInput::make('gift_card_expiration_days')
+                            ->label('Default Gift Card Expiration (Days)')
+                            ->numeric()
+                            ->default(365)
+                            ->helperText('Default number of days until gift cards expire. Leave empty for no expiration.')
+                            ->minValue(1)
+                            ->nullable()
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->collapsed(false),
             ]);
     }
 }

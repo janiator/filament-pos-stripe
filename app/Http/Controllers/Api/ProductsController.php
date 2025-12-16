@@ -125,7 +125,7 @@ class ProductsController extends BaseApiController
                         ],
                         'tax_code' => $product->tax_code ?? 'txcd_99999999', // Default to 25% VAT if not set (kept for backward compatibility)
                         'tax_percent' => $this->getTaxPercentFromProduct($product),
-                        'unit_label' => $product->unit_label ?? null,
+                        'unit_label' => $product->unit_label ?? 'stk',
                         'statement_descriptor' => $product->statement_descriptor ?? null,
                         'package_dimensions' => null,
                         'product_meta' => $product->product_meta ?? null,
@@ -399,7 +399,7 @@ class ProductsController extends BaseApiController
             ],
             'tax_code' => $product->tax_code ?? 'txcd_99999999', // Default to 25% VAT if not set
             'tax_percent' => $this->getTaxPercentFromProduct($product),
-            'unit_label' => $product->unit_label ?? null,
+            'unit_label' => $product->unit_label ?? 'stk',
             'statement_descriptor' => $product->statement_descriptor ?? null,
             'package_dimensions' => $packageDimensions,
             'product_meta' => $product->product_meta ?? null,
@@ -600,7 +600,7 @@ class ProductsController extends BaseApiController
             $product->shippable = $validated['shippable'] ?? false;
             $product->url = $validated['url'] ?? null;
             $product->tax_code = $validated['tax_code'] ?? null;
-            $product->unit_label = $validated['unit_label'] ?? null;
+            $product->unit_label = $validated['unit_label'] ?? 'stk';
             $product->quantity_unit_id = $validated['quantity_unit_id'] ?? null;
             $product->statement_descriptor = $validated['statement_descriptor'] ?? null;
             $product->no_price_in_pos = $validated['no_price_in_pos'] ?? false;
@@ -731,6 +731,9 @@ class ProductsController extends BaseApiController
             }
             if (isset($validated['unit_label'])) {
                 $product->unit_label = $validated['unit_label'];
+            } elseif ($product->unit_label === null) {
+                // Set default to 'stk' if unit_label is null
+                $product->unit_label = 'stk';
             }
             if (isset($validated['quantity_unit_id'])) {
                 $product->quantity_unit_id = $validated['quantity_unit_id'];

@@ -40,10 +40,12 @@ Future applyCartDiscount(
   
   for (var item in cart.cartItems) {
     // Line price = unit price * quantity
-    totalLinePrice += item.cartItemUnitPrice * item.cartItemQuantity;
+    // Round to int since prices are in øre (smallest currency unit)
+    totalLinePrice += (item.cartItemUnitPrice * item.cartItemQuantity).round();
     
     // Item discount = discount amount * quantity
-    totalItemDiscounts += (item.cartItemDiscountAmount ?? 0) * item.cartItemQuantity;
+    // Round to int since amounts are in øre
+    totalItemDiscounts += ((item.cartItemDiscountAmount ?? 0) * item.cartItemQuantity).round();
   }
   
   // Cart subtotal = line price - item discounts

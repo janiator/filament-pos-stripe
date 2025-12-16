@@ -1,5 +1,7 @@
 # OpenAPI\Client\CustomersApi
 
+Customer management operations
+
 All URIs are relative to https://pos.visivo.no/api, except if the operation defines another base path.
 
 | Method | HTTP request | Description |
@@ -19,7 +21,7 @@ createCustomer($create_customer_request, $x_tenant): \OpenAPI\Client\Model\Custo
 
 Create customer
 
-Create a new customer for the current store
+Create a new customer for the current store. The Stripe customer will be created automatically after the local customer is created.
 
 ### Example
 
@@ -199,7 +201,7 @@ try {
 ## `listCustomers()`
 
 ```php
-listCustomers($per_page, $x_tenant): \OpenAPI\Client\Model\PaginatedCustomers
+listCustomers($per_page, $page, $x_tenant): \OpenAPI\Client\Model\ListCustomers200Response
 ```
 
 List customers
@@ -224,10 +226,11 @@ $apiInstance = new OpenAPI\Client\Api\CustomersApi(
     $config
 );
 $per_page = 15; // int | Number of items per page
+$page = 0; // int | Page number (0-based, starts at 0)
 $x_tenant = 'x_tenant_example'; // string | Store slug (optional, defaults to user's first store)
 
 try {
-    $result = $apiInstance->listCustomers($per_page, $x_tenant);
+    $result = $apiInstance->listCustomers($per_page, $page, $x_tenant);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling CustomersApi->listCustomers: ', $e->getMessage(), PHP_EOL;
@@ -239,11 +242,12 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **per_page** | **int**| Number of items per page | [optional] [default to 15] |
+| **page** | **int**| Page number (0-based, starts at 0) | [optional] [default to 0] |
 | **x_tenant** | **string**| Store slug (optional, defaults to user&#39;s first store) | [optional] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\PaginatedCustomers**](../Model/PaginatedCustomers.md)
+[**\OpenAPI\Client\Model\ListCustomers200Response**](../Model/ListCustomers200Response.md)
 
 ### Authorization
 

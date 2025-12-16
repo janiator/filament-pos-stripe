@@ -716,7 +716,7 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
               } else {
                 // If we already have a unit with this name+symbol, prefer the one with stripe_account_id (store-specific)
                 final existing = unitsMapByNameSymbol[key];
-                final existingHasAccount = existing['stripe_account_id'] != null;
+                final existingHasAccount = existing?['stripe_account_id'] != null;
                 final currentHasAccount = unitMap['stripe_account_id'] != null;
                 
                 // Replace if current is store-specific and existing is global

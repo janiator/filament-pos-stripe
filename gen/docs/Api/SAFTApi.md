@@ -1,5 +1,7 @@
 # OpenAPI\Client\SAFTApi
 
+
+
 All URIs are relative to https://pos.visivo.no/api, except if the operation defines another base path.
 
 | Method | HTTP request | Description |
@@ -156,8 +158,8 @@ $apiInstance = new OpenAPI\Client\Api\SAFTApi(
     new GuzzleHttp\Client(),
     $config
 );
-$from_date = new \DateTime("2013-10-20T19:20:30+01:00"); // \DateTime | Start date (YYYY-MM-DD)
-$to_date = new \DateTime("2013-10-20T19:20:30+01:00"); // \DateTime | End date (YYYY-MM-DD)
+$from_date = new \DateTime('2013-10-20T19:20:30+01:00'); // \DateTime | Start date (YYYY-MM-DD)
+$to_date = new \DateTime('2013-10-20T19:20:30+01:00'); // \DateTime | End date (YYYY-MM-DD)
 
 try {
     $result = $apiInstance->getSafTContent($from_date, $to_date);

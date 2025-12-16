@@ -15,9 +15,10 @@ import 'package:flutter/material.dart';
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 /// Update the quantity of a cart item
+/// Supports decimal quantities for continuous units (e.g., 4.3 meters)
 /// If quantity is 0 or less, the item is removed from cart
 /// After update, recalculates cart totals
-Future updateItemQuantity(String cartItemId, int quantity) async {
+Future updateItemQuantity(String cartItemId, double quantity) async {
   final cart = FFAppState().cart;
   
   // Find the item index
@@ -33,7 +34,8 @@ Future updateItemQuantity(String cartItemId, int quantity) async {
   final existingItem = cart.cartItems[itemIndex];
   
   // If quantity is 0 or less, remove the item
-  if (quantity <= 0) {
+  // Note: For decimal quantities, this checks if <= 0.0
+  if (quantity <= 0.0) {
     final updatedItems = List<CartItemsStruct>.from(cart.cartItems);
     updatedItems.removeAt(itemIndex);
     

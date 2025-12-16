@@ -2,14 +2,14 @@
 // 
 // Parameters:
 //   - product (Product type) - Required
-//   - quantity (Integer) - Default: 1
+//   - quantity (Double) - Default: 1.0 (supports decimals for continuous units)
 //   - variant (ProductVariant) - Optional
 //
 // This action adds an item to the shopping cart or updates quantity if item already exists
 
 void addItemToCart(
   dynamic product,
-  int quantity,
+  double quantity,
   dynamic variant,
 ) {
   // Get current cart from app state
@@ -51,7 +51,7 @@ void addItemToCart(
       productName: existingItem.productName,
       productImageUrl: existingItem.productImageUrl,
       unitPrice: existingItem.unitPrice,
-      quantity: existingItem.quantity + quantity,
+      quantity: existingItem.quantity + quantity, // Both are now double
       originalPrice: existingItem.originalPrice,
       discountAmount: existingItem.discountAmount,
       discountReason: existingItem.discountReason,

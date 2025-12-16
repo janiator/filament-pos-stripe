@@ -1,5 +1,7 @@
 # OpenAPI\Client\TerminalsApi
 
+Terminal locations and readers management (Stripe-specific)
+
 All URIs are relative to https://pos.visivo.no/api, except if the operation defines another base path.
 
 | Method | HTTP request | Description |
