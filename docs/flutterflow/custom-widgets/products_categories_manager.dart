@@ -694,19 +694,42 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
           unitsList = responseBody;
         }
 
-        // Map and deduplicate by ID
-        final unitsMap = <int, Map<String, dynamic>>{};
+        // Map and deduplicate by ID first, then by name+symbol combination
+        final unitsMapById = <int, Map<String, dynamic>>{};
+        final unitsMapByNameSymbol = <String, Map<String, dynamic>>{};
+        
         if (unitsList != null) {
           for (var unit in unitsList) {
             final unitMap = unit as Map<String, dynamic>;
             final id = unitMap['id'] as int?;
-            if (id != null && !unitsMap.containsKey(id)) {
-              unitsMap[id] = unitMap;
+            final name = (unitMap['name'] as String? ?? '').toLowerCase();
+            final symbol = (unitMap['symbol'] as String? ?? '').toLowerCase();
+            final key = '$name|$symbol';
+            
+            // First deduplicate by ID
+            if (id != null && !unitsMapById.containsKey(id)) {
+              unitsMapById[id] = unitMap;
+              
+              // Then deduplicate by name+symbol (prefer store-specific over global)
+              if (!unitsMapByNameSymbol.containsKey(key)) {
+                unitsMapByNameSymbol[key] = unitMap;
+              } else {
+                // If we already have a unit with this name+symbol, prefer the one with stripe_account_id (store-specific)
+                final existing = unitsMapByNameSymbol[key];
+                final existingHasAccount = existing['stripe_account_id'] != null;
+                final currentHasAccount = unitMap['stripe_account_id'] != null;
+                
+                // Replace if current is store-specific and existing is global
+                if (currentHasAccount && !existingHasAccount) {
+                  unitsMapByNameSymbol[key] = unitMap;
+                }
+              }
             }
           }
         }
 
-        final units = unitsMap.values.toList();
+        // Use name+symbol deduplication result (this ensures no duplicates by name+symbol)
+        final units = unitsMapByNameSymbol.values.toList();
 
         if (mounted) {
           setState(() {

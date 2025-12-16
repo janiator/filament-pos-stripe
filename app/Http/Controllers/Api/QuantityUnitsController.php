@@ -23,12 +23,28 @@ class QuantityUnitsController extends BaseApiController
             $this->authorizeTenant($request, $store);
 
             // Build query - get store-specific units and global standard units
+            // Exclude global units if a store-specific version with the same name exists
             $query = QuantityUnit::where(function ($q) use ($store) {
-                // Include store-specific units and global standard units
+                // Include store-specific units
                 $q->where('stripe_account_id', $store->stripe_account_id)
-                  ->orWhere(function ($q2) {
+                  // Include global standard units that don't have a store-specific version
+                  ->orWhere(function ($q2) use ($store) {
                       $q2->whereNull('stripe_account_id')
-                         ->where('is_standard', true);
+                         ->where('is_standard', true)
+                         ->whereNotExists(function ($subQuery) use ($store) {
+                             $subQuery->select(\DB::raw(1))
+                                      ->from('quantity_units as q2')
+                                      ->whereColumn('q2.name', 'quantity_units.name')
+                                      ->where(function ($q3) {
+                                          $q3->whereColumn('q2.symbol', 'quantity_units.symbol')
+                                             ->orWhere(function ($q4) {
+                                                 $q4->whereNull('q2.symbol')
+                                                    ->whereNull('quantity_units.symbol');
+                                             });
+                                      })
+                                      ->where('q2.stripe_account_id', $store->stripe_account_id)
+                                      ->where('q2.active', true);
+                         });
                   });
             });
 
@@ -57,7 +73,9 @@ class QuantityUnitsController extends BaseApiController
                 ->orderBy('name')
                 ->paginate($perPage);
 
-            // Transform quantity units
+            // Transform quantity units and deduplicate by name+symbol
+            // Prefer store-specific units over global standard units
+            $unitsByNameSymbol = [];
             $transformedUnits = $quantityUnits->getCollection()->map(function ($unit) {
                 return [
                     'id' => $unit->id,
@@ -66,11 +84,34 @@ class QuantityUnitsController extends BaseApiController
                     'description' => $unit->description,
                     'is_standard' => $unit->is_standard,
                     'active' => $unit->active,
+                    'stripe_account_id' => $unit->stripe_account_id, // Include for client-side deduplication
                     'display_name' => $unit->name . ($unit->symbol ? ' (' . $unit->symbol . ')' : ''),
                     'created_at' => $this->formatDateTimeOslo($unit->created_at),
                     'updated_at' => $this->formatDateTimeOslo($unit->updated_at),
                 ];
-            });
+            })->filter(function ($unit) use (&$unitsByNameSymbol) {
+                // Deduplicate by name+symbol combination
+                $key = strtolower($unit['name'] . '|' . ($unit['symbol'] ?? ''));
+                
+                if (!isset($unitsByNameSymbol[$key])) {
+                    $unitsByNameSymbol[$key] = $unit;
+                    return true;
+                }
+                
+                // If we already have a unit with this name+symbol, prefer store-specific over global
+                $existing = $unitsByNameSymbol[$key];
+                $existingIsStoreSpecific = !empty($existing['stripe_account_id']);
+                $currentIsStoreSpecific = !empty($unit['stripe_account_id']);
+                
+                // Replace if current is store-specific and existing is global
+                if ($currentIsStoreSpecific && !$existingIsStoreSpecific) {
+                    $unitsByNameSymbol[$key] = $unit;
+                    return true;
+                }
+                
+                // Otherwise, keep the existing one
+                return false;
+            })->values();
 
             return response()->json([
                 'quantity_units' => $transformedUnits,
@@ -90,3 +131,4 @@ class QuantityUnitsController extends BaseApiController
         }
     }
 }
+

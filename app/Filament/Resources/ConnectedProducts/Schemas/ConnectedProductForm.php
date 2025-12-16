@@ -40,193 +40,805 @@ class ConnectedProductForm
                     ->helperText('The store/connected account this product belongs to')
                     ->hiddenOn(['create', 'edit']),
 
-                TextInput::make('name')
-                    ->label('Product Name')
-                    ->required()
-                    ->maxLength(255)
-                    ->columnSpanFull()
-                    ->visibleOn('create'),
-
-                Textarea::make('description')
-                    ->label('Description')
-                    ->rows(4)
-                    ->columnSpanFull()
-                    ->visibleOn('create'),
-
-                Grid::make(2)
+                // Create form - matching edit form structure
+                Grid::make([
+                    'default' => 1,
+                    'lg' => 3,
+                ])
                     ->schema([
-                        Select::make('type')
-                            ->label('Product Type')
-                            ->options([
-                                'service' => 'Service',
-                                'good' => 'Good',
+                        // Left column - Media (takes 1/3 on large screens)
+                        Group::make()
+                            ->schema([
+                                Section::make('Media')
+                                    ->description('Product images and media')
+                                    ->schema([
+                                        SpatieMediaLibraryFileUpload::make('images')
+                                            ->label('Product Images')
+                                            ->collection('images')
+                                            ->multiple()
+                                            ->image()
+                                            ->imageEditor()
+                                            ->imageEditorAspectRatios([
+                                                null,
+                                                '16:9',
+                                                '4:3',
+                                                '1:1',
+                                            ])
+                                            ->maxFiles(8)
+                                            ->helperText('Upload product images. These will be synced to Stripe when saved.')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(false),
                             ])
-                            ->default('service')
-                            ->visibleOn('create'),
-
-                        Toggle::make('active')
-                            ->label('Active')
-                            ->default(true)
-                            ->visibleOn('create'),
-                    ])
-                    ->visibleOn('create'),
-
-                Toggle::make('shippable')
-                    ->label('Shippable')
-                    ->default(false)
-                    ->visibleOn('create'),
-
-                // Pricing on create
-                Grid::make(2)
-                    ->schema([
-                        TextInput::make('price')
-                            ->label('Price')
-                            ->numeric()
-                            ->step(0.01)
-                            ->prefix('kr')
-                            ->helperText('Enter the product price')
-                            ->visibleOn('create'),
-
-                        Select::make('currency')
-                            ->label('Currency')
-                            ->options([
-                                'nok' => 'NOK (kr)',
-                                'usd' => 'USD ($)',
-                                'eur' => 'EUR (€)',
-                                'sek' => 'SEK',
-                                'dkk' => 'DKK',
+                            ->columnSpan([
+                                'default' => 1,
+                                'lg' => 1,
                             ])
-                            ->default('nok')
+                            ->visibleOn('create'),
+
+                        // Right column - Product Details (takes 2/3 on large screens)
+                        Group::make()
+                            ->schema([
+                                // Product Information Section
+                                Section::make('Product Information')
+                                    ->description('Basic product details')
+                                    ->schema([
+                                        TextInput::make('name')
+                                            ->label('Product Name')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->columnSpanFull()
+                                            ->helperText('This field will sync to Stripe when saved'),
+
+                                        Textarea::make('description')
+                                            ->label('Description')
+                                            ->rows(8)
+                                            ->columnSpanFull()
+                                            ->helperText('Product description. This field will sync to Stripe when saved'),
+
+                                        Grid::make(2)
+                                            ->schema([
+                                                Select::make('type')
+                                                    ->label('Product Type')
+                                                    ->options([
+                                                        'service' => 'Service',
+                                                        'good' => 'Good',
+                                                    ])
+                                                    ->default('service')
+                                                    ->helperText('Product type cannot be changed after creation'),
+
+                                                Toggle::make('active')
+                                                    ->label('Product Status')
+                                                    ->helperText('Active products are visible in Stripe')
+                                                    ->default(true),
+                                            ])
+                                            ->columnSpanFull(),
+
+                                        Select::make('product_type')
+                                            ->label('Product Structure')
+                                            ->options([
+                                                'single' => 'Single Product (no variants)',
+                                                'variable' => 'Variable Product (has variants)',
+                                                'auto' => 'Auto-detect from variants',
+                                            ])
+                                            ->default('auto')
+                                            ->helperText('Single: Only main product in Stripe. Variable: Only variants in Stripe (no main product). Auto: Detected from variant count.')
+                                            ->afterStateUpdated(function ($state, $set, $get) {
+                                                // Store in metadata
+                                                $meta = $get('product_meta') ?? [];
+                                                if ($state && $state !== 'auto') {
+                                                    $meta['product_type'] = $state;
+                                                } else {
+                                                    unset($meta['product_type']);
+                                                }
+                                                $set('product_meta', $meta);
+                                            })
+                                            ->dehydrated(false)
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(false)
+                                    ->visibleOn('create'),
+
+                                // Pricing Section
+                                Section::make('Pricing')
+                                    ->description('Product pricing information')
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('price')
+                                                    ->label('Price')
+                                                    ->numeric()
+                                                    ->step(0.01)
+                                                    ->prefix('kr')
+                                                    ->helperText('Enter the product price. This will create or update the Stripe price automatically.')
+                                                    ->dehydrateStateUsing(function ($state) {
+                                                        // Convert to string format for storage (handle both , and . as decimal)
+                                                        if (!$state) {
+                                                            return null;
+                                                        }
+                                                        // Remove spaces and convert comma to dot
+                                                        return str_replace(',', '.', str_replace(' ', '', (string) $state));
+                                                    }),
+
+                                                Select::make('currency')
+                                                    ->label('Currency')
+                                                    ->options([
+                                                        'nok' => 'NOK (kr)',
+                                                        'usd' => 'USD ($)',
+                                                        'eur' => 'EUR (€)',
+                                                        'sek' => 'SEK',
+                                                        'dkk' => 'DKK',
+                                                    ])
+                                                    ->default('nok')
+                                                    ->helperText('Currency for this product'),
+                                            ])
+                                            ->columnSpanFull(),
+
+                                        TextInput::make('compare_at_price_decimal')
+                                            ->label('Compare at Price')
+                                            ->numeric()
+                                            ->step(0.01)
+                                            ->prefix('kr')
+                                            ->helperText('Original price before discount (optional). Shows discount percentage if set.')
+                                            ->dehydrated(false)
+                                            ->afterStateUpdated(function ($state, $set) {
+                                                if ($state !== null && $state !== '') {
+                                                    $set('compare_at_price_amount', (int) round($state * 100));
+                                                } else {
+                                                    $set('compare_at_price_amount', null);
+                                                }
+                                            }),
+
+                                        Toggle::make('no_price_in_pos')
+                                            ->label('No Price in POS')
+                                            ->helperText('Enable this to allow custom price input on POS. When enabled, the price field can be left empty and will not be restored from default_price.')
+                                            ->default(false)
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(false)
+                                    ->visibleOn('create'),
+
+                                // Shipping Section
+                                Section::make('Shipping')
+                                    ->description('Shipping and fulfillment settings')
+                                    ->schema([
+                                        Toggle::make('shippable')
+                                            ->label('This is a physical product')
+                                            ->helperText('Enable if this product requires shipping')
+                                            ->default(false)
+                                            ->columnSpanFull(),
+
+                                        KeyValue::make('package_dimensions')
+                                            ->label('Package Dimensions')
+                                            ->keyLabel('Dimension')
+                                            ->valueLabel('Value')
+                                            ->helperText('Package dimensions for shipping (height, length, weight, width). This field will sync to Stripe when saved.')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(true)
+                                    ->visibleOn('create'),
+
+                                // Vendor Section
+                                Section::make('Vendor')
+                                    ->description('Assign a vendor to this product')
+                                    ->schema([
+                                        Select::make('vendor_id')
+                                            ->label('Vendor')
+                                            ->relationship(
+                                                'vendor',
+                                                'name',
+                                                modifyQueryUsing: function ($query, $get) {
+                                                    // Prioritize tenant's stripe_account_id (most reliable for preload)
+                                                    $stripeAccountId = null;
+
+                                                    try {
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $stripeAccountId = $tenant?->stripe_account_id;
+                                                    } catch (\Throwable $e) {
+                                                        // Fallback if Filament facade not available
+                                                    }
+
+                                                    // Fallback to form state if tenant not available
+                                                    if (!$stripeAccountId) {
+                                                        $stripeAccountId = $get('stripe_account_id');
+                                                    }
+
+                                                    if ($stripeAccountId) {
+                                                        return $query->where('stripe_account_id', $stripeAccountId)
+                                                            ->where('active', true)
+                                                            ->orderBy('name', 'asc');
+                                                    }
+
+                                                    // If no stripe_account_id, return empty query for safety
+                                                    return $query->whereRaw('1 = 0');
+                                                }
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->helperText('Select the vendor for this product')
+                                            ->placeholder('No vendor')
+                                            ->hintAction(
+                                                Action::make('createVendor')
+                                                    ->label('Create New Vendor')
+                                                    ->icon('heroicon-o-plus')
+                                                    ->form([
+                                                        TextInput::make('name')
+                                                            ->label('Vendor Name')
+                                                            ->required()
+                                                            ->maxLength(255)
+                                                            ->helperText('The name of the vendor'),
+                                                        Textarea::make('description')
+                                                            ->label('Description')
+                                                            ->rows(3)
+                                                            ->helperText('Optional description for this vendor'),
+                                                        TextInput::make('contact_email')
+                                                            ->label('Contact Email')
+                                                            ->email()
+                                                            ->maxLength(255)
+                                                            ->helperText('Contact email address for this vendor'),
+                                                        TextInput::make('contact_phone')
+                                                            ->label('Contact Phone')
+                                                            ->tel()
+                                                            ->maxLength(255)
+                                                            ->helperText('Contact phone number for this vendor'),
+                                                        Toggle::make('active')
+                                                            ->label('Active')
+                                                            ->default(true)
+                                                            ->helperText('Only active vendors are visible'),
+                                                    ])
+                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set) {
+                                                        // Get stripe_account_id from form state
+                                                        $stripeAccountId = $get('stripe_account_id');
+
+                                                        if (!$stripeAccountId) {
+                                                            throw new \Exception('Cannot create vendor: stripe_account_id is required');
+                                                        }
+
+                                                        // Get store_id from tenant
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $storeId = $tenant?->id;
+
+                                                        if (!$storeId) {
+                                                            throw new \Exception('Cannot create vendor: store_id is required');
+                                                        }
+
+                                                        // Create the vendor
+                                                        $vendor = Vendor::create([
+                                                            'store_id' => $storeId,
+                                                            'stripe_account_id' => $stripeAccountId,
+                                                            'name' => $data['name'],
+                                                            'description' => $data['description'] ?? null,
+                                                            'contact_email' => $data['contact_email'] ?? null,
+                                                            'contact_phone' => $data['contact_phone'] ?? null,
+                                                            'active' => $data['active'] ?? true,
+                                                        ]);
+
+                                                        // Set the new vendor as selected
+                                                        $set('vendor_id', $vendor->id);
+                                                    })
+                                                    ->successNotificationTitle('Vendor created')
+                                            )
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(false)
+                                    ->visibleOn('create'),
+
+                                // Collections Section
+                                Section::make('Collections')
+                                    ->description('Organize products into collections')
+                                    ->schema([
+                                        CheckboxList::make('collections')
+                                            ->label('Collections')
+                                            ->relationship(
+                                                'collections',
+                                                'name',
+                                                modifyQueryUsing: function ($query, $get) {
+                                                    $stripeAccountId = $get('stripe_account_id');
+
+                                                    // Clear any existing orderBy clauses from the relationship
+                                                    // (the relationship has orderByPivot which causes PostgreSQL DISTINCT issues)
+                                                    $query->getQuery()->orders = [];
+
+                                                    if ($stripeAccountId) {
+                                                        // Select specific columns to avoid PostgreSQL JSON distinct issue
+                                                        // Order by name (which is in SELECT) instead of pivot sort_order
+                                                        return $query->where('stripe_account_id', $stripeAccountId)
+                                                            ->select('collections.id', 'collections.name', 'collections.stripe_account_id')
+                                                            ->orderBy('collections.name', 'asc');
+                                                    }
+                                                    return $query->select('collections.id', 'collections.name', 'collections.stripe_account_id')
+                                                        ->orderBy('collections.name', 'asc');
+                                                }
+                                            )
+                                            ->searchable()
+                                            ->helperText('Select collections this product belongs to')
+                                            ->hintAction(
+                                                Action::make('createCollection')
+                                                    ->label('Create New Collection')
+                                                    ->icon('heroicon-o-plus')
+                                                    ->form([
+                                                        TextInput::make('name')
+                                                            ->label('Collection Name')
+                                                            ->required()
+                                                            ->maxLength(255)
+                                                            ->live(onBlur: true)
+                                                            ->afterStateUpdated(function ($state, $set) {
+                                                                if ($state) {
+                                                                    $set('handle', Str::slug($state));
+                                                                }
+                                                            }),
+                                                        TextInput::make('handle')
+                                                            ->label('Handle (Slug)')
+                                                            ->maxLength(255)
+                                                            ->helperText('URL-friendly identifier'),
+                                                        Textarea::make('description')
+                                                            ->label('Description')
+                                                            ->rows(3),
+                                                        Toggle::make('active')
+                                                            ->label('Active')
+                                                            ->default(true),
+                                                    ])
+                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set) {
+                                                        // Get stripe_account_id from form state
+                                                        $stripeAccountId = $get('stripe_account_id');
+
+                                                        if (!$stripeAccountId) {
+                                                            throw new \Exception('Cannot create collection: stripe_account_id is required');
+                                                        }
+
+                                                        // Get store_id from tenant
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $storeId = $tenant?->id;
+
+                                                        // Create the collection
+                                                        $collection = Collection::create([
+                                                            'store_id' => $storeId,
+                                                            'stripe_account_id' => $stripeAccountId,
+                                                            'name' => $data['name'],
+                                                            'handle' => $data['handle'] ?? Str::slug($data['name']),
+                                                            'description' => $data['description'] ?? null,
+                                                            'active' => $data['active'] ?? true,
+                                                        ]);
+
+                                                        // Add the new collection to the selected collections
+                                                        $currentCollections = $get('collections') ?? [];
+                                                        if (!is_array($currentCollections)) {
+                                                            $currentCollections = [];
+                                                        }
+                                                        $currentCollections[] = $collection->id;
+                                                        $set('collections', array_unique($currentCollections));
+                                                    })
+                                                    ->successNotificationTitle('Collection created')
+                                            )
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(true)
+                                    ->visibleOn('create'),
+
+                                // Additional Details Section
+                                Section::make('Additional Details')
+                                    ->description('Additional product information')
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('statement_descriptor')
+                                                    ->label('Statement Descriptor')
+                                                    ->maxLength(22)
+                                                    ->helperText('Appears on customer statements (max 22 characters)'),
+
+                                            ])
+                                            ->columnSpanFull(),
+
+                                        Grid::make(2)
+                                            ->schema([
+                                                Select::make('article_group_code')
+                                                    ->label('Article Group Code (SAF-T)')
+                                                    ->relationship(
+                                                        'articleGroupCode',
+                                                        'name',
+                                                        modifyQueryUsing: function ($query, $get) {
+                                                            // Prioritize tenant's stripe_account_id
+                                                            $stripeAccountId = null;
+                                                            try {
+                                                                $tenant = \Filament\Facades\Filament::getTenant();
+                                                                $stripeAccountId = $tenant?->stripe_account_id;
+                                                            } catch (\Throwable $e) {
+                                                                // Fallback
+                                                            }
+
+                                                            if (!$stripeAccountId) {
+                                                                $stripeAccountId = $get('stripe_account_id');
+                                                            }
+
+                                                            // Show store-specific codes and global standard codes
+                                                            if ($stripeAccountId) {
+                                                                return $query->where(function ($q) use ($stripeAccountId) {
+                                                                    $q->where('stripe_account_id', $stripeAccountId)
+                                                                      ->orWhere(function ($q2) {
+                                                                          $q2->whereNull('stripe_account_id')
+                                                                             ->where('is_standard', true);
+                                                                      });
+                                                                })
+                                                                ->where('active', true)
+                                                                ->orderBy('sort_order', 'asc')
+                                                                ->orderBy('code', 'asc');
+                                                            }
+
+                                                            // If no stripe_account_id, return global standard codes
+                                                            return $query->whereNull('stripe_account_id')
+                                                                ->where('is_standard', true)
+                                                                ->where('active', true)
+                                                                ->orderBy('sort_order', 'asc')
+                                                                ->orderBy('code', 'asc');
+                                                        }
+                                                    )
+                                                    ->getOptionLabelFromRecordUsing(function ($record) {
+                                                        return $record->code . ' - ' . $record->name;
+                                                    })
+                                                    ->searchable(['code', 'name'])
+                                                    ->preload()
+                                                    ->default(function () {
+                                                        // Default to '04999' (Øvrige) for new products
+                                                        return '04999';
+                                                    })
+                                                    ->helperText('PredefinedBasicID-04: Product category for SAF-T reporting. VAT rate will be set from the selected code.')
+                                                    ->placeholder('Select article group')
+                                                    ->live(onBlur: false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        // Auto-set VAT from article group code immediately when changed
+                                                        if ($state) {
+                                                            $articleGroupCode = ArticleGroupCode::where('code', $state)->first();
+                                                            if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
+                                                                // Always update VAT when article group code changes
+                                                                $set('vat_percent', $articleGroupCode->default_vat_percent * 100);
+                                                            } else {
+                                                                // Clear VAT if article group code has no default
+                                                                $set('vat_percent', null);
+                                                            }
+                                                        } else {
+                                                            // Clear VAT if article group code is cleared
+                                                            $set('vat_percent', null);
+                                                        }
+                                                    }),
+
+                                                TextInput::make('vat_percent')
+                                                    ->label('VAT Percentage (%)')
+                                                    ->numeric()
+                                                    ->step(0.01)
+                                                    ->minValue(0)
+                                                    ->maxValue(100)
+                                                    ->suffix('%')
+                                                    ->helperText('VAT percentage for this product. Auto-set from article group code, but can be manually overridden.')
+                                                    ->placeholder('Auto from article group code')
+                                                    ->reactive(),
+
+                                                TextInput::make('product_code')
+                                                    ->label('Product Code (PLU)')
+                                                    ->maxLength(50)
+                                                    ->helperText('PLU code (BasicType-02)'),
+                                            ])
+                                            ->columnSpanFull(),
+
+                                        Select::make('quantity_unit_id')
+                                            ->label('Quantity Unit')
+                                            ->relationship(
+                                                'quantityUnit',
+                                                'name',
+                                                modifyQueryUsing: function ($query, $get) {
+                                                    // Prioritize tenant's stripe_account_id (most reliable for preload)
+                                                    $stripeAccountId = null;
+
+                                                    try {
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $stripeAccountId = $tenant?->stripe_account_id;
+                                                    } catch (\Throwable $e) {
+                                                        // Fallback if Filament facade not available
+                                                    }
+
+                                                    // Fallback to form state if tenant not available
+                                                    if (!$stripeAccountId) {
+                                                        $stripeAccountId = $get('stripe_account_id');
+                                                    }
+
+                                                    // Include store-specific units first, then global standard units as fallback
+                                                    // Only show global units if they don't have a store-specific version
+                                                    if ($stripeAccountId) {
+                                                        return $query->where(function ($q) use ($stripeAccountId) {
+                                                            $q->where('stripe_account_id', $stripeAccountId)
+                                                              ->orWhere(function ($q2) use ($stripeAccountId) {
+                                                                  // Only include global units that don't have a store-specific version
+                                                                  $q2->whereNull('stripe_account_id')
+                                                                     ->where('is_standard', true)
+                                                                     ->whereNotExists(function ($subQuery) use ($stripeAccountId) {
+                                                                         $subQuery->select(\DB::raw(1))
+                                                                                  ->from('quantity_units as q2')
+                                                                                  ->whereColumn('q2.name', 'quantity_units.name')
+                                                                                  ->where(function ($q3) {
+                                                                                      $q3->whereColumn('q2.symbol', 'quantity_units.symbol')
+                                                                                         ->orWhere(function ($q4) {
+                                                                                             $q4->whereNull('q2.symbol')
+                                                                                                ->whereNull('quantity_units.symbol');
+                                                                                         });
+                                                                                  })
+                                                                                  ->where('q2.stripe_account_id', $stripeAccountId)
+                                                                                  ->where('q2.active', true);
+                                                                     });
+                                                              });
+                                                        })
+                                                        ->where('active', true)
+                                                        ->orderByRaw('CASE WHEN stripe_account_id IS NOT NULL THEN 0 ELSE 1 END')
+                                                        ->orderBy('name', 'asc');
+                                                    }
+
+                                                    // If no stripe_account_id, return global standard units
+                                                    return $query->whereNull('stripe_account_id')
+                                                        ->where('is_standard', true)
+                                                        ->where('active', true)
+                                                        ->orderBy('name', 'asc');
+                                                }
+                                            )
+                                            ->getOptionLabelFromRecordUsing(function ($record) {
+                                                return $record->name . ($record->symbol ? ' (' . $record->symbol . ')' : '');
+                                            })
+                                            ->searchable()
+                                            ->preload()
+                                            ->default(function ($get) {
+                                                // Default to "Piece" (stk) for new products
+                                                $stripeAccountId = null;
+                                                try {
+                                                    $tenant = \Filament\Facades\Filament::getTenant();
+                                                    $stripeAccountId = $tenant?->stripe_account_id;
+                                                } catch (\Throwable $e) {
+                                                    // Fallback
+                                                }
+
+                                                if (!$stripeAccountId) {
+                                                    $stripeAccountId = $get('stripe_account_id');
+                                                }
+
+                                                // Find "Piece" quantity unit
+                                                $pieceUnit = \App\Models\QuantityUnit::where(function ($q) use ($stripeAccountId) {
+                                                    if ($stripeAccountId) {
+                                                        $q->where('stripe_account_id', $stripeAccountId)
+                                                          ->orWhere(function ($q2) {
+                                                              $q2->whereNull('stripe_account_id')
+                                                                 ->where('is_standard', true);
+                                                          });
+                                                    } else {
+                                                        $q->whereNull('stripe_account_id')
+                                                          ->where('is_standard', true);
+                                                    }
+                                                })
+                                                ->where('name', 'Piece')
+                                                ->where('active', true)
+                                                ->first();
+
+                                                return $pieceUnit?->id;
+                                            })
+                                            ->helperText('Select the quantity unit for this product (e.g., per piece, per kg, per meter). This determines how the price is calculated. Defaults to Piece (stk).')
+                                            ->placeholder('Select quantity unit')
+                                            ->hintAction(
+                                                Action::make('createQuantityUnit')
+                                                    ->label('Create New Quantity Unit')
+                                                    ->icon('heroicon-o-plus')
+                                                    ->form([
+                                                        TextInput::make('name')
+                                                            ->label('Name')
+                                                            ->required()
+                                                            ->maxLength(255)
+                                                            ->helperText('The name of the quantity unit (e.g., "Piece", "Kilogram")'),
+                                                        TextInput::make('symbol')
+                                                            ->label('Symbol')
+                                                            ->maxLength(20)
+                                                            ->helperText('The symbol or abbreviation (e.g., "stk", "kg")'),
+                                                        Textarea::make('description')
+                                                            ->label('Description')
+                                                            ->rows(3)
+                                                            ->helperText('Optional description for this quantity unit'),
+                                                        Toggle::make('active')
+                                                            ->label('Active')
+                                                            ->default(true),
+                                                    ])
+                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set) {
+                                                        // Get stripe_account_id from form state
+                                                        $stripeAccountId = $get('stripe_account_id');
+
+                                                        if (!$stripeAccountId) {
+                                                            throw new \Exception('Cannot create quantity unit: stripe_account_id is required');
+                                                        }
+
+                                                        // Get store_id from tenant
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $storeId = $tenant?->id;
+
+                                                        if (!$storeId) {
+                                                            throw new \Exception('Cannot create quantity unit: store_id is required');
+                                                        }
+
+                                                        // Create the quantity unit
+                                                        $quantityUnit = \App\Models\QuantityUnit::create([
+                                                            'store_id' => $storeId,
+                                                            'stripe_account_id' => $stripeAccountId,
+                                                            'name' => $data['name'],
+                                                            'symbol' => $data['symbol'] ?? null,
+                                                            'description' => $data['description'] ?? null,
+                                                            'active' => $data['active'] ?? true,
+                                                            'is_standard' => false,
+                                                        ]);
+
+                                                        // Set the new quantity unit as selected
+                                                        $set('quantity_unit_id', $quantityUnit->id);
+                                                    })
+                                                    ->successNotificationTitle('Quantity unit created')
+                                            )
+                                            ->columnSpanFull()
+                                            ->helperText('Unit label will be automatically set from the quantity unit symbol.')
+                                            ->columnSpanFull(),
+
+                                        TextInput::make('url')
+                                            ->label('Product URL')
+                                            ->url()
+                                            ->helperText('Product URL or link')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(true)
+                                    ->visibleOn('create'),
+
+                                // Product Metadata Section (Shopify fields, SEO, etc.)
+                                Section::make('Product Metadata')
+                                    ->description('Additional metadata and Shopify fields. These sync to Stripe as metadata.')
+                                    ->schema([
+                                        KeyValue::make('product_meta')
+                                            ->label('Product Metadata')
+                                            ->keyLabel('Key')
+                                            ->valueLabel('Value')
+                                            ->helperText('Custom metadata fields. Common Shopify fields: vendor, tags, handle, category. All values sync to Stripe metadata.')
+                                            ->columnSpanFull()
+                                            ->addable(true)
+                                            ->deletable(true)
+                                            ->reorderable(false)
+                                            ->default([
+                                                'source' => 'manual',
+                                            ])
+                                            ->formatStateUsing(function ($state) {
+                                                if (is_array($state)) {
+                                                    return $state;
+                                                }
+                                                if (is_string($state)) {
+                                                    return json_decode($state, true) ?? [];
+                                                }
+                                                return [];
+                                            })
+                                            ->dehydrateStateUsing(function ($state) {
+                                                if (!is_array($state)) {
+                                                    return [];
+                                                }
+                                                // Filter out empty keys/values
+                                                return array_filter($state, function ($value, $key) {
+                                                    return !empty($key) && $value !== null && $value !== '';
+                                                }, ARRAY_FILTER_USE_BOTH);
+                                            }),
+
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('product_meta.vendor')
+                                                    ->label('Vendor')
+                                                    ->maxLength(255)
+                                                    ->helperText('Product vendor/brand name')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['vendor'] = $state;
+                                                        } else {
+                                                            unset($meta['vendor']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    }),
+
+                                                TextInput::make('product_meta.tags')
+                                                    ->label('Tags')
+                                                    ->maxLength(255)
+                                                    ->helperText('Comma-separated tags (e.g., "Golf, Equipment, Titleist")')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['tags'] = $state;
+                                                        } else {
+                                                            unset($meta['tags']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    }),
+                                            ])
+                                            ->columnSpanFull(),
+
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('product_meta.handle')
+                                                    ->label('Handle (Slug)')
+                                                    ->maxLength(255)
+                                                    ->helperText('URL-friendly product handle (e.g., "golf-club-set")')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['handle'] = $state;
+                                                        } else {
+                                                            unset($meta['handle']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    }),
+
+                                                TextInput::make('product_meta.category')
+                                                    ->label('Category')
+                                                    ->maxLength(255)
+                                                    ->helperText('Product category (e.g., "Sporting Goods > Golf > Clubs")')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['category'] = $state;
+                                                        } else {
+                                                            unset($meta['category']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    }),
+                                            ])
+                                            ->columnSpanFull(),
+
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('product_meta.seo_title')
+                                                    ->label('SEO Title')
+                                                    ->maxLength(255)
+                                                    ->helperText('SEO meta title')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['seo_title'] = $state;
+                                                        } else {
+                                                            unset($meta['seo_title']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    }),
+
+                                                Textarea::make('product_meta.seo_description')
+                                                    ->label('SEO Description')
+                                                    ->maxLength(320)
+                                                    ->rows(3)
+                                                    ->helperText('SEO meta description (max 320 characters)')
+                                                    ->dehydrated(false)
+                                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                                        $meta = $get('product_meta') ?? [];
+                                                        if ($state) {
+                                                            $meta['seo_description'] = $state;
+                                                        } else {
+                                                            unset($meta['seo_description']);
+                                                        }
+                                                        $set('product_meta', $meta);
+                                                    }),
+                                            ])
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(true)
+                                    ->visibleOn('create'),
+                            ])
+                            ->columnSpan([
+                                'default' => 1,
+                                'lg' => 2,
+                            ])
                             ->visibleOn('create'),
                     ])
-                    ->visibleOn('create'),
-
-                Select::make('quantity_unit_id')
-                    ->label('Quantity Unit')
-                    ->relationship(
-                        'quantityUnit',
-                        'name',
-                        modifyQueryUsing: function ($query, $get) {
-                            $stripeAccountId = null;
-                            try {
-                                $tenant = \Filament\Facades\Filament::getTenant();
-                                $stripeAccountId = $tenant?->stripe_account_id;
-                            } catch (\Throwable $e) {
-                                // Fallback
-                            }
-
-                            if (!$stripeAccountId) {
-                                $stripeAccountId = $get('stripe_account_id');
-                            }
-
-                            if ($stripeAccountId) {
-                                return $query->where(function ($q) use ($stripeAccountId) {
-                                    $q->where('stripe_account_id', $stripeAccountId)
-                                      ->orWhere(function ($q2) use ($stripeAccountId) {
-                                          // Only include global units that don't have a store-specific version
-                                          $q2->whereNull('stripe_account_id')
-                                             ->where('is_standard', true)
-                                             ->whereNotExists(function ($subQuery) use ($stripeAccountId) {
-                                                 $subQuery->select(\DB::raw(1))
-                                                          ->from('quantity_units as q2')
-                                                          ->whereColumn('q2.name', 'quantity_units.name')
-                                                          ->where(function ($q3) {
-                                                              $q3->whereColumn('q2.symbol', 'quantity_units.symbol')
-                                                                 ->orWhere(function ($q4) {
-                                                                     $q4->whereNull('q2.symbol')
-                                                                        ->whereNull('quantity_units.symbol');
-                                                                 });
-                                                          })
-                                                          ->where('q2.stripe_account_id', $stripeAccountId)
-                                                          ->where('q2.active', true);
-                                             });
-                                      });
-                                })
-                                ->where('active', true)
-                                ->orderByRaw('CASE WHEN stripe_account_id IS NOT NULL THEN 0 ELSE 1 END')
-                                ->orderBy('name', 'asc');
-                            }
-
-                            return $query->whereNull('stripe_account_id')
-                                ->where('is_standard', true)
-                                ->where('active', true)
-                                ->orderBy('name', 'asc');
-                        }
-                    )
-                    ->getOptionLabelFromRecordUsing(function ($record) {
-                        return $record->name . ($record->symbol ? ' (' . $record->symbol . ')' : '');
-                    })
-                    ->searchable()
-                    ->preload()
-                    ->default(function ($get) {
-                        // Default to "Piece" (stk) for new products
-                        $stripeAccountId = null;
-                        try {
-                            $tenant = \Filament\Facades\Filament::getTenant();
-                            $stripeAccountId = $tenant?->stripe_account_id;
-                        } catch (\Throwable $e) {
-                            // Fallback
-                        }
-
-                        if (!$stripeAccountId) {
-                            $stripeAccountId = $get('stripe_account_id');
-                        }
-
-                        // Find "Piece" quantity unit
-                        $pieceUnit = \App\Models\QuantityUnit::where(function ($q) use ($stripeAccountId) {
-                            if ($stripeAccountId) {
-                                $q->where('stripe_account_id', $stripeAccountId)
-                                  ->orWhere(function ($q2) {
-                                      $q2->whereNull('stripe_account_id')
-                                         ->where('is_standard', true);
-                                  });
-                            } else {
-                                $q->whereNull('stripe_account_id')
-                                  ->where('is_standard', true);
-                            }
-                        })
-                        ->where('name', 'Piece')
-                        ->where('active', true)
-                        ->first();
-
-                        return $pieceUnit?->id;
-                    })
-                    ->helperText('Select the quantity unit for this product. Defaults to Piece (stk).')
-                    ->placeholder('Select quantity unit')
-                    ->helperText('Unit label will be automatically set from the quantity unit symbol.')
-                    ->visibleOn('create'),
-
-                TextInput::make('compare_at_price_decimal')
-                    ->label('Compare at Price')
-                    ->numeric()
-                    ->step(0.01)
-                    ->prefix('kr')
-                    ->helperText('Original price before discount (optional)')
-                    ->visibleOn('create')
-                    ->dehydrated(false)
-                    ->afterStateUpdated(function ($state, $set) {
-                        if ($state !== null && $state !== '') {
-                            $set('compare_at_price_amount', (int) round($state * 100));
-                        } else {
-                            $set('compare_at_price_amount', null);
-                        }
-                    }),
-
-                // Product images
-                SpatieMediaLibraryFileUpload::make('images')
-                    ->label('Product Images')
-                    ->collection('images')
-                    ->multiple()
-                    ->image()
-                    ->imageEditor()
-                    ->imageEditorAspectRatios([
-                        null,
-                        '16:9',
-                        '4:3',
-                        '1:1',
-                    ])
-                    ->maxFiles(8)
-                    ->helperText('Upload product images. These will be synced to Stripe when saved.')
                     ->columnSpanFull()
                     ->visibleOn('create'),
 
