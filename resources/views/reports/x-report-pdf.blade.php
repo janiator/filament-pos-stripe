@@ -298,6 +298,7 @@
                         <th>Leverandør</th>
                         <th class="text-center">Antall</th>
                         <th class="text-right">Beløp</th>
+                        <th class="text-right">Provision</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -306,6 +307,14 @@
                             <td>{{ $vendor['name'] }}</td>
                             <td class="text-center">{{ $vendor['count'] }}</td>
                             <td class="text-right">{{ number_format($vendor['amount'] / 100, 2) }} NOK</td>
+                            <td class="text-right">
+                                @if(isset($vendor['commission_percent']) && $vendor['commission_percent'] > 0)
+                                    {{ number_format($vendor['commission_amount'] / 100, 2) }} NOK
+                                    <span style="font-size: 8pt; color: #6b7280;">({{ number_format($vendor['commission_percent'], 2) }}%)</span>
+                                @else
+                                    <span style="color: #9ca3af;">-</span>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>

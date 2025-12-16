@@ -207,6 +207,7 @@ class PosSessionsTable
 
     /**
      * Generate X-report data for a session
+     * X-reports are always generated fresh (interim reports for open sessions)
      */
     public static function generateXReport(PosSession $session): array
     {
@@ -321,9 +322,15 @@ class PosSessionsTable
 
     /**
      * Generate Z-report data for a session
+     * For closed sessions, uses stored report data from closing_data if available to preserve snapshot
      */
     public static function generateZReport(PosSession $session): array
     {
+        // For closed sessions, check if we have stored report data (snapshot at closing time)
+        if ($session->status === 'closed' && $session->closing_data && isset($session->closing_data['z_report_data'])) {
+            return $session->closing_data['z_report_data'];
+        }
+        
         $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
         $report = self::generateXReport($session);
         
@@ -389,6 +396,16 @@ class PosSessionsTable
         
         // Sales per vendor
         $report['sales_by_vendor'] = self::calculateSalesByVendor($session);
+        
+        // For closed sessions, store the report data in closing_data to preserve snapshot
+        // This ensures reports remain unchanged even if vendor commission settings change later
+        if ($session->status === 'closed') {
+            $closingData = $session->closing_data ?? [];
+            $closingData['z_report_data'] = $report;
+            $closingData['z_report_generated_at'] = now()->toISOString();
+            $session->closing_data = $closingData;
+            $session->saveQuietly(); // Save without triggering observers/events
+        }
         
         return $report;
     }
@@ -492,9 +509,11 @@ class PosSessionsTable
                         // If no vendor, use "Ingen leverandør" (No vendor)
                         $vendorName = 'Ingen leverandør';
                         $vendorId = 'no-vendor';
+                        $commissionPercent = null;
                     } else {
                         $vendorName = $vendor->name;
                         $vendorId = $vendor->id;
+                        $commissionPercent = $vendor->commission_percent;
                     }
                     
                     if (!$vendorSales->has($vendorId)) {
@@ -503,12 +522,21 @@ class PosSessionsTable
                             'name' => $vendorName,
                             'count' => 0,
                             'amount' => 0,
+                            'commission_percent' => $commissionPercent,
+                            'commission_amount' => 0,
                         ]);
                     }
                     
                     $current = $vendorSales->get($vendorId);
                     $current['count'] += $quantity;
                     $current['amount'] += $lineTotal;
+                    
+                    // Calculate commission if commission_percent is set
+                    if ($commissionPercent !== null && $commissionPercent > 0) {
+                        $commissionAmount = (int) round($lineTotal * ($commissionPercent / 100));
+                        $current['commission_amount'] += $commissionAmount;
+                    }
+                    
                     $vendorSales->put($vendorId, $current);
                 }
             }
