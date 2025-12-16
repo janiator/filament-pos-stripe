@@ -171,8 +171,10 @@ class PosSystemIntegrationTest extends TestCase
         ]);
 
         // Step 7: Generate Z-report (closes session)
+        // Expected cash = opening_balance (10000) + cash transactions (15000) = 25000
+        $expectedCash = 10000 + 15000; // opening_balance + cash transactions
         $zReportResponse = $this->postJson("/api/pos-sessions/{$sessionId}/z-report", [
-            'actual_cash' => 15000,
+            'actual_cash' => $expectedCash,
             'closing_notes' => 'End of shift',
         ]);
         $zReportResponse->assertStatus(200);
@@ -187,8 +189,8 @@ class PosSystemIntegrationTest extends TestCase
         $session->refresh();
         $this->assertEquals('closed', $session->status);
         $this->assertNotNull($session->closed_at);
-        $this->assertEquals(15000, $session->expected_cash);
-        $this->assertEquals(15000, $session->actual_cash);
+        $this->assertEquals($expectedCash, $session->expected_cash);
+        $this->assertEquals($expectedCash, $session->actual_cash);
         $this->assertEquals(0, $session->cash_difference);
 
         // Verify Z-report and session closed events were logged

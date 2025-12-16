@@ -616,8 +616,8 @@ class ConnectedProductForm
                                                     ->helperText('Appears on customer statements (max 22 characters)'),
 
                                                 TextInput::make('tax_code')
-                                                    ->label('Tax Code')
-                                                    ->helperText('Stripe tax code ID for tax calculation'),
+                                                    ->label('Tax Code (Stripe)')
+                                                    ->helperText('Stripe tax code ID for tax calculation (optional)'),
                                             ])
                                             ->columnSpanFull(),
 
@@ -628,13 +628,32 @@ class ConnectedProductForm
                                                     ->options(\App\Services\SafTCodeMapper::getArticleGroupCodes())
                                                     ->searchable()
                                                     ->helperText('PredefinedBasicID-04: Product category for SAF-T reporting')
-                                                    ->placeholder('Select article group'),
+                                                    ->placeholder('Select article group')
+                                                    ->reactive()
+                                                    ->afterStateUpdated(function ($state, callable $set) {
+                                                        // Auto-set VAT percent based on article group code
+                                                        $vatPercent = \App\Services\SafTCodeMapper::getVatPercentFromArticleGroupCode($state);
+                                                        if ($vatPercent !== null) {
+                                                            $set('vat_percent', $vatPercent);
+                                                        }
+                                                    }),
 
                                                 TextInput::make('product_code')
                                                     ->label('Product Code (PLU)')
                                                     ->maxLength(50)
                                                     ->helperText('PLU code (BasicType-02)'),
                                             ])
+                                            ->columnSpanFull(),
+
+                                        TextInput::make('vat_percent')
+                                            ->label('VAT Percent (%)')
+                                            ->numeric()
+                                            ->step(0.01)
+                                            ->minValue(0)
+                                            ->maxValue(100)
+                                            ->suffix('%')
+                                            ->helperText('VAT percentage for this product. Auto-filled based on article group code.')
+                                            ->placeholder('25.00')
                                             ->columnSpanFull(),
 
                                         TextInput::make('unit_label')

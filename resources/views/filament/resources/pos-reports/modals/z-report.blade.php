@@ -221,25 +221,25 @@
             <div style="font-size: 0.875rem; color: rgb(75 85 99); margin-bottom: 0.5rem;">
                 <strong>Åpningssaldo</strong>
             </div>
-            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format(($report['opening_balance'] ?? 0) / 100, 2) }} NOK</div>
+            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format($report['opening_balance'] ?? 0, 2) }} NOK</div>
         </div>
         <div class="z-report-section" style="background-color: rgb(254 252 232); border-color: rgb(253 224 71);">
             <div style="font-size: 0.875rem; color: rgb(75 85 99); margin-bottom: 0.5rem;">
                 <strong>Forventet Kontant</strong>
             </div>
-            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format($report['expected_cash'] / 100, 2) }} NOK</div>
+            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format($report['expected_cash'], 2) }} NOK</div>
         </div>
         <div class="z-report-section" style="background-color: rgb(250 245 255); border-color: rgb(233 213 255);">
             <div style="font-size: 0.875rem; color: rgb(75 85 99); margin-bottom: 0.5rem;">
                 <strong>Faktisk Kontant</strong>
             </div>
-            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format(($report['actual_cash'] ?? 0) / 100, 2) }} NOK</div>
+            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format($report['actual_cash'] ?? 0, 2) }} NOK</div>
         </div>
         <div class="z-report-section" style="background-color: {{ ($report['cash_difference'] ?? 0) > 0 ? 'rgb(254 242 242)' : (($report['cash_difference'] ?? 0) < 0 ? 'rgb(254 252 232)' : 'rgb(240 253 244)'); }}; border-color: {{ ($report['cash_difference'] ?? 0) > 0 ? 'rgb(252 165 165)' : (($report['cash_difference'] ?? 0) < 0 ? 'rgb(253 224 71)' : 'rgb(187 247 208)'); }};">
             <div style="font-size: 0.875rem; color: rgb(75 85 99); margin-bottom: 0.5rem;">
                 <strong>Differanse</strong>
             </div>
-            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format(($report['cash_difference'] ?? 0) / 100, 2) }} NOK</div>
+            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format($report['cash_difference'] ?? 0, 2) }} NOK</div>
         </div>
         @if(!empty($report['tips_enabled']) && $report['tips_enabled'] === true)
             <div class="z-report-section" style="background-color: rgb(239 246 255); border-color: rgb(191 219 254);">

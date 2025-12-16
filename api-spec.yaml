@@ -4096,6 +4096,9 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - name
+                - phone
               properties:
                 name:
                   type: string
@@ -4105,10 +4108,11 @@ paths:
                   type: string
                   format: email
                   maxLength: 255
+                  nullable: true
+                  description: Customer email address (optional - some older customers may not have an email)
                   example: john@example.com
                 phone:
                   type: string
-                  nullable: true
                   description: Customer phone number (per Stripe API spec)
                   example: "+4712345678"
                 profile_image_url:
@@ -4229,6 +4233,9 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - name
+                - phone
               properties:
                 name:
                   type: string
@@ -4238,10 +4245,11 @@ paths:
                   type: string
                   format: email
                   maxLength: 255
+                  nullable: true
+                  description: Customer email address (optional - some older customers may not have an email)
                   example: john@example.com
                 phone:
                   type: string
-                  nullable: true
                   description: Customer phone number (per Stripe API spec)
                   example: "+4712345678"
                 profile_image_url:

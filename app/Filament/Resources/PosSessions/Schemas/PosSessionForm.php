@@ -141,7 +141,7 @@ class PosSessionForm
                             ->numeric()
                             ->disabled()
                             ->suffix('kr')
-                            ->helperText('Calculated from cash transactions'),
+                            ->helperText('Opening balance + cash from transactions'),
 
                         TextInput::make('actual_cash')
                             ->label('Actual Cash')

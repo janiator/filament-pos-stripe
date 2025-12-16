@@ -2,14 +2,39 @@
 
 ## Overview
 
-The cart totals calculation now supports per-product tax rates. Each product can have a different tax rate based on its tax code.
+The cart totals calculation now supports per-product tax rates. Each product can have a different tax rate based on its VAT percent or tax code.
 
 ## How It Works
 
-1. **Tax Code Storage**: When adding items to cart, the product's `taxCode` is stored in `cartItemArticleGroupCode`
-2. **Tax Rate Lookup**: The `getTaxPercentageFromCode()` function maps tax codes to tax percentages
-3. **Per-Item Tax Calculation**: Tax is calculated for each item based on its tax rate
-4. **Total Tax**: Sum of all item taxes
+1. **VAT Percent Storage**: Products now have a `vat_percent` field that can be set directly (e.g., 25.00 for 25%)
+2. **Tax Code Storage**: When adding items to cart, the product's `taxCode` or `article_group_code` is stored in `cartItemArticleGroupCode`
+3. **Tax Rate Lookup Priority**:
+   - **First**: Use `vat_percent` from product (if available)
+   - **Second**: Map tax code/article group code to percentage using `getTaxPercentageFromCode()`
+   - **Third**: Default to 25% VAT
+4. **Per-Item Tax Calculation**: Tax is calculated for each item based on its tax rate
+5. **Total Tax**: Sum of all item taxes
+
+## Setting VAT Percent on Products
+
+### Via API
+When creating or updating a product, you can set `vat_percent` directly:
+```json
+{
+  "name": "Product Name",
+  "vat_percent": 25.00,
+  "article_group_code": "04003"
+}
+```
+
+### Auto-Calculation
+If `article_group_code` is set, the system will automatically set `vat_percent` based on the code:
+- `04003` (Varesalg) → 25.00%
+- `04006` (Mat) → 15.00%
+- `04004` (Salg av behandlingstjenester) → 25.00%
+- etc.
+
+You can override the auto-calculated value by explicitly setting `vat_percent`.
 
 ## Tax Code Mapping
 
@@ -22,6 +47,27 @@ The `getTaxPercentageFromCode()` function currently supports:
 | `txcd_99999997` or `lower` or `service` | Lower rate (services) | 10% |
 | `txcd_99999996` or `zero` or `exempt` or `0` | Zero rate / Exempt | 0% |
 | (default) | Unknown code | 25% (default) |
+
+## Using VAT Percent in Cart Items
+
+When adding products to cart, store the `vat_percent` value in your cart item structure:
+
+```dart
+// When adding product to cart
+final cartItem = CartItemStruct(
+  // ... other fields
+  cartItemVatPercent: product.vatPercent, // Store VAT percent from product
+  cartItemArticleGroupCode: product.articleGroupCode, // Store tax code as fallback
+);
+```
+
+Then in `updateCartTotals()`, use:
+```dart
+final taxPercentage = getTaxPercentageFromProduct(
+  item.cartItemVatPercent, // Use VAT percent if available
+  item.cartItemArticleGroupCode // Fallback to tax code mapping
+);
+```
 
 ## Customizing Tax Codes
 
@@ -53,7 +99,8 @@ double getTaxPercentageFromCode(String? taxCode) {
    - Calculate line price: `unitPrice × quantity`
    - Calculate item discount: `discountAmount × quantity`
    - Calculate item subtotal: `linePrice - itemDiscount`
-   - Get tax percentage from `cartItemArticleGroupCode`
+   - Get tax percentage using `getTaxPercentageFromProduct(vatPercent, taxCode)`
+     - Priority: `vatPercent` → `taxCode` mapping → default 25%
    - Calculate item tax: `itemSubtotal × taxPercentage`
    - Add to total tax
 
@@ -140,11 +187,13 @@ To test different tax rates:
 
 ## Important Notes
 
-1. **Tax codes are stored** in `cartItemArticleGroupCode` when adding items to cart
-2. **Default tax rate** is 25% if code is not recognized
-3. **Tax is calculated per item** before cart-level discounts
-4. **Cart-level discounts** don't affect individual item tax calculations
-5. **Update the mapping** if you use custom tax codes
+1. **VAT percent is preferred** - Store `vat_percent` from product in cart items when available
+2. **Tax codes are stored** in `cartItemArticleGroupCode` as fallback when adding items to cart
+3. **Default tax rate** is 25% if neither VAT percent nor recognized code is found
+4. **Tax is calculated per item** before cart-level discounts
+5. **Cart-level discounts** don't affect individual item tax calculations
+6. **Auto-calculation** - Setting `article_group_code` on a product automatically sets `vat_percent`
+7. **Manual override** - You can manually set `vat_percent` to override auto-calculated values
 
 ## Future Enhancements
 

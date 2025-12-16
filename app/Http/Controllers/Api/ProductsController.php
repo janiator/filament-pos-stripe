@@ -124,6 +124,7 @@ class ProductsController extends BaseApiController
                             'all_in_stock' => null,
                         ],
                         'tax_code' => $product->tax_code ?? null,
+                        'vat_percent' => $product->vat_percent ? (float) $product->vat_percent : null,
                         'unit_label' => $product->unit_label ?? null,
                         'statement_descriptor' => $product->statement_descriptor ?? null,
                         'package_dimensions' => null,
@@ -467,6 +468,7 @@ class ProductsController extends BaseApiController
             'no_price_in_pos' => 'nullable|boolean',
             'product_code' => 'nullable|string',
             'article_group_code' => 'nullable|string',
+            'vat_percent' => 'nullable|numeric|min:0|max:100',
             'collection_ids' => 'nullable|array',
             'collection_ids.*' => 'exists:collections,id',
         ]);
@@ -487,6 +489,16 @@ class ProductsController extends BaseApiController
             $product->no_price_in_pos = $validated['no_price_in_pos'] ?? false;
             $product->product_code = $validated['product_code'] ?? null;
             $product->article_group_code = $validated['article_group_code'] ?? null;
+            
+            // Auto-set VAT percent if article_group_code is set and vat_percent is not explicitly provided
+            if (isset($validated['article_group_code']) && !isset($validated['vat_percent'])) {
+                $vatPercent = \App\Services\SafTCodeMapper::getVatPercentFromArticleGroupCode($validated['article_group_code']);
+                if ($vatPercent !== null) {
+                    $product->vat_percent = $vatPercent;
+                }
+            } elseif (isset($validated['vat_percent'])) {
+                $product->vat_percent = $validated['vat_percent'];
+            }
 
             // Set price if provided
             if (isset($validated['price']) && !$product->no_price_in_pos) {
@@ -578,6 +590,7 @@ class ProductsController extends BaseApiController
             'no_price_in_pos' => 'nullable|boolean',
             'product_code' => 'nullable|string',
             'article_group_code' => 'nullable|string',
+            'vat_percent' => 'nullable|numeric|min:0|max:100',
             'collection_ids' => 'nullable|array',
             'collection_ids.*' => 'exists:collections,id',
         ]);
@@ -619,6 +632,18 @@ class ProductsController extends BaseApiController
             }
             if (isset($validated['article_group_code'])) {
                 $product->article_group_code = $validated['article_group_code'];
+                
+                // Auto-set VAT percent if article_group_code is changed and vat_percent is not explicitly provided
+                if (!isset($validated['vat_percent'])) {
+                    $vatPercent = \App\Services\SafTCodeMapper::getVatPercentFromArticleGroupCode($validated['article_group_code']);
+                    if ($vatPercent !== null) {
+                        $product->vat_percent = $vatPercent;
+                    }
+                }
+            }
+            
+            if (isset($validated['vat_percent'])) {
+                $product->vat_percent = $validated['vat_percent'];
             }
 
             // Update price if provided

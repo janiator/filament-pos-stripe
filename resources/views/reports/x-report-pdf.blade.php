@@ -177,11 +177,11 @@
     <div class="cash-grid">
         <div class="cash-item">
             <strong>Åpningssaldo</strong>
-            <div class="value">{{ number_format(($report['opening_balance'] ?? 0) / 100, 2) }} NOK</div>
+            <div class="value">{{ number_format($report['opening_balance'] ?? 0, 2) }} NOK</div>
         </div>
         <div class="cash-item">
             <strong>Forventet Kontant</strong>
-            <div class="value">{{ number_format($report['expected_cash'] / 100, 2) }} NOK</div>
+            <div class="value">{{ number_format($report['expected_cash'], 2) }} NOK</div>
         </div>
         @if(!empty($report['tips_enabled']) && $report['tips_enabled'] === true)
             <div class="cash-item" style="background-color: #eff6ff; border-color: #bfdbfe;">

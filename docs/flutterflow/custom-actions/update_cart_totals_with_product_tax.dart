@@ -14,6 +14,24 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+/// Get tax percentage from product data
+/// Priority: 1. vat_percent from product, 2. tax code mapping, 3. default 25%
+/// Returns default 25% if no valid value found
+double getTaxPercentageFromProduct(double? vatPercent, String? taxCode) {
+  // First priority: Use vat_percent if available from product
+  if (vatPercent != null && vatPercent >= 0 && vatPercent <= 100) {
+    return vatPercent / 100; // Convert percentage to decimal (e.g., 25.0 -> 0.25)
+  }
+  
+  // Second priority: Map tax code to percentage
+  if (taxCode != null && taxCode.isNotEmpty) {
+    return getTaxPercentageFromCode(taxCode);
+  }
+  
+  // Default: 25% VAT in Norway
+  return 0.25;
+}
+
 /// Get tax percentage from tax code
 /// Maps tax codes to tax percentages
 /// Returns default 25% if code is not recognized
@@ -31,8 +49,6 @@ double getTaxPercentageFromCode(String? taxCode) {
   // You can also use article group codes or custom tax codes
   // Map them to appropriate percentages
   
-  // For now, default to 25% unless we have a specific mapping
-  // TODO: Add your tax code mappings here based on your system
   switch (taxCode.toLowerCase()) {
     case 'txcd_99999999':
     case 'standard':
@@ -82,9 +98,14 @@ Future updateCartTotals() async {
     // Calculate item subtotal (after discount)
     final itemSubtotal = linePrice - itemDiscount;
     
-    // Get tax percentage from article group code (stored when adding to cart)
-    // The cartItemArticleGroupCode contains the tax code from the product
-    final taxPercentage = getTaxPercentageFromCode(item.cartItemArticleGroupCode);
+    // Get tax percentage from product
+    // Priority: 1. vat_percent from product (if stored in cart item), 2. tax code mapping, 3. default
+    // Note: You may need to store vat_percent in cart items when adding products to cart
+    // For now, we use the article group code mapping
+    // If cartItemVatPercent field exists in your CartItem struct, use it; otherwise use null
+    final vatPercent = null; // TODO: Replace with item.cartItemVatPercent if you add this field to CartItem struct
+    final taxCode = item.cartItemArticleGroupCode;
+    final taxPercentage = getTaxPercentageFromProduct(vatPercent, taxCode);
     
     // Calculate tax for this item
     final itemTax = (itemSubtotal * taxPercentage).round();

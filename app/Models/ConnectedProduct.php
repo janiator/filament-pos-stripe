@@ -38,6 +38,7 @@ class ConnectedProduct extends Model implements HasMedia
         'compare_at_price_amount',
         'article_group_code',
         'product_code',
+        'vat_percent',
     ];
 
     protected $casts = [
@@ -48,6 +49,7 @@ class ConnectedProduct extends Model implements HasMedia
         'shippable' => 'boolean',
         'compare_at_price_amount' => 'integer',
         'no_price_in_pos' => 'boolean',
+        'vat_percent' => 'decimal:2',
     ];
 
     /**

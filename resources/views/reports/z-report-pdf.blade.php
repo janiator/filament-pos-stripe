@@ -197,19 +197,19 @@
     <div class="cash-grid {{ (!empty($report['tips_enabled']) && $report['tips_enabled'] === true) ? 'with-tips' : '' }}">
         <div class="cash-item yellow">
             <strong>Åpningssaldo</strong>
-            <div class="value">{{ number_format(($report['opening_balance'] ?? 0) / 100, 2) }} NOK</div>
+            <div class="value">{{ number_format($report['opening_balance'] ?? 0, 2) }} NOK</div>
         </div>
         <div class="cash-item yellow">
             <strong>Forventet Kontant</strong>
-            <div class="value">{{ number_format($report['expected_cash'] / 100, 2) }} NOK</div>
+            <div class="value">{{ number_format($report['expected_cash'], 2) }} NOK</div>
         </div>
         <div class="cash-item purple">
             <strong>Faktisk Kontant</strong>
-            <div class="value">{{ number_format(($report['actual_cash'] ?? 0) / 100, 2) }} NOK</div>
+            <div class="value">{{ number_format($report['actual_cash'] ?? 0, 2) }} NOK</div>
         </div>
         <div class="cash-item {{ ($report['cash_difference'] ?? 0) > 0 ? 'red' : (($report['cash_difference'] ?? 0) < 0 ? 'yellow' : 'green') }}">
             <strong>Differanse</strong>
-            <div class="value">{{ number_format(($report['cash_difference'] ?? 0) / 100, 2) }} NOK</div>
+            <div class="value">{{ number_format($report['cash_difference'] ?? 0, 2) }} NOK</div>
         </div>
         @if(!empty($report['tips_enabled']) && $report['tips_enabled'] === true)
             <div class="cash-item blue">

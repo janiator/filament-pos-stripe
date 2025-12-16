@@ -106,14 +106,36 @@ class PosSession extends Model
     }
 
     /**
-     * Calculate expected cash from charges
+     * Calculate expected cash from charges and opening balance
      */
     public function calculateExpectedCash(): int
     {
-        return $this->charges()
+        $cashFromTransactions = $this->charges()
             ->where('status', 'succeeded')
             ->where('payment_method', 'cash')
             ->sum('amount') ?? 0;
+        
+        return ($this->opening_balance ?? 0) + $cashFromTransactions;
+    }
+
+    /**
+     * Get expected cash attribute
+     * For closed sessions, returns the stored value (already calculated correctly on close)
+     * For open sessions, calculates it dynamically to include opening balance
+     * This ensures that even if expected_cash is only incremented with transaction amounts,
+     * the accessor always returns the correct total including opening balance
+     */
+    public function getExpectedCashAttribute($value): int
+    {
+        // If we have a stored value and the session is closed, use it
+        // (it was calculated correctly when the session was closed)
+        if (isset($this->attributes['expected_cash']) && $this->status === 'closed') {
+            return $this->attributes['expected_cash'];
+        }
+        
+        // For open sessions or when value is not set, calculate dynamically
+        // This ensures opening balance is always included
+        return $this->calculateExpectedCash();
     }
 
     /**

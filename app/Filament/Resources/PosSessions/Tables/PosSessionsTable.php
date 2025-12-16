@@ -293,7 +293,7 @@ class PosSessionsTable
                 'id' => $session->user->id,
                 'name' => $session->user->name,
             ] : null,
-            'opening_balance' => $session->opening_balance,
+            'opening_balance' => $session->opening_balance / 100,
             'transactions_count' => $charges->count(),
             'total_amount' => $totalAmount,
             'vat_base' => $vatBase,
@@ -304,7 +304,7 @@ class PosSessionsTable
             'mobile_amount' => $mobileAmount,
             'other_amount' => $otherAmount,
             'total_tips' => $totalTips,
-            'expected_cash' => $session->calculateExpectedCash(),
+            'expected_cash' => $session->calculateExpectedCash() / 100,
             'by_payment_method' => $byPaymentMethod,
             'by_payment_code' => $byPaymentCode,
             'transactions_by_type' => $transactionsByType,
@@ -329,8 +329,8 @@ class PosSessionsTable
         
         // Add Z-report specific data
         $report['closed_at'] = $session->closed_at;
-        $report['actual_cash'] = $session->actual_cash;
-        $report['cash_difference'] = $session->cash_difference;
+        $report['actual_cash'] = $session->actual_cash ? $session->actual_cash / 100 : null;
+        $report['cash_difference'] = $session->cash_difference ? $session->cash_difference / 100 : null;
         $report['closing_notes'] = $session->closing_notes;
         $report['report_type'] = 'Z-Report';
         
