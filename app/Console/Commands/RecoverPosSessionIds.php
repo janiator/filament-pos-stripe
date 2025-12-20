@@ -87,7 +87,6 @@ class RecoverPosSessionIds extends Command
 
         $recovered = 0;
         $failed = 0;
-        $failedCharges = [];
 
         foreach ($chargesWithoutSession as $charge) {
             $sessionId = null;
@@ -153,19 +152,20 @@ class RecoverPosSessionIds extends Command
                 }
                 $recovered++;
             } else {
-                // Determine why recovery failed
-                $reason = [];
+                // Determine why recovery failed and output immediately
+                $reason = 'unknown reason';
+                
                 if (!$charge->paid_at) {
-                    $reason[] = 'no paid_at date';
+                    $reason = 'no paid_at date';
                 } elseif (!$fromSessions) {
-                    $reason[] = 'date/time matching disabled';
+                    $reason = 'date/time matching disabled';
                 } else {
                     // Check if there are any sessions at all for this store
                     $store = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
                     if ($store) {
                         $sessionCount = PosSession::where('store_id', $store->id)->count();
                         if ($sessionCount === 0) {
-                            $reason[] = 'no sessions exist for this store';
+                            $reason = 'no sessions exist for this store';
                         } else {
                             // Check if charge date is outside all session windows
                             $earliestSession = PosSession::where('store_id', $store->id)
@@ -177,25 +177,22 @@ class RecoverPosSessionIds extends Command
                                 ->first();
                             
                             if ($earliestSession && $charge->paid_at < $earliestSession->opened_at) {
-                                $reason[] = 'charge date before earliest session';
+                                $reason = 'charge date (' . $charge->paid_at->format('Y-m-d H:i:s') . ') before earliest session (' . $earliestSession->opened_at->format('Y-m-d H:i:s') . ')';
                             } elseif ($latestSession && $charge->paid_at > $latestSession->closed_at) {
-                                $reason[] = 'charge date after latest closed session';
+                                $reason = 'charge date (' . $charge->paid_at->format('Y-m-d H:i:s') . ') after latest closed session (' . $latestSession->closed_at->format('Y-m-d H:i:s') . ')';
                             } else {
-                                $reason[] = 'no matching session found (date falls between sessions)';
+                                $reason = 'no matching session found (date ' . $charge->paid_at->format('Y-m-d H:i:s') . ' falls between sessions)';
                             }
                         }
                     } else {
-                        $reason[] = 'store not found';
+                        $reason = 'store not found';
                     }
                 }
                 
-                $failedCharges[] = [
-                    'id' => $charge->id,
-                    'paid_at' => $charge->paid_at?->format('Y-m-d H:i:s') ?? 'N/A',
-                    'amount' => $charge->amount ? ($charge->amount / 100) . ' NOK' : 'N/A',
-                    'reason' => implode(', ', $reason),
-                ];
-                $this->warn("Charge {$charge->id}: Could not recover session ID" . ($charge->paid_at ? '' : ' (no paid_at date)'));
+                $paidAtStr = $charge->paid_at ? $charge->paid_at->format('Y-m-d H:i:s') : 'N/A';
+                $amountStr = $charge->amount ? number_format($charge->amount / 100, 2) . ' NOK' : 'N/A';
+                
+                $this->warn("Charge {$charge->id}: Could not recover session ID - {$reason} (Paid: {$paidAtStr}, Amount: {$amountStr})");
                 $failed++;
             }
         }
@@ -204,21 +201,6 @@ class RecoverPosSessionIds extends Command
         $this->info("Recovery complete!");
         $this->info("Recovered: {$recovered}");
         $this->info("Failed: {$failed}");
-
-        if ($failed > 0) {
-            $this->newLine();
-            $this->warn("Failed charges (showing first 10):");
-            if (count($failedCharges) > 0) {
-                foreach (array_slice($failedCharges, 0, 10) as $failedCharge) {
-                    $this->line("  Charge ID: {$failedCharge['id']}, Paid: {$failedCharge['paid_at']}, Amount: {$failedCharge['amount']}, Reason: {$failedCharge['reason']}");
-                }
-                if (count($failedCharges) > 10) {
-                    $this->line("  ... and " . (count($failedCharges) - 10) . " more");
-                }
-            } else {
-                $this->line("  (Details not available - this shouldn't happen)");
-            }
-        }
 
         if ($dryRun) {
             $this->newLine();
