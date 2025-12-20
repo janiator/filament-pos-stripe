@@ -63,9 +63,9 @@ class CustomersController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:255',
+            'phone' => 'required|string|max:255',
             'profile_image_url' => 'nullable|url|max:500',
             'customer_address' => 'nullable|array',
             'customer_address.line1' => 'nullable|string|max:255',
@@ -193,9 +193,9 @@ class CustomersController extends BaseApiController
             ->firstOrFail();
 
         $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:255',
+            'phone' => 'required|string|max:255',
             'profile_image_url' => 'nullable|url|max:500',
             'customer_address' => 'nullable|array',
             'customer_address.line1' => 'nullable|string|max:255',

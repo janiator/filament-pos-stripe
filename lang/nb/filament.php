@@ -70,6 +70,16 @@ return [
             'plural' => 'Leverandører',
             'navigation' => 'Leverandører',
         ],
+        'quantity_unit' => [
+            'label' => 'Mengdeenhet',
+            'plural' => 'Mengdeenheter',
+            'navigation' => 'Mengdeenheter',
+        ],
+        'article_group_code' => [
+            'label' => 'Varegruppekode',
+            'plural' => 'Varegruppekoder',
+            'navigation' => 'Varegruppekoder',
+        ],
         'coupon' => [
             'label' => 'Kupong',
             'plural' => 'Kuponger',
@@ -273,6 +283,13 @@ return [
             'description' => 'Dette vil opprette eller oppdatere globale maler fra malfilene. Egendefinerte maler vil bli hoppet over med mindre du bruker --force.',
             'title' => 'Maler seedet vellykket',
             'body' => 'Globale maler har blitt seedet fra filer.',
+        ],
+        'seed_saf_t_codes' => [
+            'label' => 'Importer standard SAF-T koder',
+            'heading' => 'Importer standard SAF-T varegruppekoder',
+            'description' => 'Dette vil opprette eller oppdatere alle standard SAF-T varegruppekoder (PredefinedBasicID-04). Eksisterende koder vil ikke bli overskrevet.',
+            'title' => 'SAF-T koder importert',
+            'body' => 'Standard SAF-T varegruppekoder har blitt importert.',
         ],
     ],
 

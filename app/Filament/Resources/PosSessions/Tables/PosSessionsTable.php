@@ -207,6 +207,7 @@ class PosSessionsTable
 
     /**
      * Generate X-report data for a session
+     * X-reports are always generated fresh (interim reports for open sessions)
      */
     public static function generateXReport(PosSession $session): array
     {
@@ -219,8 +220,10 @@ class PosSessionsTable
         
         $totalAmount = $charges->sum('amount');
         $cashAmount = $charges->where('payment_method', 'cash')->sum('amount');
-        $cardAmount = $charges->where('payment_method', 'card')->sum('amount');
-        $mobileAmount = $charges->where('payment_method', 'mobile')->sum('amount');
+        // Card payments can be 'card_present' (terminal) or 'card' (online)
+        $cardAmount = $charges->whereIn('payment_method', ['card_present', 'card'])->sum('amount');
+        // Mobile payments can be 'vipps' or 'mobile'
+        $mobileAmount = $charges->whereIn('payment_method', ['vipps', 'mobile'])->sum('amount');
         $otherAmount = $totalAmount - $cashAmount - $cardAmount - $mobileAmount;
         $totalTips = $tipsEnabled ? $charges->sum('tip_amount') : 0;
         
@@ -293,7 +296,7 @@ class PosSessionsTable
                 'id' => $session->user->id,
                 'name' => $session->user->name,
             ] : null,
-            'opening_balance' => $session->opening_balance,
+            'opening_balance' => $session->opening_balance / 100,
             'transactions_count' => $charges->count(),
             'total_amount' => $totalAmount,
             'vat_base' => $vatBase,
@@ -304,7 +307,7 @@ class PosSessionsTable
             'mobile_amount' => $mobileAmount,
             'other_amount' => $otherAmount,
             'total_tips' => $totalTips,
-            'expected_cash' => $session->calculateExpectedCash(),
+            'expected_cash' => $session->calculateExpectedCash() / 100,
             'by_payment_method' => $byPaymentMethod,
             'by_payment_code' => $byPaymentCode,
             'transactions_by_type' => $transactionsByType,
@@ -321,16 +324,22 @@ class PosSessionsTable
 
     /**
      * Generate Z-report data for a session
+     * For closed sessions, uses stored report data from closing_data if available to preserve snapshot
      */
     public static function generateZReport(PosSession $session): array
     {
+        // For closed sessions, check if we have stored report data (snapshot at closing time)
+        if ($session->status === 'closed' && $session->closing_data && isset($session->closing_data['z_report_data'])) {
+            return $session->closing_data['z_report_data'];
+        }
+        
         $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
         $report = self::generateXReport($session);
         
         // Add Z-report specific data
         $report['closed_at'] = $session->closed_at;
-        $report['actual_cash'] = $session->actual_cash;
-        $report['cash_difference'] = $session->cash_difference;
+        $report['actual_cash'] = $session->actual_cash ? $session->actual_cash / 100 : null;
+        $report['cash_difference'] = $session->cash_difference ? $session->cash_difference / 100 : null;
         $report['closing_notes'] = $session->closing_notes;
         $report['report_type'] = 'Z-Report';
         
@@ -389,6 +398,16 @@ class PosSessionsTable
         
         // Sales per vendor
         $report['sales_by_vendor'] = self::calculateSalesByVendor($session);
+        
+        // For closed sessions, store the report data in closing_data to preserve snapshot
+        // This ensures reports remain unchanged even if vendor commission settings change later
+        if ($session->status === 'closed') {
+            $closingData = $session->closing_data ?? [];
+            $closingData['z_report_data'] = $report;
+            $closingData['z_report_generated_at'] = now()->toISOString();
+            $session->closing_data = $closingData;
+            $session->saveQuietly(); // Save without triggering observers/events
+        }
         
         return $report;
     }
@@ -492,9 +511,11 @@ class PosSessionsTable
                         // If no vendor, use "Ingen leverandør" (No vendor)
                         $vendorName = 'Ingen leverandør';
                         $vendorId = 'no-vendor';
+                        $commissionPercent = null;
                     } else {
                         $vendorName = $vendor->name;
                         $vendorId = $vendor->id;
+                        $commissionPercent = $vendor->commission_percent;
                     }
                     
                     if (!$vendorSales->has($vendorId)) {
@@ -503,12 +524,21 @@ class PosSessionsTable
                             'name' => $vendorName,
                             'count' => 0,
                             'amount' => 0,
+                            'commission_percent' => $commissionPercent,
+                            'commission_amount' => 0,
                         ]);
                     }
                     
                     $current = $vendorSales->get($vendorId);
                     $current['count'] += $quantity;
                     $current['amount'] += $lineTotal;
+                    
+                    // Calculate commission if commission_percent is set
+                    if ($commissionPercent !== null && $commissionPercent > 0) {
+                        $commissionAmount = (int) round($lineTotal * ($commissionPercent / 100));
+                        $current['commission_amount'] += $commissionAmount;
+                    }
+                    
                     $vendorSales->put($vendorId, $current);
                 }
             }

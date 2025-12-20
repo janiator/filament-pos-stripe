@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
 <feed line="1"/>
+{{#store_logo_url}}
+<image src="{{store_logo_url}}" width="auto" height="auto"/>
+{{/store_logo_url}}
+{{^store_logo_url}}
 <logo key1="34" key2="48"/>
+{{/store_logo_url}}
 <text lang="en"/>
 <text width="1" height="1"/>
 <text reverse="false" ul="false" em="true" color="color_1"/>
@@ -16,13 +21,25 @@
 <feed line="2"/>
 <text width="1" height="1"/>
 <text reverse="false" ul="false" em="true" color="color_1"/>
-<text>Utleveringskvittering – IKKJE KVITTERING FOR KJØP</text>
+<text>Bestillingsbekreftelse – IKKE KVITTERING FOR KJØP</text>
 <feed line="1"/>
 <text reverse="false" ul="false" em="false" color="color_1" width="1" height="1"/>
 <text lang="en"/>
 <text>Kvitteringsnummer: {{receipt_number}}</text>
 <feed/>
 <text>Dato: {{date_time}}</text>
+{{#customer_name}}
+<feed/>
+<text>Kunde: {{customer_name}}</text>
+{{/customer_name}}
+{{#customer_phone}}
+<feed/>
+<text>Telefon: {{customer_phone}}</text>
+{{/customer_phone}}
+{{#customer_email}}
+<feed/>
+<text>E-post: {{customer_email}}</text>
+{{/customer_email}}
 <feed/>
 <text>Kasse-ID: {{session_number}}</text>
 <feed/>
@@ -51,6 +68,10 @@
 <text>Total: {{currency}} {{total_amount}}</text>
 <feed/>
 <text>Dette er en kredittsalg som vil bli fakturert senere.</text>
+{{#estimated_pickup_date}}
+<feed/>
+<text reverse="false" ul="false" em="true" color="color_1">Estimert hentedato: {{estimated_pickup_date}}</text>
+{{/estimated_pickup_date}}
 <feed line="2"/>
 <text>—————————————————————————————————————————————</text>
 <feed/>

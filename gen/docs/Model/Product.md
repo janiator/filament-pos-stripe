@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **shippable** | **bool** |  | [optional]
 **url** | **string** |  | [optional]
 **images** | **string[]** | Array of image URLs (signed URLs for security) | [optional]
+**no_price_in_pos** | **bool** | If true, this product has no preset price and requires custom price input on POS. | [optional] [default to false]
 **product_price** | [**\OpenAPI\Client\Model\ProductProductPrice**](ProductProductPrice.md) |  | [optional]
 **prices** | [**\OpenAPI\Client\Model\ProductPricesInner[]**](ProductPricesInner.md) |  | [optional]
 **variants** | [**\OpenAPI\Client\Model\ProductVariantsInner[]**](ProductVariantsInner.md) |  | [optional]

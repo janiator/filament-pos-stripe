@@ -155,3 +155,5 @@ After adding the field:
 - See `docs/flutterflow/ADD_TOTALS_FIELDS_TO_CART.md` for similar field addition instructions
 - See `docs/flutterflow/POS_PURCHASE_INTEGRATION.md` for API integration details
 
+
+

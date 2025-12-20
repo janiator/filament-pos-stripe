@@ -202,13 +202,13 @@
             <div style="font-size: 0.875rem; color: rgb(75 85 99); margin-bottom: 0.5rem;">
                 <strong>Åpningssaldo</strong>
             </div>
-            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format(($report['opening_balance'] ?? 0) / 100, 2) }} NOK</div>
+            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format($report['opening_balance'] ?? 0, 2) }} NOK</div>
         </div>
         <div class="x-report-section" style="background-color: rgb(254 252 232); border-color: rgb(253 224 71);">
             <div style="font-size: 0.875rem; color: rgb(75 85 99); margin-bottom: 0.5rem;">
                 <strong>Forventet Kontant</strong>
             </div>
-            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format($report['expected_cash'] / 100, 2) }} NOK</div>
+            <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format($report['expected_cash'], 2) }} NOK</div>
         </div>
         @if(!empty($report['tips_enabled']) && $report['tips_enabled'] === true)
             <div class="x-report-section" style="background-color: rgb(239 246 255); border-color: rgb(191 219 254);">
@@ -358,6 +358,7 @@
                             <th style="text-align: left;">Leverandør</th>
                             <th style="text-align: center;">Antall</th>
                             <th style="text-align: right;">Beløp</th>
+                            <th style="text-align: right;">Provision</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -366,6 +367,14 @@
                                 <td style="font-weight: 500; color: rgb(17 24 39);">{{ $vendor['name'] }}</td>
                                 <td style="text-align: center; color: rgb(17 24 39);">{{ $vendor['count'] }}</td>
                                 <td style="text-align: right; font-weight: 600; color: rgb(17 24 39);">{{ number_format($vendor['amount'] / 100, 2) }} NOK</td>
+                                <td style="text-align: right; color: rgb(17 24 39);">
+                                    @if(isset($vendor['commission_percent']) && $vendor['commission_percent'] > 0)
+                                        {{ number_format($vendor['commission_amount'] / 100, 2) }} NOK
+                                        <span style="font-size: 0.75rem; color: rgb(107 114 128);">({{ number_format($vendor['commission_percent'], 2) }}%)</span>
+                                    @else
+                                        <span style="color: rgb(156 163 175);">-</span>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

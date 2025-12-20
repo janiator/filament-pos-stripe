@@ -3,9 +3,12 @@
 namespace App\Filament\Resources\PosPurchases\Schemas;
 
 use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
@@ -167,10 +170,10 @@ class PosPurchaseInfolist
                     ->columns(2)
                     ->icon(Heroicon::OutlinedDocumentText),
 
-                // Cart Items - Clean list display using stored product snapshots
+                // Cart Items - Display using RepeatableEntry for better layout
                 Section::make('Items Purchased')
                     ->schema([
-                        TextEntry::make('items_display')
+                        RepeatableEntry::make('items')
                             ->label('')
                             ->state(function ($record) {
                                 // Get metadata directly - it's already cast as array by the model
@@ -188,98 +191,105 @@ class PosPurchaseInfolist
                                                     $cleanedItem[$key] = $value;
                                                 }
                                             }
+                                            
+                                            // Calculate derived values for display
+                                            $quantity = $cleanedItem['quantity'] ?? 1;
+                                            $unitPrice = ($cleanedItem['unit_price'] ?? 0) / 100;
+                                            $discountAmount = ($cleanedItem['discount_amount'] ?? 0) / 100;
+                                            $originalPrice = isset($cleanedItem['original_price']) ? ($cleanedItem['original_price'] / 100) : null;
+                                            $lineTotal = ($unitPrice * $quantity) - ($discountAmount * $quantity);
+                                            
+                                            // Get product name from snapshot or fetch from database
+                                            $productName = $cleanedItem['product_name'] ?? null;
+                                            if (!$productName) {
+                                                $productId = $cleanedItem['product_id'] ?? null;
+                                                $variantId = $cleanedItem['variant_id'] ?? null;
+                                                
+                                                if ($variantId) {
+                                                    $variant = \App\Models\ProductVariant::find($variantId);
+                                                    if ($variant && $variant->product) {
+                                                        $productName = $variant->product->name;
+                                                        if ($variant->variant_name !== 'Default') {
+                                                            $productName .= ' - ' . $variant->variant_name;
+                                                        }
+                                                    } elseif ($productId) {
+                                                        $product = \App\Models\ConnectedProduct::find($productId);
+                                                        $productName = $product ? $product->name : "Product #{$productId}";
+                                                    }
+                                                } elseif ($productId) {
+                                                    $product = \App\Models\ConnectedProduct::find($productId);
+                                                    $productName = $product ? $product->name : "Product #{$productId}";
+                                                }
+                                                
+                                                if (!$productName) {
+                                                    $productName = 'Unknown Product';
+                                                }
+                                            }
+                                            
+                                            // Add calculated values to item
+                                            $cleanedItem['display_name'] = $productName;
+                                            $cleanedItem['display_quantity'] = $quantity;
+                                            $cleanedItem['display_unit_price'] = $unitPrice;
+                                            $cleanedItem['display_original_price'] = $originalPrice;
+                                            $cleanedItem['display_discount_amount'] = $discountAmount;
+                                            $cleanedItem['display_line_total'] = $lineTotal;
+                                            
                                             $items[] = $cleanedItem;
                                         }
                                     }
                                 }
-
-                                if (empty($items)) {
-                                    return 'No items in this purchase';
-                                }
-
-                                $lines = [];
                                 
-                                foreach ($items as $index => $item) {
-                                    $quantity = $item['quantity'] ?? 1;
-                                    $unitPrice = ($item['unit_price'] ?? 0) / 100;
-                                    $discountAmount = ($item['discount_amount'] ?? 0) / 100;
-                                    $originalPrice = isset($item['original_price']) ? ($item['original_price'] / 100) : null;
-                                    
-                                    // Calculate line total
-                                    $lineTotal = ($unitPrice * $quantity) - ($discountAmount * $quantity);
-
-                                    // Use stored product snapshot (preserves historical data)
-                                    $productName = $item['product_name'] ?? null;
-                                    
-                                    // Fallback to fetching product if snapshot not available (old purchases)
-                                    if (!$productName) {
-                                        $productId = $item['product_id'] ?? null;
-                                        $variantId = $item['variant_id'] ?? null;
-                                        
-                                        if ($variantId) {
-                                            // Try to get variant first
-                                            $variant = \App\Models\ProductVariant::find($variantId);
-                                            if ($variant && $variant->product) {
-                                                $productName = $variant->product->name;
-                                                if ($variant->variant_name !== 'Default') {
-                                                    $productName .= ' - ' . $variant->variant_name;
-                                                }
-                                            } elseif ($productId) {
-                                                $product = \App\Models\ConnectedProduct::find($productId);
-                                                $productName = $product ? $product->name : "Product #{$productId}";
-                                            }
-                                        } elseif ($productId) {
-                                            $product = \App\Models\ConnectedProduct::find($productId);
-                                            $productName = $product ? $product->name : "Product #{$productId}";
-                                        }
-                                        
-                                        // Final fallback
-                                        if (!$productName) {
-                                            $productName = 'Unknown Product';
-                                        }
-                                    }
-
-                                    // Build item line
-                                    $line = "• {$quantity}x {$productName}";
-                                    
-                                    // Add product code if available (from snapshot or item)
-                                    $productCode = $item['product_code'] ?? $item['article_group_code'] ?? null;
-                                    if ($productCode) {
-                                        $line .= " [{$productCode}]";
-                                    }
-                                    
-                                    // Add variant info if available
-                                    $variantId = $item['variant_id'] ?? null;
-                                    if ($variantId) {
-                                        $line .= " (Variant #{$variantId})";
-                                    }
-                                    
-                                    // Add pricing info
-                                    if ($originalPrice && $originalPrice > $unitPrice) {
-                                        // Show original price if discounted
-                                        $line .= "\n  " . number_format($originalPrice, 2) . ' NOK (original)';
-                                        $line .= " → " . number_format($unitPrice, 2) . ' NOK (after discount)';
-                                    } else {
-                                        $line .= "\n  " . number_format($unitPrice, 2) . ' NOK';
-                                    }
-                                    
-                                    $line .= " × {$quantity}";
-                                    
-                                    // Add discount if applicable
-                                    if ($discountAmount > 0) {
-                                        $line .= " (Discount: -" . number_format($discountAmount, 2) . ' NOK per unit)';
-                                    }
-                                    
-                                    // Add total
-                                    $line .= " = " . number_format($lineTotal, 2) . ' NOK';
-
-                                    $lines[] = $line;
-                                }
-
-                                return implode("\n\n", $lines);
+                                return $items;
                             })
-                            ->listWithLineBreaks()
-                            ->placeholder('No items')
+                            ->table([
+                                TableColumn::make('Product'),
+                                TableColumn::make('Qty')
+                                    ->alignment(Alignment::Center)
+                                    ->width('60px'),
+                                TableColumn::make('Unit Price')
+                                    ->alignment(Alignment::End),
+                                TableColumn::make('Discount')
+                                    ->alignment(Alignment::End),
+                                TableColumn::make('Total')
+                                    ->alignment(Alignment::End),
+                            ])
+                            ->schema([
+                                TextEntry::make('display_name')
+                                    ->label('Product')
+                                    ->weight('bold'),
+                                
+                                TextEntry::make('display_quantity')
+                                    ->label('Qty')
+                                    ->formatStateUsing(fn ($state) => $state ?? 1)
+                                    ->badge()
+                                    ->color('gray'),
+                                
+                                TextEntry::make('display_unit_price')
+                                    ->label('Unit Price')
+                                    ->formatStateUsing(function ($state, $get) {
+                                        $originalPrice = $get('display_original_price');
+                                        
+                                        if ($originalPrice && $originalPrice > $state) {
+                                            return '<span style="text-decoration: line-through; color: #9ca3af;">' . number_format($originalPrice, 2) . '</span> ' . number_format($state, 2) . ' NOK';
+                                        }
+                                        
+                                        return number_format($state, 2) . ' NOK';
+                                    })
+                                    ->html(),
+                                
+                                TextEntry::make('display_discount_amount')
+                                    ->label('Discount')
+                                    ->formatStateUsing(fn ($state) => $state > 0 ? '-' . number_format($state, 2) . ' NOK' : '-')
+                                    ->badge()
+                                    ->color(fn ($get) => ($get('display_discount_amount') ?? 0) > 0 ? 'success' : 'gray'),
+                                
+                                TextEntry::make('display_line_total')
+                                    ->label('Total')
+                                    ->formatStateUsing(fn ($state) => number_format($state, 2) . ' NOK')
+                                    ->weight('bold')
+                                    ->badge()
+                                    ->color('primary'),
+                            ])
                             ->columnSpanFull(),
                     ])
                     ->icon(Heroicon::OutlinedShoppingBag),
@@ -289,10 +299,35 @@ class PosPurchaseInfolist
                     ->schema([
                         TextEntry::make('subtotal_display')
                             ->label('Subtotal')
-                            ->formatStateUsing(function ($state, $record) {
+                            ->state(function ($record) {
+                                // Use same calculation logic as API (PurchasesController)
                                 $metadata = $record->metadata ?? [];
-                                $subtotal = ($metadata['subtotal'] ?? $record->amount) / 100;
-                                return number_format($subtotal, 2) . ' NOK';
+                                $items = $metadata['items'] ?? [];
+                                
+                                // Calculate subtotal from items (same as API)
+                                $calculatedSubtotal = 0;
+                                if (!empty($items) && is_array($items)) {
+                                    foreach ($items as $item) {
+                                        if (!is_array($item)) {
+                                            continue;
+                                        }
+                                        $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
+                                        $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+                                        // Calculate line totals with decimal quantities, then round to integer (øre)
+                                        $lineSubtotal = (int) round($unitPrice * $quantity);
+                                        $calculatedSubtotal += $lineSubtotal;
+                                    }
+                                }
+                                
+                                // Get metadata values
+                                $metadataSubtotal = isset($metadata['subtotal']) ? (int) $metadata['subtotal'] : null;
+                                
+                                // Use calculated subtotal if metadata is missing or 0 (same as API)
+                                $subtotal = ($metadataSubtotal === null || ($metadataSubtotal === 0 && $calculatedSubtotal > 0))
+                                    ? $calculatedSubtotal
+                                    : ($metadataSubtotal ?? $record->amount);
+                                
+                                return number_format($subtotal / 100, 2) . ' NOK';
                             })
                             ->size(TextSize::Large)
                             ->icon(Heroicon::OutlinedCalculator),
@@ -314,13 +349,67 @@ class PosPurchaseInfolist
 
                         TextEntry::make('tax_display')
                             ->label('Tax')
-                            ->formatStateUsing(function ($state, $record) {
+                            ->state(function ($record) {
+                                // Use same calculation logic as API (PurchasesController)
                                 $metadata = $record->metadata ?? [];
-                                $tax = ($metadata['total_tax'] ?? 0) / 100;
-                                if ($tax <= 0) {
-                                    return '0.00 NOK';
+                                $items = $metadata['items'] ?? [];
+                                
+                                // Calculate subtotal from items (same as API)
+                                $calculatedSubtotal = 0;
+                                if (!empty($items) && is_array($items)) {
+                                    foreach ($items as $item) {
+                                        if (!is_array($item)) {
+                                            continue;
+                                        }
+                                        $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
+                                        $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+                                        // Calculate line totals with decimal quantities, then round to integer (øre)
+                                        $lineSubtotal = (int) round($unitPrice * $quantity);
+                                        $calculatedSubtotal += $lineSubtotal;
+                                    }
                                 }
-                                return number_format($tax, 2) . ' NOK';
+                                
+                                // Get metadata values
+                                $metadataSubtotal = isset($metadata['subtotal']) ? (int) $metadata['subtotal'] : null;
+                                $metadataDiscounts = isset($metadata['total_discounts']) ? (int) $metadata['total_discounts'] : null;
+                                $metadataTax = isset($metadata['total_tax']) ? (int) $metadata['total_tax'] : null;
+                                
+                                // Calculate cart-level discounts
+                                $cartLevelDiscounts = 0;
+                                if (isset($metadata['discounts']) && is_array($metadata['discounts'])) {
+                                    foreach ($metadata['discounts'] as $discount) {
+                                        if (isset($discount['amount']) && is_numeric($discount['amount'])) {
+                                            $cartLevelDiscounts += (int) $discount['amount'];
+                                        }
+                                    }
+                                }
+                                
+                                // Use calculated subtotal if metadata is missing or 0 (same as API)
+                                $subtotal = ($metadataSubtotal === null || ($metadataSubtotal === 0 && $calculatedSubtotal > 0))
+                                    ? $calculatedSubtotal
+                                    : ($metadataSubtotal ?? $record->amount);
+                                
+                                // Use calculated discounts if metadata is missing or 0 (same as API)
+                                $totalDiscounts = ($metadataDiscounts === null || ($metadataDiscounts === 0 && $cartLevelDiscounts > 0))
+                                    ? $cartLevelDiscounts
+                                    : ($metadataDiscounts ?? 0);
+                                
+                                // Calculate subtotal after discounts
+                                $subtotalAfterDiscounts = $subtotal - $totalDiscounts;
+                                
+                                // Calculate tax (same as API: tax-inclusive pricing)
+                                // Tax = Subtotal × (Tax Rate / (1 + Tax Rate))
+                                // Default 25% VAT in Norway
+                                if ($metadataTax === null || ($metadataTax === 0 && $subtotalAfterDiscounts > 0)) {
+                                    $taxRate = 0.25; // 25% VAT default (same as API)
+                                    $tax = $subtotalAfterDiscounts > 0 
+                                        ? (int) round($subtotalAfterDiscounts * ($taxRate / (1 + $taxRate)))
+                                        : 0;
+                                } else {
+                                    $tax = $metadataTax;
+                                }
+                                
+                                return number_format($tax / 100, 2) . ' NOK';
                             })
                             ->size(TextSize::Large)
                             ->icon(Heroicon::OutlinedReceiptPercent),

@@ -10,10 +10,8 @@ Name | Type | Description | Notes
 **name** | **string** |  | [optional]
 **email** | **string** |  | [optional]
 **phone** | **string** | Customer phone number (per Stripe API spec) | [optional]
-**address** | [**\OpenAPI\Client\Model\CreateCustomerRequestAddress**](CreateCustomerRequestAddress.md) |  | [optional]
-**model** | **string** |  | [optional]
-**model_id** | **int** |  | [optional]
-**model_uuid** | **string** |  | [optional]
+**profile_image_url** | **string** | URL to the customer profile image | [optional]
+**customer_address** | [**\OpenAPI\Client\Model\CreateCustomerRequestCustomerAddress**](CreateCustomerRequestCustomerAddress.md) |  | [optional]
 **created_at** | **\DateTime** |  | [optional]
 **updated_at** | **\DateTime** |  | [optional]
 

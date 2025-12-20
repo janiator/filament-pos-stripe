@@ -198,3 +198,5 @@ final cartItems = FFAppState().cart.cartItems.map((item) {
 - Ensure description is preserved when updating existing items
 - Check that description is included in CartItemsStruct updates
 
+
+

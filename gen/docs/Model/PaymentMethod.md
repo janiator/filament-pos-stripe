@@ -13,7 +13,7 @@ Name | Type | Description | Notes
 **enabled** | **bool** |  | [optional]
 **pos_suitable** | **bool** | Whether this payment method is suitable for physical POS | [optional]
 **sort_order** | **int** |  | [optional]
-**background_color** | **string** | Accent background color for the payment method button (hex with alpha, e.g., | [optional]
+**background_color** | **string** | Accent background color for the payment method button (CSS hex format with alpha at end, e.g., | [optional]
 **icon_color** | **string** | Color for the payment method icon (hex, e.g., | [optional]
 **saf_t_payment_code** | **string** | SAF-T payment code (PredefinedBasicID-12) | [optional]
 **saf_t_event_code** | **string** | SAF-T event code (PredefinedBasicID-13) | [optional]

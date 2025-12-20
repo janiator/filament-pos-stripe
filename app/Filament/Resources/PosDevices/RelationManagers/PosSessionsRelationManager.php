@@ -7,6 +7,7 @@ use App\Models\PosSession;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -132,6 +133,58 @@ class PosSessionsRelationManager extends RelationManager
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close')
                     ->visible(fn (PosSession $record): bool => $record->status === 'closed'),
+                Action::make('close')
+                    ->label('Close Session')
+                    ->icon('heroicon-o-lock-closed')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Close POS Session')
+                    ->modalDescription(fn (PosSession $record): string => "Are you sure you want to close session {$record->session_number}? This will calculate expected cash and mark the session as closed.")
+                    ->form([
+                        Forms\Components\TextInput::make('actual_cash')
+                            ->label('Actual Cash')
+                            ->numeric()
+                            ->suffix('kr')
+                            ->step(0.01)
+                            ->helperText('Enter the actual cash count at closing in NOK. Leave empty to use expected cash.'),
+                        Forms\Components\Textarea::make('closing_notes')
+                            ->label('Closing Notes')
+                            ->rows(3)
+                            ->maxLength(1000)
+                            ->helperText('Optional notes about the session closing.'),
+                    ])
+                    ->visible(fn (PosSession $record): bool => $record->status === 'open')
+                    ->action(function (PosSession $record, array $data): void {
+                        if (!$record->canBeClosed()) {
+                            Notification::make()
+                                ->title('Cannot close session')
+                                ->danger()
+                                ->body('This session cannot be closed.')
+                                ->send();
+                            return;
+                        }
+
+                        // Convert from NOK to øre (multiply by 100)
+                        $actualCash = isset($data['actual_cash']) && $data['actual_cash'] !== '' && $data['actual_cash'] !== null
+                            ? (int) round((float) $data['actual_cash'] * 100)
+                            : null;
+
+                        $success = $record->close($actualCash, $data['closing_notes'] ?? null);
+
+                        if ($success) {
+                            Notification::make()
+                                ->title('Session closed')
+                                ->success()
+                                ->body("Session {$record->session_number} has been closed successfully.")
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Failed to close session')
+                                ->danger()
+                                ->body('An error occurred while closing the session.')
+                                ->send();
+                        }
+                    }),
             ]);
     }
 }

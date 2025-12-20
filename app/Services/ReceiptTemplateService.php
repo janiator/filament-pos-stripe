@@ -543,10 +543,25 @@ class ReceiptTemplateService
             }
         }
 
+        // Get customer information from receipt_data (already populated by ReceiptGenerationService)
+        $customerName = $receiptData['customer_name'] ?? null;
+        $customerPhone = $receiptData['customer_phone'] ?? null;
+        $customerEmail = $receiptData['customer_email'] ?? null;
+
+        // Get estimated pickup date from receipt_data (for delivery receipts)
+        $estimatedPickupDate = $receiptData['estimated_pickup_date'] ?? null;
+
+        // Get store logo URL if available
+        $storeLogoUrl = null;
+        if ($store->logo_path) {
+            $storeLogoUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($store->logo_path);
+        }
+
         return [
             'store_name' => $store->name,
             'organization_number' => $organizationNumber,
             'store_address' => $storeMetadata['address'] ?? '',
+            'store_logo_url' => $storeLogoUrl,
             'session_number' => $session?->session_number ?? 'N/A',
             'cashier_name' => $user?->name ?? 'N/A',
             'transaction_id' => $charge?->stripe_charge_id ?? $receipt->receipt_data['transaction_id'] ?? 'N/A',
@@ -568,6 +583,10 @@ class ReceiptTemplateService
                 ? number_format($charge->tip_amount / 100, 2, ',', ' ') 
                 : null,
             'original_receipt_number' => $receipt->originalReceipt?->receipt_number ?? null,
+            'customer_name' => $customerName,
+            'customer_phone' => $customerPhone,
+            'customer_email' => $customerEmail,
+            'estimated_pickup_date' => $estimatedPickupDate,
         ];
     }
 

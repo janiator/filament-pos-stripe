@@ -460,8 +460,10 @@ class PosSessionsController extends BaseApiController
         $charges = $session->charges->where('status', 'succeeded');
         $totalAmount = $charges->sum('amount');
         $cashAmount = $charges->where('payment_method', 'cash')->sum('amount');
-        $cardAmount = $charges->where('payment_method', 'card')->sum('amount');
-        $mobileAmount = $charges->where('payment_method', 'mobile')->sum('amount');
+        // Card payments can be 'card_present' (terminal) or 'card' (online)
+        $cardAmount = $charges->whereIn('payment_method', ['card_present', 'card'])->sum('amount');
+        // Mobile payments can be 'vipps' or 'mobile'
+        $mobileAmount = $charges->whereIn('payment_method', ['vipps', 'mobile'])->sum('amount');
         $otherAmount = $totalAmount - $cashAmount - $cardAmount - $mobileAmount;
         $totalTips = $charges->sum('tip_amount');
 

@@ -197,19 +197,19 @@
     <div class="cash-grid {{ (!empty($report['tips_enabled']) && $report['tips_enabled'] === true) ? 'with-tips' : '' }}">
         <div class="cash-item yellow">
             <strong>Åpningssaldo</strong>
-            <div class="value">{{ number_format(($report['opening_balance'] ?? 0) / 100, 2) }} NOK</div>
+            <div class="value">{{ number_format($report['opening_balance'] ?? 0, 2) }} NOK</div>
         </div>
         <div class="cash-item yellow">
             <strong>Forventet Kontant</strong>
-            <div class="value">{{ number_format($report['expected_cash'] / 100, 2) }} NOK</div>
+            <div class="value">{{ number_format($report['expected_cash'], 2) }} NOK</div>
         </div>
         <div class="cash-item purple">
             <strong>Faktisk Kontant</strong>
-            <div class="value">{{ number_format(($report['actual_cash'] ?? 0) / 100, 2) }} NOK</div>
+            <div class="value">{{ number_format($report['actual_cash'] ?? 0, 2) }} NOK</div>
         </div>
         <div class="cash-item {{ ($report['cash_difference'] ?? 0) > 0 ? 'red' : (($report['cash_difference'] ?? 0) < 0 ? 'yellow' : 'green') }}">
             <strong>Differanse</strong>
-            <div class="value">{{ number_format(($report['cash_difference'] ?? 0) / 100, 2) }} NOK</div>
+            <div class="value">{{ number_format($report['cash_difference'] ?? 0, 2) }} NOK</div>
         </div>
         @if(!empty($report['tips_enabled']) && $report['tips_enabled'] === true)
             <div class="cash-item blue">
@@ -260,7 +260,7 @@
                     <th class="text-center">Antall</th>
                     <th class="text-right">Reduksjon</th>
                 </tr>
-                @if(isset($report['line_corrections']['by_type']) && $report['line_corrections']['by_type']->count() > 0)
+                @if(isset($report['line_corrections']['by_type']) && count($report['line_corrections']['by_type']) > 0)
                     @foreach($report['line_corrections']['by_type'] as $correction)
                         <tr>
                             <td>{{ ucfirst($correction['type']) }}</td>
@@ -300,7 +300,7 @@
         </div>
     @endif
 
-    @if(isset($report['sales_by_vendor']) && $report['sales_by_vendor']->count() > 0)
+    @if(isset($report['sales_by_vendor']) && count($report['sales_by_vendor']) > 0)
         <div class="section">
             <div class="section-title">Salg per Leverandør</div>
             <table>
@@ -309,6 +309,7 @@
                         <th>Leverandør</th>
                         <th class="text-center">Antall</th>
                         <th class="text-right">Beløp</th>
+                        <th class="text-right">Provision</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -317,6 +318,14 @@
                             <td>{{ $vendor['name'] }}</td>
                             <td class="text-center">{{ $vendor['count'] }}</td>
                             <td class="text-right">{{ number_format($vendor['amount'] / 100, 2) }} NOK</td>
+                            <td class="text-right">
+                                @if(isset($vendor['commission_percent']) && $vendor['commission_percent'] > 0)
+                                    {{ number_format($vendor['commission_amount'] / 100, 2) }} NOK
+                                    <span style="font-size: 8pt; color: #6b7280;">({{ number_format($vendor['commission_percent'], 2) }}%)</span>
+                                @else
+                                    <span style="color: #9ca3af;">-</span>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -324,7 +333,7 @@
         </div>
     @endif
 
-    @if(isset($report['event_summary']) && $report['event_summary']->count() > 0)
+    @if(isset($report['event_summary']) && count($report['event_summary']) > 0)
         <div class="section">
             <div class="section-title">Hendelsessammendrag</div>
             <table>

@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**id** | **int** |  | [optional]
+**id** | **int** | Collection ID. Value 0 indicates the fake \&quot;Ukategorisert\&quot; category for uncategorized products. | [optional]
 **name** | **string** |  | [optional]
 **description** | **string** |  | [optional]
 **handle** | **string** |  | [optional]

@@ -181,7 +181,8 @@ class GenerateLivePosData extends Command
 
             // Close session (except last one)
             if ($sessionNum !== $numSessions) {
-                $expectedCash = $totalCash;
+                // Expected cash = opening balance + cash from transactions
+                $expectedCash = $openingBalance + $totalCash;
                 $actualCash = $expectedCash + rand(-200, 200); // Small variance
                 $cashDifference = $actualCash - $expectedCash;
 

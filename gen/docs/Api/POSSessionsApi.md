@@ -1,5 +1,7 @@
 # OpenAPI\Client\POSSessionsApi
 
+
+
 All URIs are relative to https://pos.visivo.no/api, except if the operation defines another base path.
 
 | Method | HTTP request | Description |
@@ -406,7 +408,7 @@ $apiInstance = new OpenAPI\Client\Api\POSSessionsApi(
     $config
 );
 $status = 'status_example'; // string | Filter by status (open, closed, abandoned)
-$date = new \DateTime("2013-10-20T19:20:30+01:00"); // \DateTime | Filter by opening date (YYYY-MM-DD)
+$date = new \DateTime('2013-10-20T19:20:30+01:00'); // \DateTime | Filter by opening date (YYYY-MM-DD)
 $pos_device_id = 56; // int | Filter by POS device ID
 $per_page = 20; // int | Number of items per page
 

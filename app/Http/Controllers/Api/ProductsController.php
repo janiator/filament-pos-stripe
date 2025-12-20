@@ -123,8 +123,9 @@ class ProductsController extends BaseApiController
                             'out_of_stock_variants' => 0,
                             'all_in_stock' => null,
                         ],
-                        'tax_code' => $product->tax_code ?? null,
-                        'unit_label' => $product->unit_label ?? null,
+                        'tax_code' => $product->tax_code ?? 'txcd_99999999', // Default to 25% VAT if not set (kept for backward compatibility)
+                        'tax_percent' => $this->getTaxPercentFromProduct($product),
+                        'unit_label' => $product->unit_label ?? 'stk',
                         'statement_descriptor' => $product->statement_descriptor ?? null,
                         'package_dimensions' => null,
                         'product_meta' => $product->product_meta ?? null,
@@ -396,8 +397,9 @@ class ProductsController extends BaseApiController
                 'out_of_stock_variants' => $outOfStockVariants,
                 'all_in_stock' => $trackingInventory ? ($outOfStockVariants === 0) : null,
             ],
-            'tax_code' => $product->tax_code ?? null,
-            'unit_label' => $product->unit_label ?? null,
+            'tax_code' => $product->tax_code ?? 'txcd_99999999', // Default to 25% VAT if not set
+            'tax_percent' => $this->getTaxPercentFromProduct($product),
+            'unit_label' => $product->unit_label ?? 'stk',
             'statement_descriptor' => $product->statement_descriptor ?? null,
             'package_dimensions' => $packageDimensions,
             'product_meta' => $product->product_meta ?? null,
@@ -410,6 +412,119 @@ class ProductsController extends BaseApiController
     /**
      * Get variant image URL - generate signed URL if local, keep external URLs as-is
      */
+    /**
+     * Get quantity unit for product, defaulting to "Piece" (stk) if not set
+     */
+    protected function getQuantityUnitForProduct(ConnectedProduct $product): array
+    {
+        // If product has a quantity unit, return it
+        if ($product->quantityUnit) {
+            return [
+                'id' => $product->quantityUnit->id,
+                'name' => $product->quantityUnit->name,
+                'symbol' => $product->quantityUnit->symbol,
+                'description' => $product->quantityUnit->description,
+            ];
+        }
+
+        // Default to "Piece" (stk) - find it from store-specific or global
+        $stripeAccountId = $product->stripe_account_id;
+        $pieceUnit = \App\Models\QuantityUnit::where(function ($q) use ($stripeAccountId) {
+            if ($stripeAccountId) {
+                $q->where('stripe_account_id', $stripeAccountId)
+                  ->orWhere(function ($q2) {
+                      $q2->whereNull('stripe_account_id')
+                         ->where('is_standard', true);
+                  });
+            } else {
+                $q->whereNull('stripe_account_id')
+                  ->where('is_standard', true);
+            }
+        })
+        ->where('name', 'Piece')
+        ->where('active', true)
+        ->first();
+
+        if ($pieceUnit) {
+            return [
+                'id' => $pieceUnit->id,
+                'name' => $pieceUnit->name,
+                'symbol' => $pieceUnit->symbol,
+                'description' => $pieceUnit->description,
+            ];
+        }
+
+        // Fallback if Piece unit doesn't exist
+        return [
+            'id' => null,
+            'name' => 'Piece',
+            'symbol' => 'stk',
+            'description' => 'Per item/piece',
+        ];
+    }
+
+    /**
+     * Get tax percentage from product, checking in order:
+     * 1. Product's vat_percent (manual override)
+     * 2. Article group code's default_vat_percent
+     * 3. Tax code mapping (backward compatibility)
+     * 4. Default 25%
+     */
+    protected function getTaxPercentFromProduct(ConnectedProduct $product): float
+    {
+        // First, check if product has a manually set VAT percentage
+        if ($product->vat_percent !== null) {
+            return (float) $product->vat_percent / 100; // Convert from percentage (0-100) to decimal (0-1)
+        }
+
+        // Second, try to get VAT from article group code
+        if ($product->article_group_code) {
+            $articleGroupCode = \App\Models\ArticleGroupCode::where('code', $product->article_group_code)->first();
+            if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
+                return (float) $articleGroupCode->default_vat_percent;
+            }
+        }
+
+        // Fallback to tax_code if article group code doesn't have VAT set
+        return $this->getTaxPercentFromCode($product->tax_code);
+    }
+
+    /**
+     * Get tax percentage from tax code, defaulting to 25% if not set
+     * This is kept for backward compatibility and as fallback
+     */
+    protected function getTaxPercentFromCode(?string $taxCode): float
+    {
+        if (!$taxCode) {
+            return 0.25; // Default 25% VAT
+        }
+
+        // Map common tax codes to percentages
+        $taxCodeLower = strtolower($taxCode);
+        
+        switch ($taxCodeLower) {
+            case 'txcd_99999999':
+            case 'standard':
+            case '1':
+                return 0.25; // 25% Standard VAT
+            case 'txcd_99999998':
+            case 'reduced':
+            case 'food':
+                return 0.15; // 15% Reduced rate
+            case 'txcd_99999997':
+            case 'lower':
+            case 'service':
+                return 0.10; // 10% Lower rate
+            case 'txcd_99999996':
+            case 'zero':
+            case 'exempt':
+            case '0':
+                return 0.00; // 0% Zero rate / Exempt
+            default:
+                return 0.25; // Default 25% VAT
+        }
+    }
+
     protected function getVariantImageUrl(ProductVariant $variant): ?string
     {
         if (!$variant->image_url) {
@@ -463,10 +578,13 @@ class ProductsController extends BaseApiController
             'url' => 'nullable|url',
             'tax_code' => 'nullable|string',
             'unit_label' => 'nullable|string|max:12',
+            'quantity_unit_id' => 'nullable|integer|exists:quantity_units,id',
             'statement_descriptor' => 'nullable|string|max:22',
             'no_price_in_pos' => 'nullable|boolean',
             'product_code' => 'nullable|string',
             'article_group_code' => 'nullable|string',
+            'vat_percent' => 'nullable|numeric|min:0|max:100',
+            'vendor_id' => 'nullable|integer|exists:vendors,id',
             'collection_ids' => 'nullable|array',
             'collection_ids.*' => 'exists:collections,id',
         ]);
@@ -482,11 +600,14 @@ class ProductsController extends BaseApiController
             $product->shippable = $validated['shippable'] ?? false;
             $product->url = $validated['url'] ?? null;
             $product->tax_code = $validated['tax_code'] ?? null;
-            $product->unit_label = $validated['unit_label'] ?? null;
+            $product->unit_label = $validated['unit_label'] ?? 'stk';
+            $product->quantity_unit_id = $validated['quantity_unit_id'] ?? null;
             $product->statement_descriptor = $validated['statement_descriptor'] ?? null;
             $product->no_price_in_pos = $validated['no_price_in_pos'] ?? false;
             $product->product_code = $validated['product_code'] ?? null;
             $product->article_group_code = $validated['article_group_code'] ?? null;
+            $product->vat_percent = $validated['vat_percent'] ?? null;
+            $product->vendor_id = $validated['vendor_id'] ?? null;
 
             // Set price if provided
             if (isset($validated['price']) && !$product->no_price_in_pos) {
@@ -574,10 +695,13 @@ class ProductsController extends BaseApiController
             'url' => 'nullable|url',
             'tax_code' => 'nullable|string',
             'unit_label' => 'nullable|string|max:12',
+            'quantity_unit_id' => 'nullable|integer|exists:quantity_units,id',
             'statement_descriptor' => 'nullable|string|max:22',
             'no_price_in_pos' => 'nullable|boolean',
             'product_code' => 'nullable|string',
             'article_group_code' => 'nullable|string',
+            'vat_percent' => 'nullable|numeric|min:0|max:100',
+            'vendor_id' => 'nullable|integer|exists:vendors,id',
             'collection_ids' => 'nullable|array',
             'collection_ids.*' => 'exists:collections,id',
         ]);
@@ -607,6 +731,12 @@ class ProductsController extends BaseApiController
             }
             if (isset($validated['unit_label'])) {
                 $product->unit_label = $validated['unit_label'];
+            } elseif ($product->unit_label === null) {
+                // Set default to 'stk' if unit_label is null
+                $product->unit_label = 'stk';
+            }
+            if (isset($validated['quantity_unit_id'])) {
+                $product->quantity_unit_id = $validated['quantity_unit_id'];
             }
             if (isset($validated['statement_descriptor'])) {
                 $product->statement_descriptor = $validated['statement_descriptor'];
@@ -619,6 +749,12 @@ class ProductsController extends BaseApiController
             }
             if (isset($validated['article_group_code'])) {
                 $product->article_group_code = $validated['article_group_code'];
+            }
+            if (isset($validated['vat_percent'])) {
+                $product->vat_percent = $validated['vat_percent'];
+            }
+            if (isset($validated['vendor_id'])) {
+                $product->vendor_id = $validated['vendor_id'];
             }
 
             // Update price if provided

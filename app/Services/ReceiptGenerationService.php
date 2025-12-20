@@ -120,6 +120,12 @@ class ReceiptGenerationService
 
         $storeMetadata = is_array($store->metadata) ? $store->metadata : json_decode($store->metadata ?? '{}', true);
 
+        // Get customer information from charge relationship or metadata
+        $customer = $primaryCharge->customer;
+        $customerName = $customer?->name ?? $metadata['customer_name'] ?? null;
+        $customerPhone = $customer?->phone ?? $metadata['customer_phone'] ?? null;
+        $customerEmail = $customer?->email ?? $metadata['customer_email'] ?? null;
+
         $receiptData = [
             'store' => [
                 'name' => $store->name,
@@ -143,6 +149,9 @@ class ReceiptGenerationService
             'payment_code' => $isSplitPayment ? null : $primaryCharge->payment_code,
             'tip_amount' => $tipAmount > 0 ? ($tipAmount / 100) : null,
             'charge_ids' => array_column($charges, 'id'),
+            'customer_name' => $customerName,
+            'customer_phone' => $customerPhone,
+            'customer_email' => $customerEmail,
         ];
 
         $receipt = Receipt::create([
@@ -220,6 +229,13 @@ class ReceiptGenerationService
 
         $storeMetadata = is_array($store->metadata) ? $store->metadata : json_decode($store->metadata ?? '{}', true);
 
+        // Get customer information from charge relationship or metadata
+        $customer = $charge->customer;
+        $metadata = is_array($charge->metadata) ? $charge->metadata : json_decode($charge->metadata ?? '{}', true);
+        $customerName = $customer?->name ?? $metadata['customer_name'] ?? $originalReceipt->receipt_data['customer_name'] ?? null;
+        $customerPhone = $customer?->phone ?? $metadata['customer_phone'] ?? $originalReceipt->receipt_data['customer_phone'] ?? null;
+        $customerEmail = $customer?->email ?? $metadata['customer_email'] ?? $originalReceipt->receipt_data['customer_email'] ?? null;
+
         $receiptData = [
             'store' => [
                 'name' => $store->name,
@@ -234,6 +250,9 @@ class ReceiptGenerationService
             'total_refunded_amount' => $charge->amount_refunded / 100, // Total refunded so far
             'original_amount' => $charge->amount / 100,
             'items' => $items,
+            'customer_name' => $customerName,
+            'customer_phone' => $customerPhone,
+            'customer_email' => $customerEmail,
         ];
 
         $receipt = Receipt::create([
@@ -311,6 +330,24 @@ class ReceiptGenerationService
 
         $storeMetadata = is_array($store->metadata) ? $store->metadata : json_decode($store->metadata ?? '{}', true);
 
+        // Get customer information from charge relationship or metadata
+        $customer = $charge->customer;
+        $customerName = $customer?->name ?? $metadata['customer_name'] ?? null;
+        $customerPhone = $customer?->phone ?? $metadata['customer_phone'] ?? null;
+        $customerEmail = $customer?->email ?? $metadata['customer_email'] ?? null;
+
+        // Get estimated pickup date from metadata if available
+        $estimatedPickupDate = null;
+        if (isset($metadata['estimated_pickup_date'])) {
+            try {
+                $date = \Carbon\Carbon::parse($metadata['estimated_pickup_date']);
+                $estimatedPickupDate = $date->setTimezone('Europe/Oslo')->format('d.m.Y');
+            } catch (\Exception $e) {
+                // If parsing fails, use the value as-is (might already be formatted)
+                $estimatedPickupDate = $metadata['estimated_pickup_date'];
+            }
+        }
+
         $receiptData = [
             'store' => [
                 'name' => $store->name,
@@ -331,7 +368,10 @@ class ReceiptGenerationService
             'currency' => strtoupper($charge->currency),
             'deferred_reason' => $metadata['deferred_reason'] ?? 'Betaling ved henting',
             'customer_id' => $metadata['customer_id'] ?? null,
-            'customer_name' => $metadata['customer_name'] ?? null,
+            'customer_name' => $customerName,
+            'customer_phone' => $customerPhone,
+            'customer_email' => $customerEmail,
+            'estimated_pickup_date' => $estimatedPickupDate,
         ];
 
         $receipt = Receipt::create([

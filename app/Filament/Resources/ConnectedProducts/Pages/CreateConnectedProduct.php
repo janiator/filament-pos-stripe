@@ -120,9 +120,6 @@ class CreateConnectedProduct extends CreateRecord
                 $createData['tax_code'] = $data['tax_code'];
             }
 
-            if (!empty($data['unit_label'])) {
-                $createData['unit_label'] = $data['unit_label'];
-            }
 
             if (!empty($data['package_dimensions']) && is_array($data['package_dimensions'])) {
                 $createData['package_dimensions'] = $data['package_dimensions'];

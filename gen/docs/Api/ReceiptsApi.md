@@ -1,5 +1,7 @@
 # OpenAPI\Client\ReceiptsApi
 
+Receipt generation and management
+
 All URIs are relative to https://pos.visivo.no/api, except if the operation defines another base path.
 
 | Method | HTTP request | Description |
@@ -195,7 +197,7 @@ try {
 ## `listReceipts()`
 
 ```php
-listReceipts($receipt_type, $pos_session_id, $printed, $from_date, $to_date, $per_page): \OpenAPI\Client\Model\ListReceipts200Response
+listReceipts($receipt_type, $pos_session_id, $charge_id, $printed, $from_date, $to_date, $per_page): \OpenAPI\Client\Model\ListReceipts200Response
 ```
 
 List receipts
@@ -221,13 +223,14 @@ $apiInstance = new OpenAPI\Client\Api\ReceiptsApi(
 );
 $receipt_type = 'receipt_type_example'; // string | Filter by receipt type
 $pos_session_id = 56; // int | Filter by POS session ID
+$charge_id = 56; // int | Filter by charge ID (purchase ID) to get all receipts for a single purchase
 $printed = True; // bool | Filter by printed status
-$from_date = new \DateTime("2013-10-20T19:20:30+01:00"); // \DateTime | Filter from date (YYYY-MM-DD)
-$to_date = new \DateTime("2013-10-20T19:20:30+01:00"); // \DateTime | Filter to date (YYYY-MM-DD)
+$from_date = new \DateTime('2013-10-20T19:20:30+01:00'); // \DateTime | Filter from date (YYYY-MM-DD)
+$to_date = new \DateTime('2013-10-20T19:20:30+01:00'); // \DateTime | Filter to date (YYYY-MM-DD)
 $per_page = 20; // int | Number of items per page
 
 try {
-    $result = $apiInstance->listReceipts($receipt_type, $pos_session_id, $printed, $from_date, $to_date, $per_page);
+    $result = $apiInstance->listReceipts($receipt_type, $pos_session_id, $charge_id, $printed, $from_date, $to_date, $per_page);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling ReceiptsApi->listReceipts: ', $e->getMessage(), PHP_EOL;
@@ -240,6 +243,7 @@ try {
 | ------------- | ------------- | ------------- | ------------- |
 | **receipt_type** | **string**| Filter by receipt type | [optional] |
 | **pos_session_id** | **int**| Filter by POS session ID | [optional] |
+| **charge_id** | **int**| Filter by charge ID (purchase ID) to get all receipts for a single purchase | [optional] |
 | **printed** | **bool**| Filter by printed status | [optional] |
 | **from_date** | **\DateTime**| Filter from date (YYYY-MM-DD) | [optional] |
 | **to_date** | **\DateTime**| Filter to date (YYYY-MM-DD) | [optional] |

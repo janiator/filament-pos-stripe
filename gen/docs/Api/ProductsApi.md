@@ -1,5 +1,7 @@
 # OpenAPI\Client\ProductsApi
 
+Product management for POS
+
 All URIs are relative to https://pos.visivo.no/api, except if the operation defines another base path.
 
 | Method | HTTP request | Description |
@@ -72,7 +74,7 @@ try {
 ## `listProducts()`
 
 ```php
-listProducts($search, $type, $collection_id, $per_page): \OpenAPI\Client\Model\ListProducts200Response
+listProducts($search, $type, $collection_id, $collection_slug, $per_page): \OpenAPI\Client\Model\ListProducts200Response
 ```
 
 List products
@@ -96,13 +98,14 @@ $apiInstance = new OpenAPI\Client\Api\ProductsApi(
     new GuzzleHttp\Client(),
     $config
 );
-$search = 'search_example'; // string | Search term (name or description)
+$search = 'search_example'; // string | Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants
 $type = 'type_example'; // string | Filter by product type
-$collection_id = 56; // int | Filter by collection ID
+$collection_id = 1; // int | Filter by collection ID. Use 0 to get uncategorized products (products with no collection)
+$collection_slug = summer-collection; // string | Filter by collection slug/handle
 $per_page = 50; // int | Number of items per page (max 100)
 
 try {
-    $result = $apiInstance->listProducts($search, $type, $collection_id, $per_page);
+    $result = $apiInstance->listProducts($search, $type, $collection_id, $collection_slug, $per_page);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling ProductsApi->listProducts: ', $e->getMessage(), PHP_EOL;
@@ -113,9 +116,10 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **search** | **string**| Search term (name or description) | [optional] |
+| **search** | **string**| Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants | [optional] |
 | **type** | **string**| Filter by product type | [optional] |
-| **collection_id** | **int**| Filter by collection ID | [optional] |
+| **collection_id** | **int**| Filter by collection ID. Use 0 to get uncategorized products (products with no collection) | [optional] |
+| **collection_slug** | **string**| Filter by collection slug/handle | [optional] |
 | **per_page** | **int**| Number of items per page (max 100) | [optional] [default to 50] |
 
 ### Return type

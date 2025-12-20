@@ -1,5 +1,7 @@
 # OpenAPI\Client\CollectionsApi
 
+Product collections/categories management
+
 All URIs are relative to https://pos.visivo.no/api, except if the operation defines another base path.
 
 | Method | HTTP request | Description |
@@ -76,7 +78,7 @@ listCollections($search, $active, $per_page): \OpenAPI\Client\Model\ListCollecti
 
 List collections
 
-Get paginated list of collections
+Get paginated list of collections. If there are products with no collection, a fake \"Ukategorisert\" category with id 0 will be included in the list.
 
 ### Example
 

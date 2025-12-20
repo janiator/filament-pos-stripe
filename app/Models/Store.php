@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -22,6 +21,7 @@ class Store extends Model implements StripeAccount
         'slug',
         'email',
         'organisasjonsnummer',
+        'logo_path',
         'commission_type',
         'commission_rate',
         'stripe_account_id',
@@ -127,9 +127,6 @@ class Store extends Model implements StripeAccount
      */
     public function connectedCustomers()
     {
-        if (!class_exists(\App\Models\ConnectedCustomer::class)) {
-            return $this->hasMany(\App\Models\ConnectedCustomer::class, 'stripe_account_id', 'stripe_account_id');
-        }
         return $this->hasMany(\App\Models\ConnectedCustomer::class, 'stripe_account_id', 'stripe_account_id');
     }
 
@@ -138,9 +135,6 @@ class Store extends Model implements StripeAccount
      */
     public function connectedSubscriptions()
     {
-        if (!class_exists(\App\Models\ConnectedSubscription::class)) {
-            return $this->hasMany(\App\Models\ConnectedSubscription::class, 'stripe_account_id', 'stripe_account_id');
-        }
         return $this->hasMany(\App\Models\ConnectedSubscription::class, 'stripe_account_id', 'stripe_account_id');
     }
 
@@ -149,9 +143,6 @@ class Store extends Model implements StripeAccount
      */
     public function connectedProducts()
     {
-        if (!class_exists(\App\Models\ConnectedProduct::class)) {
-            return $this->hasMany(\App\Models\ConnectedProduct::class, 'stripe_account_id', 'stripe_account_id');
-        }
         return $this->hasMany(\App\Models\ConnectedProduct::class, 'stripe_account_id', 'stripe_account_id');
     }
 

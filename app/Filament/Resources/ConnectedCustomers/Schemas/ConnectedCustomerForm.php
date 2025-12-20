@@ -35,6 +35,7 @@ class ConnectedCustomerForm
 
                 TextInput::make('name')
                     ->label('Name')
+                    ->required()
                     ->maxLength(255)
                     ->helperText(fn ($record) => $record && $record->stripe_customer_id 
                         ? 'Customer name. This field will sync to Stripe when saved.'
@@ -46,12 +47,13 @@ class ConnectedCustomerForm
                     ->email()
                     ->maxLength(255)
                     ->helperText(fn ($record) => $record && $record->stripe_customer_id 
-                        ? 'Customer email address. This field will sync to Stripe when saved.'
-                        : 'Customer email address')
+                        ? 'Customer email address (optional). This field will sync to Stripe when saved.'
+                        : 'Customer email address (optional - some older customers may not have an email)')
                     ->visibleOn(['create', 'edit']),
 
                 TextInput::make('phone')
                     ->label('Phone')
+                    ->required()
                     ->tel()
                     ->maxLength(255)
                     ->helperText(fn ($record) => $record && $record->stripe_customer_id 

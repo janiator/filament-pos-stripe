@@ -38,18 +38,25 @@ class ProductsCategoriesManager extends StatefulWidget {
 }
 
 class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
-  int _selectedTab = 0; // 0 = Products, 1 = Categories
+  int _selectedTab = 0; // 0 = Products, 1 = Categories, 2 = Vendors
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _categories = [];
+  List<Map<String, dynamic>> _vendors = [];
+  List<Map<String, dynamic>> _quantityUnits = [];
   bool _isLoading = false;
   String? _errorMessage;
   String _searchQuery = '';
   int? _selectedCategoryId;
   Map<String, dynamic>? _editingProduct;
   Map<String, dynamic>? _editingCategory;
+  Map<String, dynamic>? _editingVendor;
   bool _showProductForm = false;
   bool _showCategoryForm = false;
+  bool _showVendorForm = false;
   List<int> _selectedCollectionIds = [];
+  int? _selectedVendorId;
+  String? _selectedArticleGroupCode;
+  int? _selectedQuantityUnitId;
 
   @override
   void initState() {
@@ -67,6 +74,8 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
       await Future.wait([
         _loadProducts(),
         _loadCategories(),
+        _loadVendors(),
+        _loadQuantityUnits(),
       ]);
     } catch (e) {
       if (mounted) {
@@ -175,6 +184,91 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
     }
   }
 
+  String _parseErrorMessage(String responseBody, int statusCode) {
+    // Try to parse JSON error response
+    if (responseBody.isNotEmpty) {
+      try {
+        final errorData = jsonDecode(responseBody) as Map<String, dynamic>?;
+        if (errorData != null) {
+          // Handle Laravel validation errors (422) - most common case
+          if (errorData.containsKey('errors')) {
+            final errors = errorData['errors'] as Map<String, dynamic>?;
+            if (errors != null && errors.isNotEmpty) {
+              final errorMessages = <String>[];
+              errors.forEach((field, messages) {
+                if (messages is List) {
+                  for (var message in messages) {
+                    // Format field name nicely (e.g., "name" -> "Navn")
+                    final fieldName = _formatFieldName(field);
+                    errorMessages.add('$fieldName: $message');
+                  }
+                } else {
+                  final fieldName = _formatFieldName(field);
+                  errorMessages.add('$fieldName: $messages');
+                }
+              });
+              return errorMessages.join('\n');
+            }
+          }
+          // Handle error message field
+          if (errorData.containsKey('message')) {
+            final message = errorData['message'];
+            if (message is String && message.isNotEmpty) {
+              return message;
+            }
+          }
+          if (errorData.containsKey('error')) {
+            final error = errorData['error'];
+            if (error is String && error.isNotEmpty) {
+              return error;
+            }
+          }
+        }
+      } catch (e) {
+        // If JSON parsing fails, try to use the raw response if it's meaningful
+        if (responseBody.length < 200) {
+          return responseBody;
+        }
+      }
+    }
+    
+    // Default error messages based on status code
+    switch (statusCode) {
+      case 422:
+        return 'Valideringsfeil: Noen felt er ugyldige eller mangler. Sjekk at alle påkrevde felt er fylt ut korrekt.';
+      case 400:
+        return 'Ugyldig forespørsel. Sjekk at alle påkrevde felt er fylt ut.';
+      case 401:
+        return 'Du er ikke autorisert. Logg inn på nytt.';
+      case 403:
+        return 'Du har ikke tilgang til denne operasjonen.';
+      case 404:
+        return 'Ressursen ble ikke funnet.';
+      case 500:
+        return 'Serverfeil. Prøv igjen senere.';
+      default:
+        return 'Kunne ikke lagre. Statuskode: $statusCode';
+    }
+  }
+
+  String _formatFieldName(String field) {
+    // Convert field names to Norwegian labels
+    final fieldMap = {
+      'name': 'Navn',
+      'description': 'Beskrivelse',
+      'type': 'Type',
+      'price': 'Pris',
+      'currency': 'Valuta',
+      'active': 'Aktiv',
+      'shippable': 'Kan sendes',
+      'no_price_in_pos': 'Ingen pris i kassa',
+      'collection_ids': 'Kategorier',
+      'vendor_id': 'Leverandør',
+      'article_group_code': 'Varegruppekode',
+    };
+    return fieldMap[field] ?? field;
+  }
+
   Future<void> _saveProduct(Map<String, dynamic> productData) async {
     setState(() {
       _isLoading = true;
@@ -212,6 +306,10 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
         setState(() {
           _showProductForm = false;
           _editingProduct = null;
+          _selectedCollectionIds = [];
+          _selectedVendorId = null;
+          _selectedArticleGroupCode = null;
+          _selectedQuantityUnitId = null;
         });
         await _loadData();
         if (mounted) {
@@ -225,14 +323,19 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
           );
         }
       } else {
-        final errorData = jsonDecode(response.body) as Map<String, dynamic>?;
-        throw Exception(errorData?['error'] ??
-            'Failed to save product: ${response.statusCode}');
+        // Parse error message from response
+        final errorMessage = _parseErrorMessage(response.body, response.statusCode);
+        setState(() {
+          _errorMessage = errorMessage;
+          _isLoading = false;
+          // Keep form state intact - don't reset _showProductForm or _editingProduct
+        });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error saving product: ${e.toString()}';
+        _errorMessage = 'Feil ved lagring av produkt: ${e.toString()}';
         _isLoading = false;
+        // Keep form state intact - don't reset _showProductForm or _editingProduct
       });
     }
   }
@@ -287,14 +390,19 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
           );
         }
       } else {
-        final errorData = jsonDecode(response.body) as Map<String, dynamic>?;
-        throw Exception(errorData?['error'] ??
-            'Failed to save category: ${response.statusCode}');
+        // Parse error message from response
+        final errorMessage = _parseErrorMessage(response.body, response.statusCode);
+        setState(() {
+          _errorMessage = errorMessage;
+          _isLoading = false;
+          // Keep form state intact - don't reset _showCategoryForm or _editingCategory
+        });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error saving category: ${e.toString()}';
+        _errorMessage = 'Feil ved lagring av kategori: ${e.toString()}';
         _isLoading = false;
+        // Keep form state intact - don't reset _showCategoryForm or _editingCategory
       });
     }
   }
@@ -310,6 +418,14 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
           .where((id) => id != null && id != 0)
           .cast<int>()
           .toList();
+      // Extract vendor_id
+      final vendor = product['vendor'] as Map<String, dynamic>?;
+      _selectedVendorId = vendor?['id'] as int? ?? product['vendor_id'] as int?;
+      // Extract article_group_code
+      _selectedArticleGroupCode = product['article_group_code'] as String?;
+      // Extract quantity_unit_id
+      final quantityUnit = product['quantity_unit'] as Map<String, dynamic>?;
+      _selectedQuantityUnitId = quantityUnit?['id'] as int? ?? product['quantity_unit_id'] as int?;
     });
   }
 
@@ -321,6 +437,24 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
   }
 
   void _newProduct() {
+    // Find default quantity unit (Piece/stk)
+    int? defaultQuantityUnitId;
+    try {
+      final pieceUnit = _quantityUnits.firstWhere(
+        (unit) => (unit['name'] as String? ?? '').toLowerCase() == 'piece' ||
+                  (unit['symbol'] as String? ?? '').toLowerCase() == 'stk',
+        orElse: () => <String, dynamic>{},
+      );
+      if (pieceUnit.isNotEmpty) {
+        defaultQuantityUnitId = pieceUnit['id'] as int?;
+      }
+    } catch (e) {
+      // If no Piece unit found, use first unit or null
+      if (_quantityUnits.isNotEmpty) {
+        defaultQuantityUnitId = _quantityUnits.first['id'] as int?;
+      }
+    }
+
     setState(() {
       _editingProduct = {
         'name': '',
@@ -328,10 +462,14 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
         'type': 'service',
         'active': true,
         'shippable': false,
+        'no_price_in_pos': false,
         'price': null,
         'currency': 'nok',
       };
       _selectedCollectionIds = [];
+      _selectedVendorId = null;
+      _selectedArticleGroupCode = '04999'; // Default to '04999 - Øvrige'
+      _selectedQuantityUnitId = defaultQuantityUnitId;
       _showProductForm = true;
     });
   }
@@ -346,6 +484,278 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
       };
       _showCategoryForm = true;
     });
+  }
+
+  Future<void> _loadVendors() async {
+    try {
+      final uri = Uri.parse('${widget.apiBaseUrl}/api/vendors').replace(
+        queryParameters: {
+          'per_page': '100',
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer ${widget.authToken}',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        
+        // Try multiple possible response formats
+        List<dynamic>? vendorsList;
+        
+        if (responseBody is Map<String, dynamic>) {
+          final data = responseBody;
+          if (data.containsKey('vendors')) {
+            vendorsList = data['vendors'] as List<dynamic>?;
+          } else if (data.containsKey('data')) {
+            // Check if data is a list or has a data property
+            final dataValue = data['data'];
+            if (dataValue is List) {
+              vendorsList = dataValue;
+            } else if (dataValue is Map) {
+              final dataMap = dataValue as Map;
+              if (dataMap.containsKey('data') && dataMap['data'] is List) {
+                vendorsList = dataMap['data'] as List<dynamic>?;
+              }
+            }
+          } else if (data.containsKey('vendor')) {
+            vendorsList = data['vendor'] as List<dynamic>?;
+          }
+        } else if (responseBody is List) {
+          // Response might be a direct list
+          vendorsList = responseBody;
+        }
+
+        final vendors = vendorsList
+                ?.map((v) => v as Map<String, dynamic>)
+                .toList() ??
+            [];
+
+        if (mounted) {
+          setState(() {
+            _vendors = vendors;
+          });
+        }
+      } else if (response.statusCode == 404) {
+        // Endpoint doesn't exist - silently set empty list
+        if (mounted) {
+          setState(() {
+            _vendors = [];
+          });
+        }
+      } else {
+        // Other error - log but don't show error message for missing endpoint
+        if (mounted) {
+          setState(() {
+            _vendors = [];
+          });
+        }
+      }
+    } catch (e) {
+      // If vendors endpoint doesn't exist or other error, set empty list
+      // Don't show error to user as this is optional functionality
+      if (mounted) {
+        setState(() {
+          _vendors = [];
+        });
+      }
+    }
+  }
+
+  Future<void> _saveVendor(Map<String, dynamic> vendorData) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final isUpdate = vendorData['id'] != null;
+      final uri = isUpdate
+          ? Uri.parse('${widget.apiBaseUrl}/api/vendors/${vendorData['id']}')
+          : Uri.parse('${widget.apiBaseUrl}/api/vendors');
+
+      final response = isUpdate
+          ? await http.put(
+              uri,
+              headers: {
+                'Authorization': 'Bearer ${widget.authToken}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+              body: jsonEncode(vendorData),
+            )
+          : await http.post(
+              uri,
+              headers: {
+                'Authorization': 'Bearer ${widget.authToken}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+              body: jsonEncode(vendorData),
+            );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        setState(() {
+          _showVendorForm = false;
+          _editingVendor = null;
+        });
+        await _loadVendors();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(isUpdate
+                  ? 'Leverandør oppdatert'
+                  : 'Leverandør opprettet'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        final errorMessage = _parseErrorMessage(response.body, response.statusCode);
+        setState(() {
+          _errorMessage = errorMessage;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Feil ved lagring av leverandør: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _editVendor(Map<String, dynamic> vendor) {
+    setState(() {
+      _editingVendor = Map<String, dynamic>.from(vendor);
+      _showVendorForm = true;
+    });
+  }
+
+  void _newVendor() {
+    setState(() {
+      _editingVendor = {
+        'name': '',
+        'description': '',
+        'contact_email': '',
+        'contact_phone': '',
+        'active': true,
+        'commission_percent': null,
+      };
+      _showVendorForm = true;
+    });
+  }
+
+  Future<void> _loadQuantityUnits() async {
+    try {
+      final uri = Uri.parse('${widget.apiBaseUrl}/api/quantity-units').replace(
+        queryParameters: {
+          'per_page': '100',
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer ${widget.authToken}',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        
+        // Try multiple possible response formats
+        List<dynamic>? unitsList;
+        
+        if (responseBody is Map<String, dynamic>) {
+          final data = responseBody;
+          if (data.containsKey('quantity_units')) {
+            unitsList = data['quantity_units'] as List<dynamic>?;
+          } else if (data.containsKey('data')) {
+            final dataValue = data['data'];
+            if (dataValue is List) {
+              unitsList = dataValue;
+            } else if (dataValue is Map) {
+              final dataMap = dataValue as Map;
+              if (dataMap.containsKey('data') && dataMap['data'] is List) {
+                unitsList = dataMap['data'] as List<dynamic>?;
+              }
+            }
+          }
+        } else if (responseBody is List) {
+          unitsList = responseBody;
+        }
+
+        // Map and deduplicate by ID first, then by name+symbol combination
+        final unitsMapById = <int, Map<String, dynamic>>{};
+        final unitsMapByNameSymbol = <String, Map<String, dynamic>>{};
+        
+        if (unitsList != null) {
+          for (var unit in unitsList) {
+            final unitMap = unit as Map<String, dynamic>;
+            final id = unitMap['id'] as int?;
+            final name = (unitMap['name'] as String? ?? '').toLowerCase();
+            final symbol = (unitMap['symbol'] as String? ?? '').toLowerCase();
+            final key = '$name|$symbol';
+            
+            // First deduplicate by ID
+            if (id != null && !unitsMapById.containsKey(id)) {
+              unitsMapById[id] = unitMap;
+              
+              // Then deduplicate by name+symbol (prefer store-specific over global)
+              if (!unitsMapByNameSymbol.containsKey(key)) {
+                unitsMapByNameSymbol[key] = unitMap;
+              } else {
+                // If we already have a unit with this name+symbol, prefer the one with stripe_account_id (store-specific)
+                final existing = unitsMapByNameSymbol[key];
+                final existingHasAccount = existing?['stripe_account_id'] != null;
+                final currentHasAccount = unitMap['stripe_account_id'] != null;
+                
+                // Replace if current is store-specific and existing is global
+                if (currentHasAccount && !existingHasAccount) {
+                  unitsMapByNameSymbol[key] = unitMap;
+                }
+              }
+            }
+          }
+        }
+
+        // Use name+symbol deduplication result (this ensures no duplicates by name+symbol)
+        final units = unitsMapByNameSymbol.values.toList();
+
+        if (mounted) {
+          setState(() {
+            _quantityUnits = units;
+          });
+        }
+      } else if (response.statusCode == 404) {
+        if (mounted) {
+          setState(() {
+            _quantityUnits = [];
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _quantityUnits = [];
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _quantityUnits = [];
+        });
+      }
+    }
   }
 
   String _formatPrice(int? amount) {
@@ -389,6 +799,7 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
                         _selectedTab = 0;
                         _showProductForm = false;
                         _showCategoryForm = false;
+                        _showVendorForm = false;
                       });
                     },
                     child: Container(
@@ -423,6 +834,7 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
                         _selectedTab = 1;
                         _showProductForm = false;
                         _showCategoryForm = false;
+                        _showVendorForm = false;
                       });
                     },
                     child: Container(
@@ -443,6 +855,41 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
                         style: FlutterFlowTheme.of(context).titleMedium.override(
                               fontFamily: 'Readex Pro',
                               color: _selectedTab == 1
+                                  ? FlutterFlowTheme.of(context).primary
+                                  : FlutterFlowTheme.of(context).secondaryText,
+                            ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _selectedTab = 2;
+                        _showProductForm = false;
+                        _showCategoryForm = false;
+                        _showVendorForm = false;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: _selectedTab == 2
+                                ? FlutterFlowTheme.of(context).primary
+                                : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        'Leverandører',
+                        textAlign: TextAlign.center,
+                        style: FlutterFlowTheme.of(context).titleMedium.override(
+                              fontFamily: 'Readex Pro',
+                              color: _selectedTab == 2
                                   ? FlutterFlowTheme.of(context).primary
                                   : FlutterFlowTheme.of(context).secondaryText,
                             ),
@@ -486,7 +933,9 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
           Expanded(
             child: _selectedTab == 0
                 ? _buildProductsTab()
-                : _buildCategoriesTab(),
+                : _selectedTab == 1
+                    ? _buildCategoriesTab()
+                    : _buildVendorsTab(),
           ),
         ],
       ),
@@ -980,6 +1429,7 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
     // Use state variables that will be updated
     bool formActive = product['active'] as bool? ?? true;
     bool formShippable = product['shippable'] as bool? ?? false;
+    bool formNoPriceInPos = product['no_price_in_pos'] as bool? ?? false;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -1000,6 +1450,639 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
                     _showProductForm = false;
                     _editingProduct = null;
                     _selectedCollectionIds = [];
+                    _selectedVendorId = null;
+                    _selectedArticleGroupCode = null;
+                    _selectedQuantityUnitId = null;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Grid layout: left side fields, right side categories
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left side: Product fields
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Navn *',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Beskrivelse',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: typeController.text,
+                      decoration: const InputDecoration(
+                        labelText: 'Type',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'service', child: Text('Tjeneste')),
+                        DropdownMenuItem(value: 'good', child: Text('Vare')),
+                      ],
+                      onChanged: (value) {
+                        typeController.text = value ?? 'service';
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: priceController,
+                            decoration: const InputDecoration(
+                              labelText: 'Pris',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        SizedBox(
+                          width: 100,
+                          child: TextField(
+                            controller: currencyController,
+                            decoration: const InputDecoration(
+                              labelText: 'Valuta',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Quantity unit / Unit label selection
+                    DropdownButtonFormField<int?>(
+                      value: _selectedQuantityUnitId,
+                      decoration: const InputDecoration(
+                        labelText: 'Enhet',
+                        helperText: 'Velg enhet for produktet',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('Ingen enhet'),
+                        ),
+                        ..._quantityUnits.map((unit) {
+                          return DropdownMenuItem<int?>(
+                            value: unit['id'] as int?,
+                            child: Text(unit['display_name'] as String? ?? 
+                                '${unit['name']}${unit['symbol'] != null ? ' (${unit['symbol']})' : ''}'),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedQuantityUnitId = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Vendor selection
+                    DropdownButtonFormField<int?>(
+                      value: _selectedVendorId,
+                      decoration: const InputDecoration(
+                        labelText: 'Leverandør',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('Ingen leverandør'),
+                        ),
+                        ..._vendors.map((vendor) {
+                          return DropdownMenuItem<int?>(
+                            value: vendor['id'] as int?,
+                            child: Text(vendor['name'] as String? ?? 'Unnamed'),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedVendorId = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Article group code selection
+                    DropdownButtonFormField<String?>(
+                      value: _selectedArticleGroupCode,
+                      decoration: const InputDecoration(
+                        labelText: 'Varegruppekode (SAF-T)',
+                        border: OutlineInputBorder(),
+                        helperText: 'PredefinedBasicID-04: Produktkategori for SAF-T rapportering',
+                      ),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Ingen varegruppekode'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04001',
+                          child: Text('04001 - Uttak av behandlingstjenester'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04002',
+                          child: Text('04002 - Uttak av behandlingsvarer'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04003',
+                          child: Text('04003 - Varesalg'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04004',
+                          child: Text('04004 - Salg av behandlingstjenester'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04005',
+                          child: Text('04005 - Salg av hårklipp'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04006',
+                          child: Text('04006 - Mat'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04007',
+                          child: Text('04007 - Øl'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04008',
+                          child: Text('04008 - Vin'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04009',
+                          child: Text('04009 - Brennevin'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04010',
+                          child: Text('04010 - Rusbrus/Cider'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04011',
+                          child: Text('04011 - Mineralvann (brus)'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04012',
+                          child: Text('04012 - Annen drikke (te, kaffe etc)'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04013',
+                          child: Text('04013 - Tobakk'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04014',
+                          child: Text('04014 - Andre varer'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04015',
+                          child: Text('04015 - Inngangspenger'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04016',
+                          child: Text('04016 - Inngangspenger fri adgang'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04017',
+                          child: Text('04017 - Garderobeavgift'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04018',
+                          child: Text('04018 - Garderobeavgift fri garderobe'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04019',
+                          child: Text('04019 - Helfullpensjon'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04020',
+                          child: Text('04020 - Halvpensjon'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04021',
+                          child: Text('04021 - Overnatting med frokost'),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '04999',
+                          child: Text('04999 - Øvrige'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedArticleGroupCode = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    StatefulBuilder(
+                      builder: (context, setStateLocal) {
+                        return Column(
+                          children: [
+                            SwitchListTile(
+                              title: const Text('Aktiv'),
+                              value: formActive,
+                              activeColor: FlutterFlowTheme.of(context).primary,
+                              onChanged: (value) {
+                                setStateLocal(() {
+                                  formActive = value;
+                                });
+                              },
+                            ),
+                            SwitchListTile(
+                              title: const Text('Kan sendes'),
+                              value: formShippable,
+                              activeColor: FlutterFlowTheme.of(context).primary,
+                              onChanged: (value) {
+                                setStateLocal(() {
+                                  formShippable = value;
+                                });
+                              },
+                            ),
+                            SwitchListTile(
+                              title: const Text('Ingen pris i kassa'),
+                              subtitle: const Text('Produktet vil ikke ha pris i kassasystemet'),
+                              value: formNoPriceInPos,
+                              activeColor: FlutterFlowTheme.of(context).primary,
+                              onChanged: (value) {
+                                setStateLocal(() {
+                                  formNoPriceInPos = value;
+                                });
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Right side: Categories
+              Expanded(
+                flex: 2,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: FlutterFlowTheme.of(context).alternate,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: StatefulBuilder(
+                    builder: (context, setStateLocal) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Kategorier',
+                            style: FlutterFlowTheme.of(context).titleSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          if (_categories.isEmpty)
+                            Text(
+                              'Ingen kategorier tilgjengelig',
+                              style: FlutterFlowTheme.of(context).bodySmall,
+                            )
+                          else
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                maxHeight: 400.0,
+                              ),
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: _categories
+                                      .where((c) => (c['id'] as int?) != 0)
+                                      .map((category) {
+                                    final categoryId = category['id'] as int?;
+                                    if (categoryId == null) return const SizedBox.shrink();
+                                    
+                                    final isSelected =
+                                        _selectedCollectionIds.contains(categoryId);
+                                    
+                                    return CheckboxListTile(
+                                      title: Text(category['name'] as String? ?? 'Unnamed'),
+                                      subtitle: Text(
+                                        '${category['products_count'] ?? 0} produkter',
+                                        style: FlutterFlowTheme.of(context).bodySmall,
+                                      ),
+                                      value: isSelected,
+                                      activeColor: FlutterFlowTheme.of(context).primary,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          if (value == true) {
+                                            if (!_selectedCollectionIds
+                                                .contains(categoryId)) {
+                                              _selectedCollectionIds.add(categoryId);
+                                            }
+                                          } else {
+                                            _selectedCollectionIds.remove(categoryId);
+                                          }
+                                        });
+                                      },
+                                      dense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          if (_selectedCollectionIds.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _selectedCollectionIds.map((id) {
+                                final category = _categories.firstWhere(
+                                  (c) => c['id'] == id,
+                                  orElse: () => {'name': 'Unknown'},
+                                );
+                                return Chip(
+                                  label: Text(category['name'] as String? ?? ''),
+                                  onDeleted: () {
+                                    setState(() {
+                                      _selectedCollectionIds.remove(id);
+                                    });
+                                  },
+                                  deleteIcon: const Icon(Icons.close, size: 18),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          FFButtonWidget(
+            onPressed: _isLoading
+                ? null
+                : () {
+                    // Get unit_label from selected quantity unit
+                    String? unitLabel;
+                    if (_selectedQuantityUnitId != null) {
+                      final selectedUnit = _quantityUnits.firstWhere(
+                        (u) => u['id'] == _selectedQuantityUnitId,
+                        orElse: () => <String, dynamic>{},
+                      );
+                      unitLabel = selectedUnit['symbol'] as String?;
+                    }
+
+                    final productData = {
+                      if (product['id'] != null) 'id': product['id'],
+                      'name': nameController.text,
+                      'description': descriptionController.text.isEmpty
+                          ? null
+                          : descriptionController.text,
+                      'type': typeController.text,
+                      'active': formActive,
+                      'shippable': formShippable,
+                      'no_price_in_pos': formNoPriceInPos,
+                      if (priceController.text.isNotEmpty)
+                        'price': double.tryParse(priceController.text),
+                      'currency': currencyController.text.toLowerCase(),
+                      'collection_ids': _selectedCollectionIds,
+                      if (_selectedVendorId != null) 'vendor_id': _selectedVendorId,
+                      if (_selectedArticleGroupCode != null) 'article_group_code': _selectedArticleGroupCode,
+                      if (_selectedQuantityUnitId != null) 'quantity_unit_id': _selectedQuantityUnitId,
+                      if (unitLabel != null) 'unit_label': unitLabel,
+                    };
+                    _saveProduct(productData);
+                  },
+            text: product['id'] != null ? 'Oppdater' : 'Opprett',
+            options: FFButtonOptions(
+              width: double.infinity,
+              height: 48.0,
+              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+              iconPadding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 8.0, 0.0),
+              color: FlutterFlowTheme.of(context).primary,
+              textStyle: FlutterFlowTheme.of(context).titleSmall.override(
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                    letterSpacing: 0.0,
+                  ),
+              elevation: 0.0,
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVendorsTab() {
+    if (_showVendorForm) {
+      return _buildVendorForm();
+    }
+
+    return Column(
+      children: [
+        // Vendors list
+        Expanded(
+          child: _vendors.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.store_outlined,
+                        size: 64,
+                        color: FlutterFlowTheme.of(context).secondaryText,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Ingen leverandører funnet',
+                        style: FlutterFlowTheme.of(context).titleMedium,
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadVendors,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(0, 12.0, 0, 12.0),
+                    itemCount: _vendors.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12.0),
+                    itemBuilder: (context, index) {
+                      final vendor = _vendors[index];
+
+                      return InkWell(
+                        splashColor: Colors.transparent,
+                        focusColor: Colors.transparent,
+                        hoverColor: Colors.transparent,
+                        highlightColor: Colors.transparent,
+                        onTap: () => _editVendor(vendor),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          curve: Curves.easeInOut,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: FlutterFlowTheme.of(context).secondaryBackground,
+                            borderRadius: BorderRadius.circular(16.0),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsetsDirectional.fromSTEB(12.0, 8.0, 12.0, 8.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.max,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                // Icon container
+                                Container(
+                                  width: 32.0,
+                                  height: 32.0,
+                                  decoration: BoxDecoration(
+                                    color: FlutterFlowTheme.of(context).primaryBackground,
+                                    borderRadius: BorderRadius.circular(8.0),
+                                    border: Border.all(
+                                      color: FlutterFlowTheme.of(context).alternate,
+                                    ),
+                                  ),
+                                  child: Align(
+                                    alignment: const AlignmentDirectional(0.0, 0.0),
+                                    child: Icon(
+                                      Icons.store_outlined,
+                                      color: FlutterFlowTheme.of(context).secondaryText,
+                                      size: 24.0,
+                                    ),
+                                  ),
+                                ),
+                                // Content
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 0.0, 0.0),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.max,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          vendor['name'] as String? ?? 'Unnamed',
+                                          style: FlutterFlowTheme.of(context).bodyMedium.override(
+                                                fontFamily: 'Inter',
+                                                fontSize: 16.0,
+                                                letterSpacing: 0.0,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                        if (vendor['contact_email'] != null || vendor['contact_phone'] != null || vendor['commission_percent'] != null) ...[
+                                          const SizedBox(height: 4.0),
+                                          Text(
+                                            [
+                                              if (vendor['contact_email'] != null) vendor['contact_email'],
+                                              if (vendor['contact_phone'] != null) vendor['contact_phone'],
+                                              if (vendor['commission_percent'] != null) 
+                                                'Provision: ${(vendor['commission_percent'] as num).toStringAsFixed(1)}%',
+                                            ].where((item) => item != null).join(' • '),
+                                            style: FlutterFlowTheme.of(context).labelMedium.override(
+                                                  fontFamily: 'Inter',
+                                                  fontSize: 16.0,
+                                                  letterSpacing: 0.0,
+                                                ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                // Chevron
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: FlutterFlowTheme.of(context).secondaryText,
+                                  size: 24.0,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+        ),
+
+        // Floating action button
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(16.0, 0.0, 16.0, 16.0),
+          child: FFButtonWidget(
+            onPressed: _newVendor,
+            text: 'Ny leverandør',
+            icon: const Icon(Icons.add, size: 20.0),
+            options: FFButtonOptions(
+              width: double.infinity,
+              height: 48.0,
+              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+              iconPadding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 8.0, 0.0),
+              color: FlutterFlowTheme.of(context).primary,
+              textStyle: FlutterFlowTheme.of(context).titleSmall.override(
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                    letterSpacing: 0.0,
+                  ),
+              elevation: 0.0,
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVendorForm() {
+    final vendor = _editingVendor ?? {};
+    final nameController = TextEditingController(
+        text: vendor['name'] as String? ?? '');
+    final descriptionController = TextEditingController(
+        text: vendor['description'] as String? ?? '');
+    final contactEmailController = TextEditingController(
+        text: vendor['contact_email'] as String? ?? '');
+    final contactPhoneController = TextEditingController(
+        text: vendor['contact_phone'] as String? ?? '');
+    final commissionPercentController = TextEditingController(
+        text: vendor['commission_percent'] != null
+            ? (vendor['commission_percent'] as num).toString()
+            : '');
+    bool formActive = vendor['active'] as bool? ?? true;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                vendor['id'] != null ? 'Rediger leverandør' : 'Ny leverandør',
+                style: FlutterFlowTheme.of(context).headlineSmall,
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  setState(() {
+                    _showVendorForm = false;
+                    _editingVendor = null;
                   });
                 },
               ),
@@ -1023,187 +2106,86 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
             maxLines: 3,
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: typeController.text,
+          TextField(
+            controller: contactEmailController,
             decoration: const InputDecoration(
-              labelText: 'Type',
+              labelText: 'E-post',
               border: OutlineInputBorder(),
             ),
-            items: const [
-              DropdownMenuItem(value: 'service', child: Text('Tjeneste')),
-              DropdownMenuItem(value: 'good', child: Text('Vare')),
-            ],
-            onChanged: (value) {
-              typeController.text = value ?? 'service';
-            },
+            keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: priceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Pris',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true),
-                ),
-              ),
-              const SizedBox(width: 16),
-              SizedBox(
-                width: 100,
-                child: TextField(
-                  controller: currencyController,
-                  decoration: const InputDecoration(
-                    labelText: 'Valuta',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-            ],
+          TextField(
+            controller: contactPhoneController,
+            decoration: const InputDecoration(
+              labelText: 'Telefon',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.phone,
           ),
           const SizedBox(height: 16),
-          // Category selection
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: FlutterFlowTheme.of(context).alternate,
-              ),
-              borderRadius: BorderRadius.circular(8),
+          TextField(
+            controller: commissionPercentController,
+            decoration: const InputDecoration(
+              labelText: 'Provision (%)',
+              helperText: 'Provision i prosent som leverandøren mottar ved salg (0-100)',
+              border: OutlineInputBorder(),
             ),
-            child: StatefulBuilder(
-              builder: (context, setStateLocal) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Kategorier',
-                      style: FlutterFlowTheme.of(context).titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    if (_categories.isEmpty)
-                      Text(
-                        'Ingen kategorier tilgjengelig',
-                        style: FlutterFlowTheme.of(context).bodySmall,
-                      )
-                    else
-                      ..._categories
-                          .where((c) => (c['id'] as int?) != 0)
-                          .map((category) {
-                        final categoryId = category['id'] as int?;
-                        if (categoryId == null) return const SizedBox.shrink();
-                        
-                        final isSelected =
-                            _selectedCollectionIds.contains(categoryId);
-                        
-                        return CheckboxListTile(
-                          title: Text(category['name'] as String? ?? 'Unnamed'),
-                          subtitle: Text(
-                            '${category['products_count'] ?? 0} produkter',
-                            style: FlutterFlowTheme.of(context).bodySmall,
-                          ),
-                          value: isSelected,
-                          onChanged: (value) {
-                            setState(() {
-                              if (value == true) {
-                                if (!_selectedCollectionIds
-                                    .contains(categoryId)) {
-                                  _selectedCollectionIds.add(categoryId);
-                                }
-                              } else {
-                                _selectedCollectionIds.remove(categoryId);
-                              }
-                            });
-                          },
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                        );
-                      }),
-                    if (_selectedCollectionIds.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _selectedCollectionIds.map((id) {
-                          final category = _categories.firstWhere(
-                            (c) => c['id'] == id,
-                            orElse: () => {'name': 'Unknown'},
-                          );
-                          return Chip(
-                            label: Text(category['name'] as String? ?? ''),
-                            onDeleted: () {
-                              setState(() {
-                                _selectedCollectionIds.remove(id);
-                              });
-                            },
-                            deleteIcon: const Icon(Icons.close, size: 18),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ],
-                );
-              },
-            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           const SizedBox(height: 16),
           StatefulBuilder(
             builder: (context, setStateLocal) {
-              return Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text('Aktiv'),
-                    value: formActive,
-                    onChanged: (value) {
-                      setStateLocal(() {
-                        formActive = value;
-                      });
-                    },
-                  ),
-                  SwitchListTile(
-                    title: const Text('Kan sendes'),
-                    value: formShippable,
-                    onChanged: (value) {
-                      setStateLocal(() {
-                        formShippable = value;
-                      });
-                    },
-                  ),
-                ],
+              return SwitchListTile(
+                title: const Text('Aktiv'),
+                value: formActive,
+                activeColor: FlutterFlowTheme.of(context).primary,
+                onChanged: (value) {
+                  setStateLocal(() {
+                    formActive = value;
+                  });
+                },
               );
             },
           ),
           const SizedBox(height: 24),
-          ElevatedButton(
+          FFButtonWidget(
             onPressed: _isLoading
                 ? null
                 : () {
-                    final productData = {
-                      if (product['id'] != null) 'id': product['id'],
+                    final vendorData = {
+                      if (vendor['id'] != null) 'id': vendor['id'],
                       'name': nameController.text,
                       'description': descriptionController.text.isEmpty
                           ? null
                           : descriptionController.text,
-                      'type': typeController.text,
+                      'contact_email': contactEmailController.text.isEmpty
+                          ? null
+                          : contactEmailController.text,
+                      'contact_phone': contactPhoneController.text.isEmpty
+                          ? null
+                          : contactPhoneController.text,
                       'active': formActive,
-                      'shippable': formShippable,
-                      if (priceController.text.isNotEmpty)
-                        'price': double.tryParse(priceController.text),
-                      'currency': currencyController.text.toLowerCase(),
-                      'collection_ids': _selectedCollectionIds,
+                      if (commissionPercentController.text.isNotEmpty)
+                        'commission_percent': double.tryParse(commissionPercentController.text),
                     };
-                    _saveProduct(productData);
+                    _saveVendor(vendorData);
                   },
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(product['id'] != null ? 'Oppdater' : 'Opprett'),
+            text: vendor['id'] != null ? 'Oppdater' : 'Opprett',
+            options: FFButtonOptions(
+              width: double.infinity,
+              height: 48.0,
+              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+              iconPadding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 8.0, 0.0),
+              color: FlutterFlowTheme.of(context).primary,
+              textStyle: FlutterFlowTheme.of(context).titleSmall.override(
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                    letterSpacing: 0.0,
+                  ),
+              elevation: 0.0,
+              borderRadius: BorderRadius.circular(12.0),
+            ),
           ),
         ],
       ),
@@ -1264,6 +2246,7 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
               return SwitchListTile(
                 title: const Text('Aktiv'),
                 value: formActive,
+                activeColor: FlutterFlowTheme.of(context).primary,
                 onChanged: (value) {
                   setStateLocal(() {
                     formActive = value;
@@ -1273,7 +2256,7 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
             },
           ),
           const SizedBox(height: 24),
-          ElevatedButton(
+          FFButtonWidget(
             onPressed: _isLoading
                 ? null
                 : () {
@@ -1287,13 +2270,21 @@ class _ProductsCategoriesManagerState extends State<ProductsCategoriesManager> {
                     };
                     _saveCategory(categoryData);
                   },
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(category['id'] != null ? 'Oppdater' : 'Opprett'),
+            text: category['id'] != null ? 'Oppdater' : 'Opprett',
+            options: FFButtonOptions(
+              width: double.infinity,
+              height: 48.0,
+              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+              iconPadding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 8.0, 0.0),
+              color: FlutterFlowTheme.of(context).primary,
+              textStyle: FlutterFlowTheme.of(context).titleSmall.override(
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                    letterSpacing: 0.0,
+                  ),
+              elevation: 0.0,
+              borderRadius: BorderRadius.circular(12.0),
+            ),
           ),
         ],
       ),

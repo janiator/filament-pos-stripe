@@ -277,3 +277,5 @@ The route returns a redirect (302) by default. If called with `Accept: applicati
 - Users can access Filament panel directly after authentication until session expires
 - Multiple tabs/windows will share the same session
 
+
+

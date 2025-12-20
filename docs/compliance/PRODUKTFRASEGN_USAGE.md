@@ -159,3 +159,5 @@ Produktfråsegna støtter standard Markdown-syntaks:
 - [Produktfråsegn mal](./PRODUKTFRASEGN.md) - Standard mal for produktfråsegn
 - [Kassasystemforskriften Compliance](./KASSASYSTEMFORSKRIFTEN_COMPLIANCE.md) - Juridisk compliance
 
+
+

@@ -1,4 +1,4 @@
-# OpenAPIClient-php
+# OpenAPIClient
 
 API for managing Stripe Connect integration for POS systems.
 
@@ -25,8 +25,7 @@ Requests are automatically scoped to the authenticated user's accessible stores.
 
 ### Requirements
 
-PHP 7.4 and later.
-Should also work with PHP 8.0.
+PHP 8.1 and later.
 
 ### Composer
 
@@ -54,7 +53,7 @@ Download the files and include `autoload.php`:
 
 ```php
 <?php
-require_once('/path/to/OpenAPIClient-php/vendor/autoload.php');
+require_once('/path/to/OpenAPIClient/vendor/autoload.php');
 ```
 
 ## Getting Started
@@ -135,10 +134,13 @@ Class | Method | HTTP request | Description
 *ProductsApi* | [**getProduct**](docs/Api/ProductsApi.md#getproduct) | **GET** /products/{id} | Get product
 *ProductsApi* | [**listProducts**](docs/Api/ProductsApi.md#listproducts) | **GET** /products | List products
 *ProductsApi* | [**serveProductImage**](docs/Api/ProductsApi.md#serveproductimage) | **GET** /products/{product}/images/{media} | Serve product image
+*PurchasesApi* | [**cancelPurchase**](docs/Api/PurchasesApi.md#cancelpurchase) | **POST** /purchases/{id}/cancel | Cancel a pending purchase
+*PurchasesApi* | [**completePurchasePayment**](docs/Api/PurchasesApi.md#completepurchasepayment) | **POST** /purchases/{id}/complete-payment | Complete payment for deferred purchase
 *PurchasesApi* | [**createPurchase**](docs/Api/PurchasesApi.md#createpurchase) | **POST** /purchases | Complete purchase (single or split payment)
 *PurchasesApi* | [**getPaymentMethods**](docs/Api/PurchasesApi.md#getpaymentmethods) | **GET** /purchases/payment-methods | Get available payment methods
 *PurchasesApi* | [**getPurchase**](docs/Api/PurchasesApi.md#getpurchase) | **GET** /purchases/{id} | Get purchase
 *PurchasesApi* | [**listPurchases**](docs/Api/PurchasesApi.md#listpurchases) | **GET** /purchases | List purchases
+*PurchasesApi* | [**refundPurchase**](docs/Api/PurchasesApi.md#refundpurchase) | **POST** /purchases/{id}/refund | Refund a purchase
 *PurchasesApi* | [**updatePurchaseCustomer**](docs/Api/PurchasesApi.md#updatepurchasecustomer) | **PUT** /purchases/{id}/customer | Register or update customer for purchase
 *PurchasesApi* | [**updatePurchaseCustomerPatch**](docs/Api/PurchasesApi.md#updatepurchasecustomerpatch) | **PATCH** /purchases/{id}/customer | Register or update customer for purchase (PATCH)
 *ReceiptPrintersApi* | [**createReceiptPrinter**](docs/Api/ReceiptPrintersApi.md#createreceiptprinter) | **POST** /receipt-printers | Create receipt printer
@@ -177,6 +179,9 @@ Class | Method | HTTP request | Description
 - [BulkUpdateInventory200Response](docs/Model/BulkUpdateInventory200Response.md)
 - [BulkUpdateInventoryRequest](docs/Model/BulkUpdateInventoryRequest.md)
 - [BulkUpdateInventoryRequestUpdatesInner](docs/Model/BulkUpdateInventoryRequestUpdatesInner.md)
+- [CancelPurchase200Response](docs/Model/CancelPurchase200Response.md)
+- [CancelPurchase422Response](docs/Model/CancelPurchase422Response.md)
+- [CancelPurchaseRequest](docs/Model/CancelPurchaseRequest.md)
 - [ChangeCurrentStore200Response](docs/Model/ChangeCurrentStore200Response.md)
 - [ChangeCurrentStoreRequest](docs/Model/ChangeCurrentStoreRequest.md)
 - [CloseCashDrawer200Response](docs/Model/CloseCashDrawer200Response.md)
@@ -184,12 +189,18 @@ Class | Method | HTTP request | Description
 - [ClosePosSession200Response](docs/Model/ClosePosSession200Response.md)
 - [ClosePosSessionRequest](docs/Model/ClosePosSessionRequest.md)
 - [Collection](docs/Model/Collection.md)
+- [CompletePurchasePayment200Response](docs/Model/CompletePurchasePayment200Response.md)
+- [CompletePurchasePayment200ResponseData](docs/Model/CompletePurchasePayment200ResponseData.md)
+- [CompletePurchasePayment200ResponseDataCharge](docs/Model/CompletePurchasePayment200ResponseDataCharge.md)
+- [CompletePurchasePayment200ResponseDataPosEvent](docs/Model/CompletePurchasePayment200ResponseDataPosEvent.md)
+- [CompletePurchasePayment422Response](docs/Model/CompletePurchasePayment422Response.md)
+- [CompletePurchasePaymentRequest](docs/Model/CompletePurchasePaymentRequest.md)
 - [CreateCorrectionReceipt201Response](docs/Model/CreateCorrectionReceipt201Response.md)
 - [CreateCorrectionReceipt201ResponseEvent](docs/Model/CreateCorrectionReceipt201ResponseEvent.md)
 - [CreateCorrectionReceipt201ResponseReceipt](docs/Model/CreateCorrectionReceipt201ResponseReceipt.md)
 - [CreateCorrectionReceiptRequest](docs/Model/CreateCorrectionReceiptRequest.md)
 - [CreateCustomerRequest](docs/Model/CreateCustomerRequest.md)
-- [CreateCustomerRequestAddress](docs/Model/CreateCustomerRequestAddress.md)
+- [CreateCustomerRequestCustomerAddress](docs/Model/CreateCustomerRequestCustomerAddress.md)
 - [CreateDailyClosing201Response](docs/Model/CreateDailyClosing201Response.md)
 - [CreateDailyClosing409Response](docs/Model/CreateDailyClosing409Response.md)
 - [CreateDailyClosingRequest](docs/Model/CreateDailyClosingRequest.md)
@@ -233,6 +244,7 @@ Class | Method | HTTP request | Description
 - [GetReceipt200Response](docs/Model/GetReceipt200Response.md)
 - [GetReceiptPrinter200Response](docs/Model/GetReceiptPrinter200Response.md)
 - [ListCollections200Response](docs/Model/ListCollections200Response.md)
+- [ListCustomers200Response](docs/Model/ListCustomers200Response.md)
 - [ListPosDevices200Response](docs/Model/ListPosDevices200Response.md)
 - [ListPosEvents200Response](docs/Model/ListPosEvents200Response.md)
 - [ListPosSessions200Response](docs/Model/ListPosSessions200Response.md)
@@ -240,6 +252,7 @@ Class | Method | HTTP request | Description
 - [ListPurchases200Response](docs/Model/ListPurchases200Response.md)
 - [ListReceiptPrinters200Response](docs/Model/ListReceiptPrinters200Response.md)
 - [ListReceipts200Response](docs/Model/ListReceipts200Response.md)
+- [ListReceipts200ResponseSimpleReceiptListInner](docs/Model/ListReceipts200ResponseSimpleReceiptListInner.md)
 - [ListStores200Response](docs/Model/ListStores200Response.md)
 - [ListTerminalLocations200Response](docs/Model/ListTerminalLocations200Response.md)
 - [ListTerminalReaders200Response](docs/Model/ListTerminalReaders200Response.md)
@@ -259,7 +272,6 @@ Class | Method | HTTP request | Description
 - [OpenPosSession201Response](docs/Model/OpenPosSession201Response.md)
 - [OpenPosSession409Response](docs/Model/OpenPosSession409Response.md)
 - [OpenPosSessionRequest](docs/Model/OpenPosSessionRequest.md)
-- [PaginatedCustomers](docs/Model/PaginatedCustomers.md)
 - [PaginationMeta](docs/Model/PaginationMeta.md)
 - [PatchPosDeviceRequest](docs/Model/PatchPosDeviceRequest.md)
 - [PatchReceiptPrinterRequest](docs/Model/PatchReceiptPrinterRequest.md)
@@ -283,6 +295,7 @@ Class | Method | HTTP request | Description
 - [ProductProductPrice](docs/Model/ProductProductPrice.md)
 - [ProductVariantsInner](docs/Model/ProductVariantsInner.md)
 - [ProductVariantsInnerVariantOptionsInner](docs/Model/ProductVariantsInnerVariantOptionsInner.md)
+- [ProductVariantsInnerVariantPrice](docs/Model/ProductVariantsInnerVariantPrice.md)
 - [Purchase](docs/Model/Purchase.md)
 - [PurchaseCart](docs/Model/PurchaseCart.md)
 - [PurchaseCartDiscountsInner](docs/Model/PurchaseCartDiscountsInner.md)
@@ -301,6 +314,15 @@ Class | Method | HTTP request | Description
 - [Receipt](docs/Model/Receipt.md)
 - [ReceiptCharge](docs/Model/ReceiptCharge.md)
 - [ReceiptPrinter](docs/Model/ReceiptPrinter.md)
+- [RefundPurchase200Response](docs/Model/RefundPurchase200Response.md)
+- [RefundPurchase200ResponseData](docs/Model/RefundPurchase200ResponseData.md)
+- [RefundPurchase200ResponseDataCharge](docs/Model/RefundPurchase200ResponseDataCharge.md)
+- [RefundPurchase200ResponseDataPosEvent](docs/Model/RefundPurchase200ResponseDataPosEvent.md)
+- [RefundPurchase200ResponseDataReceipt](docs/Model/RefundPurchase200ResponseDataReceipt.md)
+- [RefundPurchase422Response](docs/Model/RefundPurchase422Response.md)
+- [RefundPurchase500Response](docs/Model/RefundPurchase500Response.md)
+- [RefundPurchaseRequest](docs/Model/RefundPurchaseRequest.md)
+- [RefundPurchaseRequestItemsInner](docs/Model/RefundPurchaseRequestItemsInner.md)
 - [RegisterPosDevice201Response](docs/Model/RegisterPosDevice201Response.md)
 - [RegisterPosDeviceRequest](docs/Model/RegisterPosDeviceRequest.md)
 - [ReprintReceipt200Response](docs/Model/ReprintReceipt200Response.md)
@@ -320,7 +342,6 @@ Class | Method | HTTP request | Description
 - [UpdatePosDevice200Response](docs/Model/UpdatePosDevice200Response.md)
 - [UpdatePosDeviceRequest](docs/Model/UpdatePosDeviceRequest.md)
 - [UpdatePurchaseCustomer200Response](docs/Model/UpdatePurchaseCustomer200Response.md)
-- [UpdatePurchaseCustomer422Response](docs/Model/UpdatePurchaseCustomer422Response.md)
 - [UpdatePurchaseCustomerRequest](docs/Model/UpdatePurchaseCustomerRequest.md)
 - [UpdateReceiptPrinter200Response](docs/Model/UpdateReceiptPrinter200Response.md)
 - [UpdateReceiptPrinterRequest](docs/Model/UpdateReceiptPrinterRequest.md)
@@ -363,5 +384,5 @@ support@visivo.no
 This PHP package is automatically generated by the [OpenAPI Generator](https://openapi-generator.tech) project:
 
 - API version: `1.0.0`
-    - Generator version: `7.7.0`
+    - Generator version: `7.17.0`
 - Build package: `org.openapitools.codegen.languages.PhpClientCodegen`

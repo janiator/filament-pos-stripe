@@ -103,11 +103,23 @@ class ConnectedProductInfolist
                             ->icon(Heroicon::OutlinedCalculator)
                             ->visible(fn ($record) => $record->tax_code),
 
+                        TextEntry::make('quantityUnit.name')
+                            ->label('Quantity Unit')
+                            ->placeholder('-')
+                            ->badge()
+                            ->color('success')
+                            ->icon(Heroicon::OutlinedScale)
+                            ->formatStateUsing(fn ($state, $record) => $record->quantityUnit
+                                ? $record->quantityUnit->name . ($record->quantityUnit->symbol ? ' (' . $record->quantityUnit->symbol . ')' : '')
+                                : 'Piece (stk)')
+                            ->visible(fn ($record) => true),
+
                         TextEntry::make('unit_label')
                             ->label('Unit Label')
                             ->placeholder('-')
                             ->badge()
                             ->color('info')
+                            ->icon(Heroicon::OutlinedTag)
                             ->visible(fn ($record) => $record->unit_label),
 
                         TextEntry::make('package_dimensions')

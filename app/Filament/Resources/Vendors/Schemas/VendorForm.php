@@ -48,6 +48,16 @@ class VendorForm
                             ->label('Active')
                             ->default(true)
                             ->helperText('Only active vendors are visible'),
+
+                        TextInput::make('commission_percent')
+                            ->label('Commission Percentage')
+                            ->numeric()
+                            ->step(0.01)
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->suffix('%')
+                            ->helperText('Commission percentage (0-100) that will be calculated on vendor sales. Used in X/Z reports.')
+                            ->columnSpanFull(),
                     ]),
 
                 Section::make('Metadata')

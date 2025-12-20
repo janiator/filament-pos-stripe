@@ -83,11 +83,13 @@ Future updateCartTotals() async {
   // Note: Prices are tax-inclusive, so we need to extract tax from the price
   for (var item in cart.cartItems) {
     // Line price = unit price * quantity (this is tax-inclusive)
-    final linePrice = item.cartItemUnitPrice * item.cartItemQuantity;
+    // Round to int since prices are in øre (smallest currency unit)
+    final linePrice = (item.cartItemUnitPrice * item.cartItemQuantity).round();
     totalLinePrice += linePrice;
     
     // Item discount = discount amount * quantity
-    final itemDiscount = (item.cartItemDiscountAmount ?? 0) * item.cartItemQuantity;
+    // Round to int since amounts are in øre
+    final itemDiscount = ((item.cartItemDiscountAmount ?? 0) * item.cartItemQuantity).round();
     totalItemDiscounts += itemDiscount;
     
     // Calculate item subtotal (after discount, still tax-inclusive)

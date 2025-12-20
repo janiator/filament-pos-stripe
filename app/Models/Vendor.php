@@ -19,11 +19,13 @@ class Vendor extends Model
         'contact_email',
         'contact_phone',
         'active',
+        'commission_percent',
         'metadata',
     ];
 
     protected $casts = [
         'active' => 'boolean',
+        'commission_percent' => 'decimal:2',
         'metadata' => 'array',
     ];
 

@@ -38,6 +38,7 @@ Name | Type | Description | Notes
 **purchase_total_discounts** | **int** | Total discount amount in øre | [optional]
 **purchase_total_tax** | **int** | Total tax amount in øre | [optional]
 **purchase_tip_amount** | **int** | Tip amount in øre | [optional]
+**purchase_note** | **string** | Optional note/comment for the purchase | [optional]
 **purchase_payments** | [**\OpenAPI\Client\Model\PurchasePurchasePaymentsInner[]**](PurchasePurchasePaymentsInner.md) | List of payments connected to this purchase (usually one payment per purchase) | [optional]
 
 [[Back to Model list]](../../README.md#models) [[Back to API list]](../../README.md#endpoints) [[Back to README]](../../README.md)
