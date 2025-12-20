@@ -312,8 +312,9 @@ class PosPurchaseInfolist
                                             continue;
                                         }
                                         $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
-                                        $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
-                                        $lineSubtotal = $unitPrice * $quantity;
+                                        $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+                                        // Calculate line totals with decimal quantities, then round to integer (øre)
+                                        $lineSubtotal = (int) round($unitPrice * $quantity);
                                         $calculatedSubtotal += $lineSubtotal;
                                     }
                                 }
@@ -361,8 +362,9 @@ class PosPurchaseInfolist
                                             continue;
                                         }
                                         $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
-                                        $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
-                                        $lineSubtotal = $unitPrice * $quantity;
+                                        $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+                                        // Calculate line totals with decimal quantities, then round to integer (øre)
+                                        $lineSubtotal = (int) round($unitPrice * $quantity);
                                         $calculatedSubtotal += $lineSubtotal;
                                     }
                                 }
