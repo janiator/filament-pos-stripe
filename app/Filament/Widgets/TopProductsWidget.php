@@ -61,12 +61,10 @@ class TopProductsWidget extends ChartWidget
                 $productId = $item['product_id'] ?? $item['stripe_product_id'] ?? null;
                 $productName = $item['name'] ?? $item['product_name'] ?? 'Unknown Product';
                 $quantity = $item['quantity'] ?? 1;
-                $price = $item['price'] ?? $item['unit_price'] ?? 0;
                 
-                // Handle price in different formats (could be in cents or decimal)
-                if ($price > 10000) {
-                    $price = $price / 100; // Convert from cents
-                }
+                // Prices in metadata are stored in øre (cents), convert to kroner
+                $unitPrice = $item['unit_price'] ?? $item['price'] ?? 0;
+                $price = $unitPrice / 100; // Convert from øre to kroner
                 
                 $lineTotal = $price * $quantity;
                 
