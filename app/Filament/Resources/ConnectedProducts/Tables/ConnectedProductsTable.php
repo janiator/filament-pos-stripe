@@ -686,6 +686,10 @@ class ConnectedProductsTable
                                                 ->orderBy('code', 'asc');
                                         }
                                     )
+                                    ->getOptionValueUsing(function ($record) {
+                                        // Return the code string instead of ID, since the relationship uses 'code' as foreign key
+                                        return $record->code;
+                                    })
                                     ->getOptionLabelFromRecordUsing(function ($record) {
                                         return $record->code . ' - ' . $record->name;
                                     })

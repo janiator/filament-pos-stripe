@@ -478,6 +478,10 @@ class ConnectedProductForm
                                                                 ->orderBy('code', 'asc');
                                                         }
                                                     )
+                                                    ->getOptionValueUsing(function ($record) {
+                                                        // Return the code string instead of ID, since the relationship uses 'code' as foreign key
+                                                        return $record->code;
+                                                    })
                                                     ->getOptionLabelFromRecordUsing(function ($record) {
                                                         return $record->code . ' - ' . $record->name;
                                                     })
@@ -485,6 +489,7 @@ class ConnectedProductForm
                                                     ->preload()
                                                     ->default(function () {
                                                         // Default to '04999' (Øvrige) for new products
+                                                        // Since we're using getOptionValueUsing to return codes, this code string will work
                                                         return '04999';
                                                     })
                                                     ->helperText('PredefinedBasicID-04: Product category for SAF-T reporting. VAT rate will be set from the selected code.')
@@ -492,6 +497,7 @@ class ConnectedProductForm
                                                     ->live(onBlur: false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         // Auto-set VAT from article group code immediately when changed
+                                                        // $state is now a code string (not ID) because of getOptionValueUsing
                                                         if ($state) {
                                                             $articleGroupCode = ArticleGroupCode::where('code', $state)->first();
                                                             if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
@@ -1369,6 +1375,10 @@ class ConnectedProductForm
                                                                 ->orderBy('code', 'asc');
                                                         }
                                                     )
+                                                    ->getOptionValueUsing(function ($record) {
+                                                        // Return the code string instead of ID, since the relationship uses 'code' as foreign key
+                                                        return $record->code;
+                                                    })
                                                     ->getOptionLabelFromRecordUsing(function ($record) {
                                                         return $record->code . ' - ' . $record->name;
                                                     })
@@ -1376,9 +1386,11 @@ class ConnectedProductForm
                                                     ->preload()
                                                     ->default(function ($record) {
                                                         // Default to '04999' (Øvrige) for new products
+                                                        // Since we're using getOptionValueUsing to return codes, this code string will work
                                                         if (!$record) {
                                                             return '04999';
                                                         }
+                                                        // $record->article_group_code is already a code string, which matches getOptionValueUsing
                                                         return $record->article_group_code;
                                                     })
                                                     ->helperText('PredefinedBasicID-04: Product category for SAF-T reporting. VAT rate will be set from the selected code.')
@@ -1386,6 +1398,7 @@ class ConnectedProductForm
                                                     ->live(onBlur: false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         // Auto-set VAT from article group code immediately when changed
+                                                        // $state is now a code string (not ID) because of getOptionValueUsing
                                                         if ($state) {
                                                             $articleGroupCode = ArticleGroupCode::where('code', $state)->first();
                                                             if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
