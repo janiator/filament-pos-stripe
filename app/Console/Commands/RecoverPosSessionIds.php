@@ -116,16 +116,18 @@ class RecoverPosSessionIds extends Command
             }
 
             // Method 3: Try to match by date/time and stripe_account_id
-            if (!$sessionId && $fromSessions && $charge->paid_at) {
+            // Use paid_at if available, otherwise fall back to created_at (for deferred payments)
+            $matchDate = $charge->paid_at ?? $charge->created_at;
+            if (!$sessionId && $fromSessions && $matchDate) {
                 // Find store by stripe_account_id
                 $store = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
                 
                 if ($store) {
                     $session = PosSession::where('store_id', $store->id)
-                        ->where('opened_at', '<=', $charge->paid_at)
-                        ->where(function ($query) use ($charge) {
+                        ->where('opened_at', '<=', $matchDate)
+                        ->where(function ($query) use ($matchDate) {
                             $query->whereNull('closed_at')
-                                ->orWhere('closed_at', '>=', $charge->paid_at);
+                                ->orWhere('closed_at', '>=', $matchDate);
                         })
                         ->orderBy('opened_at', 'desc')
                         ->first();
@@ -135,7 +137,8 @@ class RecoverPosSessionIds extends Command
 
                 if ($session) {
                     $sessionId = $session->id;
-                    $this->line("Charge {$charge->id}: Matched to session {$sessionId} by date/time");
+                    $dateType = $charge->paid_at ? 'paid_at' : 'created_at';
+                    $this->line("Charge {$charge->id}: Matched to session {$sessionId} by date/time (using {$dateType})");
                 }
             }
 
@@ -154,9 +157,10 @@ class RecoverPosSessionIds extends Command
             } else {
                 // Determine why recovery failed and output immediately
                 $reason = 'unknown reason';
+                $matchDate = $charge->paid_at ?? $charge->created_at;
                 
-                if (!$charge->paid_at) {
-                    $reason = 'no paid_at date';
+                if (!$matchDate) {
+                    $reason = 'no paid_at or created_at date';
                 } elseif (!$fromSessions) {
                     $reason = 'date/time matching disabled';
                 } else {
@@ -176,12 +180,15 @@ class RecoverPosSessionIds extends Command
                                 ->orderBy('closed_at', 'desc')
                                 ->first();
                             
-                            if ($earliestSession && $charge->paid_at < $earliestSession->opened_at) {
-                                $reason = 'charge date (' . $charge->paid_at->format('Y-m-d H:i:s') . ') before earliest session (' . $earliestSession->opened_at->format('Y-m-d H:i:s') . ')';
-                            } elseif ($latestSession && $charge->paid_at > $latestSession->closed_at) {
-                                $reason = 'charge date (' . $charge->paid_at->format('Y-m-d H:i:s') . ') after latest closed session (' . $latestSession->closed_at->format('Y-m-d H:i:s') . ')';
+                            if ($earliestSession && $matchDate < $earliestSession->opened_at) {
+                                $dateType = $charge->paid_at ? 'paid_at' : 'created_at';
+                                $reason = 'charge date (' . $matchDate->format('Y-m-d H:i:s') . ' from ' . $dateType . ') before earliest session (' . $earliestSession->opened_at->format('Y-m-d H:i:s') . ')';
+                            } elseif ($latestSession && $matchDate > $latestSession->closed_at) {
+                                $dateType = $charge->paid_at ? 'paid_at' : 'created_at';
+                                $reason = 'charge date (' . $matchDate->format('Y-m-d H:i:s') . ' from ' . $dateType . ') after latest closed session (' . $latestSession->closed_at->format('Y-m-d H:i:s') . ')';
                             } else {
-                                $reason = 'no matching session found (date ' . $charge->paid_at->format('Y-m-d H:i:s') . ' falls between sessions)';
+                                $dateType = $charge->paid_at ? 'paid_at' : 'created_at';
+                                $reason = 'no matching session found (date ' . $matchDate->format('Y-m-d H:i:s') . ' from ' . $dateType . ' falls between sessions)';
                             }
                         }
                     } else {
@@ -190,9 +197,10 @@ class RecoverPosSessionIds extends Command
                 }
                 
                 $paidAtStr = $charge->paid_at ? $charge->paid_at->format('Y-m-d H:i:s') : 'N/A';
+                $createdAtStr = $charge->created_at ? $charge->created_at->format('Y-m-d H:i:s') : 'N/A';
                 $amountStr = $charge->amount ? number_format($charge->amount / 100, 2) . ' NOK' : 'N/A';
                 
-                $this->warn("Charge {$charge->id}: Could not recover session ID - {$reason} (Paid: {$paidAtStr}, Amount: {$amountStr})");
+                $this->warn("Charge {$charge->id}: Could not recover session ID - {$reason} (Paid: {$paidAtStr}, Created: {$createdAtStr}, Amount: {$amountStr})");
                 $failed++;
             }
         }
