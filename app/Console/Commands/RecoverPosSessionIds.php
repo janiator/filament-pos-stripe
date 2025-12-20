@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\ConnectedCharge;
+use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\Receipt;
 use Illuminate\Console\Command;
@@ -17,6 +18,7 @@ class RecoverPosSessionIds extends Command
     protected $signature = 'pos:recover-session-ids 
                             {--dry-run : Show what would be updated without actually updating}
                             {--from-receipts : Try to recover from receipts table}
+                            {--from-events : Try to recover from pos_events table}
                             {--from-sessions : Try to match by date/time and stripe_account_id}
                             {--store= : Filter by store ID or slug (e.g., --store=1 or --store=my-store)}';
 
@@ -34,12 +36,14 @@ class RecoverPosSessionIds extends Command
     {
         $dryRun = $this->option('dry-run');
         $fromReceipts = $this->option('from-receipts');
+        $fromEvents = $this->option('from-events');
         $fromSessions = $this->option('from-sessions');
         $storeFilter = $this->option('store');
 
-        // If no specific method specified, try both
-        if (!$fromReceipts && !$fromSessions) {
+        // If no specific method specified, try all
+        if (!$fromReceipts && !$fromEvents && !$fromSessions) {
             $fromReceipts = true;
+            $fromEvents = true;
             $fromSessions = true;
         }
 
@@ -83,6 +87,7 @@ class RecoverPosSessionIds extends Command
 
         $recovered = 0;
         $failed = 0;
+        $failedCharges = [];
 
         foreach ($chargesWithoutSession as $charge) {
             $sessionId = null;
@@ -99,7 +104,19 @@ class RecoverPosSessionIds extends Command
                 }
             }
 
-            // Method 2: Try to match by date/time and stripe_account_id
+            // Method 2: Try to recover from pos_events
+            if (!$sessionId && $fromEvents) {
+                $event = PosEvent::where('related_charge_id', $charge->id)
+                    ->whereNotNull('pos_session_id')
+                    ->first();
+
+                if ($event) {
+                    $sessionId = $event->pos_session_id;
+                    $this->line("Charge {$charge->id}: Found session {$sessionId} from event {$event->id} (code: {$event->event_code})");
+                }
+            }
+
+            // Method 3: Try to match by date/time and stripe_account_id
             if (!$sessionId && $fromSessions && $charge->paid_at) {
                 // Find store by stripe_account_id
                 $store = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
@@ -136,7 +153,19 @@ class RecoverPosSessionIds extends Command
                 }
                 $recovered++;
             } else {
-                $this->warn("Charge {$charge->id}: Could not recover session ID");
+                $reason = [];
+                if (!$charge->paid_at) {
+                    $reason[] = 'no paid_at date';
+                } else {
+                    $reason[] = 'no matching session found';
+                }
+                $failedCharges[] = [
+                    'id' => $charge->id,
+                    'paid_at' => $charge->paid_at?->format('Y-m-d H:i:s'),
+                    'amount' => $charge->amount,
+                    'reason' => implode(', ', $reason),
+                ];
+                $this->warn("Charge {$charge->id}: Could not recover session ID" . ($charge->paid_at ? '' : ' (no paid_at date)'));
                 $failed++;
             }
         }
@@ -146,7 +175,19 @@ class RecoverPosSessionIds extends Command
         $this->info("Recovered: {$recovered}");
         $this->info("Failed: {$failed}");
 
+        if ($failed > 0 && count($failedCharges) > 0) {
+            $this->newLine();
+            $this->warn("Failed charges (showing first 10):");
+            foreach (array_slice($failedCharges, 0, 10) as $failedCharge) {
+                $this->line("  Charge ID: {$failedCharge['id']}, Paid: {$failedCharge['paid_at']}, Amount: " . ($failedCharge['amount'] / 100) . " NOK, Reason: {$failedCharge['reason']}");
+            }
+            if (count($failedCharges) > 10) {
+                $this->line("  ... and " . (count($failedCharges) - 10) . " more");
+            }
+        }
+
         if ($dryRun) {
+            $this->newLine();
             $this->warn("This was a dry run. Run without --dry-run to apply changes.");
         }
 
