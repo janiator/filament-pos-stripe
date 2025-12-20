@@ -29,8 +29,6 @@ Route::get('/collections/{collectionId}/image', [\App\Http\Controllers\Api\Colle
 Route::get('/saf-t/download/{filename}', [\App\Http\Controllers\Api\SafTController::class, 'download'])
     ->name('api.saf-t.download');
 
-//Route::post('/pos-sessions/open', [PosSessionsController::class, 'openPublicForJobberiet'])
-//    ->name('api.pos-sessions.open');//remove later
 
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
