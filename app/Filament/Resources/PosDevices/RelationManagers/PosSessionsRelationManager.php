@@ -185,6 +185,82 @@ class PosSessionsRelationManager extends RelationManager
                                 ->send();
                         }
                     }),
+                Action::make('edit_balances')
+                    ->label('Edit Balances')
+                    ->icon('heroicon-o-pencil-square')
+                    ->color('warning')
+                    ->modalHeading('Edit Session Balances')
+                    ->modalDescription('Edit opening balance and actual cash. This will regenerate the Z-report.')
+                    ->form([
+                        Forms\Components\TextInput::make('opening_balance')
+                            ->label('Opening Balance')
+                            ->numeric()
+                            ->suffix('kr')
+                            ->step(0.01)
+                            ->default(fn (PosSession $record) => $record->opening_balance / 100)
+                            ->required()
+                            ->helperText('Opening cash balance in NOK'),
+                        Forms\Components\TextInput::make('actual_cash')
+                            ->label('Actual Cash')
+                            ->numeric()
+                            ->suffix('kr')
+                            ->step(0.01)
+                            ->default(fn (PosSession $record) => $record->actual_cash ? $record->actual_cash / 100 : null)
+                            ->nullable()
+                            ->helperText('Actual cash counted at closing in NOK'),
+                    ])
+                    ->visible(function (PosSession $record): bool {
+                        // Only show for closed sessions and super admins
+                        if ($record->status !== 'closed') {
+                            return false;
+                        }
+                        
+                        $user = auth()->user();
+                        if (!$user) {
+                            return false;
+                        }
+                        
+                        // Check if user is super admin
+                        $tenant = \Filament\Facades\Filament::getTenant();
+                        return $tenant 
+                            ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
+                            : $user->hasRole('super_admin');
+                    })
+                    ->action(function (PosSession $record, array $data): void {
+                        // Convert from NOK to øre (multiply by 100)
+                        $openingBalance = (int) round((float) $data['opening_balance'] * 100);
+                        $actualCash = isset($data['actual_cash']) && $data['actual_cash'] !== '' && $data['actual_cash'] !== null
+                            ? (int) round((float) $data['actual_cash'] * 100)
+                            : null;
+                        
+                        // Update the session
+                        $record->opening_balance = $openingBalance;
+                        $record->actual_cash = $actualCash;
+                        
+                        // Recalculate expected cash and cash difference
+                        $record->expected_cash = $record->calculateExpectedCash();
+                        $record->cash_difference = $actualCash !== null ? ($actualCash - $record->expected_cash) : null;
+                        
+                        // Save the session
+                        $record->save();
+                        
+                        // Regenerate Z-report (this will update closing_data)
+                        // Clear existing closing_data to force regeneration
+                        $record->closing_data = null;
+                        $record->saveQuietly();
+                        
+                        // Generate new Z-report
+                        PosSessionsTable::generateZReport($record);
+                        
+                        Notification::make()
+                            ->title('Balances updated')
+                            ->success()
+                            ->body("Session {$record->session_number} balances have been updated and Z-report regenerated.")
+                            ->send();
+                    })
+                    ->requiresConfirmation()
+                    ->modalSubmitActionLabel('Update & Regenerate Report')
+                    ->modalCancelActionLabel('Cancel'),
             ]);
     }
 }
