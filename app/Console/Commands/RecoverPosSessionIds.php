@@ -17,7 +17,8 @@ class RecoverPosSessionIds extends Command
     protected $signature = 'pos:recover-session-ids 
                             {--dry-run : Show what would be updated without actually updating}
                             {--from-receipts : Try to recover from receipts table}
-                            {--from-sessions : Try to match by date/time and stripe_account_id}';
+                            {--from-sessions : Try to match by date/time and stripe_account_id}
+                            {--store= : Filter by store ID or slug (e.g., --store=1 or --store=my-store)}';
 
     /**
      * The console command description.
@@ -34,6 +35,7 @@ class RecoverPosSessionIds extends Command
         $dryRun = $this->option('dry-run');
         $fromReceipts = $this->option('from-receipts');
         $fromSessions = $this->option('from-sessions');
+        $storeFilter = $this->option('store');
 
         // If no specific method specified, try both
         if (!$fromReceipts && !$fromSessions) {
@@ -41,12 +43,40 @@ class RecoverPosSessionIds extends Command
             $fromSessions = true;
         }
 
+        // Resolve store if filter provided
+        $store = null;
+        if ($storeFilter) {
+            $store = \App\Models\Store::where('id', $storeFilter)
+                ->orWhere('slug', $storeFilter)
+                ->first();
+
+            if (!$store) {
+                $this->error("Store not found: {$storeFilter}");
+                $this->newLine();
+                $this->info("Available stores:");
+                $stores = \App\Models\Store::select('id', 'name', 'slug')->get();
+                foreach ($stores as $s) {
+                    $this->line("  ID: {$s->id}, Slug: {$s->slug}, Name: {$s->name}");
+                }
+                return Command::FAILURE;
+            }
+
+            $this->info("Filtering by store: {$store->name} (ID: {$store->id}, Slug: {$store->slug})");
+            $this->newLine();
+        }
+
         $this->info('Recovering pos_session_id for charges...');
         $this->newLine();
 
-        $chargesWithoutSession = ConnectedCharge::whereNull('pos_session_id')
-            ->whereNotNull('stripe_account_id')
-            ->get();
+        $chargesQuery = ConnectedCharge::whereNull('pos_session_id')
+            ->whereNotNull('stripe_account_id');
+
+        // Filter by store if specified
+        if ($store) {
+            $chargesQuery->where('stripe_account_id', $store->stripe_account_id);
+        }
+
+        $chargesWithoutSession = $chargesQuery->get();
 
         $this->info("Found {$chargesWithoutSession->count()} charges without pos_session_id");
         $this->newLine();
