@@ -153,16 +153,46 @@ class RecoverPosSessionIds extends Command
                 }
                 $recovered++;
             } else {
+                // Determine why recovery failed
                 $reason = [];
                 if (!$charge->paid_at) {
                     $reason[] = 'no paid_at date';
+                } elseif (!$fromSessions) {
+                    $reason[] = 'date/time matching disabled';
                 } else {
-                    $reason[] = 'no matching session found';
+                    // Check if there are any sessions at all for this store
+                    $store = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
+                    if ($store) {
+                        $sessionCount = PosSession::where('store_id', $store->id)->count();
+                        if ($sessionCount === 0) {
+                            $reason[] = 'no sessions exist for this store';
+                        } else {
+                            // Check if charge date is outside all session windows
+                            $earliestSession = PosSession::where('store_id', $store->id)
+                                ->orderBy('opened_at', 'asc')
+                                ->first();
+                            $latestSession = PosSession::where('store_id', $store->id)
+                                ->whereNotNull('closed_at')
+                                ->orderBy('closed_at', 'desc')
+                                ->first();
+                            
+                            if ($earliestSession && $charge->paid_at < $earliestSession->opened_at) {
+                                $reason[] = 'charge date before earliest session';
+                            } elseif ($latestSession && $charge->paid_at > $latestSession->closed_at) {
+                                $reason[] = 'charge date after latest closed session';
+                            } else {
+                                $reason[] = 'no matching session found (date falls between sessions)';
+                            }
+                        }
+                    } else {
+                        $reason[] = 'store not found';
+                    }
                 }
+                
                 $failedCharges[] = [
                     'id' => $charge->id,
-                    'paid_at' => $charge->paid_at?->format('Y-m-d H:i:s'),
-                    'amount' => $charge->amount,
+                    'paid_at' => $charge->paid_at?->format('Y-m-d H:i:s') ?? 'N/A',
+                    'amount' => $charge->amount ? ($charge->amount / 100) . ' NOK' : 'N/A',
                     'reason' => implode(', ', $reason),
                 ];
                 $this->warn("Charge {$charge->id}: Could not recover session ID" . ($charge->paid_at ? '' : ' (no paid_at date)'));
@@ -177,18 +207,16 @@ class RecoverPosSessionIds extends Command
 
         if ($failed > 0) {
             $this->newLine();
+            $this->warn("Failed charges (showing first 10):");
             if (count($failedCharges) > 0) {
-                $this->warn("Failed charges (showing first 10):");
                 foreach (array_slice($failedCharges, 0, 10) as $failedCharge) {
-                    $paidAt = $failedCharge['paid_at'] ?? 'N/A';
-                    $amount = $failedCharge['amount'] ? ($failedCharge['amount'] / 100) . ' NOK' : 'N/A';
-                    $this->line("  Charge ID: {$failedCharge['id']}, Paid: {$paidAt}, Amount: {$amount}, Reason: {$failedCharge['reason']}");
+                    $this->line("  Charge ID: {$failedCharge['id']}, Paid: {$failedCharge['paid_at']}, Amount: {$failedCharge['amount']}, Reason: {$failedCharge['reason']}");
                 }
                 if (count($failedCharges) > 10) {
                     $this->line("  ... and " . (count($failedCharges) - 10) . " more");
                 }
             } else {
-                $this->warn("Note: Failed charges details not available.");
+                $this->line("  (Details not available - this shouldn't happen)");
             }
         }
 
