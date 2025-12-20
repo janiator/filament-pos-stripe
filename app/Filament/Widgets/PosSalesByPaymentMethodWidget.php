@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Widgets\Concerns\HasDashboardDateRange;
 use App\Models\ConnectedCharge;
 use Filament\Facades\Filament;
 use Filament\Widgets\ChartWidget;
@@ -9,7 +10,7 @@ use Illuminate\Support\Carbon;
 
 class PosSalesByPaymentMethodWidget extends ChartWidget
 {
-    protected ?string $heading = 'Sales by Payment Method (Last 7 Days)';
+    use HasDashboardDateRange;
 
     protected static ?int $sort = 2;
 
@@ -20,6 +21,11 @@ class PosSalesByPaymentMethodWidget extends ChartWidget
         'lg' => 4,
         'xl' => 4,
     ];
+
+    public function getHeading(): string
+    {
+        return "Sales by Payment Method";
+    }
 
     protected function getData(): array
     {
@@ -32,9 +38,10 @@ class PosSalesByPaymentMethodWidget extends ChartWidget
             ];
         }
 
-        // Get data for the last 7 days
-        $startDate = Carbon::now()->subDays(7)->startOfDay();
-        $endDate = Carbon::now()->endOfDay();
+        // Get date range from dashboard
+        $dateRange = $this->getDateRange();
+        $startDate = $dateRange['start'];
+        $endDate = $dateRange['end'];
 
         // Get all POS charges for the period
         $charges = ConnectedCharge::where('stripe_account_id', $store->stripe_account_id)
@@ -92,6 +99,7 @@ class PosSalesByPaymentMethodWidget extends ChartWidget
                 ],
             ],
             'labels' => $labels,
+            'transactionCounts' => $counts, // Store at chart data level
         ];
     }
 
@@ -106,17 +114,6 @@ class PosSalesByPaymentMethodWidget extends ChartWidget
             'plugins' => [
                 'legend' => [
                     'position' => 'bottom',
-                ],
-                'tooltip' => [
-                    'callbacks' => [
-                        'label' => 'function(context) {
-                            const label = context.label || "";
-                            const value = context.parsed || 0;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            return label + ": " + value.toLocaleString("nb-NO") + " kr (" + percentage + "%)";
-                        }',
-                    ],
                 ],
             ],
         ];

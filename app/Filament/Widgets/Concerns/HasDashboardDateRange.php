@@ -1,61 +1,17 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Widgets\Concerns;
 
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
-use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
-use Filament\Pages\Dashboard as BaseDashboard;
-use Filament\Schemas\Schema;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Support\Carbon;
 
-class Dashboard extends BaseDashboard
+trait HasDashboardDateRange
 {
-    use HasFiltersForm;
+    use InteractsWithPageFilters;
 
-    public function filtersForm(Schema $schema): Schema
+    protected function getDateRange(): array
     {
-        return $schema
-            ->components([
-                Select::make('dateRange')
-                    ->label('Time Range')
-                    ->options([
-                        'today' => 'Today',
-                        'yesterday' => 'Yesterday',
-                        '7d' => 'Last 7 Days',
-                        '30d' => 'Last 30 Days',
-                        '90d' => 'Last 90 Days',
-                        'this_month' => 'This Month',
-                        'last_month' => 'Last Month',
-                        'this_year' => 'This Year',
-                        'custom' => 'Custom Range',
-                    ])
-                    ->default('7d')
-                    ->live()
-                    ->afterStateUpdated(function ($state, callable $set) {
-                        if ($state !== 'custom') {
-                            $set('startDate', null);
-                            $set('endDate', null);
-                        }
-                    }),
-                DatePicker::make('startDate')
-                    ->label('Start Date')
-                    ->visible(fn ($get) => $get('dateRange') === 'custom')
-                    ->live(),
-                DatePicker::make('endDate')
-                    ->label('End Date')
-                    ->visible(fn ($get) => $get('dateRange') === 'custom')
-                    ->live()
-                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
-                        if ($state && !$get('startDate')) {
-                            $set('startDate', Carbon::parse($state)->subDays(7)->format('Y-m-d'));
-                        }
-                    }),
-            ]);
-    }
-
-    public function getDateRange(): array
-    {
+        // Get date range from page filters
         $filters = $this->pageFilters ?? [];
         $dateRange = $filters['dateRange'] ?? '7d';
         
@@ -115,15 +71,16 @@ class Dashboard extends BaseDashboard
         };
     }
 
-    public function getColumns(): int | array
+    protected function getStartDate(): Carbon
     {
-        return [
-            'default' => 1,
-            'sm' => 1,
-            'md' => 1,
-            'lg' => 12,
-            'xl' => 12,
-            '2xl' => 12,
-        ];
+        $range = $this->getDateRange();
+        return $range['start'];
+    }
+
+    protected function getEndDate(): Carbon
+    {
+        $range = $this->getDateRange();
+        return $range['end'];
     }
 }
+

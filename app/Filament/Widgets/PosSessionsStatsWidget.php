@@ -2,7 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\PosSession;
+use App\Filament\Widgets\Concerns\HasDashboardDateRange;
+use App\Models\ConnectedCharge;
 use Filament\Facades\Filament;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -10,6 +11,8 @@ use Illuminate\Support\Carbon;
 
 class PosSessionsStatsWidget extends BaseWidget
 {
+    use HasDashboardDateRange;
+
     protected ?string $heading = 'POS Sessions Statistics';
 
     protected static ?int $sort = 5;
@@ -24,80 +27,58 @@ class PosSessionsStatsWidget extends BaseWidget
             return [];
         }
 
-        // Get data for today
-        $todayStart = Carbon::today();
-        $todayEnd = Carbon::today()->endOfDay();
+        // Get date range from dashboard
+        $dateRange = $this->getDateRange();
+        $startDate = $dateRange['start'];
+        $endDate = $dateRange['end'];
 
-        // Get today's sessions
-        $todaySessions = PosSession::where('store_id', $store->id)
-            ->whereBetween('opened_at', [$todayStart, $todayEnd])
+        // Get all POS charges for the period
+        $charges = ConnectedCharge::where('stripe_account_id', $store->stripe_account_id)
+            ->whereNotNull('pos_session_id')
+            ->where('status', 'succeeded')
+            ->whereBetween('paid_at', [$startDate, $endDate])
             ->get();
 
-        $todayOpen = $todaySessions->where('status', 'open')->count();
-        $todayClosed = $todaySessions->where('status', 'closed')->count();
-        $todayTotal = $todaySessions->count();
+        // Calculate total sales
+        $totalSales = $charges->sum('amount') / 100; // Convert to currency units
 
-        // Get all open sessions
-        $allOpenSessions = PosSession::where('store_id', $store->id)
-            ->where('status', 'open')
-            ->get();
-
-        $totalOpen = $allOpenSessions->count();
-
-        // Calculate average session duration for closed sessions today
-        $closedSessions = $todaySessions->where('status', 'closed')
-            ->filter(function ($session) {
-                return $session->opened_at && $session->closed_at;
-            });
-
-        $avgDuration = 0;
-        if ($closedSessions->count() > 0) {
-            $totalMinutes = $closedSessions->sum(function ($session) {
-                return $session->opened_at->diffInMinutes($session->closed_at);
-            });
-            $avgDuration = round($totalMinutes / $closedSessions->count());
+        // Calculate number of days in the period
+        // Count actual days by iterating through them (more accurate than diffInDays)
+        $daysDiff = 0;
+        $currentDate = $startDate->copy();
+        while ($currentDate->lte($endDate)) {
+            $daysDiff++;
+            $currentDate->addDay();
         }
 
-        // Calculate total sales from today's closed sessions
-        $todaySales = $todaySessions->where('status', 'closed')
-            ->sum('total_amount') / 100; // Convert to currency units
-
-        // Calculate average sales per closed session
-        $avgSalesPerSession = $closedSessions->count() > 0
-            ? round($todaySales / $closedSessions->count(), 2)
+        // Calculate average sales per day
+        $avgSalesPerDay = $daysDiff > 0
+            ? round($totalSales / $daysDiff, 2)
             : 0;
 
-        // Calculate daily session count for chart (last 7 days)
-        $dailySessions = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i)->startOfDay();
-            $daySessions = PosSession::where('store_id', $store->id)
-                ->whereDate('opened_at', $date)
-                ->count();
-            $dailySessions[] = $daySessions;
+        // Calculate daily sales for chart
+        $dailySales = [];
+        $currentDate = $startDate->copy();
+        while ($currentDate->lte($endDate)) {
+            $dayStart = $currentDate->copy()->startOfDay();
+            $dayEnd = $currentDate->copy()->endOfDay();
+            
+            $dayCharges = $charges->filter(function ($charge) use ($dayStart, $dayEnd) {
+                return $charge->paid_at && 
+                       $charge->paid_at->gte($dayStart) && 
+                       $charge->paid_at->lte($dayEnd);
+            });
+            
+            $dailySales[] = $dayCharges->sum('amount') / 100; // Convert to currency units
+            
+            $currentDate->addDay();
         }
 
         return [
-            Stat::make('Open Sessions Today', $todayOpen)
-                ->description($totalOpen . ' total open sessions')
-                ->descriptionIcon('heroicon-m-clock')
-                ->chart($dailySessions)
-                ->color($todayOpen > 0 ? 'warning' : 'success'),
-
-            Stat::make('Closed Sessions Today', $todayClosed)
-                ->description($todayTotal . ' total sessions today')
-                ->descriptionIcon('heroicon-m-check-circle')
-                ->chart($dailySessions)
-                ->color('success'),
-
-            Stat::make('Average Session Duration', $avgDuration > 0 ? $avgDuration . ' min' : 'N/A')
-                ->description('Average for closed sessions today')
-                ->descriptionIcon('heroicon-m-clock')
-                ->color('info'),
-
-            Stat::make('Average Sales per Session', $avgSalesPerSession > 0 ? number_format($avgSalesPerSession, 2) . ' kr' : 'N/A')
-                ->description('Based on closed sessions today')
+            Stat::make('Average Sales per Day', number_format($avgSalesPerDay, 2) . ' kr')
+                ->description('Based on selected period (' . $daysDiff . ' days)')
                 ->descriptionIcon('heroicon-m-currency-dollar')
+                ->chart($dailySales)
                 ->color('success'),
         ];
     }

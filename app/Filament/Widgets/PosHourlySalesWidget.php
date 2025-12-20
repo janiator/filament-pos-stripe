@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Widgets\Concerns\HasDashboardDateRange;
 use App\Models\ConnectedCharge;
 use Filament\Facades\Filament;
 use Filament\Widgets\ChartWidget;
@@ -9,7 +10,7 @@ use Illuminate\Support\Carbon;
 
 class PosHourlySalesWidget extends ChartWidget
 {
-    protected ?string $heading = 'Hourly Sales Distribution (Last 7 Days)';
+    use HasDashboardDateRange;
 
     protected static ?int $sort = 4;
 
@@ -20,6 +21,11 @@ class PosHourlySalesWidget extends ChartWidget
         'lg' => 4,
         'xl' => 4,
     ];
+
+    public function getHeading(): string
+    {
+        return "Hourly Sales Distribution";
+    }
 
     protected function getData(): array
     {
@@ -32,9 +38,10 @@ class PosHourlySalesWidget extends ChartWidget
             ];
         }
 
-        // Get data for the last 7 days
-        $startDate = Carbon::now()->subDays(7)->startOfDay();
-        $endDate = Carbon::now()->endOfDay();
+        // Get date range from dashboard
+        $dateRange = $this->getDateRange();
+        $startDate = $dateRange['start'];
+        $endDate = $dateRange['end'];
 
         // Get all POS charges for the period
         $charges = ConnectedCharge::where('stripe_account_id', $store->stripe_account_id)
@@ -81,11 +88,6 @@ class PosHourlySalesWidget extends ChartWidget
             'scales' => [
                 'y' => [
                     'beginAtZero' => true,
-                    'ticks' => [
-                        'callback' => 'function(value) {
-                            return value.toLocaleString("nb-NO") + " kr";
-                        }',
-                    ],
                 ],
                 'x' => [
                     'ticks' => [
@@ -97,13 +99,6 @@ class PosHourlySalesWidget extends ChartWidget
             'plugins' => [
                 'legend' => [
                     'display' => false,
-                ],
-                'tooltip' => [
-                    'callbacks' => [
-                        'label' => 'function(context) {
-                            return "Sales: " + context.parsed.y.toLocaleString("nb-NO") + " kr";
-                        }',
-                    ],
                 ],
             ],
         ];

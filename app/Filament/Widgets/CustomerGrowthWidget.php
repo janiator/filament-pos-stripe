@@ -3,16 +3,16 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Widgets\Concerns\HasDashboardDateRange;
-use App\Models\ConnectedCharge;
+use App\Models\ConnectedCustomer;
 use Filament\Facades\Filament;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 
-class PosDailySalesTrendWidget extends ChartWidget
+class CustomerGrowthWidget extends ChartWidget
 {
     use HasDashboardDateRange;
 
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 8;
 
     protected int | string | array $columnSpan = [
         'default' => 'full',
@@ -24,7 +24,7 @@ class PosDailySalesTrendWidget extends ChartWidget
 
     public function getHeading(): string
     {
-        return "Daily Sales Trend";
+        return "Customer Growth";
     }
 
     protected function getData(): array
@@ -38,34 +38,37 @@ class PosDailySalesTrendWidget extends ChartWidget
             ];
         }
 
-        // Get date range from dashboard
         $dateRange = $this->getDateRange();
         $startDate = $dateRange['start'];
         $endDate = $dateRange['end'];
 
-        // Get all POS charges for the period
-        $charges = ConnectedCharge::where('stripe_account_id', $store->stripe_account_id)
-            ->whereNotNull('pos_session_id')
-            ->where('status', 'succeeded')
-            ->whereBetween('paid_at', [$startDate, $endDate])
+        // Get customers created in the period, grouped by day
+        $customers = ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
 
         // Group by day
         $dailyData = [];
         $labels = [];
+        $cumulativeData = [];
+        $totalSoFar = 0;
         
         $currentDate = $startDate->copy();
         while ($currentDate->lte($endDate)) {
             $dayStart = $currentDate->copy()->startOfDay();
             $dayEnd = $currentDate->copy()->endOfDay();
             
-            $dayCharges = $charges->filter(function ($charge) use ($dayStart, $dayEnd) {
-                return $charge->paid_at && 
-                       $charge->paid_at->gte($dayStart) && 
-                       $charge->paid_at->lte($dayEnd);
+            $dayCustomers = $customers->filter(function ($customer) use ($dayStart, $dayEnd) {
+                return $customer->created_at && 
+                       $customer->created_at->gte($dayStart) && 
+                       $customer->created_at->lte($dayEnd);
             });
             
-            $dailyData[] = $dayCharges->sum('amount') / 100; // Convert to currency units
+            $dayCount = $dayCustomers->count();
+            $totalSoFar += $dayCount;
+            
+            $dailyData[] = $dayCount;
+            $cumulativeData[] = $totalSoFar;
             $labels[] = $currentDate->format('M d');
             
             $currentDate->addDay();
@@ -74,12 +77,21 @@ class PosDailySalesTrendWidget extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Sales (kr)',
+                    'label' => 'New Customers',
                     'data' => $dailyData,
                     'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
                     'borderColor' => 'rgb(59, 130, 246)',
                     'borderWidth' => 2,
                     'fill' => true,
+                    'tension' => 0.4,
+                ],
+                [
+                    'label' => 'Cumulative Total',
+                    'data' => $cumulativeData,
+                    'backgroundColor' => 'rgba(34, 197, 94, 0.1)',
+                    'borderColor' => 'rgb(34, 197, 94)',
+                    'borderWidth' => 2,
+                    'fill' => false,
                     'tension' => 0.4,
                 ],
             ],
@@ -98,13 +110,18 @@ class PosDailySalesTrendWidget extends ChartWidget
             'scales' => [
                 'y' => [
                     'beginAtZero' => true,
+                    'ticks' => [
+                        'stepSize' => 1,
+                    ],
                 ],
             ],
             'plugins' => [
                 'legend' => [
-                    'display' => false,
+                    'display' => true,
+                    'position' => 'top',
                 ],
             ],
         ];
     }
 }
+
