@@ -158,3 +158,5 @@ Future addItemToCart(
   await updateCartTotals();
 }
 
+
+

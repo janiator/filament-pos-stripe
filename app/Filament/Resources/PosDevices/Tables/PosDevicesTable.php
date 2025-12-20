@@ -13,6 +13,7 @@ class PosDevicesTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->withCount(['posSessions' => fn ($query) => $query->where('status', 'open')]))
             ->columns([
                 TextColumn::make('device_name')
                     ->label('Device Name')
@@ -67,6 +68,12 @@ class PosDevicesTable
                     ->counts('terminalLocations')
                     ->badge()
                     ->color('info')
+                    ->sortable(),
+                
+                TextColumn::make('pos_sessions_count')
+                    ->label('Open Sessions')
+                    ->badge()
+                    ->color(fn ($state): string => $state > 0 ? 'success' : 'gray')
                     ->sortable(),
                 
                 TextColumn::make('device_identifier')

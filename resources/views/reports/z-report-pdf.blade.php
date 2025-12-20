@@ -260,7 +260,7 @@
                     <th class="text-center">Antall</th>
                     <th class="text-right">Reduksjon</th>
                 </tr>
-                @if(isset($report['line_corrections']['by_type']) && $report['line_corrections']['by_type']->count() > 0)
+                @if(isset($report['line_corrections']['by_type']) && count($report['line_corrections']['by_type']) > 0)
                     @foreach($report['line_corrections']['by_type'] as $correction)
                         <tr>
                             <td>{{ ucfirst($correction['type']) }}</td>
@@ -300,7 +300,7 @@
         </div>
     @endif
 
-    @if(isset($report['sales_by_vendor']) && $report['sales_by_vendor']->count() > 0)
+    @if(isset($report['sales_by_vendor']) && count($report['sales_by_vendor']) > 0)
         <div class="section">
             <div class="section-title">Salg per Leverandør</div>
             <table>
@@ -333,7 +333,7 @@
         </div>
     @endif
 
-    @if(isset($report['event_summary']) && $report['event_summary']->count() > 0)
+    @if(isset($report['event_summary']) && count($report['event_summary']) > 0)
         <div class="section">
             <div class="section-title">Hendelsessammendrag</div>
             <table>

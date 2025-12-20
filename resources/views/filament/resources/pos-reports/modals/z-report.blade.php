@@ -301,7 +301,7 @@
                     <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format($report['line_corrections']['total_amount_reduction'] / 100, 2) }} NOK</div>
                 </div>
             </div>
-            @if(isset($report['line_corrections']['by_type']) && $report['line_corrections']['by_type']->count() > 0)
+            @if(isset($report['line_corrections']['by_type']) && count($report['line_corrections']['by_type']) > 0)
                 <div style="margin-top: 1rem;">
                     <div style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: rgb(75 85 99);">Oppdeling etter Type:</div>
                     <div style="overflow-x: auto;">
@@ -348,7 +348,7 @@
                 <strong>Kvitteringer Generert</strong>
             </div>
             <div style="font-size: 1.5rem; font-weight: 700; color: rgb(17 24 39);">{{ $report['receipt_count'] ?? 0 }}</div>
-            @if(isset($report['receipt_summary']) && $report['receipt_summary']->count() > 0)
+            @if(isset($report['receipt_summary']) && count($report['receipt_summary']) > 0)
                 <div style="font-size: 0.75rem; color: rgb(107 114 128); margin-top: 0.5rem;">
                     @foreach($report['receipt_summary'] as $type => $data)
                         {{ ucfirst($type) }}: {{ $data['count'] }}@if(!$loop->last), @endif
@@ -366,7 +366,7 @@
     @endif
 
     <!-- Sales by Vendor -->
-    @if(isset($report['sales_by_vendor']) && $report['sales_by_vendor']->count() > 0)
+    @if(isset($report['sales_by_vendor']) && count($report['sales_by_vendor']) > 0)
         <div class="z-report-section z-report-card">
             <h4 class="z-report-title">Salg per Leverandør</h4>
             <div style="overflow-x: auto;">
@@ -402,7 +402,7 @@
     @endif
 
     <!-- Event Summary -->
-    @if(isset($report['event_summary']) && $report['event_summary']->count() > 0)
+    @if(isset($report['event_summary']) && count($report['event_summary']) > 0)
         <div class="z-report-section z-report-card">
             <h4 class="z-report-title">Hendelsessammendrag</h4>
             <div style="overflow-x: auto;">
@@ -473,7 +473,7 @@
                 </table>
             </div>
         </div>
-    @elseif($report['charges']->count() > 0)
+    @elseif(isset($report['charges']) && count($report['charges']) > 0)
         <div class="z-report-section z-report-card">
             <h4 class="z-report-title">Alle Transaksjoner</h4>
             <div style="overflow-x: auto;">

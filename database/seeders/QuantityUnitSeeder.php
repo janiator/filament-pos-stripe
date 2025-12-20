@@ -126,3 +126,5 @@ class QuantityUnitSeeder extends Seeder
         }
     }
 }
+
+

@@ -199,3 +199,5 @@ This document verifies compliance of the X-Report and Z-Report implementations w
 - [§ 2-8-3 Z-Report Requirements](https://lovdata.no/dokument/SF/forskrift/2015-12-18-1616/%C2%A72-8-3)
 - [§ 2-2 Cash Drawer Requirements](https://lovdata.no/dokument/SF/forskrift/2015-12-18-1616/%C2%A72-2)
 
+
+

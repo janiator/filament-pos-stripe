@@ -250,3 +250,5 @@ Backend handles this (converts empty string to null), but ensure FlutterFlow sen
 - **Without Description:** `purchase_item_description` is `null`, `purchase_item_product_name` is used
 - **Receipt:** Shows description if provided, otherwise product name
 
+
+

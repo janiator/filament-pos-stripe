@@ -50,3 +50,5 @@ class QuantityUnit extends Model
         return $this->name . ($this->symbol ? ' (' . $this->symbol . ')' : '');
     }
 }
+
+
