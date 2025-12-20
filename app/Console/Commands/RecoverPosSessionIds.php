@@ -119,11 +119,11 @@ class RecoverPosSessionIds extends Command
             // Use paid_at if available, otherwise fall back to created_at (for deferred payments)
             $matchDate = $charge->paid_at ?? $charge->created_at;
             if (!$sessionId && $fromSessions && $matchDate) {
-                // Find store by stripe_account_id
-                $store = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
+                // Find store by stripe_account_id (use different variable to avoid conflict)
+                $chargeStore = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
                 
-                if ($store) {
-                    $session = PosSession::where('store_id', $store->id)
+                if ($chargeStore) {
+                    $session = PosSession::where('store_id', $chargeStore->id)
                         ->where('opened_at', '<=', $matchDate)
                         ->where(function ($query) use ($matchDate) {
                             $query->whereNull('closed_at')
@@ -165,17 +165,17 @@ class RecoverPosSessionIds extends Command
                     $reason = 'date/time matching disabled';
                 } else {
                     // Check if there are any sessions at all for this store
-                    $store = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
-                    if ($store) {
-                        $sessionCount = PosSession::where('store_id', $store->id)->count();
+                    $chargeStore = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
+                    if ($chargeStore) {
+                        $sessionCount = PosSession::where('store_id', $chargeStore->id)->count();
                         if ($sessionCount === 0) {
                             $reason = 'no sessions exist for this store';
                         } else {
                             // Check if charge date is outside all session windows
-                            $earliestSession = PosSession::where('store_id', $store->id)
+                            $earliestSession = PosSession::where('store_id', $chargeStore->id)
                                 ->orderBy('opened_at', 'asc')
                                 ->first();
-                            $latestSession = PosSession::where('store_id', $store->id)
+                            $latestSession = PosSession::where('store_id', $chargeStore->id)
                                 ->whereNotNull('closed_at')
                                 ->orderBy('closed_at', 'desc')
                                 ->first();
