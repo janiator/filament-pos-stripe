@@ -71,19 +71,21 @@ class RecoverPosSessionIds extends Command
 
             // Method 2: Try to match by date/time and stripe_account_id
             if (!$sessionId && $fromSessions && $charge->paid_at) {
-                $session = PosSession::where('store_id', function ($query) use ($charge) {
-                    $query->select('id')
-                        ->from('stores')
-                        ->where('stripe_account_id', $charge->stripe_account_id)
-                        ->limit(1);
-                })
-                    ->where('opened_at', '<=', $charge->paid_at)
-                    ->where(function ($query) use ($charge) {
-                        $query->whereNull('closed_at')
-                            ->orWhere('closed_at', '>=', $charge->paid_at);
-                    })
-                    ->orderBy('opened_at', 'desc')
-                    ->first();
+                // Find store by stripe_account_id
+                $store = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
+                
+                if ($store) {
+                    $session = PosSession::where('store_id', $store->id)
+                        ->where('opened_at', '<=', $charge->paid_at)
+                        ->where(function ($query) use ($charge) {
+                            $query->whereNull('closed_at')
+                                ->orWhere('closed_at', '>=', $charge->paid_at);
+                        })
+                        ->orderBy('opened_at', 'desc')
+                        ->first();
+                } else {
+                    $session = null;
+                }
 
                 if ($session) {
                     $sessionId = $session->id;
