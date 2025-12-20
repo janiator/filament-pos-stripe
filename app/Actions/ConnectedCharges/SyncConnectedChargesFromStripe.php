@@ -103,7 +103,8 @@ class SyncConnectedChargesFromStripe
                     $chargeRecord = ConnectedCharge::where('stripe_charge_id', $charge->id)->first();
 
                     if ($chargeRecord) {
-                        // Preserve POS-specific fields that aren't in Stripe data
+                        // Preserve POS-specific fields that don't come from Stripe
+                        // These fields should never be overwritten by Stripe sync
                         $preservedFields = [
                             'pos_session_id' => $chargeRecord->pos_session_id,
                             'transaction_code' => $chargeRecord->transaction_code,
@@ -117,7 +118,7 @@ class SyncConnectedChargesFromStripe
                         // Explicitly set stripe_account_id to ensure it's updated if it changed
                         $chargeRecord->stripe_account_id = $stripeAccountId;
                         
-                        // Restore preserved fields (only if they were set, don't overwrite with null)
+                        // Restore preserved POS-specific fields
                         foreach ($preservedFields as $field => $value) {
                             if ($value !== null) {
                                 $chargeRecord->$field = $value;
