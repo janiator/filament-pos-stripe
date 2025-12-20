@@ -175,14 +175,20 @@ class RecoverPosSessionIds extends Command
         $this->info("Recovered: {$recovered}");
         $this->info("Failed: {$failed}");
 
-        if ($failed > 0 && count($failedCharges) > 0) {
+        if ($failed > 0) {
             $this->newLine();
-            $this->warn("Failed charges (showing first 10):");
-            foreach (array_slice($failedCharges, 0, 10) as $failedCharge) {
-                $this->line("  Charge ID: {$failedCharge['id']}, Paid: {$failedCharge['paid_at']}, Amount: " . ($failedCharge['amount'] / 100) . " NOK, Reason: {$failedCharge['reason']}");
-            }
-            if (count($failedCharges) > 10) {
-                $this->line("  ... and " . (count($failedCharges) - 10) . " more");
+            if (count($failedCharges) > 0) {
+                $this->warn("Failed charges (showing first 10):");
+                foreach (array_slice($failedCharges, 0, 10) as $failedCharge) {
+                    $paidAt = $failedCharge['paid_at'] ?? 'N/A';
+                    $amount = $failedCharge['amount'] ? ($failedCharge['amount'] / 100) . ' NOK' : 'N/A';
+                    $this->line("  Charge ID: {$failedCharge['id']}, Paid: {$paidAt}, Amount: {$amount}, Reason: {$failedCharge['reason']}");
+                }
+                if (count($failedCharges) > 10) {
+                    $this->line("  ... and " . (count($failedCharges) - 10) . " more");
+                }
+            } else {
+                $this->warn("Note: Failed charges details not available.");
             }
         }
 
