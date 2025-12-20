@@ -245,11 +245,13 @@ class PosSessionsRelationManager extends RelationManager
                         $record->save();
                         
                         // Regenerate Z-report (this will update closing_data)
-                        // Clear existing closing_data to force regeneration
-                        $record->closing_data = null;
+                        // Preserve other closing_data fields, only remove z_report_data to force regeneration
+                        $closingData = $record->closing_data ?? [];
+                        unset($closingData['z_report_data']);
+                        $record->closing_data = $closingData;
                         $record->saveQuietly();
                         
-                        // Generate new Z-report
+                        // Generate new Z-report (will preserve other closing_data fields)
                         PosSessionsTable::generateZReport($record);
                         
                         Notification::make()
