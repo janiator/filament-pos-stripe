@@ -244,15 +244,24 @@ class PosSessionsRelationManager extends RelationManager
                         // Save the session
                         $record->save();
                         
-                        // Regenerate Z-report (this will update closing_data)
-                        // Preserve other closing_data fields, only remove z_report_data to force regeneration
+                        // Update Z-report data in closing_data without regenerating entire report
+                        // This preserves historical transaction data, event summaries, etc.
                         $closingData = $record->closing_data ?? [];
-                        unset($closingData['z_report_data']);
-                        $record->closing_data = $closingData;
-                        $record->saveQuietly();
-                        
-                        // Generate new Z-report (will preserve other closing_data fields)
-                        PosSessionsTable::generateZReport($record);
+                        if (isset($closingData['z_report_data'])) {
+                            // Update only cash-related fields in the existing report
+                            $closingData['z_report_data']['opening_balance'] = $openingBalance / 100;
+                            $closingData['z_report_data']['expected_cash'] = $record->expected_cash / 100;
+                            $closingData['z_report_data']['actual_cash'] = $actualCash ? $actualCash / 100 : null;
+                            $closingData['z_report_data']['cash_difference'] = $record->cash_difference ? $record->cash_difference / 100 : null;
+                            $closingData['z_report_generated_at'] = now()->toISOString();
+                            
+                            // Save updated closing_data
+                            $record->closing_data = $closingData;
+                            $record->saveQuietly();
+                        } else {
+                            // If no existing report, generate a new one
+                            PosSessionsTable::generateZReport($record);
+                        }
                         
                         Notification::make()
                             ->title('Balances updated')
