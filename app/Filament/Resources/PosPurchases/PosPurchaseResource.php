@@ -54,7 +54,10 @@ class PosPurchaseResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        $query = parent::getEloquentQuery();
+        // Bypass trait's getEloquentQuery to avoid whereHas('store') conflict
+        // ConnectedCharge uses stripe_account_id, not store_id relationship
+        // Use ConnectedCharge::query() directly instead of parent::getEloquentQuery()
+        $query = ConnectedCharge::query();
         
         // Only show charges that are POS purchases (have pos_session_id)
         $query->whereNotNull('pos_session_id');
