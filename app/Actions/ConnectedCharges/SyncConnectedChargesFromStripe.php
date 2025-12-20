@@ -103,10 +103,27 @@ class SyncConnectedChargesFromStripe
                     $chargeRecord = ConnectedCharge::where('stripe_charge_id', $charge->id)->first();
 
                     if ($chargeRecord) {
+                        // Preserve POS-specific fields that aren't in Stripe data
+                        $preservedFields = [
+                            'pos_session_id' => $chargeRecord->pos_session_id,
+                            'transaction_code' => $chargeRecord->transaction_code,
+                            'payment_code' => $chargeRecord->payment_code,
+                            'tip_amount' => $chargeRecord->tip_amount,
+                            'article_group_code' => $chargeRecord->article_group_code,
+                        ];
+                        
                         // Update existing record - ensure stripe_account_id is set correctly
                         $chargeRecord->fill($data);
                         // Explicitly set stripe_account_id to ensure it's updated if it changed
                         $chargeRecord->stripe_account_id = $stripeAccountId;
+                        
+                        // Restore preserved fields (only if they were set, don't overwrite with null)
+                        foreach ($preservedFields as $field => $value) {
+                            if ($value !== null) {
+                                $chargeRecord->$field = $value;
+                            }
+                        }
+                        
                         $chargeRecord->save();
                         $result['updated']++;
                     } else {
