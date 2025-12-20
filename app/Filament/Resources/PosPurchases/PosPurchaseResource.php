@@ -6,7 +6,6 @@ use App\Filament\Resources\PosPurchases\Pages\ListPosPurchases;
 use App\Filament\Resources\PosPurchases\Pages\ViewPosPurchase;
 use App\Filament\Resources\PosPurchases\Schemas\PosPurchaseInfolist;
 use App\Filament\Resources\PosPurchases\Tables\PosPurchasesTable;
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedCharge;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -16,7 +15,6 @@ use Filament\Tables\Table;
 
 class PosPurchaseResource extends Resource
 {
-    use HasTenantScopedQuery;
 
     protected static ?string $model = ConnectedCharge::class;
 
@@ -54,19 +52,19 @@ class PosPurchaseResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        // Bypass trait's getEloquentQuery to avoid whereHas('store') conflict
-        // ConnectedCharge uses stripe_account_id, not store_id relationship
-        // Use ConnectedCharge::query() directly instead of parent::getEloquentQuery()
-        $query = ConnectedCharge::query();
+        // Call Filament's parent method to get proper query setup
+        // Then override with our custom filters
+        $query = parent::getEloquentQuery();
         
         // Only show charges that are POS purchases (have pos_session_id)
         $query->whereNotNull('pos_session_id');
         
         // Scope by tenant's stripe_account_id
+        // ConnectedCharge uses stripe_account_id, not store_id relationship
         try {
             $tenant = \Filament\Facades\Filament::getTenant();
             if ($tenant && $tenant->slug !== 'visivo-admin' && $tenant->stripe_account_id) {
-                $query->where('connected_charges.stripe_account_id', $tenant->stripe_account_id);
+                $query->where('stripe_account_id', $tenant->stripe_account_id);
             }
         } catch (\Throwable $e) {
             // Fallback if Filament facade not available
