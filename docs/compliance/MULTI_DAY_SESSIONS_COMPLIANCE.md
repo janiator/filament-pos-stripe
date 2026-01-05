@@ -80,3 +80,4 @@ $spansMultipleDays = $sessionStartDate !== $sessionEndDate;
 
 
 
+

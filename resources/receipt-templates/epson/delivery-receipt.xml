@@ -25,6 +25,10 @@
 <feed line="1"/>
 <text reverse="false" ul="false" em="false" color="color_1" width="1" height="1"/>
 <text lang="en"/>
+{{#order_number}}
+<text>Ordrenummer: {{order_number}}</text>
+<feed/>
+{{/order_number}}
 <text>Kvitteringsnummer: {{receipt_number}}</text>
 <feed/>
 <text>Dato: {{date_time}}</text>

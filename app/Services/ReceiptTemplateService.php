@@ -551,6 +551,12 @@ class ReceiptTemplateService
         // Get estimated pickup date from receipt_data (for delivery receipts)
         $estimatedPickupDate = $receiptData['estimated_pickup_date'] ?? null;
 
+        // Get order number from receipt_data or use charge ID (purchase database ID)
+        $orderNumber = $receiptData['order_number'] ?? null;
+        if (!$orderNumber && $charge) {
+            $orderNumber = (string) $charge->id;
+        }
+
         // Get store logo URL if available
         $storeLogoUrl = null;
         if ($store->logo_path) {
@@ -565,6 +571,7 @@ class ReceiptTemplateService
             'session_number' => $session?->session_number ?? 'N/A',
             'cashier_name' => $user?->name ?? 'N/A',
             'transaction_id' => $charge?->stripe_charge_id ?? $receipt->receipt_data['transaction_id'] ?? 'N/A',
+            'order_number' => $orderNumber,
             'receipt_number' => $receipt->receipt_number,
             'date_time' => $dateTime,
             'items' => $items,
