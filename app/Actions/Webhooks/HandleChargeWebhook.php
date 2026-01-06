@@ -8,14 +8,21 @@ use Stripe\Charge;
 
 class HandleChargeWebhook
 {
-    public function handle(Charge $charge, string $eventType): void
+    public function handle(Charge $charge, string $eventType, ?string $accountId = null): void
     {
-        // Find the store by stripe_account_id from the charge
-        $accountId = $charge->on_behalf_of ?? $charge->destination;
+        // Find the store by stripe_account_id from the event or charge
+        // For Connect webhooks, the account ID comes from the event
+        // Fallback to charge fields for direct/destination charges
+        if (!$accountId) {
+            $accountId = $charge->on_behalf_of ?? $charge->destination;
+        }
         
         if (!$accountId) {
             \Log::warning('Charge webhook received but no account ID found', [
                 'charge_id' => $charge->id,
+                'event_type' => $eventType,
+                'charge_on_behalf_of' => $charge->on_behalf_of ?? null,
+                'charge_destination' => $charge->destination ?? null,
             ]);
             return;
         }
@@ -47,7 +54,7 @@ class HandleChargeWebhook
             'captured' => $charge->captured ?? true,
             'refunded' => $charge->refunded ?? false,
             'paid' => $charge->paid ?? false,
-            'paid_at' => $charge->created ? date('Y-m-d H:i:s', $charge->created) : null,
+            'paid_at' => ($charge->paid && $charge->created) ? date('Y-m-d H:i:s', $charge->created) : null,
             'metadata' => $charge->metadata ? (array) $charge->metadata : null,
             'outcome' => $charge->outcome ? (array) $charge->outcome : null,
             'charge_type' => $charge->on_behalf_of ? 'destination' : 'direct',

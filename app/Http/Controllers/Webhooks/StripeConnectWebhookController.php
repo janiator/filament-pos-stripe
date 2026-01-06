@@ -303,11 +303,15 @@ class StripeConnectWebhookController extends Controller
                 // Charge events
                 case 'charge.created':
                 case 'charge.updated':
+                case 'charge.succeeded':
+                case 'charge.pending':
+                case 'charge.failed':
+                case 'charge.captured':
                 case 'charge.refunded':
                 case 'charge.refund.updated':
                     /** @var Charge $charge */
                     $charge = $event->data->object;
-                    $chargeHandler->handle($charge, $event->type);
+                    $chargeHandler->handle($charge, $event->type, $accountId);
                     break;
 
                 // Payment method events
