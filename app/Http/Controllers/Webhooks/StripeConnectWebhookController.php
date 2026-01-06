@@ -40,6 +40,14 @@ class StripeConnectWebhookController extends Controller
         HandlePaymentLinkWebhook $paymentLinkHandler,
         HandleTransferWebhook $transferHandler
     ) {
+        // Log that webhook controller was hit
+        \Log::info('StripeConnectWebhookController invoked', [
+            'url' => $request->fullUrl(),
+            'path' => $request->path(),
+            'method' => $request->method(),
+            'has_payload' => !empty($request->getContent()),
+        ]);
+
         // Get raw payload - must be raw content, not parsed JSON
         // Use getContent() first, fallback to php://input if empty (in case middleware consumed it)
         $payload = $request->getContent();

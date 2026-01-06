@@ -11,8 +11,11 @@ use App\Http\Controllers\Api\PosSessionsController;
 
 
 // Public webhook endpoint (no authentication required)
+// Support both /api/stripe/connect/webhook and /connectWebhook (for Stripe CLI compatibility)
 Route::post('/stripe/connect/webhook', StripeConnectWebhookController::class)
     ->name('stripe.connect.webhook');
+Route::post('/connectWebhook', StripeConnectWebhookController::class)
+    ->name('stripe.connect.webhook.alias');
 
 // Authentication endpoints (public)
 Route::post('/auth/login', [AuthController::class, 'login'])->name('api.auth.login');
