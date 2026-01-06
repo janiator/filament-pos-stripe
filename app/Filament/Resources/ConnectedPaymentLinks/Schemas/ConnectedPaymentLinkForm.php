@@ -244,18 +244,27 @@ class ConnectedPaymentLinkForm
                     ->helperText(function (Get $get) {
                         $priceId = $get('stripe_price_id');
                         if (!$priceId) {
-                            return 'For destination links with recurring prices: Percentage fee (e.g., 5 = 5%). For one-time prices, this will be converted to a fixed amount.';
+                            return 'Percentage fee (e.g., 5 = 5%). Can only be used with recurring prices.';
                         }
                         
                         // Check if price is recurring
                         $price = \App\Models\ConnectedPrice::where('stripe_price_id', $priceId)->first();
                         if ($price && $price->type === 'recurring') {
-                            return 'For destination links with recurring prices: Percentage fee (e.g., 5 = 5%). This will be applied as a percentage of each subscription invoice.';
+                            return 'Percentage fee (e.g., 5 = 5%). This will be applied as a percentage of each subscription invoice. Can only be used with recurring prices.';
                         }
                         
-                        return 'For destination links: Percentage fee (e.g., 5 = 5%). For one-time prices, this will be automatically converted to a fixed amount in cents based on the price.';
+                        return 'Percentage fee can only be used with recurring prices. Use fixed fee amount for one-time prices.';
                     })
-                    ->visible(fn (Get $get) => $get('link_type') === 'destination')
+                    ->visible(function (Get $get) {
+                        $priceId = $get('stripe_price_id');
+                        if (!$priceId) {
+                            return false; // Hide if no price selected
+                        }
+                        
+                        // Only show for recurring prices
+                        $price = \App\Models\ConnectedPrice::where('stripe_price_id', $priceId)->first();
+                        return $price && $price->type === 'recurring';
+                    })
                     ->visibleOn('create'),
 
                 TextInput::make('application_fee_amount')
@@ -265,7 +274,7 @@ class ConnectedPaymentLinkForm
                     ->helperText(function (Get $get) {
                         $priceId = $get('stripe_price_id');
                         if (!$priceId) {
-                            return 'For destination links with one-time prices: Fixed fee in cents (e.g., 500 = $5.00). Cannot be used with recurring prices.';
+                            return 'Fixed fee in cents (e.g., 500 = $5.00). Can only be used with one-time prices.';
                         }
                         
                         // Check if price is recurring
@@ -274,20 +283,15 @@ class ConnectedPaymentLinkForm
                             return 'Fixed fee cannot be used with recurring prices. Use percentage fee instead.';
                         }
                         
-                        return 'For destination links with one-time prices: Fixed fee in cents (e.g., 500 = $5.00).';
+                        return 'Fixed fee in cents (e.g., 500 = $5.00). Can only be used with one-time prices.';
                     })
                     ->visible(function (Get $get) {
-                        $linkType = $get('link_type');
-                        if ($linkType !== 'destination') {
-                            return false;
-                        }
-                        
                         $priceId = $get('stripe_price_id');
                         if (!$priceId) {
                             return true; // Show if no price selected yet
                         }
                         
-                        // Hide if price is recurring
+                        // Only show for one-time prices
                         $price = \App\Models\ConnectedPrice::where('stripe_price_id', $priceId)->first();
                         return !($price && $price->type === 'recurring');
                     })

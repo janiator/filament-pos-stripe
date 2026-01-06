@@ -170,19 +170,13 @@ class PricesRelationManager extends RelationManager
                                 ->maxValue(100)
                                 ->default($defaultFeePercent)
                                 ->helperText(function (Get $get) use ($record) {
-                                    $priceId = $record->stripe_price_id;
-                                    if (!$priceId) {
-                                        return 'For destination links with recurring prices: Percentage fee (e.g., 5 = 5%). For one-time prices, this will be converted to a fixed amount.';
-                                    }
-                                    
                                     if ($record->type === 'recurring') {
-                                        return 'For destination links with recurring prices: Percentage fee (e.g., 5 = 5%). This will be applied as a percentage of each subscription invoice.';
+                                        return 'Percentage fee (e.g., 5 = 5%). This will be applied as a percentage of each subscription invoice. Can only be used with recurring prices.';
                                     }
                                     
-                                    return 'For destination links: Percentage fee (e.g., 5 = 5%). For one-time prices, this will be automatically converted to a fixed amount in cents based on the price.';
+                                    return 'Percentage fee can only be used with recurring prices. Use fixed fee amount for one-time prices.';
                                 })
-                                ->visible(fn (Get $get) => $get('link_type') === 'destination')
-                                ->live(),
+                                ->visible(fn () => $record->type === 'recurring'),
                             
                             TextInput::make('application_fee_amount')
                                 ->label('Application Fee (cents)')
@@ -190,27 +184,13 @@ class PricesRelationManager extends RelationManager
                                 ->minValue(0)
                                 ->default($defaultFeeAmount)
                                 ->helperText(function (Get $get) use ($record) {
-                                    $priceId = $record->stripe_price_id;
-                                    if (!$priceId) {
-                                        return 'For destination links with one-time prices: Fixed fee in cents (e.g., 500 = $5.00). Cannot be used with recurring prices.';
-                                    }
-                                    
                                     if ($record->type === 'recurring') {
                                         return 'Fixed fee cannot be used with recurring prices. Use percentage fee instead.';
                                     }
                                     
-                                    return 'For destination links with one-time prices: Fixed fee in cents (e.g., 500 = $5.00).';
+                                    return 'Fixed fee in cents (e.g., 500 = $5.00). Can only be used with one-time prices.';
                                 })
-                                ->visible(function (Get $get) use ($record) {
-                                    $linkType = $get('link_type');
-                                    if ($linkType !== 'destination') {
-                                        return false;
-                                    }
-                                    
-                                    // Hide if price is recurring
-                                    return $record->type !== 'recurring';
-                                })
-                                ->live(),
+                                ->visible(fn () => $record->type !== 'recurring'),
                             
                             TextInput::make('after_completion_redirect_url')
                                 ->label('Redirect URL')
@@ -242,20 +222,21 @@ class PricesRelationManager extends RelationManager
                             'after_completion_redirect_url' => $data['after_completion_redirect_url'] ?? null,
                         ];
                         
-                        // Add application fee for destination links
-                        if ($linkData['link_type'] === 'destination') {
-                            if ($record->type === 'recurring') {
-                                if (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
-                                    $linkData['application_fee_percent'] = (float) $data['application_fee_percent'];
-                                }
-                            } else {
-                                if (isset($data['application_fee_amount']) && $data['application_fee_amount'] !== null && $data['application_fee_amount'] !== '') {
-                                    $linkData['application_fee_amount'] = (int) $data['application_fee_amount'];
-                                } elseif (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
-                                    $feePercent = (float) $data['application_fee_percent'];
-                                    $feeAmount = (int) round(($record->unit_amount * $feePercent) / 100);
-                                    $linkData['application_fee_amount'] = $feeAmount;
-                                }
+                        // Add application fee (works for both direct and destination links)
+                        if ($record->type === 'recurring') {
+                            // For recurring prices, use application_fee_percent
+                            if (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
+                                $linkData['application_fee_percent'] = (float) $data['application_fee_percent'];
+                            }
+                        } else {
+                            // For one-time prices, use application_fee_amount
+                            if (isset($data['application_fee_amount']) && $data['application_fee_amount'] !== null && $data['application_fee_amount'] !== '') {
+                                $linkData['application_fee_amount'] = (int) $data['application_fee_amount'];
+                            } elseif (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
+                                // Convert percentage to amount in cents for one-time prices
+                                $feePercent = (float) $data['application_fee_percent'];
+                                $feeAmount = (int) round(($record->unit_amount * $feePercent) / 100);
+                                $linkData['application_fee_amount'] = $feeAmount;
                             }
                         }
                         

@@ -60,16 +60,14 @@ class CreateConnectedPaymentLinkOnStripe
                 ];
             }
 
-            // For destination links, add application fee
+            // Add application fee (works for both direct and destination links)
             // Note: application_fee_percent can only be used with recurring prices
             // application_fee_amount can only be used with one-time prices
-            if (isset($linkData['link_type']) && $linkData['link_type'] === 'destination') {
-                // Only set one fee type - the CreateConnectedPaymentLink page ensures the correct one is set
-                if (isset($linkData['application_fee_percent'])) {
-                    $stripeLinkData['application_fee_percent'] = $linkData['application_fee_percent'];
-                } elseif (isset($linkData['application_fee_amount'])) {
-                    $stripeLinkData['application_fee_amount'] = $linkData['application_fee_amount'];
-                }
+            // Only set one fee type - the CreateConnectedPaymentLink page ensures the correct one is set
+            if (isset($linkData['application_fee_percent'])) {
+                $stripeLinkData['application_fee_percent'] = $linkData['application_fee_percent'];
+            } elseif (isset($linkData['application_fee_amount'])) {
+                $stripeLinkData['application_fee_amount'] = $linkData['application_fee_amount'];
             }
 
             // Create payment link on connected account

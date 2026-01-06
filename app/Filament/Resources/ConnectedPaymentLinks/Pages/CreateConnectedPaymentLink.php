@@ -44,35 +44,33 @@ class CreateConnectedPaymentLink extends CreateRecord
             'after_completion_redirect_url' => $data['after_completion_redirect_url'] ?? null,
         ];
 
-        // Add application fee for destination links
-        if ($linkData['link_type'] === 'destination') {
-            // Check if the price is recurring
-            $price = null;
-            if (!empty($data['stripe_price_id'])) {
-                $price = \App\Models\ConnectedPrice::where('stripe_price_id', $data['stripe_price_id'])
-                    ->where('stripe_account_id', $data['stripe_account_id'])
-                    ->first();
+        // Add application fee (works for both direct and destination links)
+        // Check if the price is recurring
+        $price = null;
+        if (!empty($data['stripe_price_id'])) {
+            $price = \App\Models\ConnectedPrice::where('stripe_price_id', $data['stripe_price_id'])
+                ->where('stripe_account_id', $data['stripe_account_id'])
+                ->first();
+        }
+        
+        $isRecurring = $price && $price->type === 'recurring';
+        
+        if ($isRecurring) {
+            // For recurring prices, use application_fee_percent
+            if (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
+                $linkData['application_fee_percent'] = (float) $data['application_fee_percent'];
             }
-            
-            $isRecurring = $price && $price->type === 'recurring';
-            
-            if ($isRecurring) {
-                // For recurring prices, use application_fee_percent
-                if (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
-                    $linkData['application_fee_percent'] = (float) $data['application_fee_percent'];
-                }
-                // Don't allow application_fee_amount for recurring prices
-            } else {
-                // For one-time prices, use application_fee_amount
-                if (isset($data['application_fee_amount']) && $data['application_fee_amount'] !== null && $data['application_fee_amount'] !== '') {
-                    $linkData['application_fee_amount'] = (int) $data['application_fee_amount'];
-                } elseif (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
-                    // Convert percentage to amount in cents for one-time prices
-                    if ($price && $price->unit_amount) {
-                        $feePercent = (float) $data['application_fee_percent'];
-                        $feeAmount = (int) round(($price->unit_amount * $feePercent) / 100);
-                        $linkData['application_fee_amount'] = $feeAmount;
-                    }
+            // Don't allow application_fee_amount for recurring prices
+        } else {
+            // For one-time prices, use application_fee_amount
+            if (isset($data['application_fee_amount']) && $data['application_fee_amount'] !== null && $data['application_fee_amount'] !== '') {
+                $linkData['application_fee_amount'] = (int) $data['application_fee_amount'];
+            } elseif (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
+                // Convert percentage to amount in cents for one-time prices
+                if ($price && $price->unit_amount) {
+                    $feePercent = (float) $data['application_fee_percent'];
+                    $feeAmount = (int) round(($price->unit_amount * $feePercent) / 100);
+                    $linkData['application_fee_amount'] = $feeAmount;
                 }
             }
         }
