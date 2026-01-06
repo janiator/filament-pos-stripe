@@ -201,6 +201,12 @@ class PricesRelationManager extends RelationManager
                     ->action(function (ConnectedPrice $record, array $data) {
                         // Get the store from the product
                         $product = $this->ownerRecord;
+                        
+                        // Check if product is active (Stripe requires active products for payment links)
+                        if (!$product->active) {
+                            throw new \Exception('Cannot create payment link: The product associated with this price is not active. Please activate the product first.');
+                        }
+                        
                         $store = \App\Models\Store::where('stripe_account_id', $product->stripe_account_id)->first();
                         
                         if (!$store) {
