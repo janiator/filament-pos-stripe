@@ -181,7 +181,8 @@ class PricesRelationManager extends RelationManager
                                     
                                     return 'For destination links: Percentage fee (e.g., 5 = 5%). For one-time prices, this will be automatically converted to a fixed amount in cents based on the price.';
                                 })
-                                ->visible(fn (Get $get) => $get('link_type') === 'destination'),
+                                ->visible(fn (Get $get) => $get('link_type') === 'destination')
+                                ->live(),
                             
                             TextInput::make('application_fee_amount')
                                 ->label('Application Fee (cents)')
@@ -208,7 +209,8 @@ class PricesRelationManager extends RelationManager
                                     
                                     // Hide if price is recurring
                                     return $record->type !== 'recurring';
-                                }),
+                                })
+                                ->live(),
                             
                             TextInput::make('after_completion_redirect_url')
                                 ->label('Redirect URL')
