@@ -461,37 +461,53 @@ class StripeConnectWebhookController extends Controller
 
         // Save webhook log to database
         try {
-            $webhookLog = \App\Models\WebhookLog::create([
-                'store_id' => $store?->id,
-                'stripe_account_id' => $accountId,
-                'event_type' => $event->type,
-                'event_id' => $event->id,
-                'account_id' => $accountId,
-                'processed' => $result['processed'],
-                'message' => $result['message'],
-                'warnings' => !empty($result['warnings']) ? $result['warnings'] : null,
-                'errors' => !empty($result['errors']) ? $result['errors'] : null,
-                'request_data' => [
+            // Check if table exists before trying to save
+            if (!\Illuminate\Support\Facades\Schema::hasTable('webhook_logs')) {
+                \Log::warning('webhook_logs table does not exist - run migration first', [
+                    'event_id' => $event->id,
+                ]);
+            } else {
+                $webhookLog = \App\Models\WebhookLog::create([
+                    'store_id' => $store?->id,
+                    'stripe_account_id' => $accountId,
                     'event_type' => $event->type,
                     'event_id' => $event->id,
-                    'livemode' => $event->livemode ?? false,
-                    'api_version' => $event->api_version ?? null,
-                    'object_type' => get_class($event->data->object),
-                ],
-                'response_data' => $result,
-                'http_status_code' => 200,
-                'error_message' => !empty($result['errors']) ? implode('; ', $result['errors']) : null,
-            ]);
+                    'account_id' => $accountId,
+                    'processed' => $result['processed'],
+                    'message' => $result['message'],
+                    'warnings' => !empty($result['warnings']) ? $result['warnings'] : null,
+                    'errors' => !empty($result['errors']) ? $result['errors'] : null,
+                    'request_data' => [
+                        'event_type' => $event->type,
+                        'event_id' => $event->id,
+                        'livemode' => $event->livemode ?? false,
+                        'api_version' => $event->api_version ?? null,
+                        'object_type' => get_class($event->data->object),
+                    ],
+                    'response_data' => $result,
+                    'http_status_code' => 200,
+                    'error_message' => !empty($result['errors']) ? implode('; ', $result['errors']) : null,
+                ]);
 
-            // Cleanup old records (keep max 100 per store)
-            if ($store) {
-                \App\Models\WebhookLog::cleanupOldRecords($store->id);
+                \Log::info('Webhook log saved successfully', [
+                    'webhook_log_id' => $webhookLog->id,
+                    'event_id' => $event->id,
+                    'store_id' => $store?->id,
+                ]);
+
+                // Cleanup old records (keep max 100 per store)
+                if ($store) {
+                    \App\Models\WebhookLog::cleanupOldRecords($store->id);
+                }
             }
         } catch (\Throwable $e) {
             // Log error but don't fail the webhook response
             \Log::error('Failed to save webhook log', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'event_id' => $event->id,
+                'event_type' => $event->type,
+                'account_id' => $accountId,
             ]);
         }
 
