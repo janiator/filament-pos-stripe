@@ -171,12 +171,12 @@ class PricesRelationManager extends RelationManager
                                 ->default($defaultFeePercent)
                                 ->helperText(function (Get $get) use ($record) {
                                     if ($record->type === 'recurring') {
-                                        return 'Percentage fee (e.g., 5 = 5%). This will be applied as a percentage of each subscription invoice. Can only be used with recurring prices.';
+                                        return 'Percentage fee (e.g., 5 = 5%). This will be applied as a percentage of each subscription invoice.';
                                     }
                                     
-                                    return 'Percentage fee can only be used with recurring prices. Use fixed fee amount for one-time prices.';
+                                    return 'Percentage fee (e.g., 5 = 5%). For one-time prices, this will be automatically converted to a fixed amount in cents based on the price.';
                                 })
-                                ->visible(fn () => $record->type === 'recurring'),
+                                ->visible(fn () => true),
                             
                             TextInput::make('application_fee_amount')
                                 ->label('Application Fee (cents)')
