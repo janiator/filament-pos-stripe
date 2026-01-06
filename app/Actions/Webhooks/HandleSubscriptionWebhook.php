@@ -21,12 +21,26 @@ class HandleSubscriptionWebhook
         $store = Store::where('stripe_account_id', $accountId)->first();
         
         if (!$store) {
+            // Log available stores for debugging
+            $availableStores = Store::whereNotNull('stripe_account_id')
+                ->pluck('stripe_account_id', 'id')
+                ->toArray();
+            
             \Log::warning('Subscription webhook received but store not found', [
                 'subscription_id' => $subscription->id,
                 'account_id' => $accountId,
+                'available_stores' => array_keys($availableStores),
+                'available_account_ids' => array_values($availableStores),
             ]);
             return;
         }
+        
+        \Log::info('Processing subscription webhook', [
+            'subscription_id' => $subscription->id,
+            'account_id' => $accountId,
+            'store_id' => $store->id,
+            'event_type' => $eventType,
+        ]);
 
         // Get the price ID from the subscription
         $priceId = $subscription->items->data[0]->price->id ?? null;
@@ -57,6 +71,12 @@ class HandleSubscriptionWebhook
             ],
             $data
         );
+        
+        \Log::info('Subscription webhook processed successfully', [
+            'subscription_id' => $subscription->id,
+            'subscription_record_id' => $subscriptionRecord->id,
+            'was_created' => $subscriptionRecord->wasRecentlyCreated,
+        ]);
 
         // Sync subscription items
         if (isset($subscription->items->data)) {

@@ -30,12 +30,27 @@ class HandleChargeWebhook
         $store = Store::where('stripe_account_id', $accountId)->first();
         
         if (!$store) {
+            // Log available stores for debugging
+            $availableStores = Store::whereNotNull('stripe_account_id')
+                ->pluck('stripe_account_id', 'id')
+                ->toArray();
+            
             \Log::warning('Charge webhook received but store not found', [
                 'charge_id' => $charge->id,
                 'account_id' => $accountId,
+                'available_stores' => array_keys($availableStores),
+                'available_account_ids' => array_values($availableStores),
+                'charge_object_keys' => array_keys((array) $charge),
             ]);
             return;
         }
+        
+        \Log::info('Processing charge webhook', [
+            'charge_id' => $charge->id,
+            'account_id' => $accountId,
+            'store_id' => $store->id,
+            'event_type' => $eventType,
+        ]);
 
         // Sync the specific charge
         $data = [
@@ -61,13 +76,19 @@ class HandleChargeWebhook
             'application_fee_amount' => $charge->application_fee_amount ?? null,
         ];
 
-        ConnectedCharge::updateOrCreate(
+        $chargeRecord = ConnectedCharge::updateOrCreate(
             [
                 'stripe_charge_id' => $charge->id,
                 'stripe_account_id' => $store->stripe_account_id,
             ],
             $data
         );
+        
+        \Log::info('Charge webhook processed successfully', [
+            'charge_id' => $charge->id,
+            'charge_record_id' => $chargeRecord->id,
+            'was_created' => $chargeRecord->wasRecentlyCreated,
+        ]);
     }
 }
 

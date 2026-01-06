@@ -240,6 +240,24 @@ class StripeConnectWebhookController extends Controller
         // Get the account ID from the event (for Connect webhooks)
         $accountId = $event->account ?? null;
 
+        // Log webhook event for debugging
+        \Log::info('Stripe webhook event received', [
+            'event_type' => $event->type,
+            'event_id' => $event->id,
+            'account_id_from_event' => $accountId,
+            'livemode' => $event->livemode ?? false,
+            'api_version' => $event->api_version ?? null,
+        ]);
+
+        // Warn if account ID is missing for Connect webhooks (except account events)
+        if (!$accountId && !in_array($event->type, ['account.created', 'account.updated', 'account.deleted'])) {
+            \Log::warning('Stripe webhook event missing account ID - may not be a Connect webhook', [
+                'event_type' => $event->type,
+                'event_id' => $event->id,
+                'note' => 'This webhook endpoint is configured for Stripe Connect. If account_id is null, the webhook may be from the platform account instead of a connected account.',
+            ]);
+        }
+
         // Optionally, you could check $event->livemode vs app env.
 
         try {

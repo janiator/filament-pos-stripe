@@ -20,12 +20,26 @@ class HandleProductWebhook
         $store = Store::where('stripe_account_id', $accountId)->first();
         
         if (!$store) {
+            // Log available stores for debugging
+            $availableStores = Store::whereNotNull('stripe_account_id')
+                ->pluck('stripe_account_id', 'id')
+                ->toArray();
+            
             \Log::warning('Product webhook received but store not found', [
                 'product_id' => $product->id,
                 'account_id' => $accountId,
+                'available_stores' => array_keys($availableStores),
+                'available_account_ids' => array_values($availableStores),
             ]);
             return;
         }
+        
+        \Log::info('Processing product webhook', [
+            'product_id' => $product->id,
+            'account_id' => $accountId,
+            'store_id' => $store->id,
+            'event_type' => $eventType,
+        ]);
 
         $data = [
             'stripe_product_id' => $product->id,
@@ -45,13 +59,19 @@ class HandleProductWebhook
             'default_price' => $product->default_price ?? null,
         ];
 
-        ConnectedProduct::updateOrCreate(
+        $productRecord = ConnectedProduct::updateOrCreate(
             [
                 'stripe_product_id' => $product->id,
                 'stripe_account_id' => $store->stripe_account_id,
             ],
             $data
         );
+        
+        \Log::info('Product webhook processed successfully', [
+            'product_id' => $product->id,
+            'product_record_id' => $productRecord->id,
+            'was_created' => $productRecord->wasRecentlyCreated,
+        ]);
     }
 }
 
