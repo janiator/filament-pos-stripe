@@ -255,14 +255,12 @@ class PricesRelationManager extends RelationManager
                         
                         \Filament\Notifications\Notification::make()
                             ->title('Payment link created')
-                            ->body('Payment link created successfully. Click to view.')
+                            ->body('Payment link created successfully.')
                             ->success()
-                            ->actions([
-                                \Filament\Notifications\Actions\Action::make('view')
-                                    ->label('View Payment Link')
-                                    ->url(\App\Filament\Resources\ConnectedPaymentLinks\ConnectedPaymentLinkResource::getUrl('view', ['record' => $paymentLink]))
-                                    ->button(),
-                            ])
+                            ->action(
+                                'View Payment Link',
+                                \App\Filament\Resources\ConnectedPaymentLinks\ConnectedPaymentLinkResource::getUrl('view', ['record' => $paymentLink])
+                            )
                             ->send();
                     })
                     ->visible(fn (ConnectedPrice $record) => $record->active),
