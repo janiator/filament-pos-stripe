@@ -1,10 +1,15 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Webhooks\StripeConnectWebhookController;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Stripe webhook endpoint (also available without /api prefix for compatibility)
+Route::post('/connectWebhook', StripeConnectWebhookController::class)
+    ->name('stripe.connect.webhook.web');
 
 // Filament token-based authentication route
 // This allows FlutterFlow apps to authenticate users via API token and access Filament panel
