@@ -66,6 +66,7 @@ class ConnectedPaymentLinkForm
                             return [];
                         }
 
+                        // Load all active prices without limit
                         $prices = \App\Models\ConnectedPrice::where('stripe_account_id', $accountId)
                             ->where('active', true)
                             ->get();
@@ -107,27 +108,46 @@ class ConnectedPaymentLinkForm
                             return [];
                         }
 
-                        // First, find products that match the search term
+                        // Search in multiple fields: product name, price ID, nickname, formatted amount
+                        $searchLower = strtolower($search);
+                        
+                        // First, find products that match the search term (case-insensitive)
                         $matchingProducts = \App\Models\ConnectedProduct::where('stripe_account_id', $accountId)
-                            ->where('name', 'like', "%{$search}%")
+                            ->where(function ($query) use ($search, $searchLower) {
+                                $query->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                                      ->orWhereRaw('LOWER(description) LIKE ?', ["%{$searchLower}%"]);
+                            })
                             ->pluck('stripe_product_id')
                             ->toArray();
                         
-                        // Then find prices that match either:
+                        // Then find prices that match:
                         // 1. Belong to products matching the search term
                         // 2. Have a stripe_price_id matching the search term
+                        // 3. Have a nickname matching the search term
+                        // 4. Have formatted amount matching the search term
                         $prices = \App\Models\ConnectedPrice::where('stripe_account_id', $accountId)
                             ->where('active', true)
-                            ->where(function ($query) use ($search, $matchingProducts) {
+                            ->where(function ($query) use ($search, $searchLower, $matchingProducts) {
                                 if (!empty($matchingProducts)) {
-                                    $query->whereIn('stripe_product_id', $matchingProducts)
-                                          ->orWhere('stripe_price_id', 'like', "%{$search}%");
-                                } else {
-                                    $query->where('stripe_price_id', 'like', "%{$search}%");
+                                    $query->whereIn('stripe_product_id', $matchingProducts);
+                                }
+                                $query->orWhereRaw('LOWER(stripe_price_id) LIKE ?', ["%{$searchLower}%"]);
+                                if ($search) {
+                                    // Try to match formatted amount (e.g., "10.00" or "10,00")
+                                    $numericSearch = preg_replace('/[^0-9.,]/', '', $search);
+                                    if ($numericSearch) {
+                                        // Convert to cents for comparison
+                                        $amountInCents = (int) round((float) str_replace(',', '.', $numericSearch) * 100);
+                                        if ($amountInCents > 0) {
+                                            $query->orWhere('unit_amount', $amountInCents);
+                                        }
+                                    }
+                                }
+                                if (!empty($search)) {
+                                    $query->orWhereRaw('LOWER(nickname) LIKE ?', ["%{$searchLower}%"]);
                                 }
                             })
-                            ->limit(50)
-                            ->get();
+                            ->get(); // Remove limit to show all matching results
                         
                         // Load all products for the prices to ensure proper relationship loading
                         $productIds = $prices->pluck('stripe_product_id')->unique()->filter();

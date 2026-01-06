@@ -6,6 +6,9 @@ use App\Models\ConnectedPrice;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
@@ -119,7 +122,113 @@ class PricesRelationManager extends RelationManager
                 // Prices are immutable in Stripe - view only
                 ViewAction::make()
                     ->url(fn ($record) => \App\Filament\Resources\ConnectedPrices\ConnectedPriceResource::getUrl('view', ['record' => $record])),
-            ])
+                
+                \Filament\Actions\Action::make('createPaymentLink')
+                    ->label('Create Payment Link')
+                    ->icon(\Filament\Support\Icons\Heroicon::OutlinedLink)
+                    ->color('success')
+                    ->modalHeading('Create Payment Link')
+                    ->modalDescription(fn (ConnectedPrice $record) => "Create a payment link for: {$record->formatted_amount}")
+                    ->form(function (ConnectedPrice $record) {
+                        return [
+                            Select::make('link_type')
+                                ->label('Link Type')
+                                ->options([
+                                    'direct' => 'Direct',
+                                    'destination' => 'Destination',
+                                ])
+                                ->default('direct')
+                                ->required()
+                                ->live()
+                                ->helperText('Direct: Charge goes directly to connected account. Destination: Charge goes to platform with transfer.'),
+                            
+                            TextInput::make('name')
+                                ->label('Name')
+                                ->maxLength(255)
+                                ->helperText('Optional: A name for this payment link'),
+                            
+                            TextInput::make('application_fee_percent')
+                                ->label('Application Fee (%)')
+                                ->numeric()
+                                ->minValue(0)
+                                ->maxValue(100)
+                                ->visible(fn (Get $get) => $get('link_type') === 'destination' && $record->type === 'recurring')
+                                ->helperText('For destination links with recurring prices: Percentage fee (e.g., 5 = 5%)'),
+                            
+                            TextInput::make('application_fee_amount')
+                                ->label('Application Fee (cents)')
+                                ->numeric()
+                                ->minValue(0)
+                                ->visible(fn (Get $get) => $get('link_type') === 'destination' && $record->type !== 'recurring')
+                                ->helperText('For destination links with one-time prices: Fixed fee in cents (e.g., 500 = $5.00)'),
+                            
+                            TextInput::make('after_completion_redirect_url')
+                                ->label('Redirect URL')
+                                ->url()
+                                ->helperText('Optional: URL to redirect to after payment completion'),
+                        ];
+                    })
+                    ->action(function (ConnectedPrice $record, array $data) {
+                        // Get the store from the product
+                        $product = $this->ownerRecord;
+                        $store = \App\Models\Store::where('stripe_account_id', $product->stripe_account_id)->first();
+                        
+                        if (!$store) {
+                            throw new \Exception('Store not found for this product.');
+                        }
+                        
+                        // Prepare line items
+                        $lineItems = [
+                            [
+                                'price' => $record->stripe_price_id,
+                                'quantity' => 1,
+                            ],
+                        ];
+                        
+                        $linkData = [
+                            'line_items' => $lineItems,
+                            'name' => $data['name'] ?? null,
+                            'link_type' => $data['link_type'] ?? 'direct',
+                            'after_completion_redirect_url' => $data['after_completion_redirect_url'] ?? null,
+                        ];
+                        
+                        // Add application fee for destination links
+                        if ($linkData['link_type'] === 'destination') {
+                            if ($record->type === 'recurring') {
+                                if (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
+                                    $linkData['application_fee_percent'] = (float) $data['application_fee_percent'];
+                                }
+                            } else {
+                                if (isset($data['application_fee_amount']) && $data['application_fee_amount'] !== null && $data['application_fee_amount'] !== '') {
+                                    $linkData['application_fee_amount'] = (int) $data['application_fee_amount'];
+                                } elseif (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
+                                    $feePercent = (float) $data['application_fee_percent'];
+                                    $feeAmount = (int) round(($record->unit_amount * $feePercent) / 100);
+                                    $linkData['application_fee_amount'] = $feeAmount;
+                                }
+                            }
+                        }
+                        
+                        $action = new \App\Actions\ConnectedPaymentLinks\CreateConnectedPaymentLinkOnStripe();
+                        $paymentLink = $action($store, $linkData, true);
+                        
+                        if (!$paymentLink) {
+                            throw new \Exception('Failed to create payment link on Stripe.');
+                        }
+                        
+                        \Filament\Notifications\Notification::make()
+                            ->title('Payment link created')
+                            ->body('Payment link created successfully. Click to view.')
+                            ->success()
+                            ->actions([
+                                \Filament\Notifications\Actions\Action::make('view')
+                                    ->label('View Payment Link')
+                                    ->url(\App\Filament\Resources\ConnectedPaymentLinks\ConnectedPaymentLinkResource::getUrl('view', ['record' => $paymentLink]))
+                                    ->button(),
+                            ])
+                            ->send();
+                    })
+                    ->visible(fn (ConnectedPrice $record) => $record->active),
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
