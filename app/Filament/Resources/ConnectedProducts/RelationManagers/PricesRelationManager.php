@@ -130,6 +130,22 @@ class PricesRelationManager extends RelationManager
                     ->modalHeading('Create Payment Link')
                     ->modalDescription(fn (ConnectedPrice $record) => "Create a payment link for: {$record->formatted_amount}")
                     ->form(function (ConnectedPrice $record) {
+                        // Get the store to access commission settings
+                        $product = $this->ownerRecord;
+                        $store = \App\Models\Store::where('stripe_account_id', $product->stripe_account_id)->first();
+                        
+                        // Determine default application fee based on store commission and price type
+                        $defaultFeePercent = null;
+                        $defaultFeeAmount = null;
+                        
+                        if ($store) {
+                            if ($store->commission_type === 'percentage') {
+                                $defaultFeePercent = $store->commission_rate;
+                            } elseif ($store->commission_type === 'fixed') {
+                                $defaultFeeAmount = $store->commission_rate;
+                            }
+                        }
+                        
                         return [
                             Select::make('link_type')
                                 ->label('Link Type')
@@ -152,15 +168,47 @@ class PricesRelationManager extends RelationManager
                                 ->numeric()
                                 ->minValue(0)
                                 ->maxValue(100)
-                                ->visible(fn (Get $get) => $get('link_type') === 'destination' && $record->type === 'recurring')
-                                ->helperText('For destination links with recurring prices: Percentage fee (e.g., 5 = 5%)'),
+                                ->default($defaultFeePercent)
+                                ->helperText(function (Get $get) use ($record) {
+                                    $priceId = $record->stripe_price_id;
+                                    if (!$priceId) {
+                                        return 'For destination links with recurring prices: Percentage fee (e.g., 5 = 5%). For one-time prices, this will be converted to a fixed amount.';
+                                    }
+                                    
+                                    if ($record->type === 'recurring') {
+                                        return 'For destination links with recurring prices: Percentage fee (e.g., 5 = 5%). This will be applied as a percentage of each subscription invoice.';
+                                    }
+                                    
+                                    return 'For destination links: Percentage fee (e.g., 5 = 5%). For one-time prices, this will be automatically converted to a fixed amount in cents based on the price.';
+                                })
+                                ->visible(fn (Get $get) => $get('link_type') === 'destination'),
                             
                             TextInput::make('application_fee_amount')
                                 ->label('Application Fee (cents)')
                                 ->numeric()
                                 ->minValue(0)
-                                ->visible(fn (Get $get) => $get('link_type') === 'destination' && $record->type !== 'recurring')
-                                ->helperText('For destination links with one-time prices: Fixed fee in cents (e.g., 500 = $5.00)'),
+                                ->default($defaultFeeAmount)
+                                ->helperText(function (Get $get) use ($record) {
+                                    $priceId = $record->stripe_price_id;
+                                    if (!$priceId) {
+                                        return 'For destination links with one-time prices: Fixed fee in cents (e.g., 500 = $5.00). Cannot be used with recurring prices.';
+                                    }
+                                    
+                                    if ($record->type === 'recurring') {
+                                        return 'Fixed fee cannot be used with recurring prices. Use percentage fee instead.';
+                                    }
+                                    
+                                    return 'For destination links with one-time prices: Fixed fee in cents (e.g., 500 = $5.00).';
+                                })
+                                ->visible(function (Get $get) use ($record) {
+                                    $linkType = $get('link_type');
+                                    if ($linkType !== 'destination') {
+                                        return false;
+                                    }
+                                    
+                                    // Hide if price is recurring
+                                    return $record->type !== 'recurring';
+                                }),
                             
                             TextInput::make('after_completion_redirect_url')
                                 ->label('Redirect URL')
