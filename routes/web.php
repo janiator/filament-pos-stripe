@@ -8,7 +8,9 @@ Route::get('/', function () {
 });
 
 // Stripe webhook endpoint (also available without /api prefix for compatibility)
+// Exclude from CSRF protection since webhooks don't have CSRF tokens
 Route::post('/connectWebhook', StripeConnectWebhookController::class)
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
     ->name('stripe.connect.webhook.web');
 
 // Filament token-based authentication route
