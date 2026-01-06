@@ -651,49 +651,86 @@ class ConnectedProductsTable
 
                                 Select::make('article_group_code')
                                     ->label('Article Group Code (SAF-T)')
-                                    ->relationship(
-                                        'articleGroupCode',
-                                        'name',
-                                        modifyQueryUsing: function ($query) {
-                                            // Get tenant's stripe_account_id
-                                            $stripeAccountId = null;
-                                            try {
-                                                $tenant = \Filament\Facades\Filament::getTenant();
-                                                $stripeAccountId = $tenant?->stripe_account_id;
-                                            } catch (\Throwable $e) {
-                                                // Fallback
-                                            }
-
-                                            // Show store-specific codes and global standard codes
-                                            if ($stripeAccountId) {
-                                                return $query->where(function ($q) use ($stripeAccountId) {
-                                                    $q->where('stripe_account_id', $stripeAccountId)
-                                                      ->orWhere(function ($q2) {
-                                                          $q2->whereNull('stripe_account_id')
-                                                             ->where('is_standard', true);
-                                                      });
-                                                })
-                                                ->where('active', true)
-                                                ->orderBy('sort_order', 'asc')
-                                                ->orderBy('code', 'asc');
-                                            }
-
-                                            // If no stripe_account_id, return global standard codes
-                                            return $query->whereNull('stripe_account_id')
-                                                ->where('is_standard', true)
-                                                ->where('active', true)
-                                                ->orderBy('sort_order', 'asc')
-                                                ->orderBy('code', 'asc');
+                                    ->options(function () {
+                                        // Get tenant's stripe_account_id
+                                        $stripeAccountId = null;
+                                        try {
+                                            $tenant = \Filament\Facades\Filament::getTenant();
+                                            $stripeAccountId = $tenant?->stripe_account_id;
+                                        } catch (\Throwable $e) {
+                                            // Fallback
                                         }
-                                    )
-                                    ->getOptionValueUsing(function ($record) {
-                                        // Return the code string instead of ID, since the relationship uses 'code' as foreign key
-                                        return $record->code;
+
+                                        $query = \App\Models\ArticleGroupCode::query();
+
+                                        // Show store-specific codes and global standard codes
+                                        if ($stripeAccountId) {
+                                            $query->where(function ($q) use ($stripeAccountId) {
+                                                $q->where('stripe_account_id', $stripeAccountId)
+                                                  ->orWhere(function ($q2) {
+                                                      $q2->whereNull('stripe_account_id')
+                                                         ->where('is_standard', true);
+                                                  });
+                                            });
+                                        } else {
+                                            // If no stripe_account_id, return global standard codes
+                                            $query->whereNull('stripe_account_id')
+                                                ->where('is_standard', true);
+                                        }
+
+                                        return $query->where('active', true)
+                                            ->orderBy('sort_order', 'asc')
+                                            ->orderBy('code', 'asc')
+                                            ->get()
+                                            ->mapWithKeys(function ($record) {
+                                                return [$record->code => $record->code . ' - ' . $record->name];
+                                            });
                                     })
-                                    ->getOptionLabelFromRecordUsing(function ($record) {
-                                        return $record->code . ' - ' . $record->name;
+                                    ->getSearchResultsUsing(function (string $search) {
+                                        // Get tenant's stripe_account_id
+                                        $stripeAccountId = null;
+                                        try {
+                                            $tenant = \Filament\Facades\Filament::getTenant();
+                                            $stripeAccountId = $tenant?->stripe_account_id;
+                                        } catch (\Throwable $e) {
+                                            // Fallback
+                                        }
+
+                                        $query = \App\Models\ArticleGroupCode::query()
+                                            ->where(function ($q) use ($search) {
+                                                $q->where('code', 'like', "%{$search}%")
+                                                  ->orWhere('name', 'like', "%{$search}%");
+                                            });
+
+                                        // Show store-specific codes and global standard codes
+                                        if ($stripeAccountId) {
+                                            $query->where(function ($q) use ($stripeAccountId) {
+                                                $q->where('stripe_account_id', $stripeAccountId)
+                                                  ->orWhere(function ($q2) {
+                                                      $q2->whereNull('stripe_account_id')
+                                                         ->where('is_standard', true);
+                                                  });
+                                            });
+                                        } else {
+                                            // If no stripe_account_id, return global standard codes
+                                            $query->whereNull('stripe_account_id')
+                                                ->where('is_standard', true);
+                                        }
+
+                                        return $query->where('active', true)
+                                            ->orderBy('sort_order', 'asc')
+                                            ->orderBy('code', 'asc')
+                                            ->limit(50)
+                                            ->get()
+                                            ->mapWithKeys(function ($record) {
+                                                return [$record->code => $record->code . ' - ' . $record->name];
+                                            });
                                     })
-                                    ->searchable(['code', 'name'])
+                                    ->getOptionLabelUsing(function ($value) {
+                                        $code = \App\Models\ArticleGroupCode::where('code', $value)->first();
+                                        return $code ? $code->code . ' - ' . $code->name : $value;
+                                    })
+                                    ->searchable()
                                     ->preload()
                                     ->placeholder('Select article group')
                                     ->disabled(fn ($get) => !$get('update_article_group_code'))

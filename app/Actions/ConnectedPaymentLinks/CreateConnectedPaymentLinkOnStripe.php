@@ -61,11 +61,13 @@ class CreateConnectedPaymentLinkOnStripe
             }
 
             // For destination links, add application fee
+            // Note: application_fee_percent can only be used with recurring prices
+            // application_fee_amount can only be used with one-time prices
             if (isset($linkData['link_type']) && $linkData['link_type'] === 'destination') {
+                // Only set one fee type - the CreateConnectedPaymentLink page ensures the correct one is set
                 if (isset($linkData['application_fee_percent'])) {
                     $stripeLinkData['application_fee_percent'] = $linkData['application_fee_percent'];
-                }
-                if (isset($linkData['application_fee_amount'])) {
+                } elseif (isset($linkData['application_fee_amount'])) {
                     $stripeLinkData['application_fee_amount'] = $linkData['application_fee_amount'];
                 }
             }
@@ -83,22 +85,26 @@ class CreateConnectedPaymentLinkOnStripe
                 $priceId = is_string($lineItem->price) ? $lineItem->price : ($lineItem->price->id ?? null);
             }
 
-            // Create local mapping
-            $linkRecord = ConnectedPaymentLink::create([
-                'stripe_payment_link_id' => $paymentLink->id,
-                'stripe_account_id' => $store->stripe_account_id,
-                'stripe_price_id' => $priceId,
-                'name' => $paymentLink->metadata?->name ?? $linkData['name'] ?? null,
-                'description' => null,
-                'url' => $paymentLink->url,
-                'active' => $paymentLink->active ?? true,
-                'link_type' => $linkData['link_type'] ?? 'direct',
-                'application_fee_percent' => $paymentLink->application_fee_percent ?? null,
-                'application_fee_amount' => $paymentLink->application_fee_amount ?? null,
-                'after_completion_redirect_url' => $paymentLink->after_completion?->redirect?->url ?? null,
-                'line_items' => $paymentLink->line_items ? (array) $paymentLink->line_items : null,
-                'metadata' => $paymentLink->metadata ? (array) $paymentLink->metadata : null,
-            ]);
+            // Create or update local mapping
+            $linkRecord = ConnectedPaymentLink::updateOrCreate(
+                [
+                    'stripe_payment_link_id' => $paymentLink->id,
+                ],
+                [
+                    'stripe_account_id' => $store->stripe_account_id,
+                    'stripe_price_id' => $priceId,
+                    'name' => $paymentLink->metadata?->name ?? $linkData['name'] ?? null,
+                    'description' => null,
+                    'url' => $paymentLink->url,
+                    'active' => $paymentLink->active ?? true,
+                    'link_type' => $linkData['link_type'] ?? 'direct',
+                    'application_fee_percent' => $paymentLink->application_fee_percent ?? null,
+                    'application_fee_amount' => $paymentLink->application_fee_amount ?? null,
+                    'after_completion_redirect_url' => $paymentLink->after_completion?->redirect?->url ?? null,
+                    'line_items' => $paymentLink->line_items ? (array) $paymentLink->line_items : null,
+                    'metadata' => $paymentLink->metadata ? (array) $paymentLink->metadata : null,
+                ]
+            );
 
             if ($notify) {
                 Notification::make()
