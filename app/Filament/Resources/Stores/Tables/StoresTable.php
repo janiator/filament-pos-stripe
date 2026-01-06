@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Stores\Tables;
 
-use App\Actions\SyncEverythingFromStripe;
 use App\Models\Store;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -86,30 +85,16 @@ class StoresTable
                     ->color('success')
                     ->requiresConfirmation()
                     ->modalHeading('Sync Everything from Stripe')
-                    ->modalDescription('This will sync all data (customers, products, subscriptions, charges, transfers, payment methods, payment links, and terminal devices) from Stripe for this store. This may take a while.')
+                    ->modalDescription('This will sync all data (customers, products, subscriptions, charges, transfers, payment methods, payment links, and terminal devices) from Stripe for this store. The sync will run in the background.')
                     ->action(function (Store $record) {
-                        $syncAction = new SyncEverythingFromStripe();
-                        $result = $syncAction->syncStore($record, false);
+                        // Dispatch job instead of running synchronously
+                        \App\Jobs\SyncStoreEverythingFromStripeJob::dispatch($record);
 
-                        if (! empty($result['errors'])) {
-                            $errorDetails = implode("\n", array_slice($result['errors'], 0, 5));
-                            if (count($result['errors']) > 5) {
-                                $errorDetails .= "\n... and " . (count($result['errors']) - 5) . " more error(s)";
-                            }
-
-                            Notification::make()
-                                ->title('Sync completed with errors')
-                                ->body("Found {$result['total']} items. {$result['created']} created, {$result['updated']} updated.\n\nErrors:\n{$errorDetails}")
-                                ->warning()
-                                ->persistent()
-                                ->send();
-                        } else {
-                            Notification::make()
-                                ->title('Sync complete')
-                                ->body("Found {$result['total']} items. {$result['created']} created, {$result['updated']} updated.")
-                                ->success()
-                                ->send();
-                        }
+                        Notification::make()
+                            ->title('Sync queued')
+                            ->body('The sync has been queued and will run in the background. You can check the progress in the queue dashboard.')
+                            ->success()
+                            ->send();
                     })
                     ->visible(fn (Store $record): bool => !empty($record->stripe_account_id)),
             ])
