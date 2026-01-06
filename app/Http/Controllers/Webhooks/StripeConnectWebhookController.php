@@ -446,6 +446,60 @@ class StripeConnectWebhookController extends Controller
             $result['warnings'][] = 'No account ID found in event - this may indicate the webhook is from the platform account instead of a connected account';
         }
 
-        return response()->json($result);
+        // Ensure we have a message if none was set
+        if (empty($result['message'])) {
+            $result['message'] = $result['processed'] 
+                ? "Event {$event->type} processed successfully" 
+                : "Event {$event->type} received but not processed";
+        }
+
+        // Find store by account ID for logging
+        $store = null;
+        if ($accountId) {
+            $store = \App\Models\Store::where('stripe_account_id', $accountId)->first();
+        }
+
+        // Save webhook log to database
+        try {
+            $webhookLog = \App\Models\WebhookLog::create([
+                'store_id' => $store?->id,
+                'stripe_account_id' => $accountId,
+                'event_type' => $event->type,
+                'event_id' => $event->id,
+                'account_id' => $accountId,
+                'processed' => $result['processed'],
+                'message' => $result['message'],
+                'warnings' => !empty($result['warnings']) ? $result['warnings'] : null,
+                'errors' => !empty($result['errors']) ? $result['errors'] : null,
+                'request_data' => [
+                    'event_type' => $event->type,
+                    'event_id' => $event->id,
+                    'livemode' => $event->livemode ?? false,
+                    'api_version' => $event->api_version ?? null,
+                    'object_type' => get_class($event->data->object),
+                ],
+                'response_data' => $result,
+                'http_status_code' => 200,
+                'error_message' => !empty($result['errors']) ? implode('; ', $result['errors']) : null,
+            ]);
+
+            // Cleanup old records (keep max 100 per store)
+            if ($store) {
+                \App\Models\WebhookLog::cleanupOldRecords($store->id);
+            }
+        } catch (\Throwable $e) {
+            // Log error but don't fail the webhook response
+            \Log::error('Failed to save webhook log', [
+                'error' => $e->getMessage(),
+                'event_id' => $event->id,
+            ]);
+        }
+
+        // Return response with explicit content type and headers
+        // Note: Stripe dashboard may not always display response bodies for 200 status codes
+        // but the data will be in the response for debugging purposes
+        return response()->json($result, 200, [
+            'Content-Type' => 'application/json',
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     }
 }
