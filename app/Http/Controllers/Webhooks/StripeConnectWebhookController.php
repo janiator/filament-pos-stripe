@@ -260,6 +260,18 @@ class StripeConnectWebhookController extends Controller
 
         // Optionally, you could check $event->livemode vs app env.
 
+        // Track processing result for response
+        $result = [
+            'received' => true,
+            'event_type' => $event->type,
+            'event_id' => $event->id,
+            'account_id' => $accountId,
+            'processed' => false,
+            'message' => null,
+            'warnings' => [],
+            'errors' => [],
+        ];
+
         try {
             switch ($event->type) {
                 // Account events
@@ -268,12 +280,16 @@ class StripeConnectWebhookController extends Controller
                     /** @var Account $account */
                     $account = $event->data->object;
                     $accountHandler($account);
+                    $result['processed'] = true;
+                    $result['message'] = "Account {$account->id} processed successfully";
                     break;
 
                 case 'account.deleted':
                     /** @var Account $account */
                     $account = $event->data->object;
                     $accountHandler->handleDeleted($account);
+                    $result['processed'] = true;
+                    $result['message'] = "Account {$account->id} deletion processed";
                     break;
 
                 // Customer events
@@ -281,11 +297,18 @@ class StripeConnectWebhookController extends Controller
                 case 'customer.updated':
                     /** @var Customer $customer */
                     $customer = $event->data->object;
+                    if (!$accountId) {
+                        $result['warnings'][] = 'No account ID found in event';
+                    }
                     $customerHandler->handle($customer, $event->type, $accountId);
+                    $result['processed'] = true;
+                    $result['message'] = "Customer {$customer->id} processed";
                     break;
 
                 case 'customer.deleted':
                     // Handle customer deletion if needed
+                    $result['processed'] = true;
+                    $result['message'] = 'Customer deletion event received (not implemented)';
                     break;
 
                 // Subscription events
@@ -297,7 +320,12 @@ class StripeConnectWebhookController extends Controller
                 case 'customer.subscription.trial_will_end':
                     /** @var Subscription $subscription */
                     $subscription = $event->data->object;
+                    if (!$accountId) {
+                        $result['warnings'][] = 'No account ID found in event';
+                    }
                     $subscriptionHandler->handle($subscription, $event->type, $accountId);
+                    $result['processed'] = true;
+                    $result['message'] = "Subscription {$subscription->id} ({$event->type}) processed";
                     break;
 
                 // Product events
@@ -306,7 +334,12 @@ class StripeConnectWebhookController extends Controller
                 case 'product.deleted':
                     /** @var Product $product */
                     $product = $event->data->object;
+                    if (!$accountId) {
+                        $result['warnings'][] = 'No account ID found in event';
+                    }
                     $productHandler->handle($product, $event->type, $accountId);
+                    $result['processed'] = true;
+                    $result['message'] = "Product {$product->id} ({$event->type}) processed";
                     break;
 
                 // Price events
@@ -315,7 +348,12 @@ class StripeConnectWebhookController extends Controller
                 case 'price.deleted':
                     /** @var Price $price */
                     $price = $event->data->object;
+                    if (!$accountId) {
+                        $result['warnings'][] = 'No account ID found in event';
+                    }
                     $priceHandler->handle($price, $event->type, $accountId);
+                    $result['processed'] = true;
+                    $result['message'] = "Price {$price->id} ({$event->type}) processed";
                     break;
 
                 // Charge events
@@ -329,7 +367,12 @@ class StripeConnectWebhookController extends Controller
                 case 'charge.refund.updated':
                     /** @var Charge $charge */
                     $charge = $event->data->object;
+                    if (!$accountId) {
+                        $result['warnings'][] = 'No account ID found in event, attempting to extract from charge object';
+                    }
                     $chargeHandler->handle($charge, $event->type, $accountId);
+                    $result['processed'] = true;
+                    $result['message'] = "Charge {$charge->id} ({$event->type}) processed";
                     break;
 
                 // Payment method events
@@ -339,7 +382,12 @@ class StripeConnectWebhookController extends Controller
                 case 'payment_method.automatically_updated':
                     /** @var PaymentMethod $paymentMethod */
                     $paymentMethod = $event->data->object;
+                    if (!$accountId) {
+                        $result['warnings'][] = 'No account ID found in event';
+                    }
                     $paymentMethodHandler->handle($paymentMethod, $event->type, $accountId);
+                    $result['processed'] = true;
+                    $result['message'] = "Payment method {$paymentMethod->id} ({$event->type}) processed";
                     break;
 
                 // Payment link events
@@ -347,7 +395,12 @@ class StripeConnectWebhookController extends Controller
                 case 'payment_link.updated':
                     /** @var PaymentLink $paymentLink */
                     $paymentLink = $event->data->object;
+                    if (!$accountId) {
+                        $result['warnings'][] = 'No account ID found in event';
+                    }
                     $paymentLinkHandler->handle($paymentLink, $event->type, $accountId);
+                    $result['processed'] = true;
+                    $result['message'] = "Payment link {$paymentLink->id} ({$event->type}) processed";
                     break;
 
                 // Transfer events
@@ -358,7 +411,12 @@ class StripeConnectWebhookController extends Controller
                 case 'transfer.failed':
                     /** @var Transfer $transfer */
                     $transfer = $event->data->object;
+                    if (!$accountId) {
+                        $result['warnings'][] = 'No account ID found in event, attempting to extract from transfer object';
+                    }
                     $transferHandler->handle($transfer, $event->type, $accountId);
+                    $result['processed'] = true;
+                    $result['message'] = "Transfer {$transfer->id} ({$event->type}) processed";
                     break;
 
                 default:
@@ -367,6 +425,8 @@ class StripeConnectWebhookController extends Controller
                         'type' => $event->type,
                         'account_id' => $accountId,
                     ]);
+                    $result['warnings'][] = "Event type '{$event->type}' is not handled";
+                    $result['message'] = "Unhandled event type: {$event->type}";
                     break;
             }
         } catch (\Throwable $e) {
@@ -376,9 +436,16 @@ class StripeConnectWebhookController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
             report($e);
-            // Still return 200 to Stripe to prevent retries
+            $result['errors'][] = $e->getMessage();
+            $result['message'] = "Error processing {$event->type}: {$e->getMessage()}";
+            // Still return 200 to Stripe to prevent retries, but include error in response
         }
 
-        return response()->json(['received' => true]);
+        // Add warning if account ID was missing
+        if (!$accountId && !in_array($event->type, ['account.created', 'account.updated', 'account.deleted'])) {
+            $result['warnings'][] = 'No account ID found in event - this may indicate the webhook is from the platform account instead of a connected account';
+        }
+
+        return response()->json($result);
     }
 }
