@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\ConnectedPaymentLinks\Tables;
 
+use App\Actions\ConnectedPaymentLinks\UpdateConnectedPaymentLinkInStripe;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -101,7 +103,28 @@ class ConnectedPaymentLinksTable
             ->defaultSort('created_at', 'desc')
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label('Deactivate')
+                        ->requiresConfirmation()
+                        ->modalHeading('Deactivate Payment Links')
+                        ->modalDescription('Are you sure you want to deactivate the selected payment links? They will be deactivated in Stripe but not deleted. You can reactivate them later.')
+                        ->action(function ($records) {
+                            $action = new UpdateConnectedPaymentLinkInStripe();
+                            $deactivatedCount = 0;
+
+                            foreach ($records as $record) {
+                                $record->active = false;
+                                $record->save();
+                                $action($record, false);
+                                $deactivatedCount++;
+                            }
+
+                            Notification::make()
+                                ->title('Payment links deactivated')
+                                ->body("{$deactivatedCount} payment link(s) have been deactivated.")
+                                ->success()
+                                ->send();
+                        }),
                 ]),
             ]);
     }

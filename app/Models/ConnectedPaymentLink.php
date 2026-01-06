@@ -45,4 +45,21 @@ class ConnectedPaymentLink extends Model
             ->where('stripe_account_id', $this->stripe_account_id);
     }
 
+    /**
+     * Override delete to deactivate in Stripe instead of deleting.
+     * Payment links should not be deleted, only deactivated.
+     */
+    public function delete(): ?bool
+    {
+        // Deactivate instead of deleting
+        $this->active = false;
+        $this->save();
+
+        // Sync deactivation to Stripe
+        $action = new \App\Actions\ConnectedPaymentLinks\UpdateConnectedPaymentLinkInStripe();
+        $action($this, false);
+
+        // Return true to indicate "deletion" succeeded (even though we just deactivated)
+        return true;
+    }
 }

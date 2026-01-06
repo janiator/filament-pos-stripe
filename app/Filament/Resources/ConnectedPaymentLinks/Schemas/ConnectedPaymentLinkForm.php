@@ -303,6 +303,41 @@ class ConnectedPaymentLinkForm
                     ->helperText('Optional: URL to redirect to after payment completion')
                     ->visibleOn('create'),
 
+                Toggle::make('adjustable_quantity_enabled')
+                    ->label('Allow Customers to Adjust Quantity')
+                    ->default(false)
+                    ->helperText('Enable this to let customers change the quantity of items during checkout')
+                    ->live()
+                    ->visibleOn('create'),
+
+                TextInput::make('adjustable_quantity_minimum')
+                    ->label('Minimum Quantity')
+                    ->numeric()
+                    ->minValue(1)
+                    ->default(1)
+                    ->helperText('Minimum quantity customers can select (default: 1)')
+                    ->visible(function (Get $get) {
+                        return $get('adjustable_quantity_enabled') === true;
+                    })
+                    ->visibleOn('create')
+                    ->required(function (Get $get) {
+                        return $get('adjustable_quantity_enabled') === true;
+                    }),
+
+                TextInput::make('adjustable_quantity_maximum')
+                    ->label('Maximum Quantity')
+                    ->numeric()
+                    ->minValue(1)
+                    ->default(99)
+                    ->helperText('Maximum quantity customers can select (default: 99)')
+                    ->visible(function (Get $get) {
+                        return $get('adjustable_quantity_enabled') === true;
+                    })
+                    ->visibleOn('create')
+                    ->required(function (Get $get) {
+                        return $get('adjustable_quantity_enabled') === true;
+                    }),
+
                 // Read-only fields on edit
                 TextInput::make('stripe_payment_link_id')
                     ->label('Payment Link ID')
@@ -325,8 +360,7 @@ class ConnectedPaymentLinkForm
 
                 Toggle::make('active')
                     ->label('Active')
-                    ->disabled()
-                    ->dehydrated(false)
+                    ->helperText('Deactivate to prevent customers from using this payment link')
                     ->visibleOn('edit'),
 
                 TextInput::make('link_type')
