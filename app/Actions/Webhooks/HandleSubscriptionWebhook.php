@@ -47,6 +47,7 @@ class HandleSubscriptionWebhook
         
         // Sync the subscription
         $data = [
+            'name' => ($subscription->metadata && isset($subscription->metadata->name)) ? $subscription->metadata->name : $subscription->id, // Use metadata name or subscription ID
             'stripe_id' => $subscription->id,
             'stripe_status' => $subscription->status,
             'stripe_customer_id' => $subscription->customer,
