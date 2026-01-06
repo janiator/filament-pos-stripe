@@ -141,7 +141,7 @@ class GiftCardsController extends BaseApiController
     /**
      * Validate gift card
      */
-    public function validate(Request $request): JsonResponse
+    public function validateGiftCard(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'code' => 'required|string',

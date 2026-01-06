@@ -149,7 +149,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Gift card endpoints
     Route::post('/gift-cards/purchase', [\App\Http\Controllers\Api\GiftCardsController::class, 'purchase'])->name('api.gift-cards.purchase');
-    Route::post('/gift-cards/validate', [\App\Http\Controllers\Api\GiftCardsController::class, 'validate'])->name('api.gift-cards.validate');
+    Route::post('/gift-cards/validate', [\App\Http\Controllers\Api\GiftCardsController::class, 'validateGiftCard'])->name('api.gift-cards.validate');
     Route::get('/gift-cards', [\App\Http\Controllers\Api\GiftCardsController::class, 'index'])->name('api.gift-cards.index');
     Route::get('/gift-cards/{code}', [\App\Http\Controllers\Api\GiftCardsController::class, 'show'])->name('api.gift-cards.show');
     Route::get('/gift-cards/{id}/transactions', [\App\Http\Controllers\Api\GiftCardsController::class, 'transactions'])->name('api.gift-cards.transactions');
