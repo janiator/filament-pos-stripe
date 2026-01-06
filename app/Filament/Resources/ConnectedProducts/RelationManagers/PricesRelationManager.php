@@ -229,6 +229,7 @@ class PricesRelationManager extends RelationManager
                             ->send();
                     })
                     ->visible(fn (ConnectedPrice $record) => $record->active),
+            ])
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
