@@ -107,11 +107,14 @@ class SyncConnectedSubscriptionsFromStripe
                         $subscriptionRecord->fill($data);
                         // Explicitly set stripe_account_id to ensure it's updated if it changed
                         $subscriptionRecord->stripe_account_id = $stripeAccountId;
-                        $subscriptionRecord->save();
+                        // Use saveQuietly to prevent triggering sync back to Stripe
+                        $subscriptionRecord->saveQuietly();
                         $result['updated']++;
                     } else {
-                        // Create new record
-                        $subscriptionRecord = ConnectedSubscription::create($data);
+                        // Create new record - use withoutEvents to prevent triggering sync back to Stripe
+                        $subscriptionRecord = ConnectedSubscription::withoutEvents(function () use ($data) {
+                            return ConnectedSubscription::create($data);
+                        });
                         $result['created']++;
                     }
 

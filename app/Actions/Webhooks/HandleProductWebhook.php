@@ -59,13 +59,16 @@ class HandleProductWebhook
             'default_price' => $product->default_price ?? null,
         ];
 
-        $productRecord = ConnectedProduct::updateOrCreate(
-            [
-                'stripe_product_id' => $product->id,
-                'stripe_account_id' => $store->stripe_account_id,
-            ],
-            $data
-        );
+        $productRecord =         // Use withoutEvents to prevent triggering sync back to Stripe when syncing FROM Stripe
+        ConnectedProduct::withoutEvents(function () use ($product, $store, $data) {
+            return ConnectedProduct::updateOrCreate(
+                [
+                    'stripe_product_id' => $product->id,
+                    'stripe_account_id' => $store->stripe_account_id,
+                ],
+                $data
+            );
+        });
         
         \Log::info('Product webhook processed successfully', [
             'product_id' => $product->id,

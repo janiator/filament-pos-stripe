@@ -65,13 +65,16 @@ class HandleSubscriptionWebhook
             'metadata' => $subscription->metadata ? (array) $subscription->metadata : null,
         ];
 
-        $subscriptionRecord = ConnectedSubscription::updateOrCreate(
-            [
-                'stripe_id' => $subscription->id,
-                'stripe_account_id' => $store->stripe_account_id,
-            ],
-            $data
-        );
+        // Use withoutEvents to prevent triggering sync back to Stripe when syncing FROM Stripe
+        $subscriptionRecord = ConnectedSubscription::withoutEvents(function () use ($subscription, $store, $data) {
+            return ConnectedSubscription::updateOrCreate(
+                [
+                    'stripe_id' => $subscription->id,
+                    'stripe_account_id' => $store->stripe_account_id,
+                ],
+                $data
+            );
+        });
         
         \Log::info('Subscription webhook processed successfully', [
             'subscription_id' => $subscription->id,

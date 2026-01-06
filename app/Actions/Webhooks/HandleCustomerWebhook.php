@@ -38,13 +38,16 @@ class HandleCustomerWebhook
             'address' => $customer->address ? (array) $customer->address : null,
         ];
 
-        ConnectedCustomer::updateOrCreate(
-            [
-                'stripe_customer_id' => $customer->id,
-                'stripe_account_id' => $store->stripe_account_id,
-            ],
-            $data
-        );
+        // Use withoutEvents to prevent triggering sync back to Stripe when syncing FROM Stripe
+        ConnectedCustomer::withoutEvents(function () use ($customer, $store, $data) {
+            return ConnectedCustomer::updateOrCreate(
+                [
+                    'stripe_customer_id' => $customer->id,
+                    'stripe_account_id' => $store->stripe_account_id,
+                ],
+                $data
+            );
+        });
     }
 }
 
