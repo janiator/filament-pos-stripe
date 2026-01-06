@@ -40,14 +40,6 @@ class StripeConnectWebhookController extends Controller
         HandlePaymentLinkWebhook $paymentLinkHandler,
         HandleTransferWebhook $transferHandler
     ) {
-        // Log that webhook controller was hit
-        \Log::info('StripeConnectWebhookController invoked', [
-            'url' => $request->fullUrl(),
-            'path' => $request->path(),
-            'method' => $request->method(),
-            'has_payload' => !empty($request->getContent()),
-        ]);
-
         // Get raw payload - must be raw content, not parsed JSON
         // Use getContent() first, fallback to php://input if empty (in case middleware consumed it)
         $payload = $request->getContent();
@@ -468,14 +460,6 @@ class StripeConnectWebhookController extends Controller
         }
 
         // Save webhook log to database
-        \Log::info('Attempting to save webhook log', [
-            'event_id' => $event->id,
-            'event_type' => $event->type,
-            'account_id' => $accountId,
-            'store_id' => $store?->id,
-            'table_exists' => \Illuminate\Support\Facades\Schema::hasTable('webhook_logs'),
-        ]);
-
         try {
             // Check if table exists before trying to save
             if (!\Illuminate\Support\Facades\Schema::hasTable('webhook_logs')) {
@@ -503,12 +487,6 @@ class StripeConnectWebhookController extends Controller
                     'response_data' => $result,
                     'http_status_code' => 200,
                     'error_message' => !empty($result['errors']) ? implode('; ', $result['errors']) : null,
-                ]);
-
-                \Log::info('Webhook log saved successfully', [
-                    'webhook_log_id' => $webhookLog->id,
-                    'event_id' => $event->id,
-                    'store_id' => $store?->id,
                 ]);
 
                 // Cleanup old records (keep max 100 per store)
