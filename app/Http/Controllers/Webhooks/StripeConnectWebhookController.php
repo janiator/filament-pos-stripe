@@ -460,6 +460,14 @@ class StripeConnectWebhookController extends Controller
         }
 
         // Save webhook log to database
+        \Log::info('Attempting to save webhook log', [
+            'event_id' => $event->id,
+            'event_type' => $event->type,
+            'account_id' => $accountId,
+            'store_id' => $store?->id,
+            'table_exists' => \Illuminate\Support\Facades\Schema::hasTable('webhook_logs'),
+        ]);
+
         try {
             // Check if table exists before trying to save
             if (!\Illuminate\Support\Facades\Schema::hasTable('webhook_logs')) {
@@ -504,11 +512,16 @@ class StripeConnectWebhookController extends Controller
             // Log error but don't fail the webhook response
             \Log::error('Failed to save webhook log', [
                 'error' => $e->getMessage(),
+                'error_class' => get_class($e),
                 'trace' => $e->getTraceAsString(),
                 'event_id' => $event->id,
                 'event_type' => $event->type,
                 'account_id' => $accountId,
+                'store_id' => $store?->id,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
+            report($e);
         }
 
         // Return response with explicit content type and headers
