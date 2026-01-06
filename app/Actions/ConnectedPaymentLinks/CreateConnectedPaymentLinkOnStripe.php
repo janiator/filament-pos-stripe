@@ -123,6 +123,31 @@ class CreateConnectedPaymentLinkOnStripe
             }
 
             return null;
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            $errorMessage = $e->getMessage();
+            
+            // Provide more user-friendly error messages for common Stripe errors
+            if (str_contains($errorMessage, 'inactive product')) {
+                $errorMessage = 'Cannot create payment link: The product associated with this price is not active. Please activate the product in Stripe first.';
+            }
+            
+            if ($notify) {
+                Notification::make()
+                    ->title('Payment link creation failed')
+                    ->body($errorMessage)
+                    ->danger()
+                    ->send();
+            }
+            
+            \Log::error('Failed to create payment link on Stripe', [
+                'error' => $errorMessage,
+                'stripe_error' => $e->getMessage(),
+                'store_id' => $store->id,
+                'link_data' => $linkData,
+            ]);
+
+            report($e);
+            return null;
         } catch (Throwable $e) {
             if ($notify) {
                 Notification::make()
@@ -131,6 +156,12 @@ class CreateConnectedPaymentLinkOnStripe
                     ->danger()
                     ->send();
             }
+
+            \Log::error('Failed to create payment link on Stripe', [
+                'error' => $e->getMessage(),
+                'store_id' => $store->id,
+                'link_data' => $linkData,
+            ]);
 
             report($e);
             return null;
