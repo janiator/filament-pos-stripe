@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('connected_products', function (Blueprint $table) {
-            //
+            $table->decimal('vat_percent', 5, 2)->nullable()->after('article_group_code');
         });
     }
 
