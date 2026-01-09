@@ -365,6 +365,39 @@
         </div>
     @endif
 
+    <!-- Products Sold -->
+    @if(isset($report['products_sold']) && count($report['products_sold']) > 0)
+        <div class="z-report-section z-report-card">
+            <h4 class="z-report-title">Solgte Produkter ({{ count($report['products_sold']) }} produkter)</h4>
+            <div class="z-report-scrollable">
+                <table class="z-report-table">
+                    <thead class="z-report-sticky-header">
+                        <tr>
+                            <th style="text-align: left;">Produkt</th>
+                            <th style="text-align: right;">Antall</th>
+                            <th style="text-align: right;">Beløp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($report['products_sold'] as $product)
+                            <tr>
+                                <td style="font-weight: 500; color: rgb(17 24 39);">{{ $product['name'] }}</td>
+                                <td style="text-align: right; color: rgb(75 85 99);">
+                                    @php
+                                        $quantity = $product['quantity'];
+                                        // Format quantity: show decimals only if needed (e.g., 1.5, 2.0 -> 2)
+                                        echo $quantity == (int) $quantity ? number_format($quantity, 0) : number_format($quantity, 2, ',', ' ');
+                                    @endphp
+                                </td>
+                                <td style="text-align: right; font-weight: 600; color: rgb(17 24 39);">{{ number_format($product['amount'] / 100, 2) }} NOK</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
     <!-- Sales by Vendor -->
     @if(isset($report['sales_by_vendor']) && count($report['sales_by_vendor']) > 0)
         <div class="z-report-section z-report-card">

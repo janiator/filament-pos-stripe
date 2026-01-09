@@ -30,16 +30,45 @@ class ListPosSessions extends ListRecords
                 ->requiresConfirmation()
                 ->modalHeading('Regenerate Z-Reports')
                 ->modalDescription('This will regenerate Z-reports for closed sessions and attempt to find missing data (charges, receipts, events) that may not have been properly linked.')
+                ->visible(function () {
+                    // Only show to super admins
+                    $user = auth()->user();
+                    if (!$user) {
+                        return false;
+                    }
+                    
+                    $tenant = \Filament\Facades\Filament::getTenant();
+                    return $tenant
+                        ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
+                        : $user->hasRole('super_admin');
+                })
                 ->form([
                     Select::make('store_id')
                         ->label('Store')
                         ->options(function () {
-                            return Store::query()
-                                ->orderBy('name')
+                            // Scope to current store for non-super admins, or show all for super admins
+                            $tenant = \Filament\Facades\Filament::getTenant();
+                            $query = Store::query();
+                            
+                            // If there's a tenant (current store), scope to it
+                            if ($tenant) {
+                                $query->where('id', $tenant->id);
+                            }
+                            
+                            return $query->orderBy('name')
                                 ->pluck('name', 'id')
                                 ->toArray();
                         })
                         ->searchable()
+                        ->default(function () {
+                            // Default to current store
+                            $tenant = \Filament\Facades\Filament::getTenant();
+                            return $tenant?->id;
+                        })
+                        ->disabled(function () {
+                            // Disable if there's a tenant (locked to current store)
+                            return \Filament\Facades\Filament::getTenant() !== null;
+                        })
                         ->placeholder('All stores'),
                     DatePicker::make('from_date')
                         ->label('From Date')
@@ -64,9 +93,23 @@ class ListPosSessions extends ListRecords
                         ->default(false),
                 ])
                 ->action(function (array $data) {
+                    // Ensure store_id is set to current store if not provided
+                    $tenant = \Filament\Facades\Filament::getTenant();
+                    $storeId = $data['store_id'] ?? $tenant?->id;
+                    
+                    // If no store selected and no tenant, show error
+                    if (!$storeId) {
+                        Notification::make()
+                            ->title('Store Required')
+                            ->body('Please select a store or ensure you are viewing a store context.')
+                            ->danger()
+                            ->send();
+                        return;
+                    }
+                    
                     $action = new RegenerateZReports();
                     $options = [
-                        'store_id' => $data['store_id'] ?? null,
+                        'store_id' => $storeId,
                         'from_date' => $data['from_date'] ?? null,
                         'to_date' => $data['to_date'] ?? null,
                         'limit' => $data['limit'] ? (int) $data['limit'] : null,
