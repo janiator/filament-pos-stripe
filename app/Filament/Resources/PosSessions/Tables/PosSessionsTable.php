@@ -806,7 +806,7 @@ class PosSessionsTable
 
     public static function calculateProductsSold(PosSession $session): \Illuminate\Support\Collection
     {
-        $session->load(['receipts.charge']);
+        $session->load(['receipts.charge', 'charges']);
         
         $productsSold = collect();
         
@@ -820,12 +820,55 @@ class PosSessionsTable
             return $receipt->charge && $receipt->charge->status === 'succeeded';
         });
         
+        // Also get receipts linked to charges in this session, even if receipt's pos_session_id doesn't match
+        // This handles cases where receipt and charge have mismatched session IDs
+        $chargesInSession = $session->charges->whereIn('status', ['succeeded', 'refunded'])->pluck('id');
+        if ($chargesInSession->isNotEmpty()) {
+            $receiptsByCharge = \App\Models\Receipt::whereIn('charge_id', $chargesInSession)
+                ->where('receipt_type', 'sales')
+                ->with('charge')
+                ->get()
+                ->filter(function ($receipt) {
+                    // Only include receipts linked to succeeded charges
+                    if (!$receipt->charge_id) {
+                        return false;
+                    }
+                    return $receipt->charge && $receipt->charge->status === 'succeeded';
+                });
+            
+            // Merge with existing receipts, avoiding duplicates
+            $salesReceipts = $salesReceipts->merge($receiptsByCharge)->unique('id');
+        }
+        
+        // Also get succeeded charges that might not have receipts yet
+        // This ensures we capture all transactions, even if receipts haven't been generated
+        $chargesWithoutReceipts = $session->charges
+            ->whereIn('status', ['succeeded', 'refunded'])
+            ->filter(function ($charge) use ($salesReceipts) {
+                // Only include charges that don't have a sales receipt
+                return !$salesReceipts->contains('charge_id', $charge->id);
+            });
+        
         // Collect all product and variant IDs to eager load
         $productIds = [];
         $variantIds = [];
         
+        // Collect from receipts
         foreach ($salesReceipts as $receipt) {
             $items = $receipt->receipt_data['items'] ?? [];
+            foreach ($items as $item) {
+                if (isset($item['product_id'])) {
+                    $productIds[] = (int) $item['product_id'];
+                }
+                if (isset($item['variant_id'])) {
+                    $variantIds[] = (int) $item['variant_id'];
+                }
+            }
+        }
+        
+        // Collect from charges (metadata)
+        foreach ($chargesWithoutReceipts as $charge) {
+            $items = $charge->metadata['items'] ?? [];
             foreach ($items as $item) {
                 if (isset($item['product_id'])) {
                     $productIds[] = (int) $item['product_id'];
@@ -846,6 +889,7 @@ class PosSessionsTable
             ->get()
             ->keyBy('id');
         
+        // Process receipts
         foreach ($salesReceipts as $receipt) {
             $items = $receipt->receipt_data['items'] ?? [];
             
@@ -870,6 +914,64 @@ class PosSessionsTable
                 } elseif (isset($item['unit_price'])) {
                     // unit_price might be formatted string or numeric - parse it
                     $unitPrice = self::parsePriceFromReceiptItem($item['unit_price']);
+                    $lineTotal = (int) round($unitPrice * $quantity);
+                }
+                
+                // Get product information
+                $product = null;
+                $productName = $item['name'] ?? $item['product_name'] ?? 'Ukjent produkt';
+                $productKey = null;
+                
+                if ($variantId && isset($variants[$variantId])) {
+                    $product = $variants[$variantId]->product;
+                    $productName = $product?->name ?? $productName;
+                    if ($product && $variants[$variantId]->variant_name !== 'Default') {
+                        $productName .= ' - ' . $variants[$variantId]->variant_name;
+                    }
+                    $productKey = 'variant_' . $variantId;
+                } elseif ($productId && isset($products[$productId])) {
+                    $product = $products[$productId];
+                    $productName = $product?->name ?? $productName;
+                    $productKey = 'product_' . $productId;
+                } else {
+                    // Use a key based on product name if we don't have product ID
+                    $productKey = 'name_' . md5($productName);
+                }
+                
+                if (!$productsSold->has($productKey)) {
+                    $productsSold->put($productKey, [
+                        'key' => $productKey,
+                        'name' => $productName,
+                        'product_id' => $productId,
+                        'variant_id' => $variantId,
+                        'quantity' => 0.0,
+                        'amount' => 0,
+                    ]);
+                }
+                
+                $current = $productsSold->get($productKey);
+                $current['quantity'] += $quantity;
+                $current['amount'] += $lineTotal;
+                $productsSold->put($productKey, $current);
+            }
+        }
+        
+        // Process charges without receipts (fallback to charge metadata)
+        foreach ($chargesWithoutReceipts as $charge) {
+            $items = $charge->metadata['items'] ?? [];
+            
+            foreach ($items as $item) {
+                $productId = $item['product_id'] ?? null;
+                $variantId = $item['variant_id'] ?? null;
+                // Handle decimal quantities (e.g., 1.5 meters)
+                $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+                
+                // Calculate line total from charge metadata
+                // unit_price in metadata is typically in øre (minor units)
+                $lineTotal = 0;
+                if (isset($item['unit_price'])) {
+                    // unit_price in charge metadata is usually in øre
+                    $unitPrice = is_numeric($item['unit_price']) ? (int) $item['unit_price'] : self::parsePriceFromReceiptItem($item['unit_price']);
                     $lineTotal = (int) round($unitPrice * $quantity);
                 }
                 
