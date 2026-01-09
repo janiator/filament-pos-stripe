@@ -397,12 +397,18 @@ class PosSessionsTable
         $totalRefunded = $refundedCharges->sum('amount_refunded');
         $refundCount = $refundedCharges->count();
         
+        // Calculate refunds by payment method
+        $cashRefunded = $refundedCharges->where('payment_method', 'cash')->sum('amount_refunded');
+        $cardRefunded = $refundedCharges->whereIn('payment_method', ['card_present', 'card'])->sum('amount_refunded');
+        $mobileRefunded = $refundedCharges->whereIn('payment_method', ['vipps', 'mobile'])->sum('amount_refunded');
+        $otherRefunded = $totalRefunded - $cashRefunded - $cardRefunded - $mobileRefunded;
+        
         // Calculate net amounts (after refunds)
         $netAmount = $totalAmount - $totalRefunded;
-        $netCashAmount = $cashAmount - $refundedCharges->where('payment_method', 'cash')->sum('amount_refunded');
-        $netCardAmount = $cardAmount - $refundedCharges->whereIn('payment_method', ['card_present', 'card'])->sum('amount_refunded');
-        $netMobileAmount = $mobileAmount - $refundedCharges->whereIn('payment_method', ['vipps', 'mobile'])->sum('amount_refunded');
-        $netOtherAmount = $otherAmount - ($totalRefunded - ($refundedCharges->where('payment_method', 'cash')->sum('amount_refunded') + $refundedCharges->whereIn('payment_method', ['card_present', 'card'])->sum('amount_refunded') + $refundedCharges->whereIn('payment_method', ['vipps', 'mobile'])->sum('amount_refunded')));
+        $netCashAmount = $cashAmount - $cashRefunded;
+        $netCardAmount = $cardAmount - $cardRefunded;
+        $netMobileAmount = $mobileAmount - $mobileRefunded;
+        $netOtherAmount = $otherAmount - $otherRefunded;
         
         // Calculate VAT on net amount (25% standard in Norway)
         $vatRate = 0.25;
@@ -486,6 +492,10 @@ class PosSessionsTable
             'card_amount' => $cardAmount,
             'mobile_amount' => $mobileAmount,
             'other_amount' => $otherAmount,
+            'cash_refunded' => $cashRefunded,
+            'card_refunded' => $cardRefunded,
+            'mobile_refunded' => $mobileRefunded,
+            'other_refunded' => $otherRefunded,
             'net_cash_amount' => $netCashAmount,
             'net_card_amount' => $netCardAmount,
             'net_mobile_amount' => $netMobileAmount,

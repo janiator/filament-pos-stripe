@@ -246,13 +246,17 @@
         <div>
             <div class="metric-card">
                 <div class="metric-label">Totalt Beløp</div>
-                <div class="metric-value">{{ number_format($report['total_amount'] / 100, 2) }} NOK</div>
-                @if(isset($report['total_refunded']) && $report['total_refunded'] > 0)
-                    <div style="font-size: 7pt; color: #dc2626; margin-top: 4px;">
-                        Refusjoner: -{{ number_format($report['total_refunded'] / 100, 2) }} NOK
+                @php
+                    $netAmount = $report['net_amount'] ?? ($report['total_amount'] - ($report['total_refunded'] ?? 0));
+                    $hasRefunds = isset($report['total_refunded']) && $report['total_refunded'] > 0;
+                @endphp
+                <div class="metric-value">{{ number_format($netAmount / 100, 2) }} NOK</div>
+                @if($hasRefunds)
+                    <div style="font-size: 7pt; color: #4b5563; margin-top: 4px;">
+                        Totalt: {{ number_format($report['total_amount'] / 100, 2) }} NOK
                     </div>
-                    <div style="font-size: 8pt; font-weight: 600; color: #111827; margin-top: 2px;">
-                        Netto: {{ number_format(($report['net_amount'] ?? ($report['total_amount'] - $report['total_refunded'])) / 100, 2) }} NOK
+                    <div style="font-size: 7pt; color: #dc2626; margin-top: 2px;">
+                        Refusjoner: -{{ number_format($report['total_refunded'] / 100, 2) }} NOK
                     </div>
                 @endif
             </div>
@@ -260,13 +264,17 @@
         <div>
             <div class="metric-card">
                 <div class="metric-label">Kontant</div>
-                <div class="metric-value">{{ number_format($report['cash_amount'] / 100, 2) }} NOK</div>
-                @if(isset($report['cash_refunded']) && $report['cash_refunded'] > 0)
-                    <div style="font-size: 7pt; color: #dc2626; margin-top: 4px;">
-                        Refusjoner: -{{ number_format($report['cash_refunded'] / 100, 2) }} NOK
+                @php
+                    $netCashAmount = $report['net_cash_amount'] ?? ($report['cash_amount'] - ($report['cash_refunded'] ?? 0));
+                    $hasCashRefunds = isset($report['cash_refunded']) && $report['cash_refunded'] > 0;
+                @endphp
+                <div class="metric-value">{{ number_format($netCashAmount / 100, 2) }} NOK</div>
+                @if($hasCashRefunds)
+                    <div style="font-size: 7pt; color: #4b5563; margin-top: 4px;">
+                        Totalt: {{ number_format($report['cash_amount'] / 100, 2) }} NOK
                     </div>
-                    <div style="font-size: 8pt; font-weight: 600; color: #111827; margin-top: 2px;">
-                        Netto: {{ number_format(($report['cash_amount'] - ($report['cash_refunded'] ?? 0)) / 100, 2) }} NOK
+                    <div style="font-size: 7pt; color: #dc2626; margin-top: 2px;">
+                        Refusjoner: -{{ number_format($report['cash_refunded'] / 100, 2) }} NOK
                     </div>
                 @endif
             </div>
@@ -274,10 +282,70 @@
         <div>
             <div class="metric-card">
                 <div class="metric-label">Kort</div>
-                <div class="metric-value">{{ number_format($report['card_amount'] / 100, 2) }} NOK</div>
+                @php
+                    $netCardAmount = $report['net_card_amount'] ?? ($report['card_amount'] - ($report['card_refunded'] ?? 0));
+                    $cardRefunded = $report['card_refunded'] ?? 0;
+                    $hasCardRefunds = $cardRefunded > 0;
+                @endphp
+                <div class="metric-value">{{ number_format($netCardAmount / 100, 2) }} NOK</div>
+                @if($hasCardRefunds)
+                    <div style="font-size: 7pt; color: #4b5563; margin-top: 4px;">
+                        Totalt: {{ number_format($report['card_amount'] / 100, 2) }} NOK
+                    </div>
+                    <div style="font-size: 7pt; color: #dc2626; margin-top: 2px;">
+                        Refusjoner: -{{ number_format($cardRefunded / 100, 2) }} NOK
+                    </div>
+                @endif
             </div>
         </div>
     </div>
+
+    @if($report['mobile_amount'] > 0 || $report['other_amount'] > 0)
+        <div class="metrics">
+            @if($report['mobile_amount'] > 0)
+                <div>
+                    <div class="metric-card">
+                        <div class="metric-label">Mobil</div>
+                        @php
+                            $netMobileAmount = $report['net_mobile_amount'] ?? ($report['mobile_amount'] - ($report['mobile_refunded'] ?? 0));
+                            $mobileRefunded = $report['mobile_refunded'] ?? 0;
+                            $hasMobileRefunds = $mobileRefunded > 0;
+                        @endphp
+                        <div class="metric-value" style="font-size: 14pt;">{{ number_format($netMobileAmount / 100, 2) }} NOK</div>
+                        @if($hasMobileRefunds)
+                            <div style="font-size: 7pt; color: #4b5563; margin-top: 4px;">
+                                Totalt: {{ number_format($report['mobile_amount'] / 100, 2) }} NOK
+                            </div>
+                            <div style="font-size: 7pt; color: #dc2626; margin-top: 2px;">
+                                Refusjoner: -{{ number_format($mobileRefunded / 100, 2) }} NOK
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+            @if($report['other_amount'] > 0)
+                <div>
+                    <div class="metric-card">
+                        <div class="metric-label">Annet</div>
+                        @php
+                            $netOtherAmount = $report['net_other_amount'] ?? ($report['other_amount'] - ($report['other_refunded'] ?? 0));
+                            $otherRefunded = $report['other_refunded'] ?? 0;
+                            $hasOtherRefunds = $otherRefunded > 0;
+                        @endphp
+                        <div class="metric-value" style="font-size: 14pt;">{{ number_format($netOtherAmount / 100, 2) }} NOK</div>
+                        @if($hasOtherRefunds)
+                            <div style="font-size: 7pt; color: #4b5563; margin-top: 4px;">
+                                Totalt: {{ number_format($report['other_amount'] / 100, 2) }} NOK
+                            </div>
+                            <div style="font-size: 7pt; color: #dc2626; margin-top: 2px;">
+                                Refusjoner: -{{ number_format($otherRefunded / 100, 2) }} NOK
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endif
 
     <div class="cash-grid {{ (!empty($report['tips_enabled']) && $report['tips_enabled'] === true) ? 'with-tips' : '' }}">
         <div>
@@ -421,28 +489,6 @@
         </div>
     @endif
 
-    <div class="metrics">
-        <div>
-            <div class="metric-card">
-                <div class="metric-label">Kontantskuff-åpninger</div>
-                <div class="metric-value">{{ $report['cash_drawer_opens'] ?? 0 }}</div>
-            </div>
-        </div>
-        <div>
-            <div class="metric-card">
-                <div class="metric-label">Nullinnslag Antall</div>
-                <div class="metric-value">{{ $report['nullinnslag_count'] ?? 0 }}</div>
-            </div>
-        </div>
-        <div>
-            <div class="metric-card">
-                <div class="metric-label">Kvitteringer Generert</div>
-                <div class="metric-value">{{ $report['receipt_count'] ?? 0 }}</div>
-            </div>
-        </div>
-        <div></div>
-    </div>
-
     @if(!empty($report['closing_notes']))
         <div class="section">
             <div class="section-title">Stengningsnotater</div>
@@ -500,30 +546,6 @@
                                     <span style="color: #9ca3af;">-</span>
                                 @endif
                             </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    @endif
-
-    @if(isset($report['event_summary']) && count($report['event_summary']) > 0)
-        <div class="section">
-            <div class="section-title">Hendelsessammendrag</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Hendelseskode</th>
-                        <th>Beskrivelse</th>
-                        <th class="text-right">Antall</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($report['event_summary'] as $event)
-                        <tr>
-                            <td>{{ $event['code'] }}</td>
-                            <td>{{ $event['description'] }}</td>
-                            <td class="text-right">{{ $event['count'] }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -617,5 +639,58 @@
             </table>
         </div>
     @endif
+
+    @if(isset($report['event_summary']) && count($report['event_summary']) > 0)
+        <div class="section">
+            <div class="section-title">Hendelsessammendrag</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Hendelseskode</th>
+                        <th>Beskrivelse</th>
+                        <th class="text-right">Antall</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($report['event_summary'] as $event)
+                        <tr>
+                            <td>{{ $event['code'] }}</td>
+                            <td>{{ $event['description'] }}</td>
+                            <td class="text-right">{{ $event['count'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    <div class="metrics">
+        <div>
+            <div class="metric-card">
+                <div class="metric-label">Kontantskuff-åpninger</div>
+                <div class="metric-value">{{ $report['cash_drawer_opens'] ?? 0 }}</div>
+            </div>
+        </div>
+        <div>
+            <div class="metric-card">
+                <div class="metric-label">Nullinnslag Antall</div>
+                <div class="metric-value">{{ $report['nullinnslag_count'] ?? 0 }}</div>
+            </div>
+        </div>
+        <div>
+            <div class="metric-card">
+                <div class="metric-label">Kvitteringer Generert</div>
+                <div class="metric-value">{{ $report['receipt_count'] ?? 0 }}</div>
+                @if(isset($report['receipt_summary']) && count($report['receipt_summary']) > 0)
+                    <div style="font-size: 6pt; color: #6b7280; margin-top: 4px;">
+                        @foreach($report['receipt_summary'] as $type => $data)
+                            {{ ucfirst($type) }}: {{ $data['count'] }}@if(!$loop->last), @endif
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
+        <div></div>
+    </div>
 </body>
 </html>
