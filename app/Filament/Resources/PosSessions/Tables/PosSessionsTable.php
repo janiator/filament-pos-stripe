@@ -379,8 +379,9 @@ class PosSessionsTable
         $totalTips = $tipsEnabled ? $charges->sum('tip_amount') : 0;
         
         // Calculate refunds
+        // Include all charges with any refund amount (partial or full refunds)
         $refundedCharges = $charges->filter(function ($charge) {
-            return $charge->refunded === true && ($charge->amount_refunded ?? 0) > 0;
+            return ($charge->amount_refunded ?? 0) > 0;
         });
         $totalRefunded = $refundedCharges->sum('amount_refunded');
         $refundCount = $refundedCharges->count();
