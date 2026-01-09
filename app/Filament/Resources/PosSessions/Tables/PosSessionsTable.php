@@ -378,10 +378,24 @@ class PosSessionsTable
         $otherAmount = $totalAmount - $cashAmount - $cardAmount - $mobileAmount;
         $totalTips = $tipsEnabled ? $charges->sum('tip_amount') : 0;
         
-        // Calculate VAT (25% standard in Norway)
+        // Calculate refunds
+        $refundedCharges = $charges->filter(function ($charge) {
+            return $charge->refunded === true && ($charge->amount_refunded ?? 0) > 0;
+        });
+        $totalRefunded = $refundedCharges->sum('amount_refunded');
+        $refundCount = $refundedCharges->count();
+        
+        // Calculate net amounts (after refunds)
+        $netAmount = $totalAmount - $totalRefunded;
+        $netCashAmount = $cashAmount - $refundedCharges->where('payment_method', 'cash')->sum('amount_refunded');
+        $netCardAmount = $cardAmount - $refundedCharges->whereIn('payment_method', ['card_present', 'card'])->sum('amount_refunded');
+        $netMobileAmount = $mobileAmount - $refundedCharges->whereIn('payment_method', ['vipps', 'mobile'])->sum('amount_refunded');
+        $netOtherAmount = $otherAmount - ($totalRefunded - ($refundedCharges->where('payment_method', 'cash')->sum('amount_refunded') + $refundedCharges->whereIn('payment_method', ['card_present', 'card'])->sum('amount_refunded') + $refundedCharges->whereIn('payment_method', ['vipps', 'mobile'])->sum('amount_refunded')));
+        
+        // Calculate VAT on net amount (25% standard in Norway)
         $vatRate = 0.25;
-        $vatBase = round($totalAmount / (1 + $vatRate), 0);
-        $vatAmount = $totalAmount - $vatBase;
+        $vatBase = round($netAmount / (1 + $vatRate), 0);
+        $vatAmount = $netAmount - $vatBase;
         
         // Payment method breakdown
         $byPaymentMethod = $charges->groupBy('payment_method')->map(function ($group) use ($tipsEnabled) {
@@ -450,6 +464,9 @@ class PosSessionsTable
             'opening_balance' => $session->opening_balance / 100,
             'transactions_count' => $charges->count(),
             'total_amount' => $totalAmount,
+            'total_refunded' => $totalRefunded,
+            'refund_count' => $refundCount,
+            'net_amount' => $netAmount,
             'vat_base' => $vatBase,
             'vat_amount' => $vatAmount,
             'vat_rate' => $vatRate * 100,
@@ -457,8 +474,26 @@ class PosSessionsTable
             'card_amount' => $cardAmount,
             'mobile_amount' => $mobileAmount,
             'other_amount' => $otherAmount,
+            'net_cash_amount' => $netCashAmount,
+            'net_card_amount' => $netCardAmount,
+            'net_mobile_amount' => $netMobileAmount,
+            'net_other_amount' => $netOtherAmount,
             'total_tips' => $totalTips,
             'expected_cash' => $session->calculateExpectedCash() / 100,
+            'refunds' => $refundedCharges->map(function ($charge) {
+                return [
+                    'id' => $charge->id,
+                    'stripe_charge_id' => $charge->stripe_charge_id,
+                    'amount' => $charge->amount,
+                    'amount_refunded' => $charge->amount_refunded,
+                    'payment_method' => $charge->payment_method,
+                    'payment_code' => $charge->payment_code,
+                    'transaction_code' => $charge->transaction_code,
+                    'description' => $charge->description,
+                    'paid_at' => $charge->paid_at?->toISOString(),
+                    'created_at' => $charge->created_at->toISOString(),
+                ];
+            })->values(),
             'by_payment_method' => $byPaymentMethod,
             'by_payment_code' => $byPaymentCode,
             'transactions_by_type' => $transactionsByType,
@@ -575,6 +610,8 @@ class PosSessionsTable
                 'id' => $charge->id,
                 'stripe_charge_id' => $charge->stripe_charge_id,
                 'amount' => $charge->amount,
+                'amount_refunded' => $charge->amount_refunded ?? 0,
+                'refunded' => $charge->refunded ?? false,
                 'currency' => $charge->currency,
                 'payment_method' => $charge->payment_method,
                 'payment_code' => $charge->payment_code,

@@ -17,8 +17,9 @@ class RecoverPosSessionIds extends Command
      */
     protected $signature = 'pos:recover-session-ids 
                             {--dry-run : Show what would be updated without actually updating}
-                            {--from-receipts : Try to recover from receipts table}
-                            {--from-events : Try to recover from pos_events table}
+                            {--from-session-number : Try to recover by matching session_number in metadata/receipts/events (most accurate)}
+                            {--from-receipts : Try to recover from receipts table (by pos_session_id)}
+                            {--from-events : Try to recover from pos_events table (by pos_session_id)}
                             {--from-sessions : Try to match by date/time and stripe_account_id}
                             {--store= : Filter by store ID or slug (e.g., --store=1 or --store=my-store)}';
 
@@ -35,13 +36,15 @@ class RecoverPosSessionIds extends Command
     public function handle(): int
     {
         $dryRun = $this->option('dry-run');
+        $fromSessionNumber = $this->option('from-session-number');
         $fromReceipts = $this->option('from-receipts');
         $fromEvents = $this->option('from-events');
         $fromSessions = $this->option('from-sessions');
         $storeFilter = $this->option('store');
 
-        // If no specific method specified, try all
-        if (!$fromReceipts && !$fromEvents && !$fromSessions) {
+        // If no specific method specified, try all (prioritize session_number matching)
+        if (!$fromSessionNumber && !$fromReceipts && !$fromEvents && !$fromSessions) {
+            $fromSessionNumber = true;
             $fromReceipts = true;
             $fromEvents = true;
             $fromSessions = true;
@@ -91,8 +94,58 @@ class RecoverPosSessionIds extends Command
         foreach ($chargesWithoutSession as $charge) {
             $sessionId = null;
 
-            // Method 1: Try to recover from receipts
-            if ($fromReceipts) {
+            // Method 1: Try to recover by matching session_number (most accurate)
+            if ($fromSessionNumber) {
+                $sessionNumber = null;
+                
+                // Check charge metadata
+                $metadataSessionNumber = $charge->metadata['pos_session_number'] ?? null;
+                if ($metadataSessionNumber) {
+                    $sessionNumber = $metadataSessionNumber;
+                }
+                
+                // Check receipts for session_number
+                if (!$sessionNumber) {
+                    $receipt = Receipt::where('charge_id', $charge->id)
+                        ->whereNotNull('receipt_data')
+                        ->first();
+                    if ($receipt && isset($receipt->receipt_data['session_number'])) {
+                        $sessionNumber = $receipt->receipt_data['session_number'];
+                    }
+                }
+                
+                // Check events for session_number
+                if (!$sessionNumber) {
+                    $event = PosEvent::where('related_charge_id', $charge->id)
+                        ->whereNotNull('event_data')
+                        ->first();
+                    if ($event && isset($event->event_data['session_number'])) {
+                        $sessionNumber = $event->event_data['session_number'];
+                    }
+                }
+                
+                // If we found a session_number, find the session
+                if ($sessionNumber) {
+                    $chargeStore = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
+                    if ($chargeStore) {
+                        $session = PosSession::where('store_id', $chargeStore->id)
+                            ->where('session_number', $sessionNumber)
+                            ->first();
+                        
+                        if ($session) {
+                            $sessionId = $session->id;
+                            $source = 'metadata';
+                            if (!$metadataSessionNumber) {
+                                $source = $receipt ? 'receipt_data' : 'event_data';
+                            }
+                            $this->line("Charge {$charge->id}: Found session {$sessionId} (session_number: {$sessionNumber}) from {$source}");
+                        }
+                    }
+                }
+            }
+
+            // Method 2: Try to recover from receipts (by pos_session_id)
+            if (!$sessionId && $fromReceipts) {
                 $receipt = Receipt::where('charge_id', $charge->id)
                     ->whereNotNull('pos_session_id')
                     ->first();
@@ -103,7 +156,7 @@ class RecoverPosSessionIds extends Command
                 }
             }
 
-            // Method 2: Try to recover from pos_events
+            // Method 3: Try to recover from pos_events (by pos_session_id)
             if (!$sessionId && $fromEvents) {
                 $event = PosEvent::where('related_charge_id', $charge->id)
                     ->whereNotNull('pos_session_id')
@@ -115,7 +168,7 @@ class RecoverPosSessionIds extends Command
                 }
             }
 
-            // Method 3: Try to match by date/time and stripe_account_id
+            // Method 4: Try to match by date/time and stripe_account_id
             // Use paid_at if available, otherwise fall back to created_at (for deferred payments)
             $matchDate = $charge->paid_at ?? $charge->created_at;
             if (!$sessionId && $fromSessions && $matchDate) {
@@ -210,12 +263,98 @@ class RecoverPosSessionIds extends Command
         $this->info("Recovered: {$recovered}");
         $this->info("Failed: {$failed}");
 
+        // Also recover receipts and events that lost their pos_session_id
+        if ($fromSessionNumber) {
+            $this->newLine();
+            $this->info("Recovering pos_session_id for receipts and events...");
+            
+            $receiptsRecovered = $this->recoverReceipts($store, $dryRun);
+            $eventsRecovered = $this->recoverEvents($store, $dryRun);
+            
+            $this->info("Receipts recovered: {$receiptsRecovered}");
+            $this->info("Events recovered: {$eventsRecovered}");
+        }
+
         if ($dryRun) {
             $this->newLine();
             $this->warn("This was a dry run. Run without --dry-run to apply changes.");
         }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Recover pos_session_id for receipts by matching session_number
+     */
+    protected function recoverReceipts($store, bool $dryRun): int
+    {
+        $query = Receipt::whereNull('pos_session_id')
+            ->whereNotNull('receipt_data');
+        
+        if ($store) {
+            $query->where('store_id', $store->id);
+        }
+        
+        $receipts = $query->get();
+        $recovered = 0;
+        
+        foreach ($receipts as $receipt) {
+            $sessionNumber = $receipt->receipt_data['session_number'] ?? null;
+            if (!$sessionNumber) {
+                continue;
+            }
+            
+            $session = PosSession::where('store_id', $receipt->store_id)
+                ->where('session_number', $sessionNumber)
+                ->first();
+            
+            if ($session) {
+                if (!$dryRun) {
+                    $receipt->pos_session_id = $session->id;
+                    $receipt->save();
+                }
+                $recovered++;
+            }
+        }
+        
+        return $recovered;
+    }
+
+    /**
+     * Recover pos_session_id for events by matching session_number
+     */
+    protected function recoverEvents($store, bool $dryRun): int
+    {
+        $query = PosEvent::whereNull('pos_session_id')
+            ->whereNotNull('event_data');
+        
+        if ($store) {
+            $query->where('store_id', $store->id);
+        }
+        
+        $events = $query->get();
+        $recovered = 0;
+        
+        foreach ($events as $event) {
+            $sessionNumber = $event->event_data['session_number'] ?? null;
+            if (!$sessionNumber) {
+                continue;
+            }
+            
+            $session = PosSession::where('store_id', $event->store_id)
+                ->where('session_number', $sessionNumber)
+                ->first();
+            
+            if ($session) {
+                if (!$dryRun) {
+                    $event->pos_session_id = $session->id;
+                    $event->save();
+                }
+                $recovered++;
+            }
+        }
+        
+        return $recovered;
     }
 
     /**

@@ -284,42 +284,93 @@ class RegenerateZReports
         // In dry-run mode, charges aren't saved, so we need to track them manually
         $countedChargeIds = [];
 
-        // Method 1: Find charges by date range and stripe_account_id that don't have a session
+        // Method 1: Find charges by session_number in metadata or via receipts/events
+        // Session number is unique and stored in receipt_data and potentially in charge metadata
+        $sessionNumber = $session->session_number;
+        
+        // Get charge IDs from events that have this session number
+        $chargeIdsFromEvents = PosEvent::where('store_id', $store->id)
+            ->whereNotNull('related_charge_id')
+            ->whereJsonContains('event_data->session_number', $sessionNumber)
+            ->pluck('related_charge_id')
+            ->unique();
+        
         $orphanedCharges = ConnectedCharge::where('stripe_account_id', $stripeAccountId)
             ->whereNull('pos_session_id')
             ->where('status', 'succeeded')
-            ->where(function ($query) use ($sessionStart, $sessionEnd) {
-                // Check if charge was paid during session window
-                $query->where(function ($q) use ($sessionStart, $sessionEnd) {
-                    $q->whereNotNull('paid_at')
-                        ->whereBetween('paid_at', [$sessionStart, $sessionEnd]);
-                })
-                // Or created during session window (for deferred payments)
-                ->orWhere(function ($q) use ($sessionStart, $sessionEnd) {
-                    $q->whereNull('paid_at')
-                        ->whereBetween('created_at', [$sessionStart, $sessionEnd]);
-                });
+            ->where(function ($query) use ($sessionNumber, $chargeIdsFromEvents, $sessionStart, $sessionEnd) {
+                // Check if charge metadata contains the session number
+                $query->whereJsonContains('metadata->pos_session_number', $sessionNumber)
+                    // Or check if charge has receipts with this session number
+                    ->orWhereHas('receipts', function ($q) use ($sessionNumber) {
+                        $q->whereJsonContains('receipt_data->session_number', $sessionNumber);
+                    })
+                    // Or check if charge has events with this session number
+                    ->orWhereIn('id', $chargeIdsFromEvents)
+                    // Fallback: also check date range for truly orphaned charges without session_number
+                    ->orWhere(function ($q) use ($sessionStart, $sessionEnd, $sessionNumber) {
+                        $q->where(function ($q2) use ($sessionStart, $sessionEnd) {
+                            $q2->whereNotNull('paid_at')
+                                ->whereBetween('paid_at', [$sessionStart, $sessionEnd]);
+                        })
+                        ->orWhere(function ($q2) use ($sessionStart, $sessionEnd) {
+                            $q2->whereNull('paid_at')
+                                ->whereBetween('created_at', [$sessionStart, $sessionEnd]);
+                        })
+                        // Only include if metadata doesn't have a different session number
+                        ->where(function ($q2) use ($sessionNumber) {
+                            $q2->whereNull('metadata->pos_session_number')
+                                ->orWhere('metadata->pos_session_number', '!=', $sessionNumber);
+                        });
+                    });
             })
-            ->get();
+            ->get()
+            ->filter(function ($charge) use ($sessionNumber, $sessionStart, $sessionEnd) {
+                // Double-check: only include if session_number matches
+                // Check metadata
+                $metadataSessionNumber = $charge->metadata['pos_session_number'] ?? null;
+                if ($metadataSessionNumber === $sessionNumber) {
+                    return true;
+                }
+                
+                // Check receipts
+                $hasMatchingReceipt = $charge->receipts()->whereJsonContains('receipt_data->session_number', $sessionNumber)->exists();
+                if ($hasMatchingReceipt) {
+                    return true;
+                }
+                
+                // Check events
+                $hasMatchingEvent = PosEvent::where('related_charge_id', $charge->id)
+                    ->whereJsonContains('event_data->session_number', $sessionNumber)
+                    ->exists();
+                if ($hasMatchingEvent) {
+                    return true;
+                }
+                
+                // If no session_number found anywhere, check date range as fallback
+                // but only if metadata doesn't have a different session number
+                if ($metadataSessionNumber === null || $metadataSessionNumber === '') {
+                    $chargeDate = $charge->paid_at ?? $charge->created_at;
+                    return $chargeDate >= $sessionStart && $chargeDate <= $sessionEnd;
+                }
+                
+                return false;
+            });
 
         foreach ($orphanedCharges as $charge) {
-            // Double-check the charge date falls within session window
-            $chargeDate = $charge->paid_at ?? $charge->created_at;
-            if ($chargeDate >= $sessionStart && $chargeDate <= $sessionEnd) {
-                if (!$dryRun) {
-                    $charge->pos_session_id = $session->id;
-                    $charge->save();
-                }
-                $countedChargeIds[$charge->id] = true;
-                $stats['charges_found']++;
+            if (!$dryRun) {
+                $charge->pos_session_id = $session->id;
+                $charge->save();
             }
+            $countedChargeIds[$charge->id] = true;
+            $stats['charges_found']++;
         }
 
-        // Method 2: Find charges via receipts
+        // Method 2: Find charges via receipts - match by session_number in receipt_data
         $receiptsWithoutSession = Receipt::where('store_id', $store->id)
             ->whereNull('pos_session_id')
             ->whereNotNull('charge_id')
-            ->whereBetween('created_at', [$sessionStart, $sessionEnd])
+            ->whereJsonContains('receipt_data->session_number', $sessionNumber)
             ->get();
 
         foreach ($receiptsWithoutSession as $receipt) {
@@ -346,11 +397,21 @@ class RegenerateZReports
             $stats['receipts_found']++;
         }
 
-        // Method 3: Find charges via events
+        // Method 3: Find charges via events - match by session_number in event_data or pos_device_id
         $eventsWithoutSession = PosEvent::where('store_id', $store->id)
             ->whereNull('pos_session_id')
             ->whereNotNull('related_charge_id')
-            ->whereBetween('occurred_at', [$sessionStart, $sessionEnd])
+            ->where(function ($query) use ($sessionNumber, $session) {
+                // Match by session_number in event_data
+                $query->whereJsonContains('event_data->session_number', $sessionNumber)
+                    // Or match by device if session has a device
+                    ->orWhere(function ($q) use ($session) {
+                        if ($session->pos_device_id) {
+                            $q->where('pos_device_id', $session->pos_device_id)
+                                ->whereBetween('occurred_at', [$session->opened_at, $session->closed_at ?? now()]);
+                        }
+                    });
+            })
             ->get();
 
         foreach ($eventsWithoutSession as $event) {

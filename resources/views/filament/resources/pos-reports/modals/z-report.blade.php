@@ -187,14 +187,32 @@
         <div class="z-report-section z-report-card">
             <div class="z-report-metric-label">Totalt Beløp</div>
             <div class="z-report-metric-value">{{ number_format($report['total_amount'] / 100, 2) }} NOK</div>
+            @if(isset($report['total_refunded']) && $report['total_refunded'] > 0)
+                <div style="font-size: 0.75rem; color: rgb(239 68 68); margin-top: 0.25rem;">
+                    Refusjoner: -{{ number_format($report['total_refunded'] / 100, 2) }} NOK
+                </div>
+                <div style="font-size: 0.875rem; font-weight: 600; color: rgb(17 24 39); margin-top: 0.25rem;">
+                    Netto: {{ number_format(($report['net_amount'] ?? ($report['total_amount'] - $report['total_refunded'])) / 100, 2) }} NOK
+                </div>
+            @endif
         </div>
         <div class="z-report-section z-report-card">
             <div class="z-report-metric-label">Kontant</div>
             <div class="z-report-metric-value">{{ number_format($report['cash_amount'] / 100, 2) }} NOK</div>
+            @if(isset($report['net_cash_amount']) && $report['net_cash_amount'] != $report['cash_amount'])
+                <div style="font-size: 0.75rem; color: rgb(75 85 99); margin-top: 0.25rem;">
+                    Netto: {{ number_format($report['net_cash_amount'] / 100, 2) }} NOK
+                </div>
+            @endif
         </div>
         <div class="z-report-section z-report-card">
             <div class="z-report-metric-label">Kort</div>
             <div class="z-report-metric-value">{{ number_format($report['card_amount'] / 100, 2) }} NOK</div>
+            @if(isset($report['net_card_amount']) && $report['net_card_amount'] != $report['card_amount'])
+                <div style="font-size: 0.75rem; color: rgb(75 85 99); margin-top: 0.25rem;">
+                    Netto: {{ number_format($report['net_card_amount'] / 100, 2) }} NOK
+                </div>
+            @endif
         </div>
     </div>
 
@@ -251,6 +269,55 @@
         @endif
     </div>
 
+    <!-- Refunds -->
+    @if(isset($report['refunds']) && count($report['refunds']) > 0)
+        <div class="z-report-section z-report-card" style="background-color: rgb(254 242 242); border-color: rgb(252 165 165);">
+            <h4 class="z-report-title">Refusjoner ({{ $report['refund_count'] ?? count($report['refunds']) }} refusjoner)</h4>
+            <div style="margin-bottom: 1rem;">
+                <div class="z-report-grid z-report-grid-2">
+                    <div>
+                        <div class="z-report-metric-label">Totalt Refundert</div>
+                        <div style="font-size: 1.25rem; font-weight: 700; color: rgb(220 38 38);">{{ number_format($report['total_refunded'] / 100, 2) }} NOK</div>
+                    </div>
+                    <div>
+                        <div class="z-report-metric-label">Netto Beløp</div>
+                        <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format(($report['net_amount'] ?? ($report['total_amount'] - $report['total_refunded'])) / 100, 2) }} NOK</div>
+                    </div>
+                </div>
+            </div>
+            <div class="z-report-scrollable">
+                <table class="z-report-table">
+                    <thead class="z-report-sticky-header">
+                        <tr>
+                            <th style="text-align: left;">Tid</th>
+                            <th style="text-align: left;">ID</th>
+                            <th style="text-align: left;">Metode</th>
+                            <th style="text-align: left;">Beskrivelse</th>
+                            <th style="text-align: right;">Opprinnelig Beløp</th>
+                            <th style="text-align: right;">Refundert Beløp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($report['refunds'] as $refund)
+                            <tr>
+                                <td style="color: rgb(75 85 99);">
+                                    {{ \Carbon\Carbon::parse($refund['paid_at'] ?? $refund['created_at'])->format('H:i:s') }}
+                                </td>
+                                <td style="font-size: 0.75rem; color: rgb(107 114 128);">{{ substr($refund['stripe_charge_id'] ?? $refund['id'], 0, 12) }}...</td>
+                                <td>
+                                    <span style="text-transform: capitalize; color: rgb(17 24 39);">{{ $refund['payment_method'] ?? 'N/A' }}</span>
+                                </td>
+                                <td style="color: rgb(75 85 99);">{{ $refund['description'] ?? 'N/A' }}</td>
+                                <td style="text-align: right; color: rgb(75 85 99);">{{ number_format($refund['amount'] / 100, 2) }} NOK</td>
+                                <td style="text-align: right; font-weight: 600; color: rgb(220 38 38);">-{{ number_format($refund['amount_refunded'] / 100, 2) }} NOK</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
     <!-- VAT Breakdown -->
     <div class="z-report-section" style="background-color: rgb(249 250 251); border-color: rgb(229 231 235);">
         <h4 class="z-report-title">MVA-oppdeling</h4>
@@ -264,8 +331,13 @@
                 <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format(($report['vat_amount'] ?? 0) / 100, 2) }} NOK</div>
             </div>
             <div>
-                <div class="z-report-metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Totalt (inkl. MVA)</div>
-                <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format($report['total_amount'] / 100, 2) }} NOK</div>
+                <div class="z-report-metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Netto (inkl. MVA)</div>
+                <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format(($report['net_amount'] ?? $report['total_amount']) / 100, 2) }} NOK</div>
+                @if(isset($report['total_refunded']) && $report['total_refunded'] > 0)
+                    <div style="font-size: 0.75rem; color: rgb(107 114 128); margin-top: 0.25rem;">
+                        (Totalt: {{ number_format($report['total_amount'] / 100, 2) }} NOK - Refusjoner: {{ number_format($report['total_refunded'] / 100, 2) }} NOK)
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -482,6 +554,11 @@
                     </thead>
                     <tbody>
                         @foreach($report['complete_transaction_list'] as $transaction)
+                            @php
+                                // Check if this transaction was refunded
+                                $isRefunded = isset($transaction['amount_refunded']) && $transaction['amount_refunded'] > 0;
+                                $refundedAmount = $transaction['amount_refunded'] ?? 0;
+                            @endphp
                             <tr>
                                 <td style="color: rgb(75 85 99);">
                                     @if(!empty($transaction['spans_multiple_days']) && $transaction['spans_multiple_days'])
@@ -496,7 +573,17 @@
                                 </td>
                                 <td style="color: rgb(75 85 99);">{{ $transaction['payment_code'] ?? 'N/A' }}</td>
                                 <td style="color: rgb(75 85 99);">{{ $transaction['transaction_code'] ?? 'N/A' }}</td>
-                                <td style="text-align: right; font-weight: 600; color: rgb(17 24 39);">{{ number_format($transaction['amount'] / 100, 2) }} NOK</td>
+                                <td style="text-align: right; font-weight: 600; color: {{ $isRefunded ? 'rgb(220 38 38)' : 'rgb(17 24 39)' }};">
+                                    {{ number_format($transaction['amount'] / 100, 2) }} NOK
+                                    @if($isRefunded)
+                                        <div style="font-size: 0.75rem; color: rgb(220 38 38); margin-top: 0.25rem;">
+                                            Refundert: -{{ number_format($refundedAmount / 100, 2) }} NOK
+                                        </div>
+                                        <div style="font-size: 0.75rem; font-weight: 600; color: rgb(17 24 39);">
+                                            Netto: {{ number_format(($transaction['amount'] - $refundedAmount) / 100, 2) }} NOK
+                                        </div>
+                                    @endif
+                                </td>
                                 @if(!empty($report['tips_enabled']) && $report['tips_enabled'] === true)
                                     <td style="text-align: right; color: rgb(75 85 99);">{{ ($transaction['tip_amount'] ?? 0) > 0 ? number_format($transaction['tip_amount'] / 100, 2) . ' NOK' : '-' }}</td>
                                 @endif
