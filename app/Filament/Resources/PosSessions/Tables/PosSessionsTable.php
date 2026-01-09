@@ -779,14 +779,14 @@ class PosSessionsTable
                 
                 if ($variantId && isset($variants[$variantId])) {
                     $product = $variants[$variantId]->product;
-                    $productName = $product->name;
-                    if ($variants[$variantId]->variant_name !== 'Default') {
+                    $productName = $product?->name ?? $productName;
+                    if ($product && $variants[$variantId]->variant_name !== 'Default') {
                         $productName .= ' - ' . $variants[$variantId]->variant_name;
                     }
                     $productKey = 'variant_' . $variantId;
                 } elseif ($productId && isset($products[$productId])) {
                     $product = $products[$productId];
-                    $productName = $product->name;
+                    $productName = $product?->name ?? $productName;
                     $productKey = 'product_' . $productId;
                 } else {
                     // Use a key based on product name if we don't have product ID
