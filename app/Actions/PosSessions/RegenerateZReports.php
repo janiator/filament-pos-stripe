@@ -289,9 +289,10 @@ class RegenerateZReports
         $sessionNumber = $session->session_number;
         
         // Get charge IDs from events that have this session number
+        // Use whereRaw for PostgreSQL JSON text comparison
         $chargeIdsFromEvents = PosEvent::where('store_id', $store->id)
             ->whereNotNull('related_charge_id')
-            ->whereJsonContains('event_data->session_number', $sessionNumber)
+            ->whereRaw("event_data->>'session_number' = ?", [$sessionNumber])
             ->pluck('related_charge_id')
             ->unique();
         
@@ -299,11 +300,11 @@ class RegenerateZReports
             ->whereNull('pos_session_id')
             ->where('status', 'succeeded')
             ->where(function ($query) use ($sessionNumber, $chargeIdsFromEvents, $sessionStart, $sessionEnd) {
-                // Check if charge metadata contains the session number
-                $query->whereJsonContains('metadata->pos_session_number', $sessionNumber)
+                // Check if charge metadata contains the session number (using ->' for JSON, ->>' for text)
+                $query->whereRaw("metadata->>'pos_session_number' = ?", [$sessionNumber])
                     // Or check if charge has receipts with this session number
                     ->orWhereHas('receipts', function ($q) use ($sessionNumber) {
-                        $q->whereJsonContains('receipt_data->session_number', $sessionNumber);
+                        $q->whereRaw("receipt_data->>'session_number' = ?", [$sessionNumber]);
                     })
                     // Or check if charge has events with this session number
                     ->orWhereIn('id', $chargeIdsFromEvents)
@@ -319,8 +320,8 @@ class RegenerateZReports
                         })
                         // Only include if metadata doesn't have a different session number
                         ->where(function ($q2) use ($sessionNumber) {
-                            $q2->whereNull('metadata->pos_session_number')
-                                ->orWhere('metadata->pos_session_number', '!=', $sessionNumber);
+                            $q2->whereRaw("metadata->>'pos_session_number' IS NULL")
+                                ->orWhereRaw("metadata->>'pos_session_number' != ?", [$sessionNumber]);
                         });
                     });
             })
@@ -334,14 +335,16 @@ class RegenerateZReports
                 }
                 
                 // Check receipts
-                $hasMatchingReceipt = $charge->receipts()->whereJsonContains('receipt_data->session_number', $sessionNumber)->exists();
+                $hasMatchingReceipt = $charge->receipts()
+                    ->whereRaw("receipt_data->>'session_number' = ?", [$sessionNumber])
+                    ->exists();
                 if ($hasMatchingReceipt) {
                     return true;
                 }
                 
                 // Check events
                 $hasMatchingEvent = PosEvent::where('related_charge_id', $charge->id)
-                    ->whereJsonContains('event_data->session_number', $sessionNumber)
+                    ->whereRaw("event_data->>'session_number' = ?", [$sessionNumber])
                     ->exists();
                 if ($hasMatchingEvent) {
                     return true;
@@ -370,7 +373,7 @@ class RegenerateZReports
         $receiptsWithoutSession = Receipt::where('store_id', $store->id)
             ->whereNull('pos_session_id')
             ->whereNotNull('charge_id')
-            ->whereJsonContains('receipt_data->session_number', $sessionNumber)
+            ->whereRaw("receipt_data->>'session_number' = ?", [$sessionNumber])
             ->get();
 
         foreach ($receiptsWithoutSession as $receipt) {
@@ -403,7 +406,7 @@ class RegenerateZReports
             ->whereNotNull('related_charge_id')
             ->where(function ($query) use ($sessionNumber, $session) {
                 // Match by session_number in event_data
-                $query->whereJsonContains('event_data->session_number', $sessionNumber)
+                $query->whereRaw("event_data->>'session_number' = ?", [$sessionNumber])
                     // Or match by device if session has a device
                     ->orWhere(function ($q) use ($session) {
                         if ($session->pos_device_id) {
