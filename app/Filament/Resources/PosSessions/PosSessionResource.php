@@ -29,8 +29,8 @@ class PosSessionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    // Hide from navigation - displayed via relation manager on PosDevice
-    protected static bool $shouldRegisterNavigation = false;
+    // Show in navigation - allows viewing all POS sessions and Z-reports across all devices
+    protected static bool $shouldRegisterNavigation = true;
 
     public static function getNavigationLabel(): string
     {
