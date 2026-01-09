@@ -61,6 +61,7 @@ class BackfillProductsSoldInZReports extends Command
             'sales_by_vendor_added' => 0,
             'skipped_no_receipts' => 0,
             'skipped_no_items' => 0,
+            'skipped_no_z_report_data' => 0,
             'skipped_corrupted_json' => 0,
             'errors' => 0,
         ];
@@ -76,8 +77,12 @@ class BackfillProductsSoldInZReports extends Command
                 }
                 
                 $zReportData = $closingData['z_report_data'] ?? null;
+                // Skip sessions without z_report_data - they need full report generation, not backfill
                 if (!$zReportData || !is_array($zReportData)) {
-                    $sessions->push($session); // Needs backfill if no z_report_data
+                    $stats['skipped_no_z_report_data']++;
+                    if ($dryRun || $this->getOutput()->isVerbose()) {
+                        $this->line("  ⚠ Session {$session->session_number} (ID: {$session->id}): No z_report_data - skipping (requires full regeneration)");
+                    }
                     continue;
                 }
                 
@@ -180,9 +185,14 @@ class BackfillProductsSoldInZReports extends Command
                     $this->info("  [DRY RUN] Session {$session->session_number} (ID: {$session->id}): Would add " . implode(', ', $updates));
                 } else {
                     // Update closing_data with backfilled data
+                    // Note: We only reach here if z_report_data already exists (checked earlier)
                     $closingData = $session->closing_data ?? [];
-                    if (!isset($closingData['z_report_data'])) {
-                        $closingData['z_report_data'] = [];
+                    
+                    // Ensure z_report_data exists (should always be true at this point, but safety check)
+                    if (!isset($closingData['z_report_data']) || !is_array($closingData['z_report_data'])) {
+                        $this->warn("  ⚠ Session {$session->session_number} (ID: {$session->id}): z_report_data missing - skipping (requires full regeneration)");
+                        $stats['skipped_no_z_report_data']++;
+                        continue;
                     }
                     
                     if ($needsProductsSold && $productsSold && $productsSold->isNotEmpty()) {
@@ -217,6 +227,9 @@ class BackfillProductsSoldInZReports extends Command
         $this->line("Sales by vendor added: {$stats['sales_by_vendor_added']}");
         $this->line("Skipped (no receipts): {$stats['skipped_no_receipts']}");
         $this->line("Skipped (no items): {$stats['skipped_no_items']}");
+        if ($stats['skipped_no_z_report_data'] > 0) {
+            $this->warn("Skipped (no z_report_data - requires full regeneration): {$stats['skipped_no_z_report_data']}");
+        }
         if ($stats['skipped_corrupted_json'] > 0) {
             $this->warn("Skipped (corrupted JSON): {$stats['skipped_corrupted_json']}");
         }
