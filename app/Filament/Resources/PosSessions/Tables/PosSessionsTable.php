@@ -519,59 +519,81 @@ class PosSessionsTable
         if ($session->status === 'closed' && $session->closing_data && isset($session->closing_data['z_report_data'])) {
             $cachedReport = $session->closing_data['z_report_data'];
             
-            // Auto-backfill products_sold and sales_by_vendor if missing (for reports generated before these features were added)
-            $needsProductsSold = !isset($cachedReport['products_sold']) || empty($cachedReport['products_sold']);
-            $needsSalesByVendor = !isset($cachedReport['sales_by_vendor']) || empty($cachedReport['sales_by_vendor']);
+            // Check if refunds have been processed since the report was generated
+            // This is important for compliance: refunds must be reflected in the Z report
+            $session->load(['charges']);
+            $currentRefundedTotal = $session->charges
+                ->where('status', 'succeeded')
+                ->filter(function ($charge) {
+                    return ($charge->amount_refunded ?? 0) > 0;
+                })
+                ->sum('amount_refunded');
             
-            if ($needsProductsSold || $needsSalesByVendor) {
-                $session->load(['receipts']);
-                $salesReceipts = $session->receipts->where('receipt_type', 'sales');
+            $cachedRefundedTotal = $cachedReport['total_refunded'] ?? 0;
+            
+            // If refunds have been added since report generation, regenerate the report
+            if ($currentRefundedTotal > $cachedRefundedTotal) {
+                // Clear cached report to force regeneration with updated refund data
+                $closingData = $session->closing_data;
+                unset($closingData['z_report_data']);
+                $session->closing_data = $closingData;
+                $session->saveQuietly();
+                // Fall through to regenerate report below
+            } else {
+                // Auto-backfill products_sold and sales_by_vendor if missing (for reports generated before these features were added)
+                $needsProductsSold = !isset($cachedReport['products_sold']) || empty($cachedReport['products_sold']);
+                $needsSalesByVendor = !isset($cachedReport['sales_by_vendor']) || empty($cachedReport['sales_by_vendor']);
                 
-                // Only backfill if there are sales receipts that might have items
-                if ($salesReceipts->isNotEmpty()) {
-                    $hasItems = false;
-                    foreach ($salesReceipts as $receipt) {
-                        $items = $receipt->receipt_data['items'] ?? [];
-                        if (!empty($items)) {
-                            $hasItems = true;
-                            break;
-                        }
-                    }
+                if ($needsProductsSold || $needsSalesByVendor) {
+                    $session->load(['receipts']);
+                    $salesReceipts = $session->receipts->where('receipt_type', 'sales');
                     
-                    if ($hasItems) {
-                        $needsUpdate = false;
-                        
-                        // Backfill products_sold if needed
-                        if ($needsProductsSold) {
-                            $productsSold = self::calculateProductsSold($session);
-                            if ($productsSold->isNotEmpty()) {
-                                $cachedReport['products_sold'] = $productsSold->toArray();
-                                $needsUpdate = true;
+                    // Only backfill if there are sales receipts that might have items
+                    if ($salesReceipts->isNotEmpty()) {
+                        $hasItems = false;
+                        foreach ($salesReceipts as $receipt) {
+                            $items = $receipt->receipt_data['items'] ?? [];
+                            if (!empty($items)) {
+                                $hasItems = true;
+                                break;
                             }
                         }
                         
-                        // Backfill sales_by_vendor if needed
-                        if ($needsSalesByVendor) {
-                            $salesByVendor = self::calculateSalesByVendor($session);
-                            if ($salesByVendor->isNotEmpty()) {
-                                $cachedReport['sales_by_vendor'] = $salesByVendor->toArray();
-                                $needsUpdate = true;
+                        if ($hasItems) {
+                            $needsUpdate = false;
+                            
+                            // Backfill products_sold if needed
+                            if ($needsProductsSold) {
+                                $productsSold = self::calculateProductsSold($session);
+                                if ($productsSold->isNotEmpty()) {
+                                    $cachedReport['products_sold'] = $productsSold->toArray();
+                                    $needsUpdate = true;
+                                }
                             }
-                        }
-                        
-                        // Update closing_data if any backfill was done
-                        if ($needsUpdate) {
-                            $closingData = $session->closing_data;
-                            $closingData['z_report_data'] = $cachedReport;
-                            $closingData['z_report_data_backfilled_at'] = now()->toISOString();
-                            $session->closing_data = $closingData;
-                            $session->saveQuietly();
+                            
+                            // Backfill sales_by_vendor if needed
+                            if ($needsSalesByVendor) {
+                                $salesByVendor = self::calculateSalesByVendor($session);
+                                if ($salesByVendor->isNotEmpty()) {
+                                    $cachedReport['sales_by_vendor'] = $salesByVendor->toArray();
+                                    $needsUpdate = true;
+                                }
+                            }
+                            
+                            // Update closing_data if any backfill was done
+                            if ($needsUpdate) {
+                                $closingData = $session->closing_data;
+                                $closingData['z_report_data'] = $cachedReport;
+                                $closingData['z_report_data_backfilled_at'] = now()->toISOString();
+                                $session->closing_data = $closingData;
+                                $session->saveQuietly();
+                            }
                         }
                     }
                 }
+                
+                return $cachedReport;
             }
-            
-            return $cachedReport;
         }
         
         $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
