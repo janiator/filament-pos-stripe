@@ -677,11 +677,27 @@ class PosSessionsTable
             }
         } elseif (is_numeric($priceValue)) {
             $numeric = (float) $priceValue;
-            // If less than 100, assume it's in NOK (decimal format like 46.00)
-            if ($numeric < 100) {
+            
+            // Check if the value has decimal places (indicating it's formatted as NOK)
+            // This handles cases like 150.0, 46.50, etc.
+            $hasDecimals = ($numeric != (int) $numeric);
+            
+            if ($hasDecimals) {
+                // Has decimal places - treat as NOK and convert to øre
                 return (int) round($numeric * 100);
             }
-            // Otherwise assume it's already in øre
+            
+            // Whole number - ambiguous, but given this is a fallback when structured
+            // fields (line_total_amount, price_amount) aren't available, and those are
+            // always in øre, whole numbers are more likely to already be in øre.
+            // However, for very small whole numbers (< 10), they're more likely to be NOK
+            // (e.g., 5 NOK for a cheap item rather than 5 øre = 0.05 NOK).
+            if ($numeric < 10) {
+                // Very small whole numbers are likely NOK (e.g., 5 NOK, not 5 øre)
+                return (int) round($numeric * 100);
+            }
+            
+            // Whole numbers >= 10 are assumed to already be in øre
             return (int) round($numeric);
         }
         return 0;

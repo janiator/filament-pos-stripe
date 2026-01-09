@@ -53,9 +53,20 @@ class BackfillProductsSoldInZReports extends Command
 
         $allSessions = $query->get();
         
+        // Initialize stats array early to track all metrics
+        $stats = [
+            'processed' => 0,
+            'updated' => 0,
+            'products_sold_added' => 0,
+            'sales_by_vendor_added' => 0,
+            'skipped_no_receipts' => 0,
+            'skipped_no_items' => 0,
+            'skipped_corrupted_json' => 0,
+            'errors' => 0,
+        ];
+        
         // Filter in PHP to handle potentially corrupted JSON data
         $sessions = collect();
-        $corruptedCount = 0;
         
         foreach ($allSessions as $session) {
             try {
@@ -86,14 +97,12 @@ class BackfillProductsSoldInZReports extends Command
                 }
             } catch (\Exception $e) {
                 // Skip sessions with corrupted JSON data
-                $corruptedCount++;
+                $stats['skipped_corrupted_json']++;
                 if ($dryRun || $this->getOutput()->isVerbose()) {
                     $this->warn("  ⚠ Session {$session->session_number} (ID: {$session->id}): Corrupted JSON data - skipping");
                 }
             }
         }
-        
-        $stats['skipped_corrupted_json'] = $corruptedCount;
 
         if ($sessions->isEmpty()) {
             $this->info('No sessions found that need products_sold or sales_by_vendor backfill.');
@@ -102,17 +111,6 @@ class BackfillProductsSoldInZReports extends Command
 
         $this->info("Found {$sessions->count()} session(s) that may need products_sold or sales_by_vendor backfill.");
         $this->newLine();
-
-        $stats = [
-            'processed' => 0,
-            'updated' => 0,
-            'products_sold_added' => 0,
-            'sales_by_vendor_added' => 0,
-            'skipped_no_receipts' => 0,
-            'skipped_no_items' => 0,
-            'skipped_corrupted_json' => 0,
-            'errors' => 0,
-        ];
 
         foreach ($sessions as $session) {
             $stats['processed']++;

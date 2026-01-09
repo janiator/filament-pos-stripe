@@ -103,7 +103,7 @@ class ViewPosSession extends ViewRecord
                         if ($originalTotalAmount !== null && $newTotalAmount !== null && $originalTotalAmount != $newTotalAmount) {
                             $originalAmountNok = number_format($originalTotalAmount / 100, 2);
                             $newAmountNok = number_format($newTotalAmount / 100, 2);
-                            $message .= "Total Amount: {$originalAmountNok} NOK → {$newTotalAmountNok} NOK\n";
+                            $message .= "Total Amount: {$originalAmountNok} NOK → {$newAmountNok} NOK\n";
                             $hasChanges = true;
                         }
                         
