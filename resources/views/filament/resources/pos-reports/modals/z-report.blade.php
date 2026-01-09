@@ -543,6 +543,7 @@
                         <tr>
                             <th style="text-align: left;">{{ !empty($report['spans_multiple_days']) && $report['spans_multiple_days'] ? 'Dato & Tid' : 'Tid' }}</th>
                             <th style="text-align: left;">ID</th>
+                            <th style="text-align: left;">Status</th>
                             <th style="text-align: left;">Metode</th>
                             <th style="text-align: left;">Betalingskode</th>
                             <th style="text-align: left;">Transaksjonskode</th>
@@ -558,6 +559,33 @@
                                 // Check if this transaction was refunded
                                 $isRefunded = isset($transaction['amount_refunded']) && $transaction['amount_refunded'] > 0;
                                 $refundedAmount = $transaction['amount_refunded'] ?? 0;
+                                $status = $transaction['status'] ?? 'unknown';
+                                $isPending = $status === 'pending';
+                                $isDeferred = $transaction['is_deferred'] ?? false;
+                                
+                                // Determine status display
+                                $statusLabel = match($status) {
+                                    'succeeded' => 'Fullført',
+                                    'refunded' => 'Refundert',
+                                    'pending' => $isDeferred ? 'Venter (Utlevert)' : 'Venter',
+                                    'processing' => 'Behandler',
+                                    'failed' => 'Feilet',
+                                    'cancelled' => 'Kansellert',
+                                    default => ucfirst($status),
+                                };
+                                
+                                $statusColor = match($status) {
+                                    'succeeded' => 'rgb(34 197 94)',
+                                    'refunded' => 'rgb(220 38 38)',
+                                    'pending' => 'rgb(234 179 8)',
+                                    'processing' => 'rgb(59 130 246)',
+                                    'failed', 'cancelled' => 'rgb(107 114 128)',
+                                    default => 'rgb(75 85 99)',
+                                };
+                                
+                                // Pending transactions should be visually distinct and not count towards revenue
+                                $amountColor = $isPending ? 'rgb(107 114 128)' : ($isRefunded ? 'rgb(220 38 38)' : 'rgb(17 24 39)');
+                                $amountStyle = $isPending ? 'font-style: italic;' : '';
                             @endphp
                             <tr>
                                 <td style="color: rgb(75 85 99);">
@@ -569,11 +597,19 @@
                                 </td>
                                 <td style="font-size: 0.75rem; color: rgb(107 114 128);">{{ substr($transaction['stripe_charge_id'] ?? $transaction['id'], 0, 12) }}...</td>
                                 <td>
+                                    <span style="color: {{ $statusColor }}; font-weight: 600; font-size: 0.875rem;">{{ $statusLabel }}</span>
+                                    @if($isPending)
+                                        <div style="font-size: 0.75rem; color: rgb(107 114 128); margin-top: 0.125rem;">
+                                            (Ikke inkludert i totaler)
+                                        </div>
+                                    @endif
+                                </td>
+                                <td>
                                     <span style="text-transform: capitalize; color: rgb(17 24 39);">{{ $transaction['payment_method'] ?? 'N/A' }}</span>
                                 </td>
                                 <td style="color: rgb(75 85 99);">{{ $transaction['payment_code'] ?? 'N/A' }}</td>
                                 <td style="color: rgb(75 85 99);">{{ $transaction['transaction_code'] ?? 'N/A' }}</td>
-                                <td style="text-align: right; font-weight: 600; color: {{ $isRefunded ? 'rgb(220 38 38)' : 'rgb(17 24 39)' }};">
+                                <td style="text-align: right; font-weight: 600; color: {{ $amountColor }}; {{ $amountStyle }}">
                                     {{ number_format($transaction['amount'] / 100, 2) }} NOK
                                     @if($isRefunded)
                                         <div style="font-size: 0.75rem; color: rgb(220 38 38); margin-top: 0.25rem;">

@@ -371,7 +371,9 @@ class PosSessionsTable
             $session->setRelation('events', $sessionEvents);
         }
         
-        $charges = $session->charges->where('status', 'succeeded');
+        // Include both succeeded and refunded charges
+        // Refunded charges are fully refunded but still count as transactions that occurred
+        $charges = $session->charges->whereIn('status', ['succeeded', 'refunded']);
         
         // Get settings to check if tips are enabled
         $settings = \App\Models\Setting::getForStore($session->store_id);
@@ -388,6 +390,7 @@ class PosSessionsTable
         
         // Calculate refunds
         // Include all charges with any refund amount (partial or full refunds)
+        // Check all charges, not just succeeded ones, to catch fully refunded charges
         $refundedCharges = $charges->filter(function ($charge) {
             return ($charge->amount_refunded ?? 0) > 0;
         });
@@ -530,8 +533,9 @@ class PosSessionsTable
             // Check if refunds have been processed since the report was generated
             // This is important for compliance: refunds must be reflected in the Z report
             $session->load(['charges']);
+            // Include both succeeded and refunded charges to catch fully refunded transactions
             $currentRefundedTotal = $session->charges
-                ->where('status', 'succeeded')
+                ->whereIn('status', ['succeeded', 'refunded'])
                 ->filter(function ($charge) {
                     return ($charge->amount_refunded ?? 0) > 0;
                 })
@@ -647,7 +651,11 @@ class PosSessionsTable
         $spansMultipleDays = $sessionStartDate !== $sessionEndDate;
         
         // Complete transaction list with all details
-        $report['complete_transaction_list'] = $session->charges->where('status', 'succeeded')->map(function ($charge) use ($tipsEnabled, $spansMultipleDays) {
+        // Include ALL charges for audit trail (succeeded, refunded, pending, etc.)
+        // But only count succeeded/refunded in totals (see $charges filter above)
+        // This provides complete audit trail while maintaining accurate financial totals
+        $allCharges = $session->charges->whereNotIn('status', ['failed', 'cancelled']);
+        $report['complete_transaction_list'] = $allCharges->map(function ($charge) use ($tipsEnabled, $spansMultipleDays) {
             $transactionDate = $charge->paid_at ?? $charge->created_at;
             return [
                 'id' => $charge->id,
@@ -655,6 +663,8 @@ class PosSessionsTable
                 'amount' => $charge->amount,
                 'amount_refunded' => $charge->amount_refunded ?? 0,
                 'refunded' => $charge->refunded ?? false,
+                'status' => $charge->status, // Include status for display
+                'paid' => $charge->paid ?? false, // Include paid flag
                 'currency' => $charge->currency,
                 'payment_method' => $charge->payment_method,
                 'payment_code' => $charge->payment_code,
@@ -665,6 +675,7 @@ class PosSessionsTable
                 'created_at' => $charge->created_at->toISOString(),
                 'transaction_date' => $transactionDate->format('Y-m-d'),
                 'spans_multiple_days' => $spansMultipleDays,
+                'is_deferred' => ($charge->metadata['deferred_payment'] ?? false) === true,
             ];
         });
         
