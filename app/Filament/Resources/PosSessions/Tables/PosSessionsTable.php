@@ -11,8 +11,12 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 
 class PosSessionsTable
 {
@@ -69,9 +73,44 @@ class PosSessionsTable
                     ->options([
                         'open' => 'Open',
                         'closed' => 'Closed',
-                    ]),
+                    ])
+                    ->default('closed'), // Default to showing closed sessions (Z-reports)
+                
+                SelectFilter::make('store_id')
+                    ->label('Store')
+                    ->relationship('store', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->multiple(),
+                
+                SelectFilter::make('pos_device_id')
+                    ->label('POS Device')
+                    ->relationship('posDevice', 'device_name')
+                    ->searchable()
+                    ->preload()
+                    ->multiple(),
+                
+                Filter::make('closed_at')
+                    ->label('Closed Date')
+                    ->form([
+                        DatePicker::make('closed_from')
+                            ->label('From'),
+                        DatePicker::make('closed_until')
+                            ->label('Until'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['closed_from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('closed_at', '>=', $date),
+                            )
+                            ->when(
+                                $data['closed_until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('closed_at', '<=', $date),
+                            );
+                    }),
             ])
-            ->defaultSort('opened_at', 'desc')
+            ->defaultSort('closed_at', 'desc') // Sort by closed date for Z-reports (most recent first)
             ->recordUrl(fn ($record) => PosSessionResource::getUrl('view', ['record' => $record]))
             ->recordActions([
                 ViewAction::make(),
@@ -144,6 +183,102 @@ class PosSessionsTable
                     ]))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close')
+                    ->visible(fn (PosSession $record): bool => $record->status === 'closed'),
+                Action::make('regenerate_z_report')
+                    ->label('Regenerate Z-Report')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Regenerate Z-Report')
+                    ->modalDescription(fn (PosSession $record): string => "This will regenerate the Z-report for session {$record->session_number} and attempt to find any missing data (charges, receipts, events) that may not have been properly linked.")
+                    ->form([
+                        \Filament\Forms\Components\Toggle::make('find_missing_data')
+                            ->label('Find Missing Data')
+                            ->helperText('Attempt to find and link missing charges, receipts, and events')
+                            ->default(true),
+                    ])
+                    ->action(function (PosSession $record, array $data) {
+                        $action = new \App\Actions\PosSessions\RegenerateZReports();
+                        $findMissingData = $data['find_missing_data'] ?? true;
+                        
+                        // Get original report data for comparison
+                        $originalReport = $record->closing_data['z_report_data'] ?? null;
+                        $originalTransactionCount = $originalReport['transactions_count'] ?? null;
+                        $originalTotalAmount = $originalReport['total_amount'] ?? null;
+                        
+                        $stats = $action->regenerateSingle($record, $findMissingData);
+                        
+                        if (!$stats['success']) {
+                            Notification::make()
+                                ->title('Error Regenerating Z-Report')
+                                ->body("Failed to regenerate Z-report: {$stats['error']}")
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        
+                        // Refresh to get updated closing_data
+                        $record->refresh();
+                        $regenerationChanges = $record->closing_data['z_report_regeneration_changes'] ?? [];
+                        
+                        // Show success notification with found data info and changes
+                        $message = "Z-report regenerated successfully for session {$record->session_number}.\n\n";
+                        
+                        if ($stats['charges_found'] > 0 || $stats['receipts_found'] > 0 || $stats['events_found'] > 0) {
+                            $message .= "Found: {$stats['charges_found']} charges, {$stats['receipts_found']} receipts, {$stats['events_found']} events\n\n";
+                        }
+                        
+                        // Show value changes if any
+                        if ($originalReport) {
+                            $newTransactionCount = $regenerationChanges['transaction_count_after'] ?? null;
+                            $newTotalAmount = $regenerationChanges['total_amount_after'] ?? null;
+                            
+                            $hasChanges = false;
+                            if ($originalTransactionCount !== null && $newTransactionCount !== null && $originalTransactionCount != $newTransactionCount) {
+                                $message .= "Transactions: {$originalTransactionCount} → {$newTransactionCount}\n";
+                                $hasChanges = true;
+                            }
+                            if ($originalTotalAmount !== null && $newTotalAmount !== null && $originalTotalAmount != $newTotalAmount) {
+                                $originalAmountNok = number_format($originalTotalAmount / 100, 2);
+                                $newAmountNok = number_format($newTotalAmount / 100, 2);
+                                $message .= "Total Amount: {$originalAmountNok} NOK → {$newAmountNok} NOK\n";
+                                $hasChanges = true;
+                            }
+                            
+                            if ($hasChanges) {
+                                $message .= "\nNote: Values changed due to new data found or recalculated vendor commissions/settings.";
+                            } else {
+                                $message .= "No value changes detected.";
+                            }
+                        } else {
+                            $message .= "No previous report to compare.";
+                        }
+                        
+                        Notification::make()
+                            ->title('Z-Report Regenerated')
+                            ->body($message)
+                            ->success()
+                            ->persistent()
+                            ->send();
+                        
+                        // Log Z-report event (13009) per § 2-8-3
+                        PosEvent::create([
+                            'store_id' => $record->store_id,
+                            'pos_device_id' => $record->pos_device_id,
+                            'pos_session_id' => $record->id,
+                            'user_id' => auth()->id(),
+                            'event_code' => PosEvent::EVENT_Z_REPORT,
+                            'event_type' => 'report',
+                            'description' => "Z-report regenerated for session {$record->session_number}",
+                            'event_data' => [
+                                'report_type' => 'Z-Report',
+                                'session_number' => $record->session_number,
+                                'regenerated' => true,
+                                'changes' => $regenerationChanges,
+                            ],
+                            'occurred_at' => now(),
+                        ]);
+                    })
                     ->visible(fn (PosSession $record): bool => $record->status === 'closed'),
                 Action::make('close')
                     ->label('Close Session')
@@ -338,8 +473,8 @@ class PosSessionsTable
         
         // Add Z-report specific data
         $report['closed_at'] = $session->closed_at;
-        $report['actual_cash'] = $session->actual_cash ? $session->actual_cash / 100 : null;
-        $report['cash_difference'] = $session->cash_difference ? $session->cash_difference / 100 : null;
+        $report['actual_cash'] = $session->actual_cash !== null ? $session->actual_cash / 100 : null;
+        $report['cash_difference'] = $session->cash_difference !== null ? $session->cash_difference / 100 : null;
         $report['closing_notes'] = $session->closing_notes;
         $report['report_type'] = 'Z-Report';
         
