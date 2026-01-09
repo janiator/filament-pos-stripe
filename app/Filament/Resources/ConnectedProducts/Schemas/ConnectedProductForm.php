@@ -648,22 +648,35 @@ class ConnectedProductForm
                                                     $stripeAccountId = $get('stripe_account_id');
                                                 }
 
-                                                // Find "Piece" quantity unit
-                                                $pieceUnit = \App\Models\QuantityUnit::where(function ($q) use ($stripeAccountId) {
-                                                    if ($stripeAccountId) {
-                                                        $q->where('stripe_account_id', $stripeAccountId)
-                                                          ->orWhere(function ($q2) {
-                                                              $q2->whereNull('stripe_account_id')
-                                                                 ->where('is_standard', true);
-                                                          });
-                                                    } else {
-                                                        $q->whereNull('stripe_account_id')
-                                                          ->where('is_standard', true);
-                                                    }
-                                                })
-                                                ->where('name', 'Piece')
-                                                ->where('active', true)
-                                                ->first();
+                                                // Find "Piece" quantity unit - prioritize by stripe_account_id, then fallback to standard
+                                                $pieceUnit = null;
+                                                
+                                                // First try to find store-specific Piece unit
+                                                if ($stripeAccountId) {
+                                                    $pieceUnit = \App\Models\QuantityUnit::where('stripe_account_id', $stripeAccountId)
+                                                        ->where('name', 'Piece')
+                                                        ->where('active', true)
+                                                        ->first();
+                                                }
+                                                
+                                                // Fallback to standard Piece unit if not found
+                                                if (!$pieceUnit) {
+                                                    $pieceUnit = \App\Models\QuantityUnit::whereNull('stripe_account_id')
+                                                        ->where('is_standard', true)
+                                                        ->where('name', 'Piece')
+                                                        ->where('active', true)
+                                                        ->first();
+                                                }
+                                                
+                                                // Last resort: find any Piece unit (by name or symbol)
+                                                if (!$pieceUnit) {
+                                                    $pieceUnit = \App\Models\QuantityUnit::where(function ($q) {
+                                                        $q->where('name', 'Piece')
+                                                          ->orWhere('symbol', 'stk');
+                                                    })
+                                                    ->where('active', true)
+                                                    ->first();
+                                                }
 
                                                 return $pieceUnit?->id;
                                             })
@@ -1594,22 +1607,35 @@ class ConnectedProductForm
                                                     $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
                                                 }
 
-                                                // Find "Piece" quantity unit
-                                                $pieceUnit = \App\Models\QuantityUnit::where(function ($q) use ($stripeAccountId) {
-                                                    if ($stripeAccountId) {
-                                                        $q->where('stripe_account_id', $stripeAccountId)
-                                                          ->orWhere(function ($q2) {
-                                                              $q2->whereNull('stripe_account_id')
-                                                                 ->where('is_standard', true);
-                                                          });
-                                                    } else {
-                                                        $q->whereNull('stripe_account_id')
-                                                          ->where('is_standard', true);
-                                                    }
-                                                })
-                                                ->where('name', 'Piece')
-                                                ->where('active', true)
-                                                ->first();
+                                                // Find "Piece" quantity unit - prioritize by stripe_account_id, then fallback to standard
+                                                $pieceUnit = null;
+                                                
+                                                // First try to find store-specific Piece unit
+                                                if ($stripeAccountId) {
+                                                    $pieceUnit = \App\Models\QuantityUnit::where('stripe_account_id', $stripeAccountId)
+                                                        ->where('name', 'Piece')
+                                                        ->where('active', true)
+                                                        ->first();
+                                                }
+                                                
+                                                // Fallback to standard Piece unit if not found
+                                                if (!$pieceUnit) {
+                                                    $pieceUnit = \App\Models\QuantityUnit::whereNull('stripe_account_id')
+                                                        ->where('is_standard', true)
+                                                        ->where('name', 'Piece')
+                                                        ->where('active', true)
+                                                        ->first();
+                                                }
+                                                
+                                                // Last resort: find any Piece unit (by name or symbol)
+                                                if (!$pieceUnit) {
+                                                    $pieceUnit = \App\Models\QuantityUnit::where(function ($q) {
+                                                        $q->where('name', 'Piece')
+                                                          ->orWhere('symbol', 'stk');
+                                                    })
+                                                    ->where('active', true)
+                                                    ->first();
+                                                }
 
                                                 return $pieceUnit?->id;
                                             })

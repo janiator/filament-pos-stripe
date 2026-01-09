@@ -197,6 +197,22 @@ class PosSessionsTable
                             ->helperText('Attempt to find and link missing charges, receipts, and events')
                             ->default(true),
                     ])
+                    ->visible(function (PosSession $record): bool {
+                        if ($record->status !== 'closed') {
+                            return false;
+                        }
+                        
+                        // Only show to super admins
+                        $user = auth()->user();
+                        if (!$user) {
+                            return false;
+                        }
+                        
+                        $tenant = \Filament\Facades\Filament::getTenant();
+                        return $tenant
+                            ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
+                            : $user->hasRole('super_admin');
+                    })
                     ->action(function (PosSession $record, array $data) {
                         $action = new \App\Actions\PosSessions\RegenerateZReports();
                         $findMissingData = $data['find_missing_data'] ?? true;
@@ -465,7 +481,61 @@ class PosSessionsTable
     {
         // For closed sessions, check if we have stored report data (snapshot at closing time)
         if ($session->status === 'closed' && $session->closing_data && isset($session->closing_data['z_report_data'])) {
-            return $session->closing_data['z_report_data'];
+            $cachedReport = $session->closing_data['z_report_data'];
+            
+            // Auto-backfill products_sold and sales_by_vendor if missing (for reports generated before these features were added)
+            $needsProductsSold = !isset($cachedReport['products_sold']) || empty($cachedReport['products_sold']);
+            $needsSalesByVendor = !isset($cachedReport['sales_by_vendor']) || empty($cachedReport['sales_by_vendor']);
+            
+            if ($needsProductsSold || $needsSalesByVendor) {
+                $session->load(['receipts']);
+                $salesReceipts = $session->receipts->where('receipt_type', 'sales');
+                
+                // Only backfill if there are sales receipts that might have items
+                if ($salesReceipts->isNotEmpty()) {
+                    $hasItems = false;
+                    foreach ($salesReceipts as $receipt) {
+                        $items = $receipt->receipt_data['items'] ?? [];
+                        if (!empty($items)) {
+                            $hasItems = true;
+                            break;
+                        }
+                    }
+                    
+                    if ($hasItems) {
+                        $needsUpdate = false;
+                        
+                        // Backfill products_sold if needed
+                        if ($needsProductsSold) {
+                            $productsSold = self::calculateProductsSold($session);
+                            if ($productsSold->isNotEmpty()) {
+                                $cachedReport['products_sold'] = $productsSold->toArray();
+                                $needsUpdate = true;
+                            }
+                        }
+                        
+                        // Backfill sales_by_vendor if needed
+                        if ($needsSalesByVendor) {
+                            $salesByVendor = self::calculateSalesByVendor($session);
+                            if ($salesByVendor->isNotEmpty()) {
+                                $cachedReport['sales_by_vendor'] = $salesByVendor->toArray();
+                                $needsUpdate = true;
+                            }
+                        }
+                        
+                        // Update closing_data if any backfill was done
+                        if ($needsUpdate) {
+                            $closingData = $session->closing_data;
+                            $closingData['z_report_data'] = $cachedReport;
+                            $closingData['z_report_data_backfilled_at'] = now()->toISOString();
+                            $session->closing_data = $closingData;
+                            $session->saveQuietly();
+                        }
+                    }
+                }
+            }
+            
+            return $cachedReport;
         }
         
         $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
@@ -534,6 +604,9 @@ class PosSessionsTable
         // Sales per vendor
         $report['sales_by_vendor'] = self::calculateSalesByVendor($session);
         
+        // Products sold (aggregated from receipts)
+        $report['products_sold'] = self::calculateProductsSold($session);
+        
         // For closed sessions, store the report data in closing_data to preserve snapshot
         // This ensures reports remain unchanged even if vendor commission settings change later
         if ($session->status === 'closed') {
@@ -576,16 +649,189 @@ class PosSessionsTable
     }
 
     /**
+     * Calculate products sold (aggregated from receipts)
+     */
+    /**
+     * Parse price value from receipt item (handles formatted strings and numeric values)
+     * Returns price in øre
+     */
+    protected static function parsePriceFromReceiptItem($priceValue): int
+    {
+        if (is_string($priceValue)) {
+            // Check if it's a formatted string (contains comma or space, or decimal point with 2 decimals)
+            // Formatted strings like "460,00" or "460.00" or "460,00 NOK" should be treated as NOK
+            // Plain numeric strings like "46000" should be treated as already in øre
+            $hasFormatting = strpos($priceValue, ',') !== false || 
+                            strpos($priceValue, ' ') !== false ||
+                            (strpos($priceValue, '.') !== false && preg_match('/\.\d{2}$/', $priceValue));
+            
+            if ($hasFormatting) {
+                // Formatted string (e.g., "460,00" or "460.00") - remove formatting and convert to øre
+                $cleaned = str_replace([' ', ','], ['', '.'], $priceValue);
+                // Remove any non-numeric characters except decimal point
+                $cleaned = preg_replace('/[^\d.]/', '', $cleaned);
+                return (int) round((float) $cleaned * 100);
+            } else {
+                // Plain numeric string (e.g., "46000") - assume it's already in øre
+                return (int) round((float) $priceValue);
+            }
+        } elseif (is_numeric($priceValue)) {
+            $numeric = (float) $priceValue;
+            
+            // Check if the value has decimal places (indicating it's formatted as NOK)
+            // This handles cases like 150.0, 46.50, etc.
+            $hasDecimals = ($numeric != (int) $numeric);
+            
+            if ($hasDecimals) {
+                // Has decimal places - treat as NOK and convert to øre
+                return (int) round($numeric * 100);
+            }
+            
+            // Whole number - ambiguous, but given this is a fallback when structured
+            // fields (line_total_amount, price_amount) aren't available, and those are
+            // always in øre, whole numbers are more likely to already be in øre.
+            // However, for very small whole numbers (< 10), they're more likely to be NOK
+            // (e.g., 5 NOK for a cheap item rather than 5 øre = 0.05 NOK).
+            if ($numeric < 10) {
+                // Very small whole numbers are likely NOK (e.g., 5 NOK, not 5 øre)
+                return (int) round($numeric * 100);
+            }
+            
+            // Whole numbers >= 10 are assumed to already be in øre
+            return (int) round($numeric);
+        }
+        return 0;
+    }
+
+    public static function calculateProductsSold(PosSession $session): \Illuminate\Support\Collection
+    {
+        $session->load(['receipts.charge']);
+        
+        $productsSold = collect();
+        
+        // Get all sales receipts for this session that are linked to succeeded charges
+        // This ensures we only count products from actual completed transactions
+        $salesReceipts = $session->receipts->where('receipt_type', 'sales')->filter(function ($receipt) {
+            // Only include receipts linked to succeeded charges, or receipts without charge_id (cash payments)
+            if (!$receipt->charge_id) {
+                return true; // Cash payments might not have charge_id
+            }
+            return $receipt->charge && $receipt->charge->status === 'succeeded';
+        });
+        
+        // Collect all product and variant IDs to eager load
+        $productIds = [];
+        $variantIds = [];
+        
+        foreach ($salesReceipts as $receipt) {
+            $items = $receipt->receipt_data['items'] ?? [];
+            foreach ($items as $item) {
+                if (isset($item['product_id'])) {
+                    $productIds[] = (int) $item['product_id'];
+                }
+                if (isset($item['variant_id'])) {
+                    $variantIds[] = (int) $item['variant_id'];
+                }
+            }
+        }
+        
+        // Eager load products and variants
+        $products = \App\Models\ConnectedProduct::whereIn('id', array_unique($productIds))
+            ->get()
+            ->keyBy('id');
+        
+        $variants = \App\Models\ProductVariant::whereIn('id', array_unique($variantIds))
+            ->with('product')
+            ->get()
+            ->keyBy('id');
+        
+        foreach ($salesReceipts as $receipt) {
+            $items = $receipt->receipt_data['items'] ?? [];
+            
+            foreach ($items as $item) {
+                $productId = $item['product_id'] ?? null;
+                $variantId = $item['variant_id'] ?? null;
+                // Handle decimal quantities (e.g., 1.5 meters)
+                $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+                
+                // Calculate line total using consistent price parsing
+                // Priority: line_total_amount/price_amount (always in øre) > line_total/unit_price (may be formatted)
+                $lineTotal = 0;
+                if (isset($item['line_total_amount'])) {
+                    // line_total_amount is always in øre - use this first as it's the source of truth
+                    $lineTotal = (int) $item['line_total_amount'];
+                } elseif (isset($item['price_amount'])) {
+                    // price_amount is always in øre - multiply by quantity (which may be decimal)
+                    $lineTotal = (int) round((float) $item['price_amount'] * $quantity);
+                } elseif (isset($item['line_total'])) {
+                    // line_total might be formatted string or numeric - parse it
+                    $lineTotal = self::parsePriceFromReceiptItem($item['line_total']);
+                } elseif (isset($item['unit_price'])) {
+                    // unit_price might be formatted string or numeric - parse it
+                    $unitPrice = self::parsePriceFromReceiptItem($item['unit_price']);
+                    $lineTotal = (int) round($unitPrice * $quantity);
+                }
+                
+                // Get product information
+                $product = null;
+                $productName = $item['name'] ?? $item['product_name'] ?? 'Ukjent produkt';
+                $productKey = null;
+                
+                if ($variantId && isset($variants[$variantId])) {
+                    $product = $variants[$variantId]->product;
+                    $productName = $product?->name ?? $productName;
+                    if ($product && $variants[$variantId]->variant_name !== 'Default') {
+                        $productName .= ' - ' . $variants[$variantId]->variant_name;
+                    }
+                    $productKey = 'variant_' . $variantId;
+                } elseif ($productId && isset($products[$productId])) {
+                    $product = $products[$productId];
+                    $productName = $product?->name ?? $productName;
+                    $productKey = 'product_' . $productId;
+                } else {
+                    // Use a key based on product name if we don't have product ID
+                    $productKey = 'name_' . md5($productName);
+                }
+                
+                if (!$productsSold->has($productKey)) {
+                    $productsSold->put($productKey, [
+                        'key' => $productKey,
+                        'name' => $productName,
+                        'product_id' => $productId,
+                        'variant_id' => $variantId,
+                        'quantity' => 0.0,
+                        'amount' => 0,
+                    ]);
+                }
+                
+                $current = $productsSold->get($productKey);
+                $current['quantity'] += $quantity;
+                $current['amount'] += $lineTotal;
+                $productsSold->put($productKey, $current);
+            }
+        }
+        
+        return $productsSold->sortByDesc('amount')->values();
+    }
+
+    /**
      * Calculate sales per product category (collection)
      */
-    protected static function calculateSalesByVendor(PosSession $session): \Illuminate\Support\Collection
+    public static function calculateSalesByVendor(PosSession $session): \Illuminate\Support\Collection
     {
-        $session->load(['receipts']);
+        $session->load(['receipts.charge']);
         
         $vendorSales = collect();
         
-        // Get all sales receipts for this session
-        $salesReceipts = $session->receipts->where('receipt_type', 'sales');
+        // Get all sales receipts for this session that are linked to succeeded charges
+        // This ensures we only count sales from actual completed transactions
+        $salesReceipts = $session->receipts->where('receipt_type', 'sales')->filter(function ($receipt) {
+            // Only include receipts linked to succeeded charges, or receipts without charge_id (cash payments)
+            if (!$receipt->charge_id) {
+                return true; // Cash payments might not have charge_id
+            }
+            return $receipt->charge && $receipt->charge->status === 'succeeded';
+        });
         
         // Collect all product and variant IDs to eager load
         $productIds = [];
@@ -620,15 +866,25 @@ class PosSessionsTable
             foreach ($items as $item) {
                 $productId = $item['product_id'] ?? null;
                 $variantId = $item['variant_id'] ?? null;
-                $quantity = $item['quantity'] ?? 1;
+                // Handle decimal quantities (e.g., 1.5 meters)
+                $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
                 
-                // Calculate line total - handle both øre (integer) and decimal formats
+                // Calculate line total using consistent price parsing
+                // Priority: line_total_amount/price_amount (always in øre) > line_total/unit_price (may be formatted)
                 $lineTotal = 0;
-                if (isset($item['line_total'])) {
-                    $lineTotal = is_numeric($item['line_total']) ? (int) $item['line_total'] : 0;
+                if (isset($item['line_total_amount'])) {
+                    // line_total_amount is always in øre - use this first as it's the source of truth
+                    $lineTotal = (int) $item['line_total_amount'];
+                } elseif (isset($item['price_amount'])) {
+                    // price_amount is always in øre - multiply by quantity (which may be decimal)
+                    $lineTotal = (int) round((float) $item['price_amount'] * $quantity);
+                } elseif (isset($item['line_total'])) {
+                    // line_total might be formatted string or numeric - parse it
+                    $lineTotal = self::parsePriceFromReceiptItem($item['line_total']);
                 } elseif (isset($item['unit_price'])) {
-                    $unitPrice = is_numeric($item['unit_price']) ? (int) $item['unit_price'] : 0;
-                    $lineTotal = $unitPrice * $quantity;
+                    // unit_price might be formatted string or numeric - parse it
+                    $unitPrice = self::parsePriceFromReceiptItem($item['unit_price']);
+                    $lineTotal = (int) round($unitPrice * $quantity);
                 }
                 
                 // Get product to find its vendor
@@ -639,43 +895,43 @@ class PosSessionsTable
                     $product = $products[$productId];
                 }
                 
-                if ($product) {
-                    $vendor = $product->vendor;
-                    
-                    if (!$vendor) {
-                        // If no vendor, use "Ingen leverandør" (No vendor)
-                        $vendorName = 'Ingen leverandør';
-                        $vendorId = 'no-vendor';
-                        $commissionPercent = null;
-                    } else {
-                        $vendorName = $vendor->name;
-                        $vendorId = $vendor->id;
-                        $commissionPercent = $vendor->commission_percent;
-                    }
-                    
-                    if (!$vendorSales->has($vendorId)) {
-                        $vendorSales->put($vendorId, [
-                            'id' => $vendorId,
-                            'name' => $vendorName,
-                            'count' => 0,
-                            'amount' => 0,
-                            'commission_percent' => $commissionPercent,
-                            'commission_amount' => 0,
-                        ]);
-                    }
-                    
-                    $current = $vendorSales->get($vendorId);
-                    $current['count'] += $quantity;
-                    $current['amount'] += $lineTotal;
-                    
-                    // Calculate commission if commission_percent is set
-                    if ($commissionPercent !== null && $commissionPercent > 0) {
-                        $commissionAmount = (int) round($lineTotal * ($commissionPercent / 100));
-                        $current['commission_amount'] += $commissionAmount;
-                    }
-                    
-                    $vendorSales->put($vendorId, $current);
+                // Always process items, even if product doesn't exist in database
+                // Use "Ingen leverandør" for products without vendor or without product record
+                $vendor = $product?->vendor;
+                
+                if (!$vendor) {
+                    // If no vendor, use "Ingen leverandør" (No vendor)
+                    $vendorName = 'Ingen leverandør';
+                    $vendorId = 'no-vendor';
+                    $commissionPercent = null;
+                } else {
+                    $vendorName = $vendor->name;
+                    $vendorId = $vendor->id;
+                    $commissionPercent = $vendor->commission_percent;
                 }
+                
+                if (!$vendorSales->has($vendorId)) {
+                    $vendorSales->put($vendorId, [
+                        'id' => $vendorId,
+                        'name' => $vendorName,
+                        'count' => 0,
+                        'amount' => 0,
+                        'commission_percent' => $commissionPercent,
+                        'commission_amount' => 0,
+                    ]);
+                }
+                
+                $current = $vendorSales->get($vendorId);
+                $current['count'] += $quantity;
+                $current['amount'] += $lineTotal;
+                
+                // Calculate commission if commission_percent is set
+                if ($commissionPercent !== null && $commissionPercent > 0) {
+                    $commissionAmount = (int) round($lineTotal * ($commissionPercent / 100));
+                    $current['commission_amount'] += $commissionAmount;
+                }
+                
+                $vendorSales->put($vendorId, $current);
             }
         }
         

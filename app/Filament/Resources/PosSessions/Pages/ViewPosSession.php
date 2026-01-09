@@ -43,6 +43,22 @@ class ViewPosSession extends ViewRecord
                         ->helperText('Attempt to find and link missing charges, receipts, and events')
                         ->default(true),
                 ])
+                ->visible(function () {
+                    if ($this->record->status !== 'closed') {
+                        return false;
+                    }
+                    
+                    // Only show to super admins
+                    $user = auth()->user();
+                    if (!$user) {
+                        return false;
+                    }
+                    
+                    $tenant = \Filament\Facades\Filament::getTenant();
+                    return $tenant
+                        ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
+                        : $user->hasRole('super_admin');
+                })
                 ->action(function (array $data) {
                     $action = new RegenerateZReports();
                     $findMissingData = $data['find_missing_data'] ?? true;
@@ -87,7 +103,7 @@ class ViewPosSession extends ViewRecord
                         if ($originalTotalAmount !== null && $newTotalAmount !== null && $originalTotalAmount != $newTotalAmount) {
                             $originalAmountNok = number_format($originalTotalAmount / 100, 2);
                             $newAmountNok = number_format($newTotalAmount / 100, 2);
-                            $message .= "Total Amount: {$originalAmountNok} NOK → {$newTotalAmountNok} NOK\n";
+                            $message .= "Total Amount: {$originalAmountNok} NOK → {$newAmountNok} NOK\n";
                             $hasChanges = true;
                         }
                         
@@ -126,8 +142,7 @@ class ViewPosSession extends ViewRecord
                     ]);
                     
                     $this->refresh();
-                })
-                ->visible(fn () => $this->record->status === 'closed'),
+                }),
         ];
     }
 }

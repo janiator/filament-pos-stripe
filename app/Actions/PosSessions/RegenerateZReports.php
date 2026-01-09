@@ -182,6 +182,7 @@ class RegenerateZReports
             // This ensures we don't lose the actual_cash value if it's only stored in the report
             $closingData = $session->closing_data ?? [];
             $originalReport = $closingData['z_report_data'] ?? null;
+            $originalGeneratedAt = $closingData['z_report_generated_at'] ?? $closingData['z_report_regenerated_at'] ?? null;
             
             // Store current actual_cash from database as fallback
             $databaseActualCash = $session->actual_cash;
@@ -218,9 +219,9 @@ class RegenerateZReports
             // Store the regenerated report in closing_data
             // Also preserve the original report if it exists for comparison
             $closingData = $session->closing_data ?? [];
-            if (isset($closingData['z_report_data']) && !isset($closingData['z_report_data_original'])) {
-                $closingData['z_report_data_original'] = $closingData['z_report_data'];
-                $closingData['z_report_original_generated_at'] = $closingData['z_report_generated_at'] ?? $closingData['z_report_regenerated_at'] ?? now()->toISOString();
+            if ($originalReport !== null && !isset($closingData['z_report_data_original'])) {
+                $closingData['z_report_data_original'] = $originalReport;
+                $closingData['z_report_original_generated_at'] = $originalGeneratedAt ?? now()->toISOString();
             }
             $closingData['z_report_data'] = $report;
             $closingData['z_report_regenerated_at'] = now()->toISOString();
@@ -279,6 +280,10 @@ class RegenerateZReports
         $sessionStart = $session->opened_at;
         $sessionEnd = $session->closed_at ?? now();
 
+        // Track charge IDs we've already counted (to prevent double-counting in dry-run mode)
+        // In dry-run mode, charges aren't saved, so we need to track them manually
+        $countedChargeIds = [];
+
         // Method 1: Find charges by date range and stripe_account_id that don't have a session
         $orphanedCharges = ConnectedCharge::where('stripe_account_id', $stripeAccountId)
             ->whereNull('pos_session_id')
@@ -305,6 +310,7 @@ class RegenerateZReports
                     $charge->pos_session_id = $session->id;
                     $charge->save();
                 }
+                $countedChargeIds[$charge->id] = true;
                 $stats['charges_found']++;
             }
         }
@@ -320,15 +326,21 @@ class RegenerateZReports
             if (!$dryRun) {
                 $receipt->pos_session_id = $session->id;
                 $receipt->save();
+            }
 
-                // Also link the charge if it's not already linked
-                if ($receipt->charge_id) {
-                    $charge = ConnectedCharge::find($receipt->charge_id);
-                    if ($charge && !$charge->pos_session_id) {
+            // Also link the charge if it's not already linked
+            // Check and count in both dry_run and non-dry_run modes
+            if ($receipt->charge_id) {
+                $charge = ConnectedCharge::find($receipt->charge_id);
+                // In dry-run mode, also check if we've already counted this charge
+                $alreadyCounted = $charge && $dryRun && isset($countedChargeIds[$charge->id]);
+                if ($charge && !$charge->pos_session_id && !$alreadyCounted) {
+                    if (!$dryRun) {
                         $charge->pos_session_id = $session->id;
                         $charge->save();
-                        $stats['charges_found']++;
                     }
+                    $countedChargeIds[$charge->id] = true;
+                    $stats['charges_found']++;
                 }
             }
             $stats['receipts_found']++;
@@ -345,15 +357,21 @@ class RegenerateZReports
             if (!$dryRun) {
                 $event->pos_session_id = $session->id;
                 $event->save();
+            }
 
-                // Also link the charge if it's not already linked
-                if ($event->related_charge_id) {
-                    $charge = ConnectedCharge::find($event->related_charge_id);
-                    if ($charge && !$charge->pos_session_id) {
+            // Also link the charge if it's not already linked
+            // Check and count in both dry_run and non-dry_run modes
+            if ($event->related_charge_id) {
+                $charge = ConnectedCharge::find($event->related_charge_id);
+                // In dry-run mode, also check if we've already counted this charge
+                $alreadyCounted = $charge && $dryRun && isset($countedChargeIds[$charge->id]);
+                if ($charge && !$charge->pos_session_id && !$alreadyCounted) {
+                    if (!$dryRun) {
                         $charge->pos_session_id = $session->id;
                         $charge->save();
-                        $stats['charges_found']++;
                     }
+                    $countedChargeIds[$charge->id] = true;
+                    $stats['charges_found']++;
                 }
             }
             $stats['events_found']++;
