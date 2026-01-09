@@ -362,7 +362,15 @@ class PosSessionsTable
      */
     public static function generateXReport(PosSession $session): array
     {
-        $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
+        $session->load(['charges', 'posDevice', 'user', 'store', 'receipts']);
+        
+        // Explicitly load events filtered by pos_session_id to prevent cross-session contamination
+        // Only load if not already set (to avoid overwriting if explicitly set before calling this method)
+        if (!$session->relationLoaded('events')) {
+            $sessionEvents = PosEvent::where('pos_session_id', $session->id)->get();
+            $session->setRelation('events', $sessionEvents);
+        }
+        
         $charges = $session->charges->where('status', 'succeeded');
         
         // Get settings to check if tips are enabled
@@ -529,10 +537,15 @@ class PosSessionsTable
                 })
                 ->sum('amount_refunded');
             
-            $cachedRefundedTotal = $cachedReport['total_refunded'] ?? 0;
+            // Handle both missing field and type conversion (cached report might have string or int)
+            $cachedRefundedTotal = isset($cachedReport['total_refunded']) 
+                ? (int) $cachedReport['total_refunded'] 
+                : 0;
             
-            // If refunds have been added since report generation, regenerate the report
-            if ($currentRefundedTotal > $cachedRefundedTotal) {
+            // If refunds have been added since report generation, or if cached report doesn't have refund data, regenerate
+            // Also regenerate if current refunds exist but cached report shows 0 (handles reports generated before refund feature)
+            if ($currentRefundedTotal > $cachedRefundedTotal || 
+                ($currentRefundedTotal > 0 && !isset($cachedReport['total_refunded']))) {
                 // Clear cached report to force regeneration with updated refund data
                 $closingData = $session->closing_data;
                 unset($closingData['z_report_data']);
@@ -596,7 +609,13 @@ class PosSessionsTable
             }
         }
         
-        $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
+        $session->load(['charges', 'posDevice', 'user', 'store', 'receipts']);
+        
+        // Explicitly load events filtered by pos_session_id to prevent cross-session contamination
+        // This ensures we only get events that belong to this specific session
+        $sessionEvents = PosEvent::where('pos_session_id', $session->id)->get();
+        $session->setRelation('events', $sessionEvents);
+        
         $report = self::generateXReport($session);
         
         // Add Z-report specific data
@@ -607,7 +626,8 @@ class PosSessionsTable
         $report['report_type'] = 'Z-Report';
         
         // Event summary with Norwegian translations
-        $eventSummary = $session->events->groupBy('event_code')->map(function ($group) {
+        // Use explicitly loaded events to ensure no cross-session contamination
+        $eventSummary = $sessionEvents->groupBy('event_code')->map(function ($group) {
             $firstEvent = $group->first();
             return [
                 'code' => $firstEvent->event_code,
