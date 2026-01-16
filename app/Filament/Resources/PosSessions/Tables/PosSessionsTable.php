@@ -3,8 +3,11 @@
 namespace App\Filament\Resources\PosSessions\Tables;
 
 use App\Filament\Resources\PosSessions\PosSessionResource;
+use App\Mail\ZReportMail;
 use App\Models\PosSession;
 use App\Models\PosEvent;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
@@ -17,6 +20,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class PosSessionsTable
 {
@@ -296,6 +301,47 @@ class PosSessionsTable
                         ]);
                     })
                     ->visible(fn (PosSession $record): bool => $record->status === 'closed'),
+                Action::make('send_z_report_email')
+                    ->label('Send Z-Report Email')
+                    ->icon('heroicon-o-envelope')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalHeading('Send Z-Report Email')
+                    ->modalDescription(function (PosSession $record): string {
+                        $record->load('store');
+                        $store = $record->store;
+                        if (!$store || !$store->z_report_email) {
+                            return "No Z-report email address configured for this store. Please configure it in the Store settings.";
+                        }
+                        return "Send Z-report PDF to {$store->z_report_email}?";
+                    })
+                    ->action(function (PosSession $record) {
+                        try {
+                            self::sendZReportEmail($record);
+                            
+                            Notification::make()
+                                ->title('Z-Report Email Sent')
+                                ->body("Z-report email has been sent to {$record->store->z_report_email}")
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Failed to Send Email')
+                                ->body("Error: " . $e->getMessage())
+                                ->danger()
+                                ->send();
+                            
+                            Log::error("Failed to manually send Z-report email for session {$record->session_number}: " . $e->getMessage());
+                        }
+                    })
+                    ->visible(function (PosSession $record): bool {
+                        if ($record->status !== 'closed') {
+                            return false;
+                        }
+                        
+                        $record->load('store');
+                        return $record->store && $record->store->z_report_email;
+                    }),
                 Action::make('close')
                     ->label('Close Session')
                     ->icon('heroicon-o-lock-closed')
@@ -1259,6 +1305,57 @@ class PosSessionsTable
             'count' => $manualDiscountCount,
             'amount' => $manualDiscountAmount,
         ];
+    }
+
+    /**
+     * Send Z-report email with PDF attachment
+     * 
+     * @param PosSession $session
+     * @return void
+     * @throws \Exception
+     */
+    public static function sendZReportEmail(PosSession $session): void
+    {
+        // Load store relationship
+        $session->load('store');
+        $store = $session->store;
+
+        // Check if store has z_report_email configured
+        if (!$store || !$store->z_report_email) {
+            throw new \Exception('No Z-report email address configured for this store');
+        }
+
+        // Load all necessary relationships
+        $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
+
+        // Generate Z-report data
+        $report = self::generateZReport($session);
+
+        // Generate PDF
+        $html = view('reports.embed.z-report', [
+            'session' => $session,
+            'report' => $report,
+        ])->render();
+
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $pdfContent = $dompdf->output();
+        $filename = "Z-Rapport-{$session->session_number}-" . now()->format('Y-m-d-H-i-s') . '.pdf';
+
+        // Send email
+        Mail::to($store->z_report_email)->send(
+            new ZReportMail($session, $pdfContent, $filename)
+        );
+
+        Log::info("Z-report email sent to {$store->z_report_email} for session {$session->session_number}");
     }
 
     /**
