@@ -58,14 +58,14 @@ class EditConnectedProduct extends EditRecord
     {
         $product = $this->record;
 
-        // Only sync price if no_price_in_pos is NOT enabled
-        if (!$product->no_price_in_pos && !$product->isVariable() && $product->price && $product->stripe_product_id && $product->stripe_account_id) {
+        // Sync price if product has a price
+        // Prices are always created in Stripe regardless of no_price_in_pos setting
+        if (!$product->isVariable() 
+            && $product->price 
+            && $product->stripe_product_id 
+            && $product->stripe_account_id) {
             $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice();
             $syncPriceAction($product);
-        } elseif ($product->no_price_in_pos && $product->default_price) {
-            // Clear default_price if no_price_in_pos is enabled
-            $product->default_price = null;
-            $product->saveQuietly();
         }
     }
 

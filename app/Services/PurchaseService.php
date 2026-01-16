@@ -690,7 +690,69 @@ class PurchaseService
                     throw new \Exception('Stripe charge ID not found');
                 }
 
-                // Update charge with payment information
+                // First, check if a charge with this payment_intent_id already exists
+                // This matches the strategy used in processStripePayment to handle webhook-created charges
+                $existingChargeByPaymentIntent = ConnectedCharge::where('stripe_payment_intent_id', $paymentIntentId)
+                    ->where('stripe_account_id', $store->stripe_account_id)
+                    ->first();
+
+                if ($existingChargeByPaymentIntent && $existingChargeByPaymentIntent->id !== $charge->id) {
+                    // A charge with this payment_intent_id exists and it's not the deferred charge
+                    // This is likely a webhook-created charge (webhook sets payment_intent_id but not pos_session_id)
+                    // The deferred charge has proper POS context and metadata, so it should be the canonical record
+                    $isWebhookDuplicate = !$existingChargeByPaymentIntent->pos_session_id || 
+                                         ($existingChargeByPaymentIntent->created_at > $charge->created_at);
+
+                    if ($isWebhookDuplicate) {
+                        // Delete the webhook-created duplicate - the deferred charge will be updated with Stripe data
+                        Log::warning('Deleting webhook-created duplicate charge (found by payment_intent_id) before completing deferred payment', [
+                            'duplicate_charge_id' => $existingChargeByPaymentIntent->id,
+                            'deferred_charge_id' => $charge->id,
+                            'stripe_payment_intent_id' => $paymentIntentId,
+                            'stripe_charge_id' => $stripeChargeId,
+                            'duplicate_has_pos_session' => (bool) $existingChargeByPaymentIntent->pos_session_id,
+                            'duplicate_created_at' => $existingChargeByPaymentIntent->created_at,
+                            'deferred_created_at' => $charge->created_at,
+                        ]);
+                        $existingChargeByPaymentIntent->delete();
+                    } else {
+                        // This is a legitimate conflict - cannot proceed
+                        throw new \Exception("Payment intent ID {$paymentIntentId} is already associated with charge ID {$existingChargeByPaymentIntent->id}. Cannot complete deferred payment.");
+                    }
+                }
+
+                // Also check if another charge with this stripe_charge_id already exists
+                // This handles cases where webhook created charge but payment_intent_id lookup didn't find it
+                $existingChargeByChargeId = ConnectedCharge::where('stripe_charge_id', $stripeChargeId)
+                    ->where('stripe_account_id', $store->stripe_account_id)
+                    ->first();
+
+                if ($existingChargeByChargeId && $existingChargeByChargeId->id !== $charge->id) {
+                    // Another charge with this stripe_charge_id exists
+                    // Check if it's a webhook-created duplicate
+                    $isWebhookDuplicate = !$existingChargeByChargeId->pos_session_id || 
+                                         ($existingChargeByChargeId->created_at > $charge->created_at);
+
+                    if ($isWebhookDuplicate) {
+                        // This is likely a duplicate created by webhook - delete it and proceed
+                        // The deferred charge has proper POS session and metadata, so it should be the canonical record
+                        Log::warning('Deleting webhook-created duplicate charge (found by stripe_charge_id) before completing deferred payment', [
+                            'duplicate_charge_id' => $existingChargeByChargeId->id,
+                            'deferred_charge_id' => $charge->id,
+                            'stripe_charge_id' => $stripeChargeId,
+                            'duplicate_has_pos_session' => (bool) $existingChargeByChargeId->pos_session_id,
+                            'duplicate_created_at' => $existingChargeByChargeId->created_at,
+                            'deferred_created_at' => $charge->created_at,
+                        ]);
+                        $existingChargeByChargeId->delete();
+                    } else {
+                        // This is a legitimate conflict - cannot proceed
+                        throw new \Exception("Stripe charge ID {$stripeChargeId} is already associated with charge ID {$existingChargeByChargeId->id}. Cannot complete deferred payment.");
+                    }
+                }
+
+                // Update the deferred charge with payment information
+                // This ensures the charge with proper POS context and metadata is connected to the Stripe payment
                 $charge->update([
                     'stripe_charge_id' => $stripeChargeId,
                     'stripe_payment_intent_id' => $paymentIntentId,

@@ -46,6 +46,16 @@ class PricesRelationManager extends RelationManager
                         return $query->orderBy('unit_amount', $direction);
                     }),
 
+                IconColumn::make('is_default')
+                    ->label('Default')
+                    ->boolean()
+                    ->getStateUsing(fn (ConnectedPrice $record) => $this->ownerRecord->default_price === $record->stripe_price_id)
+                    ->trueIcon('heroicon-o-star')
+                    ->falseIcon('heroicon-o-star')
+                    ->trueColor('warning')
+                    ->falseColor('gray')
+                    ->sortable(),
+
                 TextColumn::make('type')
                     ->label('Type')
                     ->badge()
@@ -122,6 +132,34 @@ class PricesRelationManager extends RelationManager
                 // Prices are immutable in Stripe - view only
                 ViewAction::make()
                     ->url(fn ($record) => \App\Filament\Resources\ConnectedPrices\ConnectedPriceResource::getUrl('view', ['record' => $record])),
+                
+                \Filament\Actions\Action::make('setAsDefault')
+                    ->label('Set as Default')
+                    ->icon(\Filament\Support\Icons\Heroicon::OutlinedStar)
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Set as Default Price')
+                    ->modalDescription(fn (ConnectedPrice $record) => "Set this price as the default price for the product: {$record->formatted_amount}")
+                    ->action(function (ConnectedPrice $record) {
+                        $product = $this->ownerRecord;
+                        
+                        // Update the product's default_price
+                        $product->default_price = $record->stripe_price_id;
+                        
+                        // Also update the product's price field to match the default price amount
+                        // Convert from cents to decimal (e.g., 29900 -> 299.00)
+                        $product->price = number_format($record->unit_amount / 100, 2, '.', '');
+                        $product->currency = $record->currency;
+                        
+                        $product->save();
+                        
+                        \Filament\Notifications\Notification::make()
+                            ->title('Default price updated')
+                            ->body("Price {$record->formatted_amount} is now the default price for this product. The product price field has been updated to match.")
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn (ConnectedPrice $record) => $record->active && $this->ownerRecord->default_price !== $record->stripe_price_id),
                 
                 \Filament\Actions\Action::make('createPaymentLink')
                     ->label('Create Payment Link')

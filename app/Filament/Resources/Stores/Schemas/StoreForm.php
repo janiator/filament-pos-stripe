@@ -38,6 +38,12 @@ class StoreForm
                             ->maxLength(255)
                             ->helperText('Organization number (org.nr.) used on receipts'),
 
+                        TextInput::make('z_report_email')
+                            ->label('Z-Report Email')
+                            ->email()
+                            ->maxLength(255)
+                            ->helperText('Email address to automatically receive Z-reports when POS sessions are closed'),
+
                         FileUpload::make('logo_path')
                             ->label('Store Logo')
                             ->image()
