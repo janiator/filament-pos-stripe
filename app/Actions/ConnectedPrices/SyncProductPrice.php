@@ -44,18 +44,35 @@ class SyncProductPrice
             ->get();
 
         // Check if we already have a price with this amount
-        $matchingPrice = $existingPrices->first(function ($price) use ($newPriceAmount) {
-            return $price->unit_amount === $newPriceAmount;
-        });
+        // First, try to find the price that's already set as default (if it matches)
+        // This preserves user's explicit choice when setAsDefault action is used
+        $matchingPrice = null;
+        if ($product->default_price) {
+            $matchingPrice = $existingPrices->first(function ($price) use ($newPriceAmount, $product) {
+                return $price->unit_amount === $newPriceAmount 
+                    && $price->stripe_price_id === $product->default_price;
+            });
+        }
+        
+        // If no match with current default_price, find any matching price
+        if (!$matchingPrice) {
+            $matchingPrice = $existingPrices->first(function ($price) use ($newPriceAmount) {
+                return $price->unit_amount === $newPriceAmount;
+            });
+        }
 
         if ($matchingPrice) {
-            // Price already exists with this amount, set it as default
-            $product->default_price = $matchingPrice->stripe_price_id;
-            $product->saveQuietly();
+            // Price already exists with this amount
+            // Only update default_price if it's different (preserves user's explicit choice)
+            if ($product->default_price !== $matchingPrice->stripe_price_id) {
+                $product->default_price = $matchingPrice->stripe_price_id;
+                $product->saveQuietly();
+            }
             Log::info('Price already exists, using existing price', [
                 'product_id' => $product->id,
                 'price_id' => $matchingPrice->stripe_price_id,
                 'amount' => $newPriceAmount,
+                'was_already_default' => $product->default_price === $matchingPrice->stripe_price_id,
             ]);
             return;
         }
