@@ -54,7 +54,18 @@ class PricesRelationManager extends RelationManager
                     ->falseIcon('heroicon-o-star')
                     ->trueColor('warning')
                     ->falseColor('gray')
-                    ->sortable(),
+                    ->sortable(query: function ($query, string $direction): \Illuminate\Database\Eloquent\Builder {
+                        $defaultPriceId = $this->ownerRecord->default_price;
+                        
+                        // Sort by whether stripe_price_id matches the default_price
+                        // When ascending: default prices (matches) come first (0), non-default come second (1)
+                        // When descending: non-default prices come first (1), default come second (0)
+                        if ($direction === 'asc') {
+                            return $query->orderByRaw("CASE WHEN stripe_price_id = ? THEN 0 ELSE 1 END", [$defaultPriceId]);
+                        } else {
+                            return $query->orderByRaw("CASE WHEN stripe_price_id = ? THEN 1 ELSE 0 END", [$defaultPriceId]);
+                        }
+                    }),
 
                 TextColumn::make('type')
                     ->label('Type')
