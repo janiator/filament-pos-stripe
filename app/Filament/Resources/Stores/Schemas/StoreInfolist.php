@@ -27,6 +27,12 @@ class StoreInfolist
                             ->icon(Heroicon::OutlinedEnvelope)
                             ->copyable(),
 
+                        TextEntry::make('z_report_email')
+                            ->label('Z-Report Email')
+                            ->icon(Heroicon::OutlinedEnvelope)
+                            ->copyable()
+                            ->placeholder('Not configured'),
+
                         TextEntry::make('commission_type')
                             ->label('Commission Type')
                             ->badge()

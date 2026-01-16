@@ -72,7 +72,7 @@ abstract class BaseApiController extends BaseController
      * Returns ISO 8601 format with Oslo timezone offset (e.g., "2025-12-05T13:50:14.000+01:00")
      * Flutter's DateTime.parse() can handle timezone offsets.
      * 
-     * @param \Illuminate\Support\Carbon|\DateTime|null $dateTime
+     * @param \Illuminate\Support\Carbon|\DateTime|string|null $dateTime
      * @return string|null ISO 8601 formatted string in Oslo timezone
      */
     protected function formatDateTimeOslo($dateTime): ?string
@@ -81,8 +81,17 @@ abstract class BaseApiController extends BaseController
             return null;
         }
 
+        // Handle string input (e.g., from JSON cached data)
+        if (is_string($dateTime)) {
+            try {
+                $dateTime = \Carbon\Carbon::parse($dateTime);
+            } catch (\Exception $e) {
+                // If parsing fails, return null
+                return null;
+            }
+        }
         // Convert to Carbon if not already
-        if (!$dateTime instanceof \Carbon\Carbon) {
+        elseif (!$dateTime instanceof \Carbon\Carbon) {
             $dateTime = \Carbon\Carbon::instance($dateTime);
         }
 

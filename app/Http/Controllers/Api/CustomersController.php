@@ -21,12 +21,25 @@ class CustomersController extends BaseApiController
 
         $this->authorizeTenant($request, $store);
 
+        // Build query
+        $query = ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id);
+
+        // Filter by search term if provided
+        // Searches across name, email, and phone
+        if ($request->has('search') && !empty($request->get('search'))) {
+            $search = trim($request->get('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'ilike', "%{$search}%")
+                  ->orWhere('email', 'ilike', "%{$search}%")
+                  ->orWhere('phone', 'ilike', "%{$search}%");
+            });
+        }
+
         $perPage = min($request->get('per_page', 15), 100); // Max 100 per page
         // Convert zero-indexed page from FlutterFlow to 1-indexed for Laravel
         $page = max(1, (int) $request->get('page', 0) + 1);
         
-        $paginatedCustomers = ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id)
-            ->orderBy('created_at', 'desc')
+        $paginatedCustomers = $query->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
         // Transform customers to exclude internal mapping fields and rename address

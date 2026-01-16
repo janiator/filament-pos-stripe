@@ -609,8 +609,8 @@ class ProductsController extends BaseApiController
             $product->vat_percent = $validated['vat_percent'] ?? null;
             $product->vendor_id = $validated['vendor_id'] ?? null;
 
-            // Set price if provided
-            if (isset($validated['price']) && !$product->no_price_in_pos) {
+            // Set price if provided (prices are always created in Stripe regardless of no_price_in_pos)
+            if (isset($validated['price'])) {
                 $product->price = $validated['price'];
                 $product->currency = strtolower($validated['currency'] ?? 'nok');
             }
@@ -628,12 +628,12 @@ class ProductsController extends BaseApiController
             $product->stripe_product_id = $stripeProductId;
             $product->save();
 
-            // Create price in Stripe if price is provided
-            if (isset($validated['price']) && !$product->no_price_in_pos) {
+            // Create price in Stripe if price is provided (prices are always created regardless of no_price_in_pos)
+            if (isset($validated['price'])) {
                 $createPriceAction = new \App\Actions\ConnectedPrices\CreateConnectedPriceInStripe();
                 $priceId = $createPriceAction(
-                    $product->stripe_account_id,
                     $stripeProductId,
+                    $product->stripe_account_id,
                     (int) round($validated['price'] * 100),
                     strtolower($validated['currency'] ?? 'nok')
                 );
@@ -757,8 +757,8 @@ class ProductsController extends BaseApiController
                 $product->vendor_id = $validated['vendor_id'];
             }
 
-            // Update price if provided
-            if (isset($validated['price']) && !$product->no_price_in_pos) {
+            // Update price if provided (prices are always created in Stripe regardless of no_price_in_pos)
+            if (isset($validated['price'])) {
                 $product->price = $validated['price'];
                 $product->currency = strtolower($validated['currency'] ?? 'nok');
             }

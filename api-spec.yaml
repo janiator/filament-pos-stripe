@@ -4036,6 +4036,13 @@ paths:
             type: integer
             default: 0
             minimum: 0
+        - name: search
+          in: query
+          description: Search term to filter customers by name, email, or phone (case-insensitive)
+          required: false
+          schema:
+            type: string
+            example: "john"
         - name: X-Tenant
           in: header
           description: Store slug (optional, defaults to user's first store)

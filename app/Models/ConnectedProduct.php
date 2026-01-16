@@ -39,6 +39,7 @@ class ConnectedProduct extends Model implements HasMedia
         'product_code',
         'quantity_unit_id',
         'vendor_id',
+        'no_price_in_pos',
     ];
 
     protected $casts = [
@@ -49,6 +50,7 @@ class ConnectedProduct extends Model implements HasMedia
         'shippable' => 'boolean',
         'compare_at_price_amount' => 'integer',
         'vat_percent' => 'decimal:2',
+        'no_price_in_pos' => 'boolean',
     ];
 
     /**
@@ -117,13 +119,16 @@ class ConnectedProduct extends Model implements HasMedia
             // For variable products: Only sync product details, not prices (variants handle pricing)
             // For single products: Sync both product details and prices
             
-            // Sync price if it changed (only on update, create is handled in afterCreate hook)
+            // Sync price if price or currency changed
             // Only sync prices for single products
-            if (!$product->isVariable() && !$product->wasRecentlyCreated && ($product->wasChanged('price') || $product->wasChanged('currency'))) {
-                if ($product->price && $product->stripe_product_id && $product->stripe_account_id) {
-                    $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice();
-                    $syncPriceAction($product);
-                }
+            if (!$product->isVariable() 
+                && !$product->wasRecentlyCreated 
+                && ($product->wasChanged('price') || $product->wasChanged('currency'))
+                && $product->price 
+                && $product->stripe_product_id 
+                && $product->stripe_account_id) {
+                $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice();
+                $syncPriceAction($product);
             }
             
             // Use saved event to ensure it fires for both create and update
