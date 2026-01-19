@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Webhooks\StripeConnectWebhookController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/app/login');
 });
 
 // Stripe webhook endpoint (also available without /api prefix for compatibility)
