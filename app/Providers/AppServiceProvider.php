@@ -5,6 +5,8 @@ namespace App\Providers;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Nightwatch\Facades\Nightwatch;
+use Laravel\Nightwatch\Records\Query;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,6 +23,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Nightwatch::rejectQueries(function (Query $query) {
+            return str_contains($query->sql, 'from "cache"')
+                || str_contains($query->sql, 'into "cache"')
+                || str_contains($query->sql, '"cache_locks"');
+        });
+
         // Set Filament's default timezone to Oslo
         FilamentTimezone::set('Europe/Oslo');
 
@@ -38,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
         \Spatie\MediaLibrary\MediaCollections\Models\Media::resolveRelationUsing('model', function ($mediaModel) {
             return $mediaModel->morphTo();
         });
-        
+
         // Listen to media collection cleared events to trigger Stripe sync
         \Illuminate\Support\Facades\Event::listen(
             \Spatie\MediaLibrary\MediaCollections\Events\CollectionHasBeenClearedEvent::class,
