@@ -24,9 +24,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Nightwatch::rejectQueries(function (Query $query) {
+            return str_contains($query->sql, 'into "jobs"');
+        });
+
+        Nightwatch::rejectQueries(function (Query $query) {
             return str_contains($query->sql, 'from "cache"')
-                || str_contains($query->sql, 'into "cache"')
-                || str_contains($query->sql, '"cache_locks"');
+                || str_contains($query->sql, 'into "cache"');
         });
 
         // Set Filament's default timezone to Oslo
