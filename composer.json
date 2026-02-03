@@ -6,10 +6,10 @@
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.4",
         "bezhansalleh/filament-shield": "^4.0",
         "dompdf/dompdf": "^3.1",
-        "filament/filament": "^4.1",
+        "filament/filament": "^v4.5",
         "filament/spatie-laravel-media-library-plugin": "^4.0",
         "lanos/laravel-cashier-stripe-connect": "^1.2",
         "laravel/cashier": "^15.0",
@@ -20,11 +20,14 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "mustache/mustache": "^3.0",
-        "shreejan/actionable-column": "^1.0"
+        "shreejan/actionable-column": "^1.0",
+        "stechstudio/filament-impersonate": "^4.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "filament/blueprint": "^1.0",
         "laravel-lang/lang": "^15.26",
+        "laravel/boost": "^1.8",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.24",
         "laravel/sail": "^1.41",
@@ -100,5 +103,10 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": [{
+        "name": "filament",
+        "type": "composer",
+        "url": "https://packages.filamentphp.com/composer"
+    }]
 }
