@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\PosSession;
-use App\Models\PosEvent;
 use App\Models\PosDevice;
+use App\Models\PosEvent;
+use App\Models\PosSession;
 use Illuminate\Support\Facades\Log;
 
 class CashDrawerService
@@ -12,19 +12,18 @@ class CashDrawerService
     /**
      * Open cash drawer for a cash payment
      *
-     * @param PosSession $posSession
-     * @param int $amount Amount in øre
-     * @return void
+     * @param  int  $amount  Amount in øre
      */
     public function openCashDrawer(PosSession $posSession, int $amount): void
     {
         // Get POS device
         $device = $posSession->posDevice;
 
-        if (!$device) {
+        if (! $device) {
             Log::warning('No POS device found for cash drawer opening', [
                 'pos_session_id' => $posSession->id,
             ]);
+
             return;
         }
 
@@ -61,10 +60,6 @@ class CashDrawerService
 
     /**
      * Send open drawer command to device
-     *
-     * @param PosDevice $device
-     * @param int $amount
-     * @return void
      */
     protected function sendOpenDrawerCommand(PosDevice $device, int $amount): void
     {
@@ -86,9 +81,6 @@ class CashDrawerService
 
     /**
      * Send ESC/POS command to Epson printer
-     *
-     * @param PosDevice $device
-     * @return void
      */
     protected function sendEpsonDrawerCommand(PosDevice $device): void
     {
@@ -121,9 +113,6 @@ class CashDrawerService
 
     /**
      * Send command to network printer
-     *
-     * @param PosDevice $device
-     * @return void
      */
     protected function sendNetworkDrawerCommand(PosDevice $device): void
     {
@@ -141,6 +130,56 @@ class CashDrawerService
             ]);
         }
     }
+
+    /**
+     * Log a cash withdrawal from the drawer (staff taking money out).
+     *
+     * @param  int  $amountOre  Amount in øre
+     * @param  string|null  $reason  Optional reason
+     */
+    public function logWithdrawal(PosSession $posSession, int $amountOre, ?string $reason = null): PosEvent
+    {
+        $device = $posSession->posDevice;
+
+        return PosEvent::create([
+            'store_id' => $posSession->store_id,
+            'pos_session_id' => $posSession->id,
+            'pos_device_id' => $device?->id,
+            'user_id' => $posSession->user_id,
+            'event_code' => PosEvent::EVENT_CASH_WITHDRAWAL,
+            'event_type' => 'drawer',
+            'description' => 'Cash withdrawal',
+            'event_data' => [
+                'amount' => $amountOre,
+                'reason' => $reason,
+            ],
+            'occurred_at' => now(),
+        ]);
+    }
+
+    /**
+     * Log a cash deposit into the drawer (staff putting money in).
+     *
+     * @param  int  $amountOre  Amount in øre
+     * @param  string|null  $reason  Optional reason
+     */
+    public function logDeposit(PosSession $posSession, int $amountOre, ?string $reason = null): PosEvent
+    {
+        $device = $posSession->posDevice;
+
+        return PosEvent::create([
+            'store_id' => $posSession->store_id,
+            'pos_session_id' => $posSession->id,
+            'pos_device_id' => $device?->id,
+            'user_id' => $posSession->user_id,
+            'event_code' => PosEvent::EVENT_CASH_DEPOSIT,
+            'event_type' => 'drawer',
+            'description' => 'Cash deposit',
+            'event_data' => [
+                'amount' => $amountOre,
+                'reason' => $reason,
+            ],
+            'occurred_at' => now(),
+        ]);
+    }
 }
-
-

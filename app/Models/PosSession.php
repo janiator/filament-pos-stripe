@@ -106,7 +106,8 @@ class PosSession extends Model
     }
 
     /**
-     * Calculate expected cash from charges and opening balance
+     * Calculate expected cash from charges, opening balance, and cash movements.
+     * Withdrawals reduce expected cash; deposits increase it.
      */
     public function calculateExpectedCash(): int
     {
@@ -114,8 +115,21 @@ class PosSession extends Model
             ->where('status', 'succeeded')
             ->where('payment_method', 'cash')
             ->sum('amount') ?? 0;
-        
-        return ($this->opening_balance ?? 0) + $cashFromTransactions;
+
+        $base = ($this->opening_balance ?? 0) + $cashFromTransactions;
+
+        $movements = PosEvent::where('pos_session_id', $this->id)
+            ->whereIn('event_code', [PosEvent::EVENT_CASH_WITHDRAWAL, PosEvent::EVENT_CASH_DEPOSIT])
+            ->get();
+
+        $withdrawals = $movements
+            ->where('event_code', PosEvent::EVENT_CASH_WITHDRAWAL)
+            ->sum(fn (PosEvent $e) => (int) ($e->event_data['amount'] ?? 0));
+        $deposits = $movements
+            ->where('event_code', PosEvent::EVENT_CASH_DEPOSIT)
+            ->sum(fn (PosEvent $e) => (int) ($e->event_data['amount'] ?? 0));
+
+        return $base - $withdrawals + $deposits;
     }
 
     /**
@@ -132,7 +146,7 @@ class PosSession extends Model
         if (isset($this->attributes['expected_cash']) && $this->status === 'closed') {
             return $this->attributes['expected_cash'];
         }
-        
+
         // For open sessions or when value is not set, calculate dynamically
         // This ensures opening balance is always included
         return $this->calculateExpectedCash();
@@ -149,6 +163,7 @@ class PosSession extends Model
         if (isset($this->attributes['transaction_count'])) {
             return $this->attributes['transaction_count'];
         }
+
         return $this->charges()->where('status', 'succeeded')->count();
     }
 
@@ -163,6 +178,7 @@ class PosSession extends Model
         if (isset($this->attributes['total_amount'])) {
             return $this->attributes['total_amount'];
         }
+
         return $this->charges()
             ->where('status', 'succeeded')
             ->sum('amount') ?? 0;
@@ -181,7 +197,7 @@ class PosSession extends Model
      */
     public function close(?int $actualCash = null, ?string $notes = null): bool
     {
-        if (!$this->canBeClosed()) {
+        if (! $this->canBeClosed()) {
             return false;
         }
 

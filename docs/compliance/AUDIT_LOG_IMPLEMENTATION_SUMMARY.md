@@ -250,6 +250,8 @@ All missing POS audit log events required by Kassasystemforskriften have been im
 2. **Cash Drawer**
    - `POST /api/pos-devices/{id}/cash-drawer/open` - Log drawer open (13005)
    - `POST /api/pos-devices/{id}/cash-drawer/close` - Log drawer close (13006)
+   - `POST /api/pos-sessions/{id}/cash-withdrawal` - Log cash withdrawal (13028, SAF-T 11010)
+   - `POST /api/pos-sessions/{id}/cash-deposit` - Log cash deposit (13029, SAF-T 11011)
 
 3. **Transactions**
    - `POST /api/pos-transactions/charges/{chargeId}/void` - Void transaction (13014)
@@ -321,6 +323,8 @@ All missing POS audit log events required by Kassasystemforskriften have been im
 - [x] 13019 - Other Payment
 - [x] 13020 - Session Opened
 - [x] 13021 - Session Closed
+- [x] 13028 - Cash Withdrawal (SAF-T 11010)
+- [x] 13029 - Cash Deposit (SAF-T 11011)
 
 ### Legal Requirements Met
 

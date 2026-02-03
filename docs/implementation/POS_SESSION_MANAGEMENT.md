@@ -143,6 +143,36 @@ Close a POS session.
 }
 ```
 
+#### `POST /api/pos-sessions/{id}/cash-withdrawal`
+Record a cash withdrawal (staff taking money out of the drawer). Only allowed for open sessions.
+
+**Request Body:**
+```json
+{
+  "amount": 5000,
+  "reason": "Bank deposit"
+}
+```
+- `amount` (required): Amount in øre (integer, min 1).
+- `reason` (optional): String, max 500 characters.
+
+**Response:** `201 Created` with created event (id, event_code 13028, event_data, occurred_at).
+
+#### `POST /api/pos-sessions/{id}/cash-deposit`
+Record a cash deposit (staff putting money into the drawer). Only allowed for open sessions.
+
+**Request Body:**
+```json
+{
+  "amount": 3000,
+  "reason": "Change refill"
+}
+```
+- `amount` (required): Amount in øre (integer, min 1).
+- `reason` (optional): String, max 500 characters.
+
+**Response:** `201 Created` with created event (id, event_code 13029, event_data, occurred_at). Withdrawals and deposits appear in X- and Z-reports (count, type, amount) and affect expected cash.
+
 #### `GET /api/pos-sessions/{id}`
 Get a specific session with all details.
 
@@ -154,6 +184,8 @@ Get a specific session with all details.
     "session_number": "000001",
     "status": "closed",
     "charges": [...],
+    "cash_withdrawals": { "count": 0, "total_amount": 0 },
+    "cash_deposits": { "count": 0, "total_amount": 0 },
     ...
   }
 }

@@ -95,8 +95,8 @@ This document maps ALL SAF-T Cash Register code lists to POS system functionalit
 | 11007 | Cash declaration | Inngående vekselbeholdning | ❌ | Add cash management |
 | 11008 | Cash difference | Kassedifferanse | ✅ | Exists in PosSession |
 | 11009 | Correction | Korrigere kvittering | ❌ | Add correction transactions |
-| 11010 | Out Payment | Ansatte tar ut penger | ❌ | Add cash withdrawal |
-| 11011 | In Payment | Ansatte setter inn penger | ❌ | Add cash deposit |
+| 11010 | Out Payment | Ansatte tar ut penger | ✅ | PosEvent 13028 (EVENT_CASH_WITHDRAWAL) |
+| 11011 | In Payment | Ansatte setter inn penger | ✅ | PosEvent 13029 (EVENT_CASH_DEPOSIT) |
 | 11012 | Trade-in, exchange | Kjøp fra kunde + salg | ❌ | Add trade-in transactions |
 | 11013 | Return products | Vare i retur | ⚠️ Partial | Map to refunds |
 | 11014 | Inventory, stock | Inventar, lager | ❌ | Add inventory transactions |

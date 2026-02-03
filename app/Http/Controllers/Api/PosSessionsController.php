@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\PosSessionClosing;
-use App\Models\PosDevice;
+use App\Models\Store;
+use App\Services\CashDrawerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use App\Models\Store;
 
 class PosSessionsController extends BaseApiController
 {
@@ -20,7 +20,7 @@ class PosSessionsController extends BaseApiController
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -67,7 +67,7 @@ class PosSessionsController extends BaseApiController
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -83,7 +83,7 @@ class PosSessionsController extends BaseApiController
             ->with(['posDevice', 'user', 'charges'])
             ->first();
 
-        if (!$session) {
+        if (! $session) {
             return response()->json([
                 'message' => 'No open session found',
             ], 404);
@@ -103,7 +103,7 @@ class PosSessionsController extends BaseApiController
         // 1) Resolve store by fixed slug
         $store = Store::where('slug', 'jobberiet-as')->first();
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -164,7 +164,6 @@ class PosSessionsController extends BaseApiController
         ], 201);
     }
 
-
     /**
      * Open a new POS session
      */
@@ -172,7 +171,7 @@ class PosSessionsController extends BaseApiController
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -232,7 +231,7 @@ class PosSessionsController extends BaseApiController
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -243,7 +242,7 @@ class PosSessionsController extends BaseApiController
             ->with(['posDevice', 'user', 'charges', 'events', 'receipts', 'store'])
             ->firstOrFail();
 
-        if (!$session->canBeClosed()) {
+        if (! $session->canBeClosed()) {
             return response()->json([
                 'message' => 'Session cannot be closed',
             ], 400);
@@ -306,7 +305,7 @@ class PosSessionsController extends BaseApiController
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -323,13 +322,101 @@ class PosSessionsController extends BaseApiController
     }
 
     /**
+     * Log a cash withdrawal for an open session.
+     */
+    public function cashWithdrawal(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        if (! $store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+        $this->authorizeTenant($request, $store);
+
+        $session = PosSession::where('id', $id)
+            ->where('store_id', $store->id)
+            ->with(['posDevice', 'user'])
+            ->firstOrFail();
+
+        if ($session->status !== 'open') {
+            return response()->json([
+                'message' => 'Cash withdrawal can only be recorded for open sessions.',
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'amount' => 'required|integer|min:1',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $event = app(CashDrawerService::class)->logWithdrawal(
+            $session,
+            $validated['amount'],
+            $validated['reason'] ?? null
+        );
+
+        return response()->json([
+            'message' => 'Cash withdrawal recorded',
+            'event' => [
+                'id' => $event->id,
+                'event_code' => $event->event_code,
+                'event_data' => $event->event_data,
+                'occurred_at' => $this->formatDateTimeOslo($event->occurred_at),
+            ],
+        ], 201);
+    }
+
+    /**
+     * Log a cash deposit for an open session.
+     */
+    public function cashDeposit(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+        if (! $store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+        $this->authorizeTenant($request, $store);
+
+        $session = PosSession::where('id', $id)
+            ->where('store_id', $store->id)
+            ->with(['posDevice', 'user'])
+            ->firstOrFail();
+
+        if ($session->status !== 'open') {
+            return response()->json([
+                'message' => 'Cash deposit can only be recorded for open sessions.',
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'amount' => 'required|integer|min:1',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $event = app(CashDrawerService::class)->logDeposit(
+            $session,
+            $validated['amount'],
+            $validated['reason'] ?? null
+        );
+
+        return response()->json([
+            'message' => 'Cash deposit recorded',
+            'event' => [
+                'id' => $event->id,
+                'event_code' => $event->event_code,
+                'event_data' => $event->event_data,
+                'occurred_at' => $this->formatDateTimeOslo($event->occurred_at),
+            ],
+        ], 201);
+    }
+
+    /**
      * Generate X-report (current session summary)
      */
     public function xReport(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -385,7 +472,7 @@ class PosSessionsController extends BaseApiController
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -396,7 +483,7 @@ class PosSessionsController extends BaseApiController
             ->with(['charges', 'posDevice', 'user', 'events', 'receipts'])
             ->firstOrFail();
 
-        if (!$session->canBeClosed()) {
+        if (! $session->canBeClosed()) {
             return response()->json([
                 'message' => 'Session cannot be closed',
             ], 400);
@@ -480,6 +567,7 @@ class PosSessionsController extends BaseApiController
         // Event summary
         $eventSummary = $session->events->groupBy('event_code')->map(function ($group) {
             $firstEvent = $group->first();
+
             return [
                 'code' => $firstEvent->event_code,
                 'description' => $firstEvent->event_description,
@@ -573,7 +661,7 @@ class PosSessionsController extends BaseApiController
         $byMethod = [];
         foreach ($charges as $charge) {
             $method = $charge->payment_method ?? 'unknown';
-            if (!isset($byMethod[$method])) {
+            if (! isset($byMethod[$method])) {
                 $byMethod[$method] = [
                     'count' => 0,
                     'amount' => 0,
@@ -582,6 +670,7 @@ class PosSessionsController extends BaseApiController
             $byMethod[$method]['count']++;
             $byMethod[$method]['amount'] += $charge->amount;
         }
+
         return $byMethod;
     }
 
@@ -592,7 +681,7 @@ class PosSessionsController extends BaseApiController
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -665,7 +754,7 @@ class PosSessionsController extends BaseApiController
         foreach ($sessions as $session) {
             foreach ($session->charges->where('status', 'succeeded') as $charge) {
                 $method = $charge->payment_method ?? 'unknown';
-                if (!isset($summaryData['by_payment_method'][$method])) {
+                if (! isset($summaryData['by_payment_method'][$method])) {
                     $summaryData['by_payment_method'][$method] = [
                         'count' => 0,
                         'amount' => 0,
@@ -725,6 +814,18 @@ class PosSessionsController extends BaseApiController
             ] : null,
             'transaction_count' => $session->transaction_count,
             'total_amount' => $session->total_amount,
+        ];
+
+        $session->loadMissing(['events']);
+        $withdrawalEvents = $session->events->where('event_code', PosEvent::EVENT_CASH_WITHDRAWAL);
+        $depositEvents = $session->events->where('event_code', PosEvent::EVENT_CASH_DEPOSIT);
+        $data['cash_withdrawals'] = [
+            'count' => $withdrawalEvents->count(),
+            'total_amount' => $withdrawalEvents->sum(fn (PosEvent $e) => (int) ($e->event_data['amount'] ?? 0)),
+        ];
+        $data['cash_deposits'] = [
+            'count' => $depositEvents->count(),
+            'total_amount' => $depositEvents->sum(fn (PosEvent $e) => (int) ($e->event_data['amount'] ?? 0)),
         ];
 
         if ($includeCharges) {
