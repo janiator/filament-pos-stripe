@@ -12,7 +12,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 
 class PurchasesController extends BaseApiController
 {
@@ -25,15 +24,12 @@ class PurchasesController extends BaseApiController
 
     /**
      * List purchases for the current store
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -80,13 +76,13 @@ class PurchasesController extends BaseApiController
             // Use whereHas to filter by customer database ID
             $query->whereHas('customer', function ($q) use ($customerId, $store) {
                 $q->where('stripe_connected_customer_mappings.id', $customerId)
-                  ->where('stripe_connected_customer_mappings.stripe_account_id', $store->stripe_account_id);
+                    ->where('stripe_connected_customer_mappings.stripe_account_id', $store->stripe_account_id);
             });
         }
 
         // Filter by freetext search term if provided
         // Searches across charge fields, customer info, receipt numbers, transaction codes, order items, etc.
-        if ($request->has('search') && !empty($request->get('search'))) {
+        if ($request->has('search') && ! empty($request->get('search'))) {
             $search = trim($request->get('search'));
             $query->where(function ($q) use ($search, $store) {
                 // Search in charge fields
@@ -100,37 +96,37 @@ class PurchasesController extends BaseApiController
                     // - 519 øre (if someone searches for the exact øre amount)
                     // - 51900 øre (if someone searches for 519.00 as price)
                     $q->orWhere('amount', '=', $searchInt)
-                      ->orWhere('amount', '=', $searchInt * 100);
+                        ->orWhere('amount', '=', $searchInt * 100);
                 } else {
                     // For non-numeric searches, search in all text fields
                     $q->where('stripe_charge_id', 'ilike', "%{$search}%")
-                      ->orWhere('description', 'ilike', "%{$search}%")
-                      ->orWhere('transaction_code', 'ilike', "%{$search}%")
-                      ->orWhere('payment_code', 'ilike', "%{$search}%")
-                      ->orWhere('article_group_code', 'ilike', "%{$search}%")
-                      ->orWhereRaw('amount::text LIKE ?', ["%{$search}%"]);
+                        ->orWhere('description', 'ilike', "%{$search}%")
+                        ->orWhere('transaction_code', 'ilike', "%{$search}%")
+                        ->orWhere('payment_code', 'ilike', "%{$search}%")
+                        ->orWhere('article_group_code', 'ilike', "%{$search}%")
+                        ->orWhereRaw('amount::text LIKE ?', ["%{$search}%"]);
                 }
                 // Search in customer fields
                 $q->orWhereHas('customer', function ($customerQuery) use ($search, $store) {
-                      $customerQuery->where('stripe_connected_customer_mappings.stripe_account_id', $store->stripe_account_id)
-                          ->where(function ($cq) use ($search) {
-                              $cq->where('stripe_connected_customer_mappings.name', 'ilike', "%{$search}%")
-                                 ->orWhere('stripe_connected_customer_mappings.email', 'ilike', "%{$search}%")
-                                 ->orWhere('stripe_connected_customer_mappings.phone', 'ilike', "%{$search}%")
-                                 ->orWhere('stripe_connected_customer_mappings.stripe_customer_id', 'ilike', "%{$search}%");
-                          });
-                  })
+                    $customerQuery->where('stripe_connected_customer_mappings.stripe_account_id', $store->stripe_account_id)
+                        ->where(function ($cq) use ($search) {
+                            $cq->where('stripe_connected_customer_mappings.name', 'ilike', "%{$search}%")
+                                ->orWhere('stripe_connected_customer_mappings.email', 'ilike', "%{$search}%")
+                                ->orWhere('stripe_connected_customer_mappings.phone', 'ilike', "%{$search}%")
+                                ->orWhere('stripe_connected_customer_mappings.stripe_customer_id', 'ilike', "%{$search}%");
+                        });
+                })
                   // Search in receipt number and purchase_items (combined in one receipt query)
-                  ->orWhereHas('receipt', function ($receiptQuery) use ($search, $store) {
-                      $receiptQuery->where(function ($rq) use ($search, $store) {
-                          // Search in receipt number
-                          $rq->where('receipt_number', 'ilike', "%{$search}%");
-                          
-                          // Search in purchase_items (from receipt_data->items)
-                          $rq->orWhere(function ($itemsQuery) use ($search, $store) {
-                              $itemsQuery->whereNotNull('receipt_data')
-                                  ->whereRaw(
-                                      "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
+                    ->orWhereHas('receipt', function ($receiptQuery) use ($search, $store) {
+                        $receiptQuery->where(function ($rq) use ($search, $store) {
+                            // Search in receipt number
+                            $rq->where('receipt_number', 'ilike', "%{$search}%");
+
+                            // Search in purchase_items (from receipt_data->items)
+                            $rq->orWhere(function ($itemsQuery) use ($search) {
+                                $itemsQuery->whereNotNull('receipt_data')
+                                    ->whereRaw(
+                                        "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
                                       EXISTS (
                                           SELECT 1 
                                           FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
@@ -150,16 +146,16 @@ class PurchasesController extends BaseApiController
                                               (item->>'purchase_item_id' IS NOT NULL AND item->>'purchase_item_id' ILIKE ?)
                                           )
                                       )",
-                                      ["%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%"]
-                                  );
-                          });
-                          
-                          // Search for product_id or variant_id in purchase_items (if search is numeric)
-                          if (is_numeric($search)) {
-                              $rq->orWhere(function ($numericQuery) use ($search) {
-                                  $numericQuery->whereNotNull('receipt_data')
-                                      ->whereRaw(
-                                          "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
+                                        ["%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%"]
+                                    );
+                            });
+
+                            // Search for product_id or variant_id in purchase_items (if search is numeric)
+                            if (is_numeric($search)) {
+                                $rq->orWhere(function ($numericQuery) use ($search) {
+                                    $numericQuery->whereNotNull('receipt_data')
+                                        ->whereRaw(
+                                            "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
                                           EXISTS (
                                               SELECT 1 
                                               FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
@@ -169,16 +165,16 @@ class PurchasesController extends BaseApiController
                                                   (item->>'purchase_item_product_id')::int = ? OR
                                                   (item->>'purchase_item_variant_id')::int = ?
                                           )",
-                                          [(int) $search, (int) $search, (int) $search, (int) $search]
-                                      );
-                              });
-                          }
-                          
-                          // Search product names via relationships
-                          $rq->orWhere(function ($productQuery) use ($search, $store) {
-                              $productQuery->whereNotNull('receipt_data')
-                                  ->whereRaw(
-                                      "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
+                                            [(int) $search, (int) $search, (int) $search, (int) $search]
+                                        );
+                                });
+                            }
+
+                            // Search product names via relationships
+                            $rq->orWhere(function ($productQuery) use ($search, $store) {
+                                $productQuery->whereNotNull('receipt_data')
+                                    ->whereRaw(
+                                        "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
                                       EXISTS (
                                           SELECT 1 
                                           FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
@@ -187,15 +183,15 @@ class PurchasesController extends BaseApiController
                                           WHERE connected_products.stripe_account_id = ? 
                                             AND connected_products.name ILIKE ?
                                       )",
-                                      [$store->stripe_account_id, "%{$search}%"]
-                                  );
-                          });
-                          
-                          // Search variant SKU, barcode, and option values via relationships
-                          $rq->orWhere(function ($variantQuery) use ($search, $store) {
-                              $variantQuery->whereNotNull('receipt_data')
-                                  ->whereRaw(
-                                      "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
+                                        [$store->stripe_account_id, "%{$search}%"]
+                                    );
+                            });
+
+                            // Search variant SKU, barcode, and option values via relationships
+                            $rq->orWhere(function ($variantQuery) use ($search, $store) {
+                                $variantQuery->whereNotNull('receipt_data')
+                                    ->whereRaw(
+                                        "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
                                       EXISTS (
                                           SELECT 1 
                                           FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
@@ -210,11 +206,11 @@ class PurchasesController extends BaseApiController
                                                 product_variants.option3_value ILIKE ?
                                             )
                                       )",
-                                      [$store->stripe_account_id, "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%"]
-                                  );
-                          });
-                      });
-                  });
+                                        [$store->stripe_account_id, "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%", "%{$search}%"]
+                                    );
+                            });
+                        });
+                    });
             });
         }
 
@@ -237,23 +233,19 @@ class PurchasesController extends BaseApiController
 
     /**
      * Get a single purchase
-     *
-     * @param Request $request
-     * @param string|int $id
-     * @return JsonResponse
      */
     public function show(Request $request, string|int $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
         $this->authorizeTenant($request, $store);
 
         // Validate that id is numeric
-        if (!is_numeric($id)) {
+        if (! is_numeric($id)) {
             return response()->json(['message' => 'Invalid purchase ID'], 400);
         }
 
@@ -263,7 +255,7 @@ class PurchasesController extends BaseApiController
             ->with(['posSession', 'store', 'receipt', 'customer'])
             ->first();
 
-        if (!$purchase) {
+        if (! $purchase) {
             return response()->json(['message' => 'Purchase not found'], 404);
         }
 
@@ -274,23 +266,19 @@ class PurchasesController extends BaseApiController
 
     /**
      * Update customer for a purchase
-     *
-     * @param Request $request
-     * @param string|int $id
-     * @return JsonResponse
      */
     public function updateCustomer(Request $request, string|int $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
         $this->authorizeTenant($request, $store);
 
         // Validate that id is numeric
-        if (!is_numeric($id)) {
+        if (! is_numeric($id)) {
             return response()->json(['message' => 'Invalid purchase ID'], 400);
         }
 
@@ -299,7 +287,7 @@ class PurchasesController extends BaseApiController
             ->whereNotNull('pos_session_id')
             ->first();
 
-        if (!$purchase) {
+        if (! $purchase) {
             return response()->json(['message' => 'Purchase not found'], 404);
         }
 
@@ -326,7 +314,7 @@ class PurchasesController extends BaseApiController
                 ->where('id', (int) $customerId)
                 ->first();
 
-            if (!$customer) {
+            if (! $customer) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Customer not found',
@@ -353,9 +341,6 @@ class PurchasesController extends BaseApiController
 
     /**
      * Format purchase for API response with purchase_ prefixed nested structures
-     *
-     * @param ConnectedCharge $purchase
-     * @return array
      */
     protected function formatPurchaseResponse(ConnectedCharge $purchase): array
     {
@@ -420,13 +405,13 @@ class PurchasesController extends BaseApiController
         if ($purchase->customer) {
             // Transform customer to match customers API structure
             $customerData = $purchase->customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
-            
+
             // Rename address to customer_address
             if (isset($customerData['address'])) {
                 $customerData['customer_address'] = $customerData['address'];
                 unset($customerData['address']);
             }
-            
+
             $data['purchase_customer'] = $customerData;
         } else {
             $data['purchase_customer'] = [
@@ -449,7 +434,7 @@ class PurchasesController extends BaseApiController
         if (is_string($metadata)) {
             $metadata = json_decode($metadata, true) ?? [];
         }
-        
+
         // Filter out Stripe internal properties (those with null bytes)
         $cleanMetadata = [];
         if (is_array($metadata)) {
@@ -467,32 +452,32 @@ class PurchasesController extends BaseApiController
 
         // Extract items for enrichment (before removing from metadata)
         $items = $cleanMetadata['items'] ?? [];
-        
+
         // Remove items from metadata since we have a separate purchase_items field
         unset($cleanMetadata['items']);
-        
+
         // Set cleaned metadata (without items)
-        $data['purchase_metadata'] = !empty($cleanMetadata) ? $cleanMetadata : null;
+        $data['purchase_metadata'] = ! empty($cleanMetadata) ? $cleanMetadata : null;
 
         // Add purchase items - enrich with product information
-        if (!empty($items) && is_array($items)) {
+        if (! empty($items) && is_array($items)) {
             // Get item refunds from metadata for refund status tracking
             $itemRefunds = $cleanMetadata['item_refunds'] ?? [];
             $data['purchase_items'] = $this->enrichPurchaseItems($items, $purchase->stripe_account_id, $itemRefunds);
-            
+
             // Calculate totals from items if metadata values are missing or 0
             $calculatedSubtotal = 0;
             $calculatedDiscounts = 0;
-            
+
             foreach ($items as $item) {
                 $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
                 $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
                 $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
-                
+
                 // Calculate line totals with decimal quantities, then round to integer (øre)
                 $lineSubtotal = (int) round($unitPrice * $quantity);
                 $lineDiscount = (int) round($discountAmount * $quantity);
-                
+
                 $calculatedSubtotal += $lineSubtotal;
                 $calculatedDiscounts += $lineDiscount;
             }
@@ -525,21 +510,21 @@ class PurchasesController extends BaseApiController
         $metadataDiscounts = isset($cleanMetadata['total_discounts']) ? (int) $cleanMetadata['total_discounts'] : null;
         $metadataTax = isset($cleanMetadata['total_tax']) ? (int) $cleanMetadata['total_tax'] : null;
         $metadataTip = isset($cleanMetadata['tip_amount']) ? (int) $cleanMetadata['tip_amount'] : null;
-        
+
         // Use calculated subtotal if metadata is missing OR if metadata is 0 but we have items
         if ($metadataSubtotal === null || ($metadataSubtotal === 0 && $calculatedSubtotal > 0)) {
             $data['purchase_subtotal'] = $calculatedSubtotal;
         } else {
             $data['purchase_subtotal'] = $metadataSubtotal;
         }
-        
+
         // Use calculated discounts if metadata is missing OR if metadata is 0 but we have calculated discounts
         if ($metadataDiscounts === null || ($metadataDiscounts === 0 && $calculatedDiscounts > 0)) {
             $data['purchase_total_discounts'] = $calculatedDiscounts;
         } else {
             $data['purchase_total_discounts'] = $metadataDiscounts;
         }
-        
+
         // Calculate tax from subtotal if metadata is missing OR if metadata is 0 but we have a subtotal
         // Prices are tax-inclusive, so we extract tax: Tax = Subtotal × (Tax Rate / (1 + Tax Rate))
         // Default 25% VAT in Norway
@@ -547,25 +532,25 @@ class PurchasesController extends BaseApiController
         if ($metadataTax === null || ($metadataTax === 0 && $subtotalAfterDiscounts > 0)) {
             // Calculate tax from subtotal (after discounts, tax-inclusive)
             $taxRate = 0.25; // 25% VAT default
-            $calculatedTax = $subtotalAfterDiscounts > 0 
+            $calculatedTax = $subtotalAfterDiscounts > 0
                 ? (int) round($subtotalAfterDiscounts * ($taxRate / (1 + $taxRate)))
                 : 0;
             $data['purchase_total_tax'] = $calculatedTax;
         } else {
             $data['purchase_total_tax'] = $metadataTax;
         }
-        
+
         // Use metadata tip (or 0 if not set)
         $data['purchase_tip_amount'] = $metadataTip ?? 0;
-        
+
         // Extract note from metadata if present
-        $data['purchase_note'] = isset($cleanMetadata['note']) && !empty($cleanMetadata['note']) 
-            ? $cleanMetadata['note'] 
+        $data['purchase_note'] = isset($cleanMetadata['note']) && ! empty($cleanMetadata['note'])
+            ? $cleanMetadata['note']
             : null;
-        
+
         // Add purchase payments - list of payments connected to this purchase
         $data['purchase_payments'] = $this->formatPurchasePayments($purchase);
-        
+
         // Clean outcome to remove Stripe internal properties
         $outcome = $purchase->outcome ?? null;
         if ($outcome && is_array($outcome)) {
@@ -580,7 +565,7 @@ class PurchasesController extends BaseApiController
                     $cleanOutcome[$key] = $value;
                 }
             }
-            $data['outcome'] = !empty($cleanOutcome) ? $cleanOutcome : null;
+            $data['outcome'] = ! empty($cleanOutcome) ? $cleanOutcome : null;
         } else {
             $data['outcome'] = null;
         }
@@ -593,10 +578,7 @@ class PurchasesController extends BaseApiController
      * Uses stored product snapshots from metadata first (for historical accuracy),
      * falls back to current product data if snapshot is missing (backward compatibility)
      *
-     * @param array $items
-     * @param string $stripeAccountId
-     * @param array $itemRefunds Item refunds tracking (item_id => quantity_refunded)
-     * @return array
+     * @param  array  $itemRefunds  Item refunds tracking (item_id => quantity_refunded)
      */
     protected function enrichPurchaseItems(array $items, string $stripeAccountId, array $itemRefunds = []): array
     {
@@ -605,7 +587,7 @@ class PurchasesController extends BaseApiController
         }
 
         // Check if items already have product snapshots (new purchases)
-        $hasSnapshots = !empty($items[0]['product_name'] ?? null);
+        $hasSnapshots = ! empty($items[0]['product_name'] ?? null);
 
         // If snapshots exist, use them directly (preserves historical data)
         if ($hasSnapshots) {
@@ -640,8 +622,8 @@ class PurchasesController extends BaseApiController
                     'purchase_item_discount_reason' => $item['discount_reason'] ?? null,
                     'purchase_item_article_group_code' => $item['article_group_code'] ?? null,
                     'purchase_item_product_code' => $item['product_code'] ?? null,
-                    'purchase_item_metadata' => isset($item['metadata']) && is_array($item['metadata']) 
-                        ? $item['metadata'] 
+                    'purchase_item_metadata' => isset($item['metadata']) && is_array($item['metadata'])
+                        ? $item['metadata']
                         : null,
                 ];
             }, $items);
@@ -651,7 +633,7 @@ class PurchasesController extends BaseApiController
         // Collect all product IDs and variant IDs
         $productIds = [];
         $variantIds = [];
-        
+
         foreach ($items as $item) {
             if (isset($item['product_id'])) {
                 $productIds[] = (int) $item['product_id'];
@@ -676,7 +658,7 @@ class PurchasesController extends BaseApiController
         return array_map(function ($item) use ($products, $variants, $itemRefunds) {
             $productId = isset($item['product_id']) ? (int) $item['product_id'] : null;
             $variantId = isset($item['variant_id']) ? (int) $item['variant_id'] : null;
-            
+
             $product = $productId ? ($products[$productId] ?? null) : null;
             $variant = $variantId ? ($variants[$variantId] ?? null) : null;
 
@@ -685,7 +667,7 @@ class PurchasesController extends BaseApiController
             if ($variant && $variant->product) {
                 $productName = $variant->product->name;
                 if ($variant->variant_name !== 'Default') {
-                    $productName .= ' - ' . $variant->variant_name;
+                    $productName .= ' - '.$variant->variant_name;
                 }
             } elseif ($product) {
                 $productName = $product->name;
@@ -702,14 +684,14 @@ class PurchasesController extends BaseApiController
                     if ($firstMedia) {
                         $productImageUrl = URL::temporarySignedRoute(
                             'api.products.images.serve',
-                            now()->addDay(),
+                            now()->startOfDay()->addDay(),
                             [
                                 'product' => $product->id,
                                 'media' => $firstMedia->id,
                             ]
                         );
                     }
-                } elseif ($product->images && is_array($product->images) && !empty($product->images)) {
+                } elseif ($product->images && is_array($product->images) && ! empty($product->images)) {
                     $productImageUrl = $product->images[0];
                 }
             }
@@ -755,8 +737,8 @@ class PurchasesController extends BaseApiController
                 'purchase_item_discount_reason' => $item['discount_reason'] ?? null,
                 'purchase_item_article_group_code' => $articleGroupCode,
                 'purchase_item_product_code' => $productCode,
-                'purchase_item_metadata' => isset($item['metadata']) && is_array($item['metadata']) 
-                    ? $item['metadata'] 
+                'purchase_item_metadata' => isset($item['metadata']) && is_array($item['metadata'])
+                    ? $item['metadata']
                     : null,
             ];
         }, $items);
@@ -764,27 +746,24 @@ class PurchasesController extends BaseApiController
 
     /**
      * Get available payment methods for a store
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function getPaymentMethods(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Try to get store from Filament tenant first, then fall back to user's current store
         try {
             $store = \Filament\Facades\Filament::getTenant();
         } catch (\Throwable $e) {
             $store = null;
         }
-        
+
         // If no tenant, try user's current store
-        if (!$store) {
+        if (! $store) {
             $store = $user->currentStore();
         }
 
-        if (!$store) {
+        if (! $store) {
             return response()->json([
                 'message' => 'No store found',
             ], 404);
@@ -793,14 +772,14 @@ class PurchasesController extends BaseApiController
         // Get POS-suitable payment methods by default
         // Can be overridden with ?pos_only=false query parameter
         $posOnly = $request->boolean('pos_only', true);
-        
+
         $query = PaymentMethod::where('store_id', $store->id)
             ->enabled();
-            
+
         if ($posOnly) {
             $query->posSuitable();
         }
-        
+
         $paymentMethods = $query->ordered()->get();
 
         return response()->json([
@@ -810,9 +789,6 @@ class PurchasesController extends BaseApiController
 
     /**
      * Process a purchase
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
@@ -844,7 +820,7 @@ class PurchasesController extends BaseApiController
         // Note: Ignore 0 values (FlutterFlow sometimes sets 0 instead of null)
         $validator->after(function ($validator) use ($request) {
             $customerId = $request->input('cart.customer_id');
-            
+
             // Ignore null, empty, or 0 values
             if ($customerId !== null && $customerId !== '' && $customerId !== 0) {
                 // Get store from POS session
@@ -855,8 +831,8 @@ class PurchasesController extends BaseApiController
                         $customer = \App\Models\ConnectedCustomer::where('id', (int) $customerId)
                             ->where('stripe_account_id', $posSession->store->stripe_account_id)
                             ->exists();
-                        
-                        if (!$customer) {
+
+                        if (! $customer) {
                             $validator->errors()->add(
                                 'cart.customer_id',
                                 'Customer not found or does not belong to this store'
@@ -882,20 +858,20 @@ class PurchasesController extends BaseApiController
 
         // Verify user has access to this session's store
         $user = $request->user();
-        
+
         // Try to get store from Filament tenant first, then fall back to user's current store
         try {
             $userStore = \Filament\Facades\Filament::getTenant();
         } catch (\Throwable $e) {
             $userStore = null;
         }
-        
+
         // If no tenant, try user's current store
-        if (!$userStore) {
+        if (! $userStore) {
             $userStore = $user->currentStore();
         }
-        
-        if (!$userStore || $posSession->store_id !== $userStore->id) {
+
+        if (! $userStore || $posSession->store_id !== $userStore->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to POS session',
@@ -915,14 +891,14 @@ class PurchasesController extends BaseApiController
             ->where('code', $validated['payment_method_code'])
             ->first();
 
-        if (!$paymentMethod) {
+        if (! $paymentMethod) {
             return response()->json([
                 'success' => false,
                 'message' => 'Payment method not found',
             ], 404);
         }
 
-        if (!$paymentMethod->enabled) {
+        if (! $paymentMethod->enabled) {
             return response()->json([
                 'success' => false,
                 'message' => 'Payment method is not enabled',
@@ -932,7 +908,7 @@ class PurchasesController extends BaseApiController
         // For Stripe payments, require payment_intent_id in metadata
         if ($paymentMethod->provider === 'stripe') {
             $paymentIntentId = $validated['metadata']['payment_intent_id'] ?? null;
-            if (!$paymentIntentId) {
+            if (! $paymentIntentId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Payment intent ID is required for Stripe payments',
@@ -976,7 +952,7 @@ class PurchasesController extends BaseApiController
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Purchase processing failed: ' . $e->getMessage(),
+                'message' => 'Purchase processing failed: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -985,9 +961,7 @@ class PurchasesController extends BaseApiController
      * Complete payment for a deferred purchase
      * Used for purchases that were created with deferred payment (e.g., dry cleaning)
      *
-     * @param Request $request
-     * @param string|int $id Charge ID
-     * @return JsonResponse
+     * @param  string|int  $id  Charge ID
      */
     public function completePayment(Request $request, string|int $id): JsonResponse
     {
@@ -1013,20 +987,20 @@ class PurchasesController extends BaseApiController
 
         // Verify user has access to this charge's store
         $user = $request->user();
-        
+
         // Try to get store from Filament tenant first, then fall back to user's current store
         try {
             $userStore = \Filament\Facades\Filament::getTenant();
         } catch (\Throwable $e) {
             $userStore = null;
         }
-        
+
         // If no tenant, try user's current store
-        if (!$userStore) {
+        if (! $userStore) {
             $userStore = $user->currentStore();
         }
-        
-        if (!$userStore || $charge->store->id !== $userStore->id) {
+
+        if (! $userStore || $charge->store->id !== $userStore->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to charge',
@@ -1046,14 +1020,14 @@ class PurchasesController extends BaseApiController
             ->where('code', $validated['payment_method_code'])
             ->first();
 
-        if (!$paymentMethod) {
+        if (! $paymentMethod) {
             return response()->json([
                 'success' => false,
                 'message' => 'Payment method not found',
             ], 404);
         }
 
-        if (!$paymentMethod->enabled) {
+        if (! $paymentMethod->enabled) {
             return response()->json([
                 'success' => false,
                 'message' => 'Payment method is not enabled',
@@ -1063,7 +1037,7 @@ class PurchasesController extends BaseApiController
         // For Stripe payments, require payment_intent_id in metadata
         if ($paymentMethod->provider === 'stripe') {
             $paymentIntentId = $validated['metadata']['payment_intent_id'] ?? null;
-            if (!$paymentIntentId) {
+            if (! $paymentIntentId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Payment intent ID is required for Stripe payments',
@@ -1076,12 +1050,12 @@ class PurchasesController extends BaseApiController
         // 2. Current active session for provided pos_device_id (compliance: default to current session)
         // 3. Charge's original session (fallback)
         $posSession = null;
-        
+
         if (isset($validated['pos_session_id'])) {
             // Use explicitly provided session
             $posSession = PosSession::find($validated['pos_session_id']);
-            
-            if (!$posSession) {
+
+            if (! $posSession) {
                 return response()->json([
                     'success' => false,
                     'message' => 'POS session not found',
@@ -1109,8 +1083,8 @@ class PurchasesController extends BaseApiController
                 ->where('pos_device_id', $validated['pos_device_id'])
                 ->where('status', 'open')
                 ->first();
-            
-            if (!$posSession) {
+
+            if (! $posSession) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No open POS session found for the specified device',
@@ -1155,16 +1129,13 @@ class PurchasesController extends BaseApiController
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Payment completion failed: ' . $e->getMessage(),
+                'message' => 'Payment completion failed: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Process a split payment purchase
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     protected function processSplitPayment(Request $request): JsonResponse
     {
@@ -1211,8 +1182,8 @@ class PurchasesController extends BaseApiController
                         $customer = \App\Models\ConnectedCustomer::where('id', (int) $customerId)
                             ->where('stripe_account_id', $posSession->store->stripe_account_id)
                             ->exists();
-                        
-                        if (!$customer) {
+
+                        if (! $customer) {
                             $validator->errors()->add(
                                 'cart.customer_id',
                                 'Customer not found or does not belong to this store'
@@ -1238,18 +1209,18 @@ class PurchasesController extends BaseApiController
 
         // Verify user has access to this session's store
         $user = $request->user();
-        
+
         try {
             $userStore = \Filament\Facades\Filament::getTenant();
         } catch (\Throwable $e) {
             $userStore = null;
         }
-        
-        if (!$userStore) {
+
+        if (! $userStore) {
             $userStore = $user->currentStore();
         }
-        
-        if (!$userStore || $posSession->store_id !== $userStore->id) {
+
+        if (! $userStore || $posSession->store_id !== $userStore->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to POS session',
@@ -1270,14 +1241,14 @@ class PurchasesController extends BaseApiController
                 ->where('code', $paymentData['payment_method_code'])
                 ->first();
 
-            if (!$paymentMethod) {
+            if (! $paymentMethod) {
                 return response()->json([
                     'success' => false,
                     'message' => "Payment method not found: {$paymentData['payment_method_code']}",
                 ], 404);
             }
 
-            if (!$paymentMethod->enabled) {
+            if (! $paymentMethod->enabled) {
                 return response()->json([
                     'success' => false,
                     'message' => "Payment method is not enabled: {$paymentData['payment_method_code']}",
@@ -1287,7 +1258,7 @@ class PurchasesController extends BaseApiController
             // For Stripe payments, require payment_intent_id
             if ($paymentMethod->provider === 'stripe') {
                 $paymentIntentId = $paymentData['metadata']['payment_intent_id'] ?? null;
-                if (!$paymentIntentId) {
+                if (! $paymentIntentId) {
                     return response()->json([
                         'success' => false,
                         'message' => "Payment intent ID is required for Stripe payment at index {$index}",
@@ -1333,33 +1304,31 @@ class PurchasesController extends BaseApiController
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Purchase processing failed: ' . $e->getMessage(),
+                'message' => 'Purchase processing failed: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Cancel a pending purchase
-     * 
+     *
      * Cancels a purchase that is in pending status (e.g., deferred payments).
      * Changes the status to 'cancelled' and logs a void transaction event.
      *
-     * @param Request $request
-     * @param string|int $id Purchase ID
-     * @return JsonResponse
+     * @param  string|int  $id  Purchase ID
      */
     public function cancel(Request $request, string|int $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
         $this->authorizeTenant($request, $store);
 
         // Validate that id is numeric
-        if (!is_numeric($id)) {
+        if (! is_numeric($id)) {
             return response()->json(['message' => 'Invalid purchase ID'], 400);
         }
 
@@ -1383,7 +1352,7 @@ class PurchasesController extends BaseApiController
             ->whereNotNull('pos_session_id')
             ->first();
 
-        if (!$purchase) {
+        if (! $purchase) {
             return response()->json(['message' => 'Purchase not found'], 404);
         }
 
@@ -1405,7 +1374,7 @@ class PurchasesController extends BaseApiController
 
         // Get POS session
         $posSession = $purchase->posSession;
-        if (!$posSession || $posSession->status !== 'open') {
+        if (! $posSession || $posSession->status !== 'open') {
             return response()->json([
                 'success' => false,
                 'message' => 'POS session is not open',
@@ -1479,32 +1448,30 @@ class PurchasesController extends BaseApiController
 
     /**
      * Refund a purchase
-     * 
+     *
      * Processes refunds for both Stripe and cash payments.
      * For Stripe payments, creates a refund in Stripe.
      * For cash payments, updates local records only (manual refund process).
-     * 
+     *
      * Generates return receipt automatically and logs POS event (13013).
      * Updates POS session totals.
-     * 
+     *
      * Supports full and partial refunds.
      *
-     * @param Request $request
-     * @param string|int $id Purchase ID
-     * @return JsonResponse
+     * @param  string|int  $id  Purchase ID
      */
     public function refund(Request $request, string|int $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
         $this->authorizeTenant($request, $store);
 
         // Validate that id is numeric
-        if (!is_numeric($id)) {
+        if (! is_numeric($id)) {
             return response()->json(['message' => 'Invalid purchase ID'], 400);
         }
 
@@ -1534,7 +1501,7 @@ class PurchasesController extends BaseApiController
             ->whereNotNull('pos_session_id')
             ->first();
 
-        if (!$purchase) {
+        if (! $purchase) {
             return response()->json(['message' => 'Purchase not found'], 404);
         }
 
@@ -1546,7 +1513,7 @@ class PurchasesController extends BaseApiController
             ], 422);
         }
 
-        if ($purchase->status === 'pending' || !$purchase->paid) {
+        if ($purchase->status === 'pending' || ! $purchase->paid) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot refund a purchase that has not been paid',
@@ -1557,7 +1524,7 @@ class PurchasesController extends BaseApiController
         if (isset($validated['amount'])) {
             $refundAmount = (int) $validated['amount'];
             $remainingRefundable = $purchase->amount - $purchase->amount_refunded;
-            
+
             if ($refundAmount > $remainingRefundable) {
                 return response()->json([
                     'success' => false,
@@ -1568,7 +1535,7 @@ class PurchasesController extends BaseApiController
 
         // Get original POS session (for reference)
         $originalPosSession = $purchase->posSession;
-        if (!$originalPosSession) {
+        if (! $originalPosSession) {
             return response()->json([
                 'success' => false,
                 'message' => 'POS session not found for purchase',
@@ -1578,19 +1545,19 @@ class PurchasesController extends BaseApiController
         // For compliance: If original session is closed, use current open session
         // Closed sessions should not be modified per Kassasystemforskriften
         $currentPosSession = null;
-        
+
         if ($originalPosSession->status === 'closed') {
             // Original session is closed - auto-detect current open session
             // Priority: 1) Explicitly provided, 2) Same device, 3) Any open session for store
-            
+
             if (isset($validated['pos_session_id'])) {
                 // Use explicitly provided session (if frontend wants to specify)
                 $currentPosSession = PosSession::where('id', $validated['pos_session_id'])
                     ->where('store_id', $store->id)
                     ->where('status', 'open')
                     ->first();
-                
-                if (!$currentPosSession) {
+
+                if (! $currentPosSession) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Provided POS session is not open or does not belong to this store',
@@ -1602,8 +1569,8 @@ class PurchasesController extends BaseApiController
                     ->where('pos_device_id', $validated['pos_device_id'])
                     ->where('status', 'open')
                     ->first();
-                
-                if (!$currentPosSession) {
+
+                if (! $currentPosSession) {
                     return response()->json([
                         'success' => false,
                         'message' => 'No open POS session found for the specified device. Please open a session first.',
@@ -1618,16 +1585,16 @@ class PurchasesController extends BaseApiController
                         ->where('status', 'open')
                         ->first();
                 }
-                
+
                 // Priority 2: Any open session for this store (most recent)
-                if (!$currentPosSession) {
+                if (! $currentPosSession) {
                     $currentPosSession = PosSession::where('store_id', $store->id)
                         ->where('status', 'open')
                         ->orderBy('opened_at', 'desc')
                         ->first();
                 }
-                
-                if (!$currentPosSession) {
+
+                if (! $currentPosSession) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Original POS session is closed and no open session found for this store. Please open a POS session first.',
@@ -1656,7 +1623,7 @@ class PurchasesController extends BaseApiController
 
             return response()->json([
                 'success' => true,
-                'message' => $result['requires_manual_processing'] 
+                'message' => $result['requires_manual_processing']
                     ? 'Refund recorded. Manual processing required for this payment method.'
                     : 'Refund processed successfully',
                 'data' => [
@@ -1688,7 +1655,7 @@ class PurchasesController extends BaseApiController
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Refund processing failed: ' . $e->getMessage(),
+                'message' => 'Refund processing failed: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1697,9 +1664,6 @@ class PurchasesController extends BaseApiController
      * Format payments connected to a purchase
      * For most purchases, there will be one payment (the charge itself)
      * This is structured as an array to allow for future expansion (e.g., split payments)
-     *
-     * @param ConnectedCharge $purchase
-     * @return array
      */
     protected function formatPurchasePayments(ConnectedCharge $purchase): array
     {

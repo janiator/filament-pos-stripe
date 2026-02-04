@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\ConnectedProduct;
 use App\Models\ConnectedPrice;
+use App\Models\ConnectedProduct;
 use App\Models\ProductVariant;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 
@@ -21,7 +20,7 @@ class ProductsController extends BaseApiController
         try {
             $store = $this->getTenantStore($request);
 
-            if (!$store) {
+            if (! $store) {
                 return response()->json(['error' => 'Store not found'], 404);
             }
 
@@ -38,24 +37,24 @@ class ProductsController extends BaseApiController
                 $query->where(function ($q) use ($search, $store) {
                     // Search in product fields
                     $q->where('name', 'ilike', "%{$search}%")
-                      ->orWhere('description', 'ilike', "%{$search}%")
-                      ->orWhere('stripe_product_id', 'ilike', "%{$search}%")
-                      ->orWhere('product_code', 'ilike', "%{$search}%")
-                      ->orWhere('article_group_code', 'ilike', "%{$search}%")
+                        ->orWhere('description', 'ilike', "%{$search}%")
+                        ->orWhere('stripe_product_id', 'ilike', "%{$search}%")
+                        ->orWhere('product_code', 'ilike', "%{$search}%")
+                        ->orWhere('article_group_code', 'ilike', "%{$search}%")
                       // Search in variant fields (SKU, barcode, option values, Stripe IDs)
                       // Note: variant_name is a computed attribute, so we search option values instead
-                      ->orWhereHas('variants', function ($variantQuery) use ($search, $store) {
-                          $variantQuery->where('stripe_account_id', $store->stripe_account_id)
-                              ->where(function ($vq) use ($search) {
-                                  $vq->where('sku', 'ilike', "%{$search}%")
-                                     ->orWhere('barcode', 'ilike', "%{$search}%")
-                                     ->orWhere('option1_value', 'ilike', "%{$search}%")
-                                     ->orWhere('option2_value', 'ilike', "%{$search}%")
-                                     ->orWhere('option3_value', 'ilike', "%{$search}%")
-                                     ->orWhere('stripe_product_id', 'ilike', "%{$search}%")
-                                     ->orWhere('stripe_price_id', 'ilike', "%{$search}%");
-                              });
-                      });
+                        ->orWhereHas('variants', function ($variantQuery) use ($search, $store) {
+                            $variantQuery->where('stripe_account_id', $store->stripe_account_id)
+                                ->where(function ($vq) use ($search) {
+                                    $vq->where('sku', 'ilike', "%{$search}%")
+                                        ->orWhere('barcode', 'ilike', "%{$search}%")
+                                        ->orWhere('option1_value', 'ilike', "%{$search}%")
+                                        ->orWhere('option2_value', 'ilike', "%{$search}%")
+                                        ->orWhere('option3_value', 'ilike', "%{$search}%")
+                                        ->orWhere('stripe_product_id', 'ilike', "%{$search}%")
+                                        ->orWhere('stripe_price_id', 'ilike', "%{$search}%");
+                                });
+                        });
                 });
             }
 
@@ -85,7 +84,7 @@ class ProductsController extends BaseApiController
             }
 
             // Get paginated results
-            //TODO restore this $perPage = min($request->get('per_page', 100), 100); // Max 100 per page
+            // TODO restore this $perPage = min($request->get('per_page', 100), 100); // Max 100 per page
             $perPage = 100; // Max 100 per page
             $products = $query->orderBy('name')
                 ->paginate($perPage);
@@ -100,6 +99,7 @@ class ProductsController extends BaseApiController
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString(),
                     ]);
+
                     // Return minimal product data if transformation fails
                     // Ensure consistent structure even on error
                     return [
@@ -160,7 +160,7 @@ class ProductsController extends BaseApiController
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -170,7 +170,7 @@ class ProductsController extends BaseApiController
         $product = ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
             ->where(function ($query) use ($id) {
                 $query->where('id', $id)
-                      ->orWhere('stripe_product_id', $id);
+                    ->orWhere('stripe_product_id', $id);
             })
             ->firstOrFail();
 
@@ -197,7 +197,7 @@ class ProductsController extends BaseApiController
             }
 
             // If no default price found, get the first active price
-            if (!$defaultPrice) {
+            if (! $defaultPrice) {
                 $defaultPrice = ConnectedPrice::where('stripe_product_id', $product->stripe_product_id)
                     ->where('stripe_account_id', $product->stripe_account_id)
                     ->where('active', true)
@@ -232,10 +232,10 @@ class ProductsController extends BaseApiController
         $images = [];
         if ($product->hasMedia('images')) {
             $images = $product->getMedia('images')->map(function ($media) use ($product) {
-                // Generate signed URL that expires in 24 hours
+                // Generate signed URL with stable 24h expiry (same URL all day for caching)
                 return URL::temporarySignedRoute(
                     'api.products.images.serve',
-                    now()->addDay(),
+                    now()->startOfDay()->addDay(),
                     [
                         'product' => $product->id,
                         'media' => $media->id,
@@ -251,6 +251,7 @@ class ProductsController extends BaseApiController
                 } elseif (is_object($image) && isset($image->url)) {
                     return $image->url;
                 }
+
                 return is_string($image) ? $image : (string) $image;
             }, $product->images);
         }
@@ -269,7 +270,7 @@ class ProductsController extends BaseApiController
             ->where('stripe_account_id', $product->stripe_account_id)
             ->where('active', true)
             ->get()
-            ->map(function ($variant) use ($product) {
+            ->map(function ($variant) {
                 // Price handling for variants:
                 // - If price_amount is null (custom price input), return 0 and "0.00"
                 // - Frontend can check if price_amount === 0 to enable custom price input
@@ -308,7 +309,7 @@ class ProductsController extends BaseApiController
                             'name' => $variant->option3_name,
                             'value' => $variant->option3_value ?? '',
                         ] : null,
-                    ], fn($option) => $option !== null)),
+                    ], fn ($option) => $option !== null)),
                     // Variant price object (for FlutterFlow compatibility)
                     'variant_price' => [
                         'amount' => $priceAmount, // Returns 0 for custom price input
@@ -432,18 +433,18 @@ class ProductsController extends BaseApiController
         $pieceUnit = \App\Models\QuantityUnit::where(function ($q) use ($stripeAccountId) {
             if ($stripeAccountId) {
                 $q->where('stripe_account_id', $stripeAccountId)
-                  ->orWhere(function ($q2) {
-                      $q2->whereNull('stripe_account_id')
-                         ->where('is_standard', true);
-                  });
+                    ->orWhere(function ($q2) {
+                        $q2->whereNull('stripe_account_id')
+                            ->where('is_standard', true);
+                    });
             } else {
                 $q->whereNull('stripe_account_id')
-                  ->where('is_standard', true);
+                    ->where('is_standard', true);
             }
         })
-        ->where('name', 'Piece')
-        ->where('active', true)
-        ->first();
+            ->where('name', 'Piece')
+            ->where('active', true)
+            ->first();
 
         if ($pieceUnit) {
             return [
@@ -495,13 +496,13 @@ class ProductsController extends BaseApiController
      */
     protected function getTaxPercentFromCode(?string $taxCode): float
     {
-        if (!$taxCode) {
+        if (! $taxCode) {
             return 0.25; // Default 25% VAT
         }
 
         // Map common tax codes to percentages
         $taxCodeLower = strtolower($taxCode);
-        
+
         switch ($taxCodeLower) {
             case 'txcd_99999999':
             case 'standard':
@@ -527,14 +528,14 @@ class ProductsController extends BaseApiController
 
     protected function getVariantImageUrl(ProductVariant $variant): ?string
     {
-        if (!$variant->image_url) {
+        if (! $variant->image_url) {
             return null;
         }
 
         // If it's an external URL (Stripe, CDN, etc.), return as-is
         if (filter_var($variant->image_url, FILTER_VALIDATE_URL) &&
-            !str_starts_with($variant->image_url, config('app.url')) &&
-            !str_starts_with($variant->image_url, request()->getSchemeAndHttpHost())) {
+            ! str_starts_with($variant->image_url, config('app.url')) &&
+            ! str_starts_with($variant->image_url, request()->getSchemeAndHttpHost())) {
             return $variant->image_url;
         }
 
@@ -561,7 +562,7 @@ class ProductsController extends BaseApiController
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -591,7 +592,7 @@ class ProductsController extends BaseApiController
 
         try {
             // Create product model
-            $product = new ConnectedProduct();
+            $product = new ConnectedProduct;
             $product->stripe_account_id = $store->stripe_account_id;
             $product->name = $validated['name'];
             $product->description = $validated['description'] ?? null;
@@ -616,12 +617,12 @@ class ProductsController extends BaseApiController
             }
 
             // Create product in Stripe first
-            $createAction = new \App\Actions\ConnectedProducts\CreateConnectedProductInStripe();
+            $createAction = new \App\Actions\ConnectedProducts\CreateConnectedProductInStripe;
             $stripeProductId = $createAction($product);
 
-            if (!$stripeProductId) {
+            if (! $stripeProductId) {
                 return response()->json([
-                    'error' => 'Failed to create product in Stripe'
+                    'error' => 'Failed to create product in Stripe',
                 ], 500);
             }
 
@@ -630,7 +631,7 @@ class ProductsController extends BaseApiController
 
             // Create price in Stripe if price is provided (prices are always created regardless of no_price_in_pos)
             if (isset($validated['price'])) {
-                $createPriceAction = new \App\Actions\ConnectedPrices\CreateConnectedPriceInStripe();
+                $createPriceAction = new \App\Actions\ConnectedPrices\CreateConnectedPriceInStripe;
                 $priceId = $createPriceAction(
                     $stripeProductId,
                     $product->stripe_account_id,
@@ -645,7 +646,7 @@ class ProductsController extends BaseApiController
             }
 
             // Attach collections if provided
-            if (isset($validated['collection_ids']) && !empty($validated['collection_ids'])) {
+            if (isset($validated['collection_ids']) && ! empty($validated['collection_ids'])) {
                 $product->collections()->sync($validated['collection_ids']);
             }
 
@@ -659,7 +660,7 @@ class ProductsController extends BaseApiController
             ]);
 
             return response()->json([
-                'error' => 'Failed to create product: ' . $e->getMessage()
+                'error' => 'Failed to create product: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -671,7 +672,7 @@ class ProductsController extends BaseApiController
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -680,7 +681,7 @@ class ProductsController extends BaseApiController
         $product = ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
             ->where(function ($query) use ($id) {
                 $query->where('id', $id)
-                      ->orWhere('stripe_product_id', $id);
+                    ->orWhere('stripe_product_id', $id);
             })
             ->firstOrFail();
 
@@ -781,7 +782,7 @@ class ProductsController extends BaseApiController
             ]);
 
             return response()->json([
-                'error' => 'Failed to update product: ' . $e->getMessage()
+                'error' => 'Failed to update product: '.$e->getMessage(),
             ], 500);
         }
     }
