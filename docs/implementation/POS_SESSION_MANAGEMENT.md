@@ -50,6 +50,22 @@ Represents a daily closing report (dagsavslutning).
 ### ConnectedCharge
 Now includes `pos_session_id` to link transactions to sessions.
 
+#### When can a purchase (ConnectedCharge) have `pos_session_id = null`?
+
+A charge may have `pos_session_id = null` in these cases:
+
+1. **Stripe charge webhook** – `HandleChargeWebhook` creates or updates a charge from Stripe events (`charge.created`, `charge.succeeded`, etc.). When it **creates** a new record (charge seen from Stripe before the POS created it), the record has only Stripe fields and no `pos_session_id`. This can happen when the webhook runs before the POS flow saves the charge, or when the charge was created outside the POS (e.g. Payment Link, Stripe Dashboard).
+
+2. **Sync from Stripe** – `SyncConnectedChargesFromStripe` creates new `ConnectedCharge` rows for charges that exist in Stripe but not in the app. New rows are created with Stripe data only; `pos_session_id` is not set. Updates preserve existing `pos_session_id`.
+
+3. **CreateConnectedChargeOnStripe** – Creating a charge directly on Stripe via this action (e.g. from Filament or another flow that does not use `PurchaseService`) creates a local record without `pos_session_id`.
+
+4. **API transaction create with no session** – If the client creates a transaction/purchase and the current session is missing or not passed, the charge can be stored with `pos_session_id => $session?->id` (null).
+
+5. **Race between POS and webhook** – POS creates a charge with `pos_session_id` and `stripe_charge_id` still null. Stripe confirms the payment and sends a webhook. The webhook creates a second record with `stripe_charge_id` set and `pos_session_id` null. The app then has two records for the same Stripe charge; the one from the webhook has null session. (PurchaseService has logic to delete such duplicates when completing deferred payments.)
+
+To keep Z-reports complete, **before generating a Z-report** (on close or on demand) the app runs `RegenerateZReports::attachMissingDataToSession()`, which links orphaned charges, receipts, and events to the session by matching `session_number` in metadata/receipts/events and by date range. That way the first Z-report includes all transactions that belong to the session even when some were initially stored with `pos_session_id = null`.
+
 ## API Endpoints
 
 ### Session Management

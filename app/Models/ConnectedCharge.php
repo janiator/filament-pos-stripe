@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ConnectedCharge extends Model
 {
@@ -17,6 +17,10 @@ class ConnectedCharge extends Model
         static::observe(\App\Observers\ConnectedChargeObserver::class);
     }
 
+    /**
+     * pos_session_id can be null when the charge was created by Stripe webhook/sync or outside
+     * the POS flow. See docs/implementation/POS_SESSION_MANAGEMENT.md for when pos_session_id may be null.
+     */
     protected $fillable = [
         'stripe_charge_id',
         'stripe_account_id',
@@ -65,9 +69,10 @@ class ConnectedCharge extends Model
 
     public function customer(): ?BelongsTo
     {
-        if (!class_exists(\App\Models\ConnectedCustomer::class)) {
+        if (! class_exists(\App\Models\ConnectedCustomer::class)) {
             return null;
         }
+
         // We can't use whereColumn in belongsTo with eager loading, so we'll handle the constraint
         // in the eager loading closure or filter after loading
         return $this->belongsTo(\App\Models\ConnectedCustomer::class, 'stripe_customer_id', 'stripe_customer_id');
@@ -107,18 +112,18 @@ class ConnectedCharge extends Model
 
     public function getFormattedAmountAttribute(): string
     {
-        return number_format($this->amount / 100, 2) . ' ' . strtoupper($this->currency);
+        return number_format($this->amount / 100, 2).' '.strtoupper($this->currency);
     }
 
     public function getFormattedAmountRefundedAttribute(): string
     {
-        return number_format($this->amount_refunded / 100, 2) . ' ' . strtoupper($this->currency);
+        return number_format($this->amount_refunded / 100, 2).' '.strtoupper($this->currency);
     }
 
     public function getFormattedNetAmountAttribute(): string
     {
         $net = $this->amount - $this->amount_refunded - ($this->application_fee_amount ?? 0);
-        return number_format($net / 100, 2) . ' ' . strtoupper($this->currency);
-    }
 
+        return number_format($net / 100, 2).' '.strtoupper($this->currency);
+    }
 }
