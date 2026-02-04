@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Collection;
-use App\Models\ConnectedProduct;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
 
 class CollectionsController extends BaseApiController
 {
@@ -19,8 +17,8 @@ class CollectionsController extends BaseApiController
     {
         try {
             $store = $this->getTenantStore($request);
-            
-            if (!$store) {
+
+            if (! $store) {
                 return response()->json(['error' => 'Store not found'], 404);
             }
 
@@ -42,7 +40,7 @@ class CollectionsController extends BaseApiController
                 $search = $request->get('search');
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'ilike', "%{$search}%")
-                      ->orWhere('description', 'ilike', "%{$search}%");
+                        ->orWhere('description', 'ilike', "%{$search}%");
                 });
             }
 
@@ -91,7 +89,7 @@ class CollectionsController extends BaseApiController
                     'created_at' => null,
                     'updated_at' => null,
                 ];
-                
+
                 // Append to the end of the collection
                 $transformedCollections = $transformedCollections->push($uncategorizedCollection);
             }
@@ -120,8 +118,8 @@ class CollectionsController extends BaseApiController
     public function show(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -132,7 +130,7 @@ class CollectionsController extends BaseApiController
             ->findOrFail($id);
 
         // Get products in this collection
-        $productsController = new ProductsController();
+        $productsController = new ProductsController;
         $products = $collection->products()
             ->where('active', true)
             ->orderByPivot('sort_order')
@@ -164,15 +162,15 @@ class CollectionsController extends BaseApiController
      */
     protected function getCollectionImageUrl(Collection $collection): ?string
     {
-        if (!$collection->image_url) {
+        if (! $collection->image_url) {
             return null;
         }
 
         // If it's an external URL (Stripe, CDN, etc.), return as-is
         $storageUrl = Storage::disk('public')->url('');
-        if (!str_starts_with($collection->image_url, $storageUrl) && 
-            !str_starts_with($collection->image_url, config('app.url')) &&
-            !str_starts_with($collection->image_url, request()->getSchemeAndHttpHost())) {
+        if (! str_starts_with($collection->image_url, $storageUrl) &&
+            ! str_starts_with($collection->image_url, config('app.url')) &&
+            ! str_starts_with($collection->image_url, request()->getSchemeAndHttpHost())) {
             return $collection->image_url;
         }
 
@@ -180,10 +178,10 @@ class CollectionsController extends BaseApiController
         if (str_starts_with($collection->image_url, $storageUrl) ||
             str_starts_with($collection->image_url, config('app.url')) ||
             str_starts_with($collection->image_url, request()->getSchemeAndHttpHost())) {
-            // Generate signed URL that expires in 24 hours
+            // Generate signed URL with stable 24h expiry (same URL all day for caching)
             return URL::temporarySignedRoute(
                 'api.collections.image.serve',
-                now()->addDay(),
+                now()->startOfDay()->addDay(),
                 [
                     'collectionId' => $collection->id,
                 ]
@@ -200,8 +198,8 @@ class CollectionsController extends BaseApiController
     public function store(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -210,7 +208,7 @@ class CollectionsController extends BaseApiController
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'handle' => 'nullable|string|max:255|unique:collections,handle,NULL,id,stripe_account_id,' . $store->stripe_account_id,
+            'handle' => 'nullable|string|max:255|unique:collections,handle,NULL,id,stripe_account_id,'.$store->stripe_account_id,
             'image_url' => 'nullable|url',
             'active' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
@@ -218,7 +216,7 @@ class CollectionsController extends BaseApiController
         ]);
 
         try {
-            $collection = new Collection();
+            $collection = new Collection;
             $collection->store_id = $store->id;
             $collection->stripe_account_id = $store->stripe_account_id;
             $collection->name = $validated['name'];
@@ -250,9 +248,9 @@ class CollectionsController extends BaseApiController
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
-                'error' => 'Failed to create collection: ' . $e->getMessage()
+                'error' => 'Failed to create collection: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -263,8 +261,8 @@ class CollectionsController extends BaseApiController
     public function update(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -276,7 +274,7 @@ class CollectionsController extends BaseApiController
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
-            'handle' => 'nullable|string|max:255|unique:collections,handle,' . $id . ',id,stripe_account_id,' . $store->stripe_account_id,
+            'handle' => 'nullable|string|max:255|unique:collections,handle,'.$id.',id,stripe_account_id,'.$store->stripe_account_id,
             'image_url' => 'nullable|url',
             'active' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
@@ -328,11 +326,10 @@ class CollectionsController extends BaseApiController
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
-                'error' => 'Failed to update collection: ' . $e->getMessage()
+                'error' => 'Failed to update collection: '.$e->getMessage(),
             ], 500);
         }
     }
 }
-
