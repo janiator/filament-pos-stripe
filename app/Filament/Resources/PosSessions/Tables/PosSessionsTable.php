@@ -790,7 +790,7 @@ class PosSessionsTable
 
         // For closed sessions, store the report data in closing_data to preserve snapshot
         // This ensures reports remain unchanged even if vendor commission settings change later
-        if ($session->status === 'closed') {
+        if ($session->status === 'closed' && ! $dryRun) {
             $closingData = $session->closing_data ?? [];
             $closingData['z_report_data'] = $report;
             $closingData['z_report_generated_at'] = now()->toISOString();
