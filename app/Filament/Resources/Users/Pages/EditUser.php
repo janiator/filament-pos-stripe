@@ -7,6 +7,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use STS\FilamentImpersonate\Actions\Impersonate;
 
 class EditUser extends EditRecord
 {
@@ -15,6 +16,7 @@ class EditUser extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Impersonate::make()->record($this->getRecord()),
             ViewAction::make(),
             DeleteAction::make(),
         ];
@@ -23,12 +25,13 @@ class EditUser extends EditRecord
     public function clearAllTokens(): void
     {
         $tokenCount = $this->record->tokens()->count();
-        
+
         if ($tokenCount === 0) {
             Notification::make()
                 ->title('No tokens to clear')
                 ->warning()
                 ->send();
+
             return;
         }
 

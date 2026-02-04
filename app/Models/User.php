@@ -10,17 +10,17 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Models\Store;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Lab404\Impersonate\Models\Impersonate as ImpersonateTrait;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements FilamentUser, HasTenants, HasDefaultTenant
+class User extends Authenticatable implements FilamentUser, HasDefaultTenant, HasTenants
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, HasApiTokens;
+    use HasApiTokens, HasFactory, HasRoles, ImpersonateTrait, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -57,17 +57,34 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
             'password' => 'hashed',
         ];
     }
+
     public function canAccessPanel(Panel $panel): bool
     {
         if (app()->environment('production')) {
             return str_ends_with($this->email, '@visivo.no') && $this->hasVerifiedEmail();
         } elseif (app()->environment('local')) {
             return true;
-        }elseif (app()->environment('development')) {
+        } elseif (app()->environment('development')) {
             return true;
-        }else {
+        } else {
             return false;
         }
+    }
+
+    /**
+     * Only super admins can impersonate other users.
+     */
+    public function canImpersonate(): bool
+    {
+        return $this->isSuperAdmin();
+    }
+
+    /**
+     * Users can be impersonated unless they are super admins.
+     */
+    public function canBeImpersonated(): bool
+    {
+        return ! $this->isSuperAdmin();
     }
 
     // Tenancy methods
@@ -94,7 +111,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
         if ($this->current_store_id) {
             return $this->stores()->where('stores.id', $this->current_store_id)->first();
         }
-        
+
         // Fallback to first store if no current store is set
         return $this->stores()->first();
     }
@@ -105,11 +122,12 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
     public function setCurrentStore(Store $store): bool
     {
         // Verify user has access to this store
-        if (!$this->stores->contains($store)) {
+        if (! $this->stores->contains($store)) {
             return false;
         }
 
         $this->current_store_id = $store->id;
+
         return $this->save();
     }
 
@@ -134,6 +152,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, HasDefau
             if ($tenant) {
                 return $this->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists();
             }
+
             return $this->hasRole('super_admin');
         } catch (\Throwable $e) {
             // Fallback to regular check if Filament facade is not available
