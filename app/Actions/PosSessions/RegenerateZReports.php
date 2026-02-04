@@ -118,8 +118,8 @@ class RegenerateZReports
                     $session->saveQuietly();
                 }
 
-                // Regenerate Z-report (will generate fresh data since we cleared the cache)
-                $report = PosSessionsTable::generateZReport($session);
+                // Regenerate Z-report (skip attach step; we already ran findMissingData above)
+                $report = PosSessionsTable::generateZReport($session, attachMissingData: false, dryRun: $dryRun);
 
                 // Store the regenerated report in closing_data
                 if (! $dryRun) {
@@ -212,8 +212,8 @@ class RegenerateZReports
             // Save session with preserved actual_cash before generating report
             $session->saveQuietly();
 
-            // Regenerate Z-report (will generate fresh data since we cleared the cache)
-            $report = PosSessionsTable::generateZReport($session);
+            // Regenerate Z-report (skip attach step; we already ran findMissingData above)
+            $report = PosSessionsTable::generateZReport($session, attachMissingData: false);
 
             // Store the regenerated report in closing_data
             // Also preserve the original report if it exists for comparison
@@ -256,14 +256,20 @@ class RegenerateZReports
      * Attach any orphaned charges, receipts, and events to this session before generating a report.
      * Call this before first Z-report generation so the report is complete (e.g. charges created
      * by Stripe webhook or sync that don't yet have pos_session_id).
+     *
+     * @param  bool  $dryRun  When true, no changes are persisted (for preview-only / dry-run).
      */
-    public function attachMissingDataToSession(PosSession $session): void
+    public function attachMissingDataToSession(PosSession $session, bool $dryRun = false): void
     {
-        $this->findMissingData($session, false);
+        $this->findMissingData($session, $dryRun);
     }
 
     /**
-     * Attempt to find missing charges, receipts, and events for a session
+     * Attempt to find missing charges, receipts, and events for a session.
+     *
+     * Linking is done only when session_number is present in charge metadata,
+     * receipt_data, or event_data. Date-only and device-only fallbacks are not used,
+     * to avoid attaching online/non-POS sales or assigning to the wrong device.
      *
      * @return array Statistics about found data
      */
@@ -333,7 +339,7 @@ class RegenerateZReports
                     });
             })
             ->get()
-            ->filter(function ($charge) use ($sessionNumber, $sessionStart, $sessionEnd) {
+            ->filter(function ($charge) use ($sessionNumber) {
                 try {
                     // Check metadata
                     $metadataSessionNumber = $charge->metadata['pos_session_number'] ?? null;
@@ -375,14 +381,8 @@ class RegenerateZReports
                         return true;
                     }
 
-                    // If no session_number found anywhere, check date range as fallback
-                    // but only if metadata doesn't have a different session number
-                    if ($metadataSessionNumber === null || $metadataSessionNumber === '') {
-                        $chargeDate = $charge->paid_at ?? $charge->created_at;
-
-                        return $chargeDate >= $sessionStart && $chargeDate <= $sessionEnd;
-                    }
-
+                    // Only attach when session_number is present in metadata, receipt, or event.
+                    // Do not attach by date range alone (avoids online/non-POS charges and wrong device).
                     return false;
                 } catch (\Exception $e) {
                     // Skip charges with corrupted JSON data
@@ -435,37 +435,16 @@ class RegenerateZReports
             $stats['receipts_found']++;
         }
 
-        // Method 3: Find charges via events - match by session_number in event_data or pos_device_id
-        // Filter in PHP to avoid JSON query issues with null bytes
+        // Method 3: Find events by session_number in event_data only (no device+date fallback)
+        // Filter in PHP to avoid JSON parsing issues with null bytes
         $eventsWithoutSession = PosEvent::where('store_id', $store->id)
             ->whereNull('pos_session_id')
             ->whereNotNull('related_charge_id')
-            ->where(function ($query) use ($session) {
-                // Match by device if session has a device (for fallback)
-                if ($session->pos_device_id) {
-                    $query->where('pos_device_id', $session->pos_device_id)
-                        ->whereBetween('occurred_at', [$session->opened_at, $session->closed_at ?? now()]);
-                }
-            })
-            ->orWhere(function ($query) {
-                // Also get events with event_data to check session_number in PHP
-                $query->whereNotNull('event_data');
-            })
+            ->whereNotNull('event_data')
             ->get()
-            ->filter(function ($event) use ($sessionNumber, $session) {
-                // Match by session_number in event_data
-                if (isset($event->event_data['session_number']) &&
-                    $event->event_data['session_number'] === $sessionNumber) {
-                    return true;
-                }
-                // Or match by device if session has a device and no session_number in event_data
-                if ($session->pos_device_id &&
-                    $event->pos_device_id == $session->pos_device_id &&
-                    (! isset($event->event_data['session_number']) || empty($event->event_data['session_number']))) {
-                    return true;
-                }
-
-                return false;
+            ->filter(function ($event) use ($sessionNumber) {
+                return isset($event->event_data['session_number']) &&
+                    $event->event_data['session_number'] === $sessionNumber;
             });
 
         foreach ($eventsWithoutSession as $event) {
