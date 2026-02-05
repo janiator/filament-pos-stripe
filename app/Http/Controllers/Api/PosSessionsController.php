@@ -326,49 +326,21 @@ class PosSessionsController extends BaseApiController
      */
     public function cashWithdrawal(Request $request, string $id): JsonResponse
     {
-        $store = $this->getTenantStore($request);
-        if (! $store) {
-            return response()->json(['message' => 'Store not found'], 404);
-        }
-        $this->authorizeTenant($request, $store);
-
-        $session = PosSession::where('id', $id)
-            ->where('store_id', $store->id)
-            ->with(['posDevice', 'user'])
-            ->firstOrFail();
-
-        if ($session->status !== 'open') {
-            return response()->json([
-                'message' => 'Cash withdrawal can only be recorded for open sessions.',
-            ], 400);
-        }
-
-        $validated = $request->validate([
-            'amount' => 'required|integer|min:1',
-            'reason' => 'nullable|string|max:500',
-        ]);
-
-        $event = app(CashDrawerService::class)->logWithdrawal(
-            $session,
-            $validated['amount'],
-            $validated['reason'] ?? null
-        );
-
-        return response()->json([
-            'message' => 'Cash withdrawal recorded',
-            'event' => [
-                'id' => $event->id,
-                'event_code' => $event->event_code,
-                'event_data' => $event->event_data,
-                'occurred_at' => $this->formatDateTimeOslo($event->occurred_at),
-            ],
-        ], 201);
+        return $this->recordCashMovement($request, $id, 'withdrawal');
     }
 
     /**
      * Log a cash deposit for an open session.
      */
     public function cashDeposit(Request $request, string $id): JsonResponse
+    {
+        return $this->recordCashMovement($request, $id, 'deposit');
+    }
+
+    /**
+     * Record a cash movement (withdrawal or deposit) for an open session.
+     */
+    private function recordCashMovement(Request $request, string $id, string $type): JsonResponse
     {
         $store = $this->getTenantStore($request);
         if (! $store) {
@@ -383,7 +355,7 @@ class PosSessionsController extends BaseApiController
 
         if ($session->status !== 'open') {
             return response()->json([
-                'message' => 'Cash deposit can only be recorded for open sessions.',
+                'message' => "Cash {$type} can only be recorded for open sessions.",
             ], 400);
         }
 
@@ -392,14 +364,13 @@ class PosSessionsController extends BaseApiController
             'reason' => 'nullable|string|max:500',
         ]);
 
-        $event = app(CashDrawerService::class)->logDeposit(
-            $session,
-            $validated['amount'],
-            $validated['reason'] ?? null
-        );
+        $cashDrawerService = app(CashDrawerService::class);
+        $event = $type === 'withdrawal'
+            ? $cashDrawerService->logWithdrawal($session, $validated['amount'], $validated['reason'] ?? null)
+            : $cashDrawerService->logDeposit($session, $validated['amount'], $validated['reason'] ?? null);
 
         return response()->json([
-            'message' => 'Cash deposit recorded',
+            'message' => "Cash {$type} recorded",
             'event' => [
                 'id' => $event->id,
                 'event_code' => $event->event_code,
