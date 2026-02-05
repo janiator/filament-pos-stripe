@@ -131,8 +131,7 @@ This document captures important compliance clarifications and requirements from
 
 ### Implementation Status
 
-- ⚠️ **Current Status:** System does not currently have functionality to register cash withdrawals/deposits
-- ✅ If this functionality is added in the future, it must appear in X- and Z-reports
+- ✅ **Implemented:** System has functionality to register cash withdrawals and deposits (API: `POST /pos-sessions/{id}/cash-withdrawal`, `POST /pos-sessions/{id}/cash-deposit`). Events are stored as PosEvent (13028 = withdrawal, 13029 = deposit) and appear in X- and Z-reports with count, type, and amount per § 2-8-2.
 
 ---
 

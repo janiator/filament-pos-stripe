@@ -157,7 +157,6 @@ class ReportController extends Controller
     public function embedXReport(Request $request, string $tenant, int $sessionId)
     {
         $store = Store::where('slug', $tenant)->firstOrFail();
-        
         // Verify user has access to this store
         $user = Auth::user();
         if (!$user) {
@@ -168,7 +167,6 @@ class ReportController extends Controller
         if (!$isSuperAdmin && !$hasStoreAccess) {
             abort(403, 'You do not have access to this store');
         }
-        
         $session = PosSession::where('id', $sessionId)
             ->where('store_id', $store->id)
             ->where('status', 'open')

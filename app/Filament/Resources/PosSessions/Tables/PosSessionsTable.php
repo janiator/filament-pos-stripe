@@ -513,6 +513,28 @@ class PosSessionsTable
         // Line corrections (only reductions count)
         $lineCorrections = self::calculateLineCorrections($session);
 
+        // Cash withdrawals and deposits (per Skatteetaten § 2-8-2)
+        $withdrawalEvents = $session->events->where('event_code', PosEvent::EVENT_CASH_WITHDRAWAL);
+        $depositEvents = $session->events->where('event_code', PosEvent::EVENT_CASH_DEPOSIT);
+        $cashWithdrawals = [
+            'count' => $withdrawalEvents->count(),
+            'total_amount' => $withdrawalEvents->sum(fn (PosEvent $e) => (int) ($e->event_data['amount'] ?? 0)),
+            'items' => $withdrawalEvents->map(fn (PosEvent $e) => [
+                'amount' => (int) ($e->event_data['amount'] ?? 0),
+                'occurred_at' => $e->occurred_at?->toISOString(),
+                'reason' => $e->event_data['reason'] ?? null,
+            ])->values(),
+        ];
+        $cashDeposits = [
+            'count' => $depositEvents->count(),
+            'total_amount' => $depositEvents->sum(fn (PosEvent $e) => (int) ($e->event_data['amount'] ?? 0)),
+            'items' => $depositEvents->map(fn (PosEvent $e) => [
+                'amount' => (int) ($e->event_data['amount'] ?? 0),
+                'occurred_at' => $e->occurred_at?->toISOString(),
+                'reason' => $e->event_data['reason'] ?? null,
+            ])->values(),
+        ];
+
         return [
             'session_id' => $session->id,
             'session_number' => $session->session_number,
@@ -578,6 +600,8 @@ class PosSessionsTable
             'sales_by_vendor' => self::calculateSalesByVendor($session),
             'manual_discounts' => $manualDiscounts,
             'line_corrections' => $lineCorrections,
+            'cash_withdrawals' => $cashWithdrawals,
+            'cash_deposits' => $cashDeposits,
         ];
     }
 
@@ -623,16 +647,18 @@ class PosSessionsTable
                 }
                 // Fall through to regenerate report below
             } else {
-                // Auto-backfill products_sold and sales_by_vendor if missing (for reports generated before these features were added)
+                // Auto-backfill products_sold, sales_by_vendor, and cash movements if missing (for reports generated before these features were added)
                 $needsProductsSold = ! isset($cachedReport['products_sold']) || empty($cachedReport['products_sold']);
                 $needsSalesByVendor = ! isset($cachedReport['sales_by_vendor']) || empty($cachedReport['sales_by_vendor']);
+                $needsCashMovements = ! isset($cachedReport['cash_withdrawals']) || ! isset($cachedReport['cash_deposits']);
 
-                if ($needsProductsSold || $needsSalesByVendor) {
+                if ($needsProductsSold || $needsSalesByVendor || $needsCashMovements) {
+                    $needsUpdate = false;
                     $session->load(['receipts']);
                     $salesReceipts = $session->receipts->where('receipt_type', 'sales');
 
-                    // Only backfill if there are sales receipts that might have items
-                    if ($salesReceipts->isNotEmpty()) {
+                    // Only backfill products_sold/sales_by_vendor if there are sales receipts that might have items
+                    if ($salesReceipts->isNotEmpty() && ($needsProductsSold || $needsSalesByVendor)) {
                         $hasItems = false;
                         foreach ($salesReceipts as $receipt) {
                             $items = $receipt->receipt_data['items'] ?? [];
@@ -643,9 +669,6 @@ class PosSessionsTable
                         }
 
                         if ($hasItems) {
-                            $needsUpdate = false;
-
-                            // Backfill products_sold if needed
                             if ($needsProductsSold) {
                                 $productsSold = self::calculateProductsSold($session);
                                 if ($productsSold->isNotEmpty()) {
@@ -653,8 +676,6 @@ class PosSessionsTable
                                     $needsUpdate = true;
                                 }
                             }
-
-                            // Backfill sales_by_vendor if needed
                             if ($needsSalesByVendor) {
                                 $salesByVendor = self::calculateSalesByVendor($session);
                                 if ($salesByVendor->isNotEmpty()) {
@@ -662,16 +683,44 @@ class PosSessionsTable
                                     $needsUpdate = true;
                                 }
                             }
-
-                            // Update closing_data if any backfill was done
-                            if ($needsUpdate && ! $dryRun) {
-                                $closingData = $session->closing_data;
-                                $closingData['z_report_data'] = $cachedReport;
-                                $closingData['z_report_data_backfilled_at'] = now()->toISOString();
-                                $session->closing_data = $closingData;
-                                $session->saveQuietly();
-                            }
                         }
+                    }
+
+                    // Backfill cash_withdrawals and cash_deposits if needed (no dependency on receipts)
+                    if ($needsCashMovements) {
+                        $session->load(['events']);
+                        if (! $session->relationLoaded('events') || $session->events->isEmpty()) {
+                            $session->setRelation('events', PosEvent::where('pos_session_id', $session->id)->get());
+                        }
+                        $withdrawalEvents = $session->events->where('event_code', PosEvent::EVENT_CASH_WITHDRAWAL);
+                        $depositEvents = $session->events->where('event_code', PosEvent::EVENT_CASH_DEPOSIT);
+                        $cachedReport['cash_withdrawals'] = [
+                            'count' => $withdrawalEvents->count(),
+                            'total_amount' => $withdrawalEvents->sum(fn (PosEvent $e) => (int) ($e->event_data['amount'] ?? 0)),
+                            'items' => $withdrawalEvents->map(fn (PosEvent $e) => [
+                                'amount' => (int) ($e->event_data['amount'] ?? 0),
+                                'occurred_at' => $e->occurred_at?->toISOString(),
+                                'reason' => $e->event_data['reason'] ?? null,
+                            ])->values()->toArray(),
+                        ];
+                        $cachedReport['cash_deposits'] = [
+                            'count' => $depositEvents->count(),
+                            'total_amount' => $depositEvents->sum(fn (PosEvent $e) => (int) ($e->event_data['amount'] ?? 0)),
+                            'items' => $depositEvents->map(fn (PosEvent $e) => [
+                                'amount' => (int) ($e->event_data['amount'] ?? 0),
+                                'occurred_at' => $e->occurred_at?->toISOString(),
+                                'reason' => $e->event_data['reason'] ?? null,
+                            ])->values()->toArray(),
+                        ];
+                        $needsUpdate = true;
+                    }
+
+                    if ($needsUpdate && ! $dryRun) {
+                        $closingData = $session->closing_data;
+                        $closingData['z_report_data'] = $cachedReport;
+                        $closingData['z_report_data_backfilled_at'] = now()->toISOString();
+                        $session->closing_data = $closingData;
+                        $session->saveQuietly();
                     }
                 }
 
@@ -825,6 +874,8 @@ class PosSessionsTable
             PosEvent::EVENT_OTHER_PAYMENT => 'Annen betalingsmetode',
             PosEvent::EVENT_SESSION_OPENED => 'Økt åpnet',
             PosEvent::EVENT_SESSION_CLOSED => 'Økt stengt',
+            PosEvent::EVENT_CASH_WITHDRAWAL => 'Kontantuttak',
+            PosEvent::EVENT_CASH_DEPOSIT => 'Kontantinnskudd',
             default => $fallback,
         };
     }

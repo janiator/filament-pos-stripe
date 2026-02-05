@@ -2,13 +2,11 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\StoreController;
-use App\Http\Controllers\Stores\StoreTerminalPaymentIntentController;
 use App\Http\Controllers\Stores\StoreTerminalConnectionTokenController;
+use App\Http\Controllers\Stores\StoreTerminalPaymentIntentController;
 use App\Http\Controllers\Webhooks\StripeConnectWebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\PosSessionsController;
-
 
 // Public webhook endpoint (no authentication required)
 // Support both /api/stripe/connect/webhook and /connectWebhook (for Stripe CLI compatibility)
@@ -31,7 +29,6 @@ Route::get('/collections/{collectionId}/image', [\App\Http\Controllers\Api\Colle
 // SAF-T file download with signed URLs (public route, secured by signature validation)
 Route::get('/saf-t/download/{filename}', [\App\Http\Controllers\Api\SafTController::class, 'download'])
     ->name('api.saf-t.download');
-
 
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -68,6 +65,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pos-sessions/{id}/x-report', [\App\Http\Controllers\Api\PosSessionsController::class, 'xReport'])->name('api.pos-sessions.x-report');
     Route::post('/pos-sessions/{id}/z-report', [\App\Http\Controllers\Api\PosSessionsController::class, 'zReport'])->name('api.pos-sessions.z-report');
     Route::get('/pos-sessions/{id}', [\App\Http\Controllers\Api\PosSessionsController::class, 'show'])->name('api.pos-sessions.show');
+    Route::post('/pos-sessions/{id}/cash-withdrawal', [\App\Http\Controllers\Api\PosSessionsController::class, 'cashWithdrawal'])->name('api.pos-sessions.cash-withdrawal');
+    Route::post('/pos-sessions/{id}/cash-deposit', [\App\Http\Controllers\Api\PosSessionsController::class, 'cashDeposit'])->name('api.pos-sessions.cash-deposit');
     Route::post('/pos-sessions/daily-closing', [\App\Http\Controllers\Api\PosSessionsController::class, 'createDailyClosing'])->name('api.pos-sessions.daily-closing');
 
     // POS Report PDF download endpoints (API with Bearer token auth)
@@ -166,5 +165,6 @@ Route::middleware('auth:sanctum')->group(function () {
 // Legacy endpoint (kept for backward compatibility)
 Route::get('/user', function (Request $request) {
     $user = $request->user();
+
     return response()->json($user);
 })->middleware('auth:sanctum');

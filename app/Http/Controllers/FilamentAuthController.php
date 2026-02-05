@@ -99,7 +99,6 @@ class FilamentAuthController extends Controller
         if ($redirect = $request->query('redirect')) {
             $panelUrl .= '/' . ltrim($redirect, '/');
         }
-        
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => 'Authentication successful',

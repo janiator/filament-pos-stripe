@@ -32,28 +32,54 @@ class PosEvent extends Model
      * Event code constants (PredefinedBasicID-13)
      */
     public const EVENT_APPLICATION_START = '13001';
+
     public const EVENT_APPLICATION_SHUTDOWN = '13002';
+
     public const EVENT_EMPLOYEE_LOGIN = '13003';
+
     public const EVENT_EMPLOYEE_LOGOUT = '13004';
+
     public const EVENT_CASH_DRAWER_OPEN = '13005';
+
     public const EVENT_CASH_DRAWER_CLOSE = '13006';
+
     public const EVENT_X_REPORT = '13008';
+
     public const EVENT_Z_REPORT = '13009';
+
     public const EVENT_SALES_RECEIPT = '13012';
+
     public const EVENT_RETURN_RECEIPT = '13013';
+
     public const EVENT_VOID_TRANSACTION = '13014';
+
     public const EVENT_CORRECTION_RECEIPT = '13015';
+
     public const EVENT_CASH_PAYMENT = '13016';
+
     public const EVENT_CARD_PAYMENT = '13017';
+
     public const EVENT_MOBILE_PAYMENT = '13018';
+
     public const EVENT_OTHER_PAYMENT = '13019';
+
     public const EVENT_SESSION_OPENED = '13020';
+
     public const EVENT_SESSION_CLOSED = '13021';
+
     public const EVENT_GIFT_CARD_PURCHASED = '13023';
+
     public const EVENT_GIFT_CARD_REDEEMED = '13024';
+
     public const EVENT_GIFT_CARD_REFUNDED = '13025';
+
     public const EVENT_GIFT_CARD_VOIDED = '13026';
+
     public const EVENT_GIFT_CARD_BALANCE_ADJUSTED = '13027';
+
+    public const EVENT_CASH_WITHDRAWAL = '13028'; // SAF-T 11010 - Out Payment
+
+    public const EVENT_CASH_DEPOSIT = '13029'; // SAF-T 11011 - In Payment
 
     /**
      * Get the store for this event
@@ -100,7 +126,7 @@ class PosEvent extends Model
      */
     public function getEventDescriptionAttribute(): string
     {
-        return match($this->event_code) {
+        return match ($this->event_code) {
             self::EVENT_APPLICATION_START => 'POS application start',
             self::EVENT_APPLICATION_SHUTDOWN => 'POS application shut down',
             self::EVENT_EMPLOYEE_LOGIN => 'Employee log in',
@@ -124,6 +150,8 @@ class PosEvent extends Model
             self::EVENT_GIFT_CARD_REFUNDED => 'Gift card refunded',
             self::EVENT_GIFT_CARD_VOIDED => 'Gift card voided',
             self::EVENT_GIFT_CARD_BALANCE_ADJUSTED => 'Gift card balance adjusted',
+            self::EVENT_CASH_WITHDRAWAL => 'Cash withdrawal',
+            self::EVENT_CASH_DEPOSIT => 'Cash deposit',
             default => 'Unknown event',
         };
     }

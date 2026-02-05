@@ -681,6 +681,40 @@
         </div>
     @endif
 
+    <!-- Cash Withdrawals and Deposits -->
+    @if((isset($report['cash_withdrawals']) && $report['cash_withdrawals']['count'] > 0) || (isset($report['cash_deposits']) && $report['cash_deposits']['count'] > 0))
+        <div class="z-report-section" style="background-color: rgb(249 250 251); border-color: rgb(229 231 235);">
+            <h4 class="z-report-title">Kontantuttak og innskudd</h4>
+            <div style="overflow-x: auto;">
+                <table class="z-report-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">Type</th>
+                            <th style="text-align: center;">Antall</th>
+                            <th style="text-align: right;">Beløp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if(isset($report['cash_withdrawals']) && $report['cash_withdrawals']['count'] > 0)
+                            <tr>
+                                <td style="font-weight: 500; color: rgb(17 24 39);">Kontantuttak</td>
+                                <td style="text-align: center; color: rgb(17 24 39);">{{ $report['cash_withdrawals']['count'] }}</td>
+                                <td style="text-align: right; font-weight: 600; color: rgb(17 24 39);">{{ number_format($report['cash_withdrawals']['total_amount'] / 100, 2) }} NOK</td>
+                            </tr>
+                        @endif
+                        @if(isset($report['cash_deposits']) && $report['cash_deposits']['count'] > 0)
+                            <tr>
+                                <td style="font-weight: 500; color: rgb(17 24 39);">Kontantinnskudd</td>
+                                <td style="text-align: center; color: rgb(17 24 39);">{{ $report['cash_deposits']['count'] }}</td>
+                                <td style="text-align: right; font-weight: 600; color: rgb(17 24 39);">{{ number_format($report['cash_deposits']['total_amount'] / 100, 2) }} NOK</td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
     <!-- Activity Metrics -->
     <div class="z-report-grid z-report-grid-3">
         <div class="z-report-section" style="background-color: rgb(250 245 255); border-color: rgb(233 213 255);">
