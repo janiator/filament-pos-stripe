@@ -139,22 +139,13 @@ class CashDrawerService
      */
     public function logWithdrawal(PosSession $posSession, int $amountOre, ?string $reason = null): PosEvent
     {
-        $device = $posSession->posDevice;
-
-        return PosEvent::create([
-            'store_id' => $posSession->store_id,
-            'pos_session_id' => $posSession->id,
-            'pos_device_id' => $device?->id,
-            'user_id' => auth()->id(),
-            'event_code' => PosEvent::EVENT_CASH_WITHDRAWAL,
-            'event_type' => 'drawer',
-            'description' => 'Cash withdrawal',
-            'event_data' => [
-                'amount' => $amountOre,
-                'reason' => $reason,
-            ],
-            'occurred_at' => now(),
-        ]);
+        return $this->logCashMovement(
+            $posSession,
+            $amountOre,
+            PosEvent::EVENT_CASH_WITHDRAWAL,
+            'Cash withdrawal',
+            $reason
+        );
     }
 
     /**
@@ -165,6 +156,30 @@ class CashDrawerService
      */
     public function logDeposit(PosSession $posSession, int $amountOre, ?string $reason = null): PosEvent
     {
+        return $this->logCashMovement(
+            $posSession,
+            $amountOre,
+            PosEvent::EVENT_CASH_DEPOSIT,
+            'Cash deposit',
+            $reason
+        );
+    }
+
+    /**
+     * Log a cash movement event (withdrawal or deposit).
+     *
+     * @param  int  $amountOre  Amount in øre
+     * @param  int  $eventCode  The event code constant
+     * @param  string  $description  Description of the event
+     * @param  string|null  $reason  Optional reason
+     */
+    private function logCashMovement(
+        PosSession $posSession,
+        int $amountOre,
+        int $eventCode,
+        string $description,
+        ?string $reason = null
+    ): PosEvent {
         $device = $posSession->posDevice;
 
         return PosEvent::create([
@@ -172,9 +187,9 @@ class CashDrawerService
             'pos_session_id' => $posSession->id,
             'pos_device_id' => $device?->id,
             'user_id' => auth()->id(),
-            'event_code' => PosEvent::EVENT_CASH_DEPOSIT,
+            'event_code' => $eventCode,
             'event_type' => 'drawer',
-            'description' => 'Cash deposit',
+            'description' => $description,
             'event_data' => [
                 'amount' => $amountOre,
                 'reason' => $reason,
