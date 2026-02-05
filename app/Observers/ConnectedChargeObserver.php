@@ -10,21 +10,28 @@ class ConnectedChargeObserver
 {
     /**
      * Handle the ConnectedCharge "created" event.
+     * POS-style events (13012 sales receipt, 13016–13019 payment) are only created when
+     * the charge has a pos_session_id so webhook-only / non-POS charges do not pollute the journal.
      */
     public function created(ConnectedCharge $charge): void
     {
         // Auto-map SAF-T codes
         $this->autoMapSafTCodes($charge);
 
+        // Only create POS journal events when charge is linked to a session
+        if ($charge->pos_session_id === null) {
+            return;
+        }
+
         // Log sales receipt event (13012) for successful charges
         if ($charge->status === 'succeeded' && $charge->paid) {
             // Get store_id from pos_session or try to find via stripe_account_id
             $storeId = $charge->posSession?->store_id;
-            if (!$storeId && $charge->stripe_account_id) {
+            if (! $storeId && $charge->stripe_account_id) {
                 $store = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
                 $storeId = $store?->id;
             }
-            
+
             PosEvent::create([
                 'store_id' => $storeId,
                 'pos_session_id' => $charge->pos_session_id,
@@ -64,14 +71,20 @@ class ConnectedChargeObserver
 
     /**
      * Handle the ConnectedCharge "updated" event.
+     * Return receipt event (13013) is only created when the charge has a pos_session_id.
      */
     public function updated(ConnectedCharge $charge): void
     {
+        // Only log POS return receipt when charge is linked to a session
+        if ($charge->pos_session_id === null) {
+            return;
+        }
+
         // Log return receipt event (13013) when refunded
         if ($charge->wasChanged('refunded') && $charge->refunded && $charge->amount_refunded > 0) {
             // Get store ID from stripe_account_id
             $store = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
-            
+
             // Get session user_id if session exists
             $sessionUserId = null;
             if ($charge->pos_session_id) {
@@ -115,7 +128,7 @@ class ConnectedChargeObserver
         }
 
         // Update if we have changes (use updateQuietly to avoid triggering events)
-        if (!empty($updates)) {
+        if (! empty($updates)) {
             $charge->updateQuietly($updates);
         }
     }

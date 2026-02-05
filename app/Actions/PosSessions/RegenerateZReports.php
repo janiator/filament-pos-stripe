@@ -14,13 +14,13 @@ class RegenerateZReports
     /**
      * Regenerate Z-reports for closed sessions and attempt to find missing data
      *
-     * @param array $options Options for regeneration:
-     *   - 'store_id' (int|null): Filter by store ID, null for all stores
-     *   - 'from_date' (string|null): Only regenerate reports for sessions closed after this date
-     *   - 'to_date' (string|null): Only regenerate reports for sessions closed before this date
-     *   - 'limit' (int|null): Maximum number of sessions to process
-     *   - 'find_missing_data' (bool): Whether to attempt to find missing charges/receipts/events (default: true)
-     *   - 'dry_run' (bool): If true, don't save changes, just report what would be done (default: false)
+     * @param  array  $options  Options for regeneration:
+     *                          - 'store_id' (int|null): Filter by store ID, null for all stores
+     *                          - 'from_date' (string|null): Only regenerate reports for sessions closed after this date
+     *                          - 'to_date' (string|null): Only regenerate reports for sessions closed before this date
+     *                          - 'limit' (int|null): Maximum number of sessions to process
+     *                          - 'find_missing_data' (bool): Whether to attempt to find missing charges/receipts/events (default: true)
+     *                          - 'dry_run' (bool): If true, don't save changes, just report what would be done (default: false)
      * @return array Statistics about the regeneration process
      */
     public function __invoke(array $options = []): array
@@ -85,14 +85,14 @@ class RegenerateZReports
                 $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
 
                 // Update session totals if we found new charges
-                if (!$dryRun) {
+                if (! $dryRun) {
                     // Preserve actual_cash from original report BEFORE clearing cached data
                     $closingData = $session->closing_data ?? [];
                     $originalReport = $closingData['z_report_data'] ?? null;
-                    
+
                     // Store current actual_cash from database as fallback
                     $databaseActualCash = $session->actual_cash;
-                    
+
                     // If original report has actual_cash, preserve it (it's the historical snapshot)
                     // This takes precedence over database value to preserve the original closing snapshot
                     if ($originalReport && isset($originalReport['actual_cash']) && $originalReport['actual_cash'] !== null) {
@@ -102,7 +102,7 @@ class RegenerateZReports
                         // If report doesn't have it but database does, keep the database value
                         $session->actual_cash = $databaseActualCash;
                     }
-                    
+
                     $succeededCharges = $session->charges()->where('status', 'succeeded')->get();
                     $session->transaction_count = $succeededCharges->count();
                     $session->total_amount = $succeededCharges->sum('amount');
@@ -111,18 +111,18 @@ class RegenerateZReports
                     if ($session->actual_cash !== null) {
                         $session->cash_difference = $session->actual_cash - $session->expected_cash;
                     }
-                    
+
                     // Clear cached Z-report data to force regeneration (but preserve actual_cash)
                     unset($closingData['z_report_data']);
                     $session->closing_data = $closingData;
                     $session->saveQuietly();
                 }
 
-                // Regenerate Z-report (will generate fresh data since we cleared the cache)
-                $report = PosSessionsTable::generateZReport($session);
+                // Regenerate Z-report (skip attach step; we already ran findMissingData above)
+                $report = PosSessionsTable::generateZReport($session, attachMissingData: false, dryRun: $dryRun);
 
                 // Store the regenerated report in closing_data
-                if (!$dryRun) {
+                if (! $dryRun) {
                     $closingData = $session->closing_data ?? [];
                     $closingData['z_report_data'] = $report;
                     $closingData['z_report_regenerated_at'] = now()->toISOString();
@@ -151,8 +151,7 @@ class RegenerateZReports
     /**
      * Regenerate Z-report for a single session
      *
-     * @param PosSession $session
-     * @param bool $findMissingData Whether to attempt to find missing data
+     * @param  bool  $findMissingData  Whether to attempt to find missing data
      * @return array Statistics about the regeneration
      */
     public function regenerateSingle(PosSession $session, bool $findMissingData = true): array
@@ -183,10 +182,10 @@ class RegenerateZReports
             $closingData = $session->closing_data ?? [];
             $originalReport = $closingData['z_report_data'] ?? null;
             $originalGeneratedAt = $closingData['z_report_generated_at'] ?? $closingData['z_report_regenerated_at'] ?? null;
-            
+
             // Store current actual_cash from database as fallback
             $databaseActualCash = $session->actual_cash;
-            
+
             // If original report has actual_cash, preserve it (it's the historical snapshot)
             // This takes precedence over database value to preserve the original closing snapshot
             if ($originalReport && isset($originalReport['actual_cash']) && $originalReport['actual_cash'] !== null) {
@@ -206,20 +205,20 @@ class RegenerateZReports
             if ($session->actual_cash !== null) {
                 $session->cash_difference = $session->actual_cash - $session->expected_cash;
             }
-            
+
             // Clear cached Z-report data to force regeneration (but preserve actual_cash)
             unset($closingData['z_report_data']);
             $session->closing_data = $closingData;
             // Save session with preserved actual_cash before generating report
             $session->saveQuietly();
 
-            // Regenerate Z-report (will generate fresh data since we cleared the cache)
-            $report = PosSessionsTable::generateZReport($session);
+            // Regenerate Z-report (skip attach step; we already ran findMissingData above)
+            $report = PosSessionsTable::generateZReport($session, attachMissingData: false);
 
             // Store the regenerated report in closing_data
             // Also preserve the original report if it exists for comparison
             $closingData = $session->closing_data ?? [];
-            if ($originalReport !== null && !isset($closingData['z_report_data_original'])) {
+            if ($originalReport !== null && ! isset($closingData['z_report_data_original'])) {
                 $closingData['z_report_data_original'] = $originalReport;
                 $closingData['z_report_original_generated_at'] = $originalGeneratedAt ?? now()->toISOString();
             }
@@ -254,10 +253,24 @@ class RegenerateZReports
     }
 
     /**
-     * Attempt to find missing charges, receipts, and events for a session
+     * Attach any orphaned charges, receipts, and events to this session before generating a report.
+     * Call this before first Z-report generation so the report is complete (e.g. charges created
+     * by Stripe webhook or sync that don't yet have pos_session_id).
      *
-     * @param PosSession $session
-     * @param bool $dryRun
+     * @param  bool  $dryRun  When true, no changes are persisted (for preview-only / dry-run).
+     */
+    public function attachMissingDataToSession(PosSession $session, bool $dryRun = false): void
+    {
+        $this->findMissingData($session, $dryRun);
+    }
+
+    /**
+     * Attempt to find missing charges, receipts, and events for a session.
+     *
+     * Linking is done only when session_number is present in charge metadata,
+     * receipt_data, or event_data. Date-only and device-only fallbacks are not used,
+     * to avoid attaching online/non-POS sales or assigning to the wrong device.
+     *
      * @return array Statistics about found data
      */
     protected function findMissingData(PosSession $session, bool $dryRun): array
@@ -268,7 +281,7 @@ class RegenerateZReports
             'events_found' => 0,
         ];
 
-        if (!$session->store || !$session->store->stripe_account_id) {
+        if (! $session->store || ! $session->store->stripe_account_id) {
             return $stats;
         }
 
@@ -287,7 +300,7 @@ class RegenerateZReports
         // Method 1: Find charges by session_number in metadata or via receipts/events
         // Session number is unique and stored in receipt_data and potentially in charge metadata
         $sessionNumber = $session->session_number;
-        
+
         // Get charge IDs from events that have this session number
         // Filter in PHP to avoid JSON parsing issues with null bytes in PostgreSQL
         $chargeIdsFromEvents = PosEvent::where('store_id', $store->id)
@@ -296,7 +309,7 @@ class RegenerateZReports
             ->get()
             ->filter(function ($event) use ($sessionNumber) {
                 try {
-                    return isset($event->event_data['session_number']) && 
+                    return isset($event->event_data['session_number']) &&
                            $event->event_data['session_number'] === $sessionNumber;
                 } catch (\Exception $e) {
                     // Skip events with corrupted JSON data
@@ -305,7 +318,7 @@ class RegenerateZReports
             })
             ->pluck('related_charge_id')
             ->unique();
-        
+
         // Get all orphaned charges and filter in PHP to avoid JSON parsing issues
         $orphanedCharges = ConnectedCharge::where('stripe_account_id', $stripeAccountId)
             ->whereNull('pos_session_id')
@@ -319,28 +332,28 @@ class RegenerateZReports
                             $q2->whereNotNull('paid_at')
                                 ->whereBetween('paid_at', [$sessionStart, $sessionEnd]);
                         })
-                        ->orWhere(function ($q2) use ($sessionStart, $sessionEnd) {
-                            $q2->whereNull('paid_at')
-                                ->whereBetween('created_at', [$sessionStart, $sessionEnd]);
-                        });
+                            ->orWhere(function ($q2) use ($sessionStart, $sessionEnd) {
+                                $q2->whereNull('paid_at')
+                                    ->whereBetween('created_at', [$sessionStart, $sessionEnd]);
+                            });
                     });
             })
             ->get()
-            ->filter(function ($charge) use ($sessionNumber, $sessionStart, $sessionEnd) {
+            ->filter(function ($charge) use ($sessionNumber) {
                 try {
                     // Check metadata
                     $metadataSessionNumber = $charge->metadata['pos_session_number'] ?? null;
                     if ($metadataSessionNumber === $sessionNumber) {
                         return true;
                     }
-                    
+
                     // Check receipts (using PHP comparison to avoid JSON query issues with null bytes)
                     $hasMatchingReceipt = $charge->receipts()
                         ->whereNotNull('receipt_data')
                         ->get()
                         ->contains(function ($receipt) use ($sessionNumber) {
                             try {
-                                return isset($receipt->receipt_data['session_number']) && 
+                                return isset($receipt->receipt_data['session_number']) &&
                                        $receipt->receipt_data['session_number'] === $sessionNumber;
                             } catch (\Exception $e) {
                                 // Skip receipts with corrupted JSON data
@@ -350,14 +363,14 @@ class RegenerateZReports
                     if ($hasMatchingReceipt) {
                         return true;
                     }
-                    
+
                     // Check events (using PHP comparison to avoid JSON query issues with null bytes)
                     $hasMatchingEvent = PosEvent::where('related_charge_id', $charge->id)
                         ->whereNotNull('event_data')
                         ->get()
                         ->contains(function ($event) use ($sessionNumber) {
                             try {
-                                return isset($event->event_data['session_number']) && 
+                                return isset($event->event_data['session_number']) &&
                                        $event->event_data['session_number'] === $sessionNumber;
                             } catch (\Exception $e) {
                                 // Skip events with corrupted JSON data
@@ -367,14 +380,9 @@ class RegenerateZReports
                     if ($hasMatchingEvent) {
                         return true;
                     }
-                    
-                    // If no session_number found anywhere, check date range as fallback
-                    // but only if metadata doesn't have a different session number
-                    if ($metadataSessionNumber === null || $metadataSessionNumber === '') {
-                        $chargeDate = $charge->paid_at ?? $charge->created_at;
-                        return $chargeDate >= $sessionStart && $chargeDate <= $sessionEnd;
-                    }
-                    
+
+                    // Only attach when session_number is present in metadata, receipt, or event.
+                    // Do not attach by date range alone (avoids online/non-POS charges and wrong device).
                     return false;
                 } catch (\Exception $e) {
                     // Skip charges with corrupted JSON data
@@ -383,7 +391,7 @@ class RegenerateZReports
             });
 
         foreach ($orphanedCharges as $charge) {
-            if (!$dryRun) {
+            if (! $dryRun) {
                 $charge->pos_session_id = $session->id;
                 $charge->save();
             }
@@ -399,12 +407,12 @@ class RegenerateZReports
             ->whereNotNull('receipt_data')
             ->get()
             ->filter(function ($receipt) use ($sessionNumber) {
-                return isset($receipt->receipt_data['session_number']) && 
+                return isset($receipt->receipt_data['session_number']) &&
                        $receipt->receipt_data['session_number'] === $sessionNumber;
             });
 
         foreach ($receiptsWithoutSession as $receipt) {
-            if (!$dryRun) {
+            if (! $dryRun) {
                 $receipt->pos_session_id = $session->id;
                 $receipt->save();
             }
@@ -415,8 +423,8 @@ class RegenerateZReports
                 $charge = ConnectedCharge::find($receipt->charge_id);
                 // In dry-run mode, also check if we've already counted this charge
                 $alreadyCounted = $charge && $dryRun && isset($countedChargeIds[$charge->id]);
-                if ($charge && !$charge->pos_session_id && !$alreadyCounted) {
-                    if (!$dryRun) {
+                if ($charge && ! $charge->pos_session_id && ! $alreadyCounted) {
+                    if (! $dryRun) {
                         $charge->pos_session_id = $session->id;
                         $charge->save();
                     }
@@ -427,40 +435,20 @@ class RegenerateZReports
             $stats['receipts_found']++;
         }
 
-        // Method 3: Find charges via events - match by session_number in event_data or pos_device_id
-        // Filter in PHP to avoid JSON query issues with null bytes
+        // Method 3: Find events by session_number in event_data only (no device+date fallback)
+        // Filter in PHP to avoid JSON parsing issues with null bytes
         $eventsWithoutSession = PosEvent::where('store_id', $store->id)
             ->whereNull('pos_session_id')
             ->whereNotNull('related_charge_id')
-            ->where(function ($query) use ($session) {
-                // Match by device if session has a device (for fallback)
-                if ($session->pos_device_id) {
-                    $query->where('pos_device_id', $session->pos_device_id)
-                        ->whereBetween('occurred_at', [$session->opened_at, $session->closed_at ?? now()]);
-                }
-            })
-            ->orWhere(function ($query) {
-                // Also get events with event_data to check session_number in PHP
-                $query->whereNotNull('event_data');
-            })
+            ->whereNotNull('event_data')
             ->get()
-            ->filter(function ($event) use ($sessionNumber, $session) {
-                // Match by session_number in event_data
-                if (isset($event->event_data['session_number']) && 
-                    $event->event_data['session_number'] === $sessionNumber) {
-                    return true;
-                }
-                // Or match by device if session has a device and no session_number in event_data
-                if ($session->pos_device_id && 
-                    $event->pos_device_id == $session->pos_device_id &&
-                    (!isset($event->event_data['session_number']) || empty($event->event_data['session_number']))) {
-                    return true;
-                }
-                return false;
+            ->filter(function ($event) use ($sessionNumber) {
+                return isset($event->event_data['session_number']) &&
+                    $event->event_data['session_number'] === $sessionNumber;
             });
 
         foreach ($eventsWithoutSession as $event) {
-            if (!$dryRun) {
+            if (! $dryRun) {
                 $event->pos_session_id = $session->id;
                 $event->save();
             }
@@ -471,8 +459,8 @@ class RegenerateZReports
                 $charge = ConnectedCharge::find($event->related_charge_id);
                 // In dry-run mode, also check if we've already counted this charge
                 $alreadyCounted = $charge && $dryRun && isset($countedChargeIds[$charge->id]);
-                if ($charge && !$charge->pos_session_id && !$alreadyCounted) {
-                    if (!$dryRun) {
+                if ($charge && ! $charge->pos_session_id && ! $alreadyCounted) {
+                    if (! $dryRun) {
                         $charge->pos_session_id = $session->id;
                         $charge->save();
                     }
@@ -493,7 +481,7 @@ class RegenerateZReports
                 ->get();
 
             foreach ($receiptsByCharge as $receipt) {
-                if (!$dryRun) {
+                if (! $dryRun) {
                     $receipt->pos_session_id = $session->id;
                     $receipt->save();
                 }
