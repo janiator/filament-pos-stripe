@@ -52,6 +52,9 @@ class _PosReportWebViewState extends State<PosReportWebView> {
   String? _errorMessage;
   bool _isDownloading = false;
   final GlobalKey _downloadButtonKey = GlobalKey();
+  /// True after the main report embed page has loaded successfully.
+  /// Used to ignore subresource 404s (favicon, css, etc.) so we don't replace the report with an error.
+  bool _mainDocumentLoaded = false;
 
   @override
   void initState() {
@@ -61,6 +64,7 @@ class _PosReportWebViewState extends State<PosReportWebView> {
   }
 
   void _initializeWebView() {
+    _mainDocumentLoaded = false;
     final baseUrl = widget.apiBaseUrl;
     final token = widget.authToken;
     final storeSlug = widget.storeSlug;
@@ -95,10 +99,16 @@ class _PosReportWebViewState extends State<PosReportWebView> {
               setState(() {
                 _isLoading = true;
                 _errorMessage = null;
+                if (!url.contains('report/embed')) {
+                  _mainDocumentLoaded = false;
+                }
               });
             }
           },
           onPageFinished: (String url) {
+            if (mounted && url.contains('report/embed')) {
+              _mainDocumentLoaded = true;
+            }
             // Hide the download button in the webview
             _controller.runJavaScript('''
               (function() {
@@ -130,29 +140,29 @@ class _PosReportWebViewState extends State<PosReportWebView> {
             }
           },
           onWebResourceError: (WebResourceError error) {
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-                _errorMessage = 'Failed to load report: ${error.description}';
-              });
-            }
+            if (!mounted) return;
+            if (_mainDocumentLoaded) return;
+            setState(() {
+              _isLoading = false;
+              _errorMessage = 'Failed to load report: ${error.description}';
+            });
           },
           onHttpError: (HttpResponseError error) {
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-                final statusCode = error.response?.statusCode ?? 0;
-                if (statusCode == 401) {
-                  _errorMessage = 'Authentication failed. Please log in again.';
-                } else if (statusCode == 403) {
-                  _errorMessage = 'You do not have access to this report.';
-                } else if (statusCode == 404) {
-                  _errorMessage = 'Report or session not found.';
-                } else {
-                  _errorMessage = 'Error loading report ($statusCode)';
-                }
-              });
-            }
+            if (!mounted) return;
+            if (_mainDocumentLoaded) return;
+            setState(() {
+              _isLoading = false;
+              final statusCode = error.response?.statusCode ?? 0;
+              if (statusCode == 401) {
+                _errorMessage = 'Authentication failed. Please log in again.';
+              } else if (statusCode == 403) {
+                _errorMessage = 'You do not have access to this report.';
+              } else if (statusCode == 404) {
+                _errorMessage = 'Report or session not found.';
+              } else {
+                _errorMessage = 'Error loading report ($statusCode)';
+              }
+            });
           },
         ),
       )

@@ -9,7 +9,7 @@ info:
     - Store management
     - Customer management
     - POS device registration and management
-    - POS session management (Kassasystemforskriften compliance)
+    - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads
     - POS event logging (audit trail)
     - POS transaction operations (void, correction)
     - Receipt generation and management
@@ -1259,6 +1259,208 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Session not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-sessions/{id}/cash-withdrawal:
+    post:
+      tags:
+        - POS Sessions
+      summary: Record cash withdrawal
+      description: Log a cash withdrawal for an open session. Only allowed when session status is open.
+      operationId: cashWithdrawal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: integer
+                  minimum: 1
+                  description: Amount in øre
+                reason:
+                  type: string
+                  nullable: true
+                  maxLength: 500
+                  description: Optional reason for the withdrawal
+      responses:
+        '201':
+          description: Cash withdrawal recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cash withdrawal recorded
+                  event:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      event_code:
+                        type: integer
+                      event_data:
+                        type: object
+                      occurred_at:
+                        type: string
+                        format: date-time
+        '400':
+          description: Session is not open; cash withdrawal only allowed for open sessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Session not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-sessions/{id}/cash-deposit:
+    post:
+      tags:
+        - POS Sessions
+      summary: Record cash deposit
+      description: Log a cash deposit for an open session. Only allowed when session status is open.
+      operationId: cashDeposit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: integer
+                  minimum: 1
+                  description: Amount in øre
+                reason:
+                  type: string
+                  nullable: true
+                  maxLength: 500
+                  description: Optional reason for the deposit
+      responses:
+        '201':
+          description: Cash deposit recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cash deposit recorded
+                  event:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      event_code:
+                        type: integer
+                      event_data:
+                        type: object
+                      occurred_at:
+                        type: string
+                        format: date-time
+        '400':
+          description: Session is not open; cash deposit only allowed for open sessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Session not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-sessions/{id}/x-report/pdf:
+    get:
+      tags:
+        - POS Sessions
+      summary: Download X-report as PDF
+      description: Generate and download the X-report for the given session as a PDF. Requires Bearer token. Store can be specified via query parameter `store` (slug) or header `X-Store-Slug`.
+      operationId: downloadXReportPdf
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: store
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Store slug (optional if user has current store or single store)
+      responses:
+        '200':
+          description: X-report PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Store not found or no access to store
+        '404':
+          description: Session not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /pos-sessions/{id}/z-report/pdf:
+    get:
+      tags:
+        - POS Sessions
+      summary: Download Z-report as PDF
+      description: Generate and download the Z-report for the given session as a PDF. Requires Bearer token. Store can be specified via query parameter `store` (slug) or header `X-Store-Slug`.
+      operationId: downloadZReportPdf
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: store
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Store slug (optional if user has current store or single store)
+      responses:
+        '200':
+          description: Z-report PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Store not found or no access to store
         '404':
           description: Session not found
         '401':
@@ -5558,6 +5760,26 @@ components:
           type: integer
           description: Total amount in øre
           example: 150000
+        cash_withdrawals:
+          type: object
+          description: Summary of cash withdrawals during the session
+          properties:
+            count:
+              type: integer
+              description: Number of withdrawal events
+            total_amount:
+              type: integer
+              description: Total withdrawal amount in øre
+        cash_deposits:
+          type: object
+          description: Summary of cash deposits during the session
+          properties:
+            count:
+              type: integer
+              description: Number of deposit events
+            total_amount:
+              type: integer
+              description: Total deposit amount in øre
         created_at:
           type: string
           format: date-time

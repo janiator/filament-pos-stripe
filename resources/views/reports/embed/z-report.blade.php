@@ -489,6 +489,37 @@
         </div>
     @endif
 
+    @if((isset($report['cash_withdrawals']) && $report['cash_withdrawals']['count'] > 0) || (isset($report['cash_deposits']) && $report['cash_deposits']['count'] > 0))
+        <div class="section">
+            <div class="section-title">Kontantuttak og innskudd</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th class="text-center">Antall</th>
+                        <th class="text-right">Beløp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if(isset($report['cash_withdrawals']) && $report['cash_withdrawals']['count'] > 0)
+                        <tr>
+                            <td>Kontantuttak</td>
+                            <td class="text-center">{{ $report['cash_withdrawals']['count'] }}</td>
+                            <td class="text-right">{{ number_format($report['cash_withdrawals']['total_amount'] / 100, 2) }} NOK</td>
+                        </tr>
+                    @endif
+                    @if(isset($report['cash_deposits']) && $report['cash_deposits']['count'] > 0)
+                        <tr>
+                            <td>Kontantinnskudd</td>
+                            <td class="text-center">{{ $report['cash_deposits']['count'] }}</td>
+                            <td class="text-right">{{ number_format($report['cash_deposits']['total_amount'] / 100, 2) }} NOK</td>
+                        </tr>
+                    @endif
+                </tbody>
+            </table>
+        </div>
+    @endif
+
     @if(!empty($report['closing_notes']))
         <div class="section">
             <div class="section-title">Stengningsnotater</div>
