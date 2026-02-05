@@ -20,9 +20,11 @@ return new class extends Migration
                 'closed_at' => DB::raw('COALESCE(closed_at, updated_at)'),
             ]);
 
-        // Change the enum type - PostgreSQL requires dropping and recreating
-        DB::statement("ALTER TABLE pos_sessions DROP CONSTRAINT IF EXISTS pos_sessions_status_check");
-        DB::statement("ALTER TABLE pos_sessions ADD CONSTRAINT pos_sessions_status_check CHECK (status IN ('open', 'closed'))");
+        // Change the enum type - PostgreSQL requires dropping and recreating; SQLite has no named check constraint
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE pos_sessions DROP CONSTRAINT IF EXISTS pos_sessions_status_check');
+            DB::statement("ALTER TABLE pos_sessions ADD CONSTRAINT pos_sessions_status_check CHECK (status IN ('open', 'closed'))");
+        }
     }
 
     /**
@@ -30,8 +32,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revert enum back to include abandoned
-        DB::statement("ALTER TABLE pos_sessions DROP CONSTRAINT IF EXISTS pos_sessions_status_check");
-        DB::statement("ALTER TABLE pos_sessions ADD CONSTRAINT pos_sessions_status_check CHECK (status IN ('open', 'closed', 'abandoned'))");
+        // Revert enum back to include abandoned (PostgreSQL only; SQLite has no named check constraint)
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE pos_sessions DROP CONSTRAINT IF EXISTS pos_sessions_status_check');
+            DB::statement("ALTER TABLE pos_sessions ADD CONSTRAINT pos_sessions_status_check CHECK (status IN ('open', 'closed', 'abandoned'))");
+        }
     }
 };

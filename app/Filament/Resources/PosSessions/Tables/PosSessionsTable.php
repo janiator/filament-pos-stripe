@@ -608,8 +608,11 @@ class PosSessionsTable
     /**
      * Generate Z-report data for a session
      * For closed sessions, uses stored report data from closing_data if available to preserve snapshot
+     *
+     * @param  bool  $attachMissingData  When true (default), attaches orphaned charges/receipts/events to the session before building the report. Set to false when the caller has already done this (e.g. RegenerateZReports) to avoid redundant queries.
+     * @param  bool  $dryRun  When true, no changes are persisted (for preview-only / dry-run). Respects dry-run in attach step and skips all saveQuietly.
      */
-    public static function generateZReport(PosSession $session): array
+    public static function generateZReport(PosSession $session, bool $attachMissingData = true, bool $dryRun = false): array
     {
         // For closed sessions, check if we have stored report data (snapshot at closing time)
         if ($session->status === 'closed' && $session->closing_data && isset($session->closing_data['z_report_data'])) {
@@ -639,7 +642,9 @@ class PosSessionsTable
                 $closingData = $session->closing_data;
                 unset($closingData['z_report_data']);
                 $session->closing_data = $closingData;
-                $session->saveQuietly();
+                if (! $dryRun) {
+                    $session->saveQuietly();
+                }
                 // Fall through to regenerate report below
             } else {
                 // Auto-backfill products_sold, sales_by_vendor, and cash movements if missing (for reports generated before these features were added)
@@ -710,7 +715,7 @@ class PosSessionsTable
                         $needsUpdate = true;
                     }
 
-                    if ($needsUpdate) {
+                    if ($needsUpdate && ! $dryRun) {
                         $closingData = $session->closing_data;
                         $closingData['z_report_data'] = $cachedReport;
                         $closingData['z_report_data_backfilled_at'] = now()->toISOString();
@@ -720,6 +725,28 @@ class PosSessionsTable
                 }
 
                 return $cachedReport;
+            }
+        }
+
+        // Before building a fresh report, attach any orphaned charges/receipts/events to this session
+        // (unless the caller already did so, e.g. RegenerateZReports, to avoid redundant queries).
+        if ($attachMissingData) {
+            $regenerateAction = new \App\Actions\PosSessions\RegenerateZReports;
+            $regenerateAction->attachMissingDataToSession($session, $dryRun);
+            if (! $dryRun) {
+                $session->refresh();
+            }
+
+            // Keep session totals in sync after attaching missing charges (for closed sessions)
+            if (! $dryRun && $session->status === 'closed') {
+                $succeededCharges = $session->charges()->where('status', 'succeeded')->get();
+                $session->transaction_count = $succeededCharges->count();
+                $session->total_amount = $succeededCharges->sum('amount');
+                $session->expected_cash = $session->calculateExpectedCash();
+                if ($session->actual_cash !== null) {
+                    $session->cash_difference = $session->actual_cash - $session->expected_cash;
+                }
+                $session->saveQuietly();
             }
         }
 
@@ -812,7 +839,7 @@ class PosSessionsTable
 
         // For closed sessions, store the report data in closing_data to preserve snapshot
         // This ensures reports remain unchanged even if vendor commission settings change later
-        if ($session->status === 'closed') {
+        if ($session->status === 'closed' && ! $dryRun) {
             $closingData = $session->closing_data ?? [];
             $closingData['z_report_data'] = $report;
             $closingData['z_report_generated_at'] = now()->toISOString();
