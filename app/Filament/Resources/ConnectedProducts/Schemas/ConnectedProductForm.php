@@ -57,6 +57,9 @@ class ConnectedProductForm
                                             ->collection('images')
                                             ->multiple()
                                             ->image()
+                                            ->optimize('webp')
+                                            ->maxImageWidth(1920)
+                                            ->maxImageHeight(1920)
                                             ->imageEditor()
                                             ->imageEditorAspectRatios([
                                                 null,
@@ -923,6 +926,9 @@ class ConnectedProductForm
                                             ->collection('images')
                                             ->multiple()
                                             ->image()
+                                            ->optimize('webp')
+                                            ->maxImageWidth(1920)
+                                            ->maxImageHeight(1920)
                                             ->imageEditor()
                                             ->imageEditorAspectRatios([
                                                 null,
