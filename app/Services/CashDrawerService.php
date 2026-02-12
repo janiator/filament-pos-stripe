@@ -169,14 +169,14 @@ class CashDrawerService
      * Log a cash movement event (withdrawal or deposit).
      *
      * @param  int  $amountOre  Amount in øre
-     * @param  int  $eventCode  The event code constant
+     * @param  string  $eventCode  The event code constant
      * @param  string  $description  Description of the event
      * @param  string|null  $reason  Optional reason
      */
     private function logCashMovement(
         PosSession $posSession,
         int $amountOre,
-        int $eventCode,
+        string $eventCode,
         string $description,
         ?string $reason = null
     ): PosEvent {
