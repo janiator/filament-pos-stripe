@@ -14,16 +14,14 @@ import 'package:flutter/material.dart';
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:mek_stripe_terminal/mek_stripe_terminal.dart';
 import '/custom_code/stripe_terminal_singleton.dart';
 
-// ────────────────────────────────────────────────────────────────
-// DELEGATE MED APP-STATE-OPPDATERINGER (NORSK TEKST)
-// ────────────────────────────────────────────────────────────────
-class MyInternetReaderDelegate extends InternetReaderDelegate
-    with ReaderDisconnectDelegate {
+class MyInternetReaderDelegate extends InternetReaderDelegate with ReaderDisconnectDelegate {
   void _setStatus(String status) {
     FFAppState().update(() {
       FFAppState().stripeReaderStatus = status;
@@ -31,80 +29,57 @@ class MyInternetReaderDelegate extends InternetReaderDelegate
   }
 
   @override
-  void onReportAvailableUpdate(ReaderSoftwareUpdate update) {
-    _setStatus('Leseroppdatering tilgjengelig');
-  }
+  void onReportAvailableUpdate(ReaderSoftwareUpdate update) => _setStatus('Leseroppdatering tilgjengelig');
 
   @override
-  void onStartInstallingUpdate(
-      ReaderSoftwareUpdate update, Cancellable cancelUpdate) {
-    _setStatus('Installerer oppdatering på terminalen…');
-  }
+  void onStartInstallingUpdate(ReaderSoftwareUpdate update, Cancellable cancelUpdate) =>
+      _setStatus('Installerer oppdatering på terminalen…');
 
   @override
-  void onReportReaderSoftwareUpdateProgress(double progress) {
-    _setStatus(
-      'Oppdaterer terminal… ${(progress * 100).toStringAsFixed(0)} % fullført',
-    );
-  }
+  void onReportReaderSoftwareUpdateProgress(double progress) =>
+      _setStatus('Oppdaterer terminal… ${(progress * 100).toStringAsFixed(0)} % fullført');
 
   @override
-  void onFinishInstallingUpdate(
-      ReaderSoftwareUpdate? update, TerminalException? exception) {
-    if (exception != null) {
-      _setStatus('Oppdatering av terminal mislyktes: ${exception.message}');
-    } else {
-      _setStatus('Oppdatering av terminal fullført');
-    }
-  }
+  void onRequestReaderDisplayMessage(ReaderDisplayMessage message) => _setStatus('Melding fra terminal: ${message.name}');
 
   @override
-  void onRequestReaderDisplayMessage(ReaderDisplayMessage message) {
-    _setStatus('Melding fra terminal: ${message.name}');
-  }
+  void onRequestReaderInput(List<ReaderInputOption> options) =>
+      _setStatus('Venter på kort: ${options.map((e) => e.name).join(', ')}');
 
   @override
-  void onRequestReaderInput(List<ReaderInputOption> options) {
-    final opts = options.map((e) => e.name).join(', ');
-    _setStatus('Venter på kort: $opts');
-  }
+  void onReportReaderEvent(ReaderEvent event) => _setStatus('Hendelse på terminal: ${event.name}');
 
   @override
-  void onReportReaderEvent(ReaderEvent event) {
-    _setStatus('Hendelse på terminal: ${event.name}');
-  }
+  void onDisconnect(DisconnectReason reason) => _setStatus('Frakoblet: ${reason.name}');
 
   @override
-  void onDisconnect(DisconnectReason reason) {
-    _setStatus('Frakoblet: ${reason.name}');
-  }
+  void onReaderReconnectStarted(Reader reader, Cancellable cancelReconnect, DisconnectReason reason) =>
+      _setStatus('Kobler til terminal på nytt…');
 
   @override
-  void onReaderReconnectStarted(
-      Reader reader, Cancellable cancelReconnect, DisconnectReason reason) {
-    _setStatus('Kobler til terminal på nytt…');
-  }
+  void onReaderReconnectFailed(Reader reader) => _setStatus('Gjenoppkobling til terminal mislyktes');
 
   @override
-  void onReaderReconnectFailed(Reader reader) {
-    _setStatus('Gjenoppkobling til terminal mislyktes');
-  }
-
-  @override
-  void onReaderReconnectSucceeded(Reader reader) {
-    _setStatus(
-      'Terminal tilkoblet på nytt: ${reader.label ?? reader.serialNumber}',
-    );
-  }
+  void onReaderReconnectSucceeded(Reader reader) =>
+      _setStatus('Terminal tilkoblet på nytt: ${reader.label ?? reader.serialNumber}');
 }
 
-/// ──────────────────────────────────────────────────────────────── WIDGET
-/// ────────────────────────────────────────────────────────────────
 class StripeInternetTerminalReaderPickerAndConnector extends StatefulWidget {
   final String connectionToken;
   final String locationId;
   final double? width;
   final double? height;
+
+  /// Optional: used for auto-connect if found among discovered readers.
+  final String? preferredReaderStripeId;
+  final bool autoconnect;
+
+  /// Optional: save last-connected terminal for this POS device.
+  final int? posDeviceId;
+  final int? selectedLocationInternalId;
+  final String? apiBaseUrl;
+  final String? authToken;
+  final String? storeSlug;
 
   const StripeInternetTerminalReaderPickerAndConnector({
     Key? key,
@@ -112,32 +87,78 @@ class StripeInternetTerminalReaderPickerAndConnector extends StatefulWidget {
     required this.locationId,
     this.width,
     this.height,
+    this.preferredReaderStripeId,
+    this.autoconnect = true,
+    this.posDeviceId,
+    this.selectedLocationInternalId,
+    this.apiBaseUrl,
+    this.authToken,
+    this.storeSlug,
   }) : super(key: key);
 
   @override
-  _StripeInternetTerminalReaderPickerAndConnectorState createState() =>
+  State<StripeInternetTerminalReaderPickerAndConnector> createState() =>
       _StripeInternetTerminalReaderPickerAndConnectorState();
 }
 
 class _StripeInternetTerminalReaderPickerAndConnectorState
     extends State<StripeInternetTerminalReaderPickerAndConnector> {
-  // Readers
-  List<Reader> _internetReaders = [];
+  static const Duration _initTimeout = Duration(seconds: 20);
+  static const Duration _discoverTimeout = Duration(seconds: 25);
 
-  // Discovery subscription
+  List<Reader> _internetReaders = [];
   StreamSubscription<List<Reader>>? _inetSub;
 
-  // UI state
   bool _loading = true;
   String? _error;
   String? _connectionStatus;
 
-  // ─────────────────────────────────────────────────────────────
-  // HJELPERE FOR Å SYNKE MED APP STATE
-  // ─────────────────────────────────────────────────────────────
+  String? _activeToken;
+  String? _activeLocationId;
+
+  String get _apiRoot {
+    final b = widget.apiBaseUrl?.trim() ?? '';
+    if (b.isEmpty) return b;
+    final base = b.endsWith('/') ? b.substring(0, b.length - 1) : b;
+    return base.endsWith('/api') ? base : '$base/api';
+  }
+
+  bool get _hasApiCreds {
+    final base = _apiRoot;
+    return base.isNotEmpty &&
+        (widget.authToken?.trim().isNotEmpty ?? false) &&
+        (widget.storeSlug?.trim().isNotEmpty ?? false);
+  }
+
+  /// When apiBaseUrl, authToken, storeSlug and selectedLocationInternalId are set,
+  /// fetch a fresh connection token from the API (FlutterFlow cannot pass callbacks).
+  Future<Map<String, String>?> _fetchFreshTokenFromApi() async {
+    if (!_hasApiCreds || widget.selectedLocationInternalId == null) return null;
+    try {
+      final uri = Uri.parse('$_apiRoot/stores/${widget.storeSlug!.trim()}/terminal/connection-token');
+      final resp = await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer ${widget.authToken!.trim()}',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'location_id': widget.selectedLocationInternalId}),
+      );
+      if (resp.statusCode != 200 || !mounted) return null;
+      final data = jsonDecode(resp.body) as Map<String, dynamic>?;
+      final token = (data?['secret']?.toString() ?? '').trim();
+      final locationId = (data?['location']?.toString() ?? '').trim();
+      if (token.isEmpty || locationId.isEmpty) return null;
+      return {'token': token, 'locationId': locationId};
+    } catch (_) {
+      return null;
+    }
+  }
+
   void _setConnectionStatus(String? status) {
     final connected = status != null && status.startsWith('Tilkoblet:');
-    setState(() => _connectionStatus = status);
+    if (mounted) setState(() => _connectionStatus = status);
     FFAppState().update(() {
       FFAppState().stripeReaderStatus = status ?? '';
       FFAppState().stripeReaderConnected = connected;
@@ -145,7 +166,7 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
   }
 
   void _setError(String message) {
-    setState(() => _error = message);
+    if (mounted) setState(() => _error = message);
     FFAppState().update(() {
       FFAppState().stripeReaderStatus = 'Feil: $message';
       FFAppState().stripeReaderConnected = false;
@@ -155,20 +176,25 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
   void _setAppStatus(String message) {
     FFAppState().update(() {
       FFAppState().stripeReaderStatus = message;
-      // status-only, no change to stripeReaderConnected here
     });
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // LIFECYCLE
-  // ─────────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
-    // Utsett initialisering til etter første build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initTerminalAndDiscover();
-    });
+    _activeToken = widget.connectionToken;
+    _activeLocationId = widget.locationId;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initTerminalAndDiscover(requestFreshToken: true));
+  }
+
+  @override
+  void didUpdateWidget(covariant StripeInternetTerminalReaderPickerAndConnector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.connectionToken != widget.connectionToken || oldWidget.locationId != widget.locationId) {
+      _activeToken = widget.connectionToken;
+      _activeLocationId = widget.locationId;
+      _initTerminalAndDiscover(requestFreshToken: false);
+    }
   }
 
   @override
@@ -177,22 +203,21 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
     super.dispose();
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // DISCOVERY HELPERS
-  // ─────────────────────────────────────────────────────────────
-  Future<List<Reader>> _discoverOnce(InternetDiscoveryConfiguration cfg) async {
-    final completer = Completer<List<Reader>>();
+  Future<bool> _refreshToken() async {
+    final fresh = await _fetchFreshTokenFromApi();
+    if (!mounted || fresh == null) return false;
 
-    _inetSub = Terminal.instance.discoverReaders(cfg).listen(
-          completer.complete,
-          onError: completer.completeError,
-          cancelOnError: true,
-        );
+    final token = fresh['token']?.trim() ?? '';
+    final locationId = fresh['locationId']?.trim() ?? '';
+    if (token.isEmpty || locationId.isEmpty) return false;
 
-    final res = await completer.future;
-    await _inetSub?.cancel();
-    _inetSub = null;
-    return res;
+    if (mounted) {
+      setState(() {
+        _activeToken = token;
+        _activeLocationId = locationId;
+      });
+    }
+    return true;
   }
 
   Future<void> _cancelDiscovery() async {
@@ -200,10 +225,31 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
     _inetSub = null;
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // INIT + DISCOVER
-  // ─────────────────────────────────────────────────────────────
-  Future<void> _initTerminalAndDiscover() async {
+  Future<List<Reader>> _discoverOnce(InternetDiscoveryConfiguration cfg) async {
+    final completer = Completer<List<Reader>>();
+
+    _inetSub = Terminal.instance.discoverReaders(cfg).listen(
+      completer.complete,
+      onError: completer.completeError,
+      cancelOnError: true,
+    );
+
+    final result = await completer.future.timeout(_discoverTimeout, onTimeout: () => <Reader>[]);
+    await _inetSub?.cancel();
+    _inetSub = null;
+    return result;
+  }
+
+  Future<String> _tokenProvider() async {
+    if (_hasApiCreds && widget.selectedLocationInternalId != null) {
+      final ok = await _refreshToken();
+      if (ok) return _activeToken ?? '';
+    }
+    return _activeToken ?? widget.connectionToken;
+  }
+
+  Future<void> _initTerminalAndDiscover({required bool requestFreshToken}) async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -213,8 +259,25 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
 
     _setAppStatus('Initialiserer Stripe Terminal…');
 
-    // Tillatelser
-    final List<Permission> permissions = [
+    if (requestFreshToken && _hasApiCreds && widget.selectedLocationInternalId != null) {
+      _setAppStatus('Henter nytt tilkoblingstoken…');
+      final ok = await _refreshToken();
+      if (!ok) {
+        _setError('Kunne ikke hente nytt tilkoblingstoken');
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
+    }
+
+    final token = (_activeToken ?? widget.connectionToken).trim();
+    final locationId = (_activeLocationId ?? widget.locationId).trim();
+    if (token.isEmpty || locationId.isEmpty) {
+      _setError('Mangler tilkoblingstoken eller terminalsted');
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+
+    final permissions = <Permission>[
       Permission.locationWhenInUse,
       Permission.bluetooth,
       if (Platform.isAndroid) ...[
@@ -222,26 +285,20 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
         Permission.bluetoothConnect,
       ],
     ];
-
     await permissions.request();
 
-    // Init SDK én gang
     try {
-      await StripeTerminalSingleton.instance
-          .ensureInit(() async => widget.connectionToken);
+      await StripeTerminalSingleton.instance.ensureInit(_tokenProvider).timeout(_initTimeout);
     } catch (e) {
       _setError('Kunne ikke initialisere Stripe Terminal: $e');
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
       return;
     }
 
-    // Allerede tilkoblet?
     final current = await Terminal.instance.getConnectedReader();
     if (current != null) {
-      _setConnectionStatus(
-        'Tilkoblet: ${current.label ?? current.serialNumber}',
-      );
-      setState(() => _loading = false);
+      _setConnectionStatus('Tilkoblet: ${current.label ?? current.serialNumber}');
+      if (mounted) setState(() => _loading = false);
       return;
     }
 
@@ -249,49 +306,128 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
   }
 
   Future<void> _discoverReaders() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
       _internetReaders = [];
     });
 
+    final locationId = (_activeLocationId ?? widget.locationId).trim();
+    if (locationId.isEmpty) {
+      _setError('Mangler terminalsted (location)');
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+
     _setAppStatus('Søker etter terminaler…');
 
     try {
       _internetReaders = await _discoverOnce(
-        InternetDiscoveryConfiguration(
-          locationId: widget.locationId,
-          isSimulated: false,
-        ),
+        InternetDiscoveryConfiguration(locationId: locationId, isSimulated: false),
       );
-
+      if (!mounted) return;
       setState(() => _loading = false);
 
       if (_internetReaders.isEmpty) {
         _setAppStatus('Fant ingen terminaler');
       } else {
-        _setAppStatus(
-          'Fant ${_internetReaders.length} terminal(er)',
-        );
+        _setAppStatus('Fant ${_internetReaders.length} terminal(er)');
+
+        if (widget.autoconnect && (widget.preferredReaderStripeId?.trim().isNotEmpty ?? false)) {
+          final preferred = widget.preferredReaderStripeId!.trim();
+          Reader? selected;
+          for (final r in _internetReaders) {
+            if (r.id == preferred) {
+              selected = r;
+              break;
+            }
+          }
+          if (selected != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _connectToReader(selected!);
+            });
+          }
+        }
       }
     } catch (e) {
       _setError('Søk etter terminaler mislyktes: $e');
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // CONNECT
-  // ─────────────────────────────────────────────────────────────
+  Future<int?> _fetchReaderInternalId(String stripeReaderId) async {
+    if (!_hasApiCreds) return null;
+    try {
+      final uri = Uri.parse('$_apiRoot/terminals/locations');
+      final resp = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer ${widget.authToken!.trim()}',
+          'Accept': 'application/json',
+          'X-Tenant': widget.storeSlug!.trim(),
+        },
+      );
+      if (resp.statusCode != 200) return null;
+      final data = jsonDecode(resp.body) as Map<String, dynamic>?;
+      final locations = data?['locations'] as List<dynamic>?;
+      if (locations == null) return null;
+
+      for (final loc in locations) {
+        final map = Map<String, dynamic>.from(loc as Map);
+        final readers = map['readers'] as List<dynamic>?;
+        if (readers == null) continue;
+        for (final r in readers) {
+          final rm = Map<String, dynamic>.from(r as Map);
+          if ((rm['stripe_reader_id']?.toString() ?? '') == stripeReaderId) {
+            final id = rm['id'];
+            if (id is int) return id;
+            if (id != null) return int.tryParse(id.toString());
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _saveLastConnectedTerminal(Reader reader) async {
+    if (!_hasApiCreds || widget.posDeviceId == null || widget.selectedLocationInternalId == null) {
+      return;
+    }
+
+    final readerStripeId = (reader.id ?? '').trim();
+    final readerInternalId = readerStripeId.isNotEmpty ? await _fetchReaderInternalId(readerStripeId) : null;
+
+    try {
+      final uri = Uri.parse('$_apiRoot/pos-devices/${widget.posDeviceId}');
+      final body = {
+        'last_connected_terminal_location_id': widget.selectedLocationInternalId,
+        if (readerInternalId != null) 'last_connected_terminal_reader_id': readerInternalId,
+      };
+
+      await http.patch(
+        uri,
+        headers: {
+          'Authorization': 'Bearer ${widget.authToken!.trim()}',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Tenant': widget.storeSlug!.trim(),
+        },
+        body: jsonEncode(body),
+      );
+    } catch (_) {}
+  }
+
   Future<void> _connectToReader(Reader reader) async {
     await _cancelDiscovery();
 
     _setConnectionStatus('Kobler til terminal…');
-
-    setState(() {
-      _error = null;
-      _loading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _error = null;
+        _loading = true;
+      });
+    }
 
     try {
       final current = await Terminal.instance.getConnectedReader();
@@ -302,17 +438,13 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
 
       await Terminal.instance.connectReader(
         reader,
-        configuration: InternetConnectionConfiguration(
-          readerDelegate: MyInternetReaderDelegate(),
-        ),
+        configuration: InternetConnectionConfiguration(readerDelegate: MyInternetReaderDelegate()),
       );
 
       if (!mounted) return;
 
-      _setConnectionStatus(
-        'Tilkoblet: ${reader.label ?? reader.serialNumber}',
-      );
-      
+      _setConnectionStatus('Tilkoblet: ${reader.label ?? reader.serialNumber}');
+      await _saveLastConnectedTerminal(reader);
       setState(() => _loading = false);
     } catch (e) {
       if (!mounted) return;
@@ -322,9 +454,6 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // RESCAN
-  // ─────────────────────────────────────────────────────────────
   Future<void> _handleRescan() async {
     _setAppStatus('Søker etter terminaler på nytt…');
     await _cancelDiscovery();
@@ -332,14 +461,17 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
     final connected = await Terminal.instance.getConnectedReader();
     if (connected != null) {
       await Terminal.instance.disconnectReader();
+      if (mounted) {
+        FFAppState().update(() {
+          FFAppState().stripeReaderConnected = false;
+          FFAppState().stripeReaderStatus = 'Frakoblet';
+        });
+      }
     }
 
-    await _initTerminalAndDiscover();
+    await _initTerminalAndDiscover(requestFreshToken: true);
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // UI
-  // ─────────────────────────────────────────────────────────────
   Widget _buildReaderList() {
     if (_internetReaders.isEmpty) return const SizedBox();
 
@@ -371,21 +503,19 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-    if (_error != null) return Center(child: Text('Feil: $_error'));
+    if (_error != null) {
+      return Center(child: Text('Feil: $_error'));
+    }
 
     if (_connectionStatus != null) {
       return Column(
         children: [
-          Text(
-            _connectionStatus!,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          ElevatedButton(
-            onPressed: _handleRescan,
-            child: const Text('Søk på nytt'),
-          ),
+          Text(_connectionStatus!, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ElevatedButton(onPressed: _handleRescan, child: const Text('Søk på nytt')),
         ],
       );
     }
@@ -394,10 +524,7 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
       return Column(
         children: [
           const Text('Fant ingen Stripe-terminaler.'),
-          ElevatedButton(
-            onPressed: _handleRescan,
-            child: const Text('Søk på nytt'),
-          ),
+          ElevatedButton(onPressed: _handleRescan, child: const Text('Søk på nytt')),
         ],
       );
     }
