@@ -33,6 +33,7 @@ return new class extends Migration
         Schema::table('pos_devices', function (Blueprint $table) {
             $table->dropForeign(['last_connected_terminal_location_id']);
             $table->dropForeign(['last_connected_terminal_reader_id']);
+            $table->dropColumn(['last_connected_terminal_location_id', 'last_connected_terminal_reader_id']);
         });
     }
 };
