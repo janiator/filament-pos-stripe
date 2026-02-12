@@ -445,7 +445,7 @@ class _StripeInternetTerminalReaderPickerAndConnectorState
 
       _setConnectionStatus('Tilkoblet: ${reader.label ?? reader.serialNumber}');
       await _saveLastConnectedTerminal(reader);
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     } catch (e) {
       if (!mounted) return;
       _setConnectionStatus(null);
