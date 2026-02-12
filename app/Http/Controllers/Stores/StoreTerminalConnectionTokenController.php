@@ -53,11 +53,14 @@ class StoreTerminalConnectionTokenController extends Controller
             $location = $locations->first();
         }
 
-        // FIX: pass params as an array, not a string
         $connectionToken = $storeModel->createConnectionToken([
             'location' => $location->stripe_location_id,
         ], true); // true = connected account
 
-        return response()->json($connectionToken, 200);
+        // Return secret and location so the client can update app state (e.g. after token refresh)
+        return response()->json([
+            'secret' => $connectionToken->secret,
+            'location' => $location->stripe_location_id,
+        ], 200);
     }
 }

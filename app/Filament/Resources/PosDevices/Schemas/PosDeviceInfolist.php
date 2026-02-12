@@ -32,6 +32,13 @@ class PosDeviceInfolist
                             ->placeholder('No default printer set')
                             ->default('No default printer set'),
 
+                        TextEntry::make('lastConnectedTerminalReader.label')
+                            ->label('Last Connected Terminal')
+                            ->formatStateUsing(fn ($state, $record) => $record->lastConnectedTerminalLocation?->display_name
+                                ? "{$record->lastConnectedTerminalLocation->display_name} / " . ($state ?? $record->lastConnectedTerminalReader?->label ?? '—')
+                                : ($state ?? $record->lastConnectedTerminalReader?->label ?? '—'))
+                            ->placeholder('—'),
+
                         TextEntry::make('platform')
                             ->label('Platform')
                             ->badge()

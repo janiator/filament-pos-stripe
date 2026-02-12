@@ -13,7 +13,9 @@ class PosDevicesTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->withCount(['posSessions' => fn ($query) => $query->where('status', 'open')]))
+            ->modifyQueryUsing(fn ($query) => $query
+                ->withCount(['posSessions' => fn ($query) => $query->where('status', 'open')])
+                ->with(['lastConnectedTerminalLocation', 'lastConnectedTerminalReader']))
             ->columns([
                 TextColumn::make('device_name')
                     ->label('Device Name')
@@ -69,6 +71,21 @@ class PosDevicesTable
                     ->badge()
                     ->color('info')
                     ->sortable(),
+
+                TextColumn::make('lastConnectedTerminalReader.label')
+                    ->label('Last Terminal')
+                    ->formatStateUsing(function ($record) {
+                        $loc = $record->lastConnectedTerminalLocation?->display_name;
+                        $reader = $record->lastConnectedTerminalReader?->label;
+                        if (!$loc && !$reader) {
+                            return '—';
+                        }
+                        return $reader
+                            ? ($loc ? "{$loc} / {$reader}" : $reader)
+                            : ($loc ?? '—');
+                    })
+                    ->placeholder('—')
+                    ->toggleable(),
                 
                 TextColumn::make('pos_sessions_count')
                     ->label('Open Sessions')

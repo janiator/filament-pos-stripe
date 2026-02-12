@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\PosDevice;
 use App\Models\TerminalLocation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -9,7 +10,9 @@ use Illuminate\Http\Request;
 class TerminalLocationsController extends BaseApiController
 {
     /**
-     * Get all terminal locations for the current store
+     * Get all terminal locations for the current store.
+     * Optional query: device_identifier — if provided and device has a last-connected terminal,
+     * response includes last_connected for auto-reconnect.
      */
     public function index(Request $request): JsonResponse
     {
@@ -28,7 +31,7 @@ class TerminalLocationsController extends BaseApiController
             ->orderBy('display_name')
             ->get();
 
-        return response()->json([
+        $payload = [
             'locations' => $locations->map(function ($location) {
                 return [
                     'id' => $location->id,
@@ -61,6 +64,30 @@ class TerminalLocationsController extends BaseApiController
                     'updated_at' => $this->formatDateTimeOslo($location->updated_at),
                 ];
             }),
-        ]);
+        ];
+
+        $deviceIdentifier = $request->query('device_identifier');
+        if ($deviceIdentifier !== null && $deviceIdentifier !== '') {
+            $device = PosDevice::where('store_id', $store->id)
+                ->where('device_identifier', $deviceIdentifier)
+                ->with(['lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])
+                ->first();
+            if ($device) {
+                $loc = $device->lastConnectedTerminalLocation;
+                $reader = $device->lastConnectedTerminalReader;
+                if ($loc || $reader) {
+                    $payload['last_connected'] = [
+                        'location_id' => $loc?->id,
+                        'stripe_location_id' => $loc?->stripe_location_id,
+                        'location_display_name' => $loc?->display_name,
+                        'reader_id' => $reader?->id,
+                        'stripe_reader_id' => $reader?->stripe_reader_id,
+                        'reader_label' => $reader?->label,
+                    ];
+                }
+            }
+        }
+
+        return response()->json($payload);
     }
 }

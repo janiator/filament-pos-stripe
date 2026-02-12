@@ -56,6 +56,12 @@ class TerminalReadersRelationManager extends RelationManager
                     ->disabled()
                     ->dehydrated(false)
                     ->helperText('Created on Stripe when this reader is registered.'),
+
+                Forms\Components\TextInput::make('serial_number')
+                    ->label('Serial number')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->visibleOn(['view', 'edit']),
             ]);
     }
 
@@ -77,6 +83,11 @@ class TerminalReadersRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('stripe_reader_id')
                     ->label('Stripe reader')
+                    ->copyable()
+                    ->placeholder('-'),
+
+                Tables\Columns\TextColumn::make('serial_number')
+                    ->label('Serial number')
                     ->copyable()
                     ->placeholder('-'),
 
@@ -117,6 +128,7 @@ class TerminalReadersRelationManager extends RelationManager
 
                         $data['stripe_reader_id'] = $reader->id;
                         $data['store_id'] = $store->id;
+                        $data['serial_number'] = $reader->serial_number ?? null;
                         $data['device_type'] = $reader->device_type ?? null;
                         $data['status'] = $reader->status ?? null;
 
@@ -134,13 +146,7 @@ class TerminalReadersRelationManager extends RelationManager
                         return $data;
                     }),
 
-                DeleteAction::make()
-                    ->before(function (TerminalReader $record): void {
-                        /** @var \App\Models\Store $store */
-                        $store = $this->getOwnerRecord();
-
-                        // Optional: deactivate/delete reader on Stripe here.
-                    }),
+                DeleteAction::make(),
             ])
             ->bulkActions([
                 DeleteBulkAction::make(),
