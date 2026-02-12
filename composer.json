@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.4",
         "bezhansalleh/filament-shield": "^4.0",
+        "danihidayatx/image-optimizer": "^2.1",
         "dompdf/dompdf": "^3.1",
         "filament/filament": "^v4.5",
         "filament/spatie-laravel-media-library-plugin": "^4.0",
@@ -19,6 +20,7 @@
         "laravel/pulse": "^1.4",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
+        "leek/filament-workflows": "^1.2",
         "mustache/mustache": "^3.0",
         "shreejan/actionable-column": "^1.0",
         "stechstudio/filament-impersonate": "^4.1"
@@ -108,5 +110,8 @@
         "name": "filament",
         "type": "composer",
         "url": "https://packages.filamentphp.com/composer"
+    }, {
+        "type": "composer",
+        "url": "https://filament-workflow-engine.composer.sh"
     }]
 }

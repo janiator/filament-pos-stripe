@@ -64,6 +64,9 @@ class CollectionForm
                         FileUpload::make('image')
                             ->label('Collection Image')
                             ->image()
+                            ->optimize('webp')
+                            ->maxImageWidth(1920)
+                            ->maxImageHeight(1920)
                             ->imageEditor()
                             ->imageEditorAspectRatios([
                                 null,

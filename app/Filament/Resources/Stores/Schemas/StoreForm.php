@@ -47,6 +47,9 @@ class StoreForm
                         FileUpload::make('logo_path')
                             ->label('Store Logo')
                             ->image()
+                            ->optimize('webp')
+                            ->maxImageWidth(1024)
+                            ->maxImageHeight(1024)
                             ->imageEditor()
                             ->imageEditorAspectRatios([
                                 null,

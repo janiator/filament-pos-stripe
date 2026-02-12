@@ -2,37 +2,44 @@
 
 namespace App\Actions\ConnectedPrices;
 
+use App\Models\ConnectedPaymentLink;
 use App\Models\ConnectedPrice;
 use App\Models\ConnectedProduct;
-use App\Models\ConnectedPaymentLink;
 use App\Models\ConnectedSubscriptionItem;
+use Illuminate\Support\Facades\Log;
 use Stripe\StripeClient;
 use Throwable;
-use Illuminate\Support\Facades\Log;
 
 class SyncProductPrice
 {
     /**
      * Sync product price - create/update/archive/delete prices as needed
-     * 
-     * @param ConnectedProduct $product
-     * @return void
      */
     public function __invoke(ConnectedProduct $product): void
     {
-        if (!$product->stripe_product_id || !$product->stripe_account_id) {
+        if (! $product->stripe_product_id || ! $product->stripe_account_id) {
             return;
         }
 
-        // Get the current price from the product
-        $newPriceAmount = $product->price ? $this->parsePrice($product->price, $product->currency ?? 'nok') : null;
-        $currency = strtolower($product->currency ?? 'nok');
+        // Prefer stored price/currency (Filament source of truth); fall back to accessor (e.g. default_price)
+        $priceForSync = $product->getRawOriginal('price');
+        $currencyForSync = $product->getRawOriginal('currency');
+        if ($priceForSync === null || $priceForSync === '') {
+            $priceForSync = $product->price;
+            $currencyForSync = $product->currency ?? 'nok';
+        }
+        if ($currencyForSync === null || $currencyForSync === '') {
+            $currencyForSync = $product->currency ?? 'nok';
+        }
+        $newPriceAmount = $priceForSync ? $this->parsePrice($priceForSync, $currencyForSync) : null;
+        $currency = strtolower($currencyForSync ?? 'nok');
 
-        if (!$newPriceAmount || $newPriceAmount <= 0) {
+        if (! $newPriceAmount || $newPriceAmount <= 0) {
             Log::info('No valid price to sync', [
                 'product_id' => $product->id,
-                'price' => $product->price,
+                'price' => $priceForSync,
             ]);
+
             return;
         }
 
@@ -49,13 +56,13 @@ class SyncProductPrice
         $matchingPrice = null;
         if ($product->default_price) {
             $matchingPrice = $existingPrices->first(function ($price) use ($newPriceAmount, $product) {
-                return $price->unit_amount === $newPriceAmount 
+                return $price->unit_amount === $newPriceAmount
                     && $price->stripe_price_id === $product->default_price;
             });
         }
-        
+
         // If no match with current default_price, find any matching price
-        if (!$matchingPrice) {
+        if (! $matchingPrice) {
             $matchingPrice = $existingPrices->first(function ($price) use ($newPriceAmount) {
                 return $price->unit_amount === $newPriceAmount;
             });
@@ -74,11 +81,12 @@ class SyncProductPrice
                 'amount' => $newPriceAmount,
                 'was_already_default' => $product->default_price === $matchingPrice->stripe_price_id,
             ]);
+
             return;
         }
 
         // Create new price
-        $createPriceAction = new CreateConnectedPriceInStripe();
+        $createPriceAction = new CreateConnectedPriceInStripe;
         $newPriceId = $createPriceAction(
             $product->stripe_product_id,
             $product->stripe_account_id,
@@ -92,11 +100,12 @@ class SyncProductPrice
             ]
         );
 
-        if (!$newPriceId) {
+        if (! $newPriceId) {
             Log::error('Failed to create new price', [
                 'product_id' => $product->id,
                 'amount' => $newPriceAmount,
             ]);
+
             return;
         }
 
@@ -158,7 +167,7 @@ class SyncProductPrice
         // This is a more thorough check but requires API calls
         try {
             $secret = config('cashier.secret') ?? config('services.stripe.secret');
-            if (!$secret) {
+            if (! $secret) {
                 return false;
             }
 
@@ -170,7 +179,7 @@ class SyncProductPrice
                 'query' => "metadata['price_id']:'{$price->stripe_price_id}'",
                 'limit' => 10,
             ], [
-                'stripe_account' => $price->stripe_account_id
+                'stripe_account' => $price->stripe_account_id,
             ]);
 
             if ($paymentIntents && count($paymentIntents->data) > 0) {
@@ -211,7 +220,7 @@ class SyncProductPrice
     {
         try {
             $secret = config('cashier.secret') ?? config('services.stripe.secret');
-            if (!$secret) {
+            if (! $secret) {
                 return;
             }
 
@@ -242,7 +251,7 @@ class SyncProductPrice
     {
         try {
             $secret = config('cashier.secret') ?? config('services.stripe.secret');
-            if (!$secret) {
+            if (! $secret) {
                 return;
             }
 
@@ -289,17 +298,17 @@ class SyncProductPrice
         // Convert to string and remove currency symbols and whitespace
         $price = (string) $price;
         $price = preg_replace('/[^\d.,]/', '', $price);
-        
+
         if (empty($price)) {
             return 0;
         }
-        
+
         // Handle Norwegian format (1.234,56) or US format (1,234.56)
         if (strpos($price, ',') !== false && strpos($price, '.') !== false) {
             // Determine which is decimal separator
             $lastComma = strrpos($price, ',');
             $lastDot = strrpos($price, '.');
-            
+
             if ($lastComma > $lastDot) {
                 // Norwegian format: 1.234,56
                 $price = str_replace('.', '', $price);
@@ -312,9 +321,8 @@ class SyncProductPrice
             // Only one separator, assume it's decimal
             $price = str_replace(',', '.', $price);
         }
-        
+
         // Convert to cents/øre
         return (int) round((float) $price * 100);
     }
 }
-

@@ -19,3 +19,6 @@ Schedule::command('horizon:snapshot')->everyFiveMinutes()->withoutOverlapping();
 // Check for inactive POS devices and create stop events
 // Runs every 5 minutes to check for devices that haven't sent heartbeats
 Schedule::command('pos:check-inactive-devices')->everyFiveMinutes()->withoutOverlapping();
+
+// Workflow engine: process scheduled workflow triggers
+Schedule::command('workflows:process-scheduled')->everyMinute();

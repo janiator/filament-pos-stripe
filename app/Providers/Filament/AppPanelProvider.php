@@ -27,10 +27,11 @@ class AppPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        return $panel
+        $panel = $panel
             ->default()
             ->id('app')
             ->path('app')
+            ->viteTheme('resources/css/filament/app/theme.css')
             ->login()
             ->tenant(Store::class)
             ->tenantRoutePrefix('store')
@@ -41,7 +42,13 @@ class AppPanelProvider extends PanelProvider
                 RoleResource::class, // Register before plugin so plugin detects it
             ])
             ->maxContentWidth(Width::Full)
-            ->plugin(FilamentShieldPlugin::make())
+            ->plugin(FilamentShieldPlugin::make());
+
+        if (class_exists(\Leek\FilamentWorkflows\WorkflowsPlugin::class)) {
+            $panel = $panel->plugin(\Leek\FilamentWorkflows\WorkflowsPlugin::make()->navigationGroup(__('filament.navigation_groups.automation')));
+        }
+
+        return $panel
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -71,6 +78,7 @@ class AppPanelProvider extends PanelProvider
                 __('filament.navigation_groups.payments'),
                 __('filament.navigation_groups.terminals_and_equipment'),
                 __('filament.navigation_groups.settings'),
+                __('filament.navigation_groups.automation'),
                 __('filament.navigation_groups.system'),
                 __('filament.navigation_groups.administration'),
             ])

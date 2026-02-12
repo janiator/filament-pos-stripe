@@ -3,6 +3,7 @@
 return [
     // Navigation Groups
     'navigation_groups' => [
+        'automation' => 'Automasjon',
         'catalog' => 'Katalog',
         'customers' => 'Kunder',
         'terminals_and_equipment' => 'Terminaler og utstyr',

@@ -6,27 +6,27 @@ use App\Models\ConnectedPrice;
 use App\Models\ConnectedProduct;
 use App\Models\Store;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 use Lanos\CashierConnect\Exceptions\AccountNotFoundException;
 use Stripe\StripeClient;
 use Throwable;
-use Illuminate\Support\Facades\Log;
 
 class SyncConnectedProductsFromStripe
 {
     public function __invoke(Store $store, bool $notify = false): array
     {
         $result = [
-            'total'   => 0,
+            'total' => 0,
             'created' => 0,
             'updated' => 0,
-            'errors'  => [],
+            'errors' => [],
         ];
 
         try {
             // Refresh store FIRST to get the latest stripe_account_id
             $store->refresh();
             $stripeAccountId = $store->stripe_account_id;
-            
+
             if (! $store->hasStripeAccount() || empty($stripeAccountId)) {
                 if ($notify) {
                     Notification::make()
@@ -75,24 +75,28 @@ class SyncConnectedProductsFromStripe
                     // Ensure stripe_account_id is still valid (double-check)
                     if (empty($stripeAccountId)) {
                         $result['errors'][] = "Product {$product->id}: stripe_account_id is empty";
+
                         continue;
                     }
 
                     // Check if this is a variant product (has variant_id in metadata)
                     $metadata = $product->metadata ? (array) $product->metadata : [];
-                    $isVariant = isset($metadata['variant_id']) || 
+                    $isVariant = isset($metadata['variant_id']) ||
                                  (isset($metadata['source']) && in_array($metadata['source'], ['pos-variant', 'variant']));
 
                     if ($isVariant) {
                         // This is a variant product - try to sync, but store for second pass if parent not found
                         $variantSynced = $this->syncVariantProduct($product, $store, $stripeAccountId, $result);
-                        if (!$variantSynced) {
+                        if (! $variantSynced) {
                             // Store for second pass
                             $pendingVariants[] = $product;
                         }
+
                         continue;
                     }
 
+                    // Do not include price/currency in $data so Filament-edited values remain source of truth.
+                    // We only set them when creating (from Stripe) or when backfilling an existing record that has none.
                     $data = [
                         'stripe_product_id' => $product->id,
                         'stripe_account_id' => $stripeAccountId, // Use the refreshed value
@@ -114,6 +118,7 @@ class SyncConnectedProductsFromStripe
                     // Double-check stripe_account_id is not null before creating
                     if (empty($data['stripe_account_id'])) {
                         $result['errors'][] = "Product {$product->id}: stripe_account_id is null after data preparation";
+
                         continue;
                     }
 
@@ -122,15 +127,53 @@ class SyncConnectedProductsFromStripe
                     $productRecord = ConnectedProduct::where('stripe_product_id', $product->id)->first();
 
                     if ($productRecord) {
-                        // Update existing record - ensure stripe_account_id is set correctly
+                        // Update existing record - do not overwrite price/currency (Filament is source of truth)
                         $productRecord->fill($data);
-                        // Explicitly set stripe_account_id to ensure it's updated if it changed
                         $productRecord->stripe_account_id = $stripeAccountId;
-                        // Use saveQuietly to prevent triggering sync back to Stripe
+                        // Backfill price/currency only when the product has no stored price yet
+                        $storedPrice = $productRecord->getRawOriginal('price');
+                        if (($storedPrice === null || $storedPrice === '') && $product->default_price) {
+                            try {
+                                $defaultPriceObj = $stripe->prices->retrieve(
+                                    $product->default_price,
+                                    [],
+                                    ['stripe_account' => $stripeAccountId]
+                                );
+                                if ($defaultPriceObj->unit_amount) {
+                                    $productRecord->price = number_format($defaultPriceObj->unit_amount / 100, 2, '.', '');
+                                    $productRecord->currency = $defaultPriceObj->currency ?? 'nok';
+                                }
+                            } catch (Throwable $e) {
+                                Log::debug('Could not backfill product price from Stripe', [
+                                    'product_id' => $productRecord->id,
+                                    'stripe_price_id' => $product->default_price,
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }
                         $productRecord->saveQuietly();
                         $result['updated']++;
                     } else {
-                        // Create new record without triggering events
+                        // Create new record: set price/currency from Stripe default price when available
+                        if ($product->default_price) {
+                            try {
+                                $defaultPriceObj = $stripe->prices->retrieve(
+                                    $product->default_price,
+                                    [],
+                                    ['stripe_account' => $stripeAccountId]
+                                );
+                                if ($defaultPriceObj->unit_amount) {
+                                    $data['price'] = number_format($defaultPriceObj->unit_amount / 100, 2, '.', '');
+                                    $data['currency'] = $defaultPriceObj->currency ?? 'nok';
+                                }
+                            } catch (Throwable $e) {
+                                Log::debug('Could not set product price from Stripe on create', [
+                                    'stripe_product_id' => $product->id,
+                                    'stripe_price_id' => $product->default_price,
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }
                         ConnectedProduct::withoutEvents(function () use ($data) {
                             ConnectedProduct::create($data);
                         });
@@ -186,7 +229,7 @@ class SyncConnectedProductsFromStripe
                 if (! empty($result['errors'])) {
                     $errorDetails = implode("\n", array_slice($result['errors'], 0, 5));
                     if (count($result['errors']) > 5) {
-                        $errorDetails .= "\n... and " . (count($result['errors']) - 5) . " more error(s)";
+                        $errorDetails .= "\n... and ".(count($result['errors']) - 5).' more error(s)';
                     }
                     Notification::make()
                         ->title('Sync completed with errors')
@@ -224,6 +267,7 @@ class SyncConnectedProductsFromStripe
             }
 
             report($e);
+
             return $result;
         }
     }
@@ -235,12 +279,13 @@ class SyncConnectedProductsFromStripe
             $store->refresh();
             $stripeAccountId = $store->stripe_account_id;
         }
-        
+
         if (empty($stripeAccountId)) {
             \Log::warning('Cannot sync price: store missing stripe_account_id', [
                 'store_id' => $store->id,
                 'price_id' => $price->id,
             ]);
+
             return;
         }
 
@@ -280,7 +325,7 @@ class SyncConnectedProductsFromStripe
 
     /**
      * Sync a variant product from Stripe to ProductVariant table
-     * 
+     *
      * @return bool True if variant was synced successfully, false if parent product not found yet
      */
     protected function syncVariantProduct($product, Store $store, string $stripeAccountId, array &$result): bool
@@ -292,22 +337,22 @@ class SyncConnectedProductsFromStripe
 
         // Find the parent product - try by database ID first, then by Stripe product ID
         $parentProduct = null;
-        
+
         if ($parentProductId) {
             // Try to find by database ID
             $parentProduct = ConnectedProduct::where('id', $parentProductId)
                 ->where('stripe_account_id', $stripeAccountId)
                 ->first();
         }
-        
+
         // If not found by ID, try by Stripe product ID
-        if (!$parentProduct && $parentStripeProductId) {
+        if (! $parentProduct && $parentStripeProductId) {
             $parentProduct = ConnectedProduct::where('stripe_product_id', $parentStripeProductId)
                 ->where('stripe_account_id', $stripeAccountId)
                 ->first();
         }
 
-        if (!$parentProduct) {
+        if (! $parentProduct) {
             // Parent product doesn't exist yet - return false so we can retry later
             Log::debug('Parent product not found for variant', [
                 'variant_stripe_product_id' => $product->id,
@@ -315,6 +360,7 @@ class SyncConnectedProductsFromStripe
                 'parent_stripe_product_id' => $parentStripeProductId,
                 'stripe_account_id' => $stripeAccountId,
             ]);
+
             return false;
         }
 
@@ -353,6 +399,7 @@ class SyncConnectedProductsFromStripe
             ->where('stripe_account_id', $stripeAccountId)
             ->first();
 
+        // Base data: do not include price_amount/currency so Filament-edited values remain source of truth on update
         $variantData = [
             'connected_product_id' => $parentProduct->id,
             'stripe_account_id' => $stripeAccountId,
@@ -366,22 +413,27 @@ class SyncConnectedProductsFromStripe
             'option3_value' => $option3Value,
             'sku' => $metadata['sku'] ?? null,
             'barcode' => $metadata['barcode'] ?? null,
-            'price_amount' => $priceAmount,
-            'currency' => $currency,
             'requires_shipping' => isset($product->shippable) ? (bool) $product->shippable : true,
             'taxable' => true,
             'active' => $product->active,
-            'image_url' => !empty($product->images) ? $product->images[0] : null,
+            'image_url' => ! empty($product->images) ? $product->images[0] : null,
             'metadata' => $metadata,
         ];
 
         if ($variant) {
             $variant->fill($variantData);
-            // Use saveQuietly to prevent triggering sync back to Stripe
+            // Do not overwrite price_amount/currency; backfill only when variant has no stored price
+            $storedPriceAmount = $variant->getRawOriginal('price_amount');
+            if (($storedPriceAmount === null || $storedPriceAmount === 0) && $priceAmount !== null) {
+                $variant->price_amount = $priceAmount;
+                $variant->currency = $currency;
+            }
             $variant->saveQuietly();
             $result['updated']++;
         } else {
-            // Create new record without triggering events
+            // Create: set price from Stripe
+            $variantData['price_amount'] = $priceAmount;
+            $variantData['currency'] = $currency;
             \App\Models\ProductVariant::withoutEvents(function () use ($variantData) {
                 \App\Models\ProductVariant::create($variantData);
             });

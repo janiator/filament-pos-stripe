@@ -13,7 +13,6 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -73,7 +72,7 @@ class ConnectedProductsTable
                             ])
                             ->action(function (ConnectedProduct $record, array $data) {
                                 $record->update(['name' => $data['name']]);
-                                
+
                                 Notification::make()
                                     ->success()
                                     ->title('Product name updated')
@@ -112,7 +111,7 @@ class ConnectedProductsTable
                             ])
                             ->action(function (ConnectedProduct $record, array $data) {
                                 $record->update(['active' => $data['active']]);
-                                
+
                                 Notification::make()
                                     ->success()
                                     ->title('Product status updated')
@@ -130,24 +129,25 @@ class ConnectedProductsTable
                         return $query->orderByRaw("COALESCE(CAST(price AS NUMERIC), 0) {$direction}");
                     })
                     ->formatStateUsing(function ($state, ConnectedProduct $record) {
-                        if (!$state) {
-                            // Try to get from default_price
-                            if ($record->default_price && $record->stripe_account_id) {
-                                $defaultPrice = \App\Models\ConnectedPrice::where('stripe_price_id', $record->default_price)
-                                    ->where('stripe_account_id', $record->stripe_account_id)
-                                    ->first();
-                                
-                                if ($defaultPrice && $defaultPrice->unit_amount) {
-                                    $currency = strtoupper($defaultPrice->currency ?? 'NOK');
-                                    return number_format($defaultPrice->unit_amount / 100, 2, '.', '') . ' ' . $currency;
-                                }
-                            }
-                            return '-';
+                        // Prefer stored price column (source of truth); then fall back to default_price
+                        $stored = $record->getRawOriginal('price');
+                        if ($stored !== null && $stored !== '') {
+                            $currency = strtoupper($record->getRawOriginal('currency') ?: $record->currency ?? 'NOK');
+
+                            return number_format((float) str_replace(',', '.', (string) $stored), 2, '.', '').' '.$currency;
                         }
-                        
-                        $currency = strtoupper($record->currency ?? 'NOK');
-                        // Price is already in decimal format from the accessor
-                        return number_format((float) $state, 2, '.', '') . ' ' . $currency;
+                        if ($record->default_price && $record->stripe_account_id) {
+                            $defaultPrice = \App\Models\ConnectedPrice::where('stripe_price_id', $record->default_price)
+                                ->where('stripe_account_id', $record->stripe_account_id)
+                                ->first();
+                            if ($defaultPrice && $defaultPrice->unit_amount) {
+                                $currency = strtoupper($defaultPrice->currency ?? 'NOK');
+
+                                return number_format($defaultPrice->unit_amount / 100, 2, '.', '').' '.$currency;
+                            }
+                        }
+
+                        return $state ? (number_format((float) $state, 2, '.', '').' '.strtoupper($record->currency ?? 'NOK')) : '-';
                     })
                     ->toggleable()
                     ->actionIcon(Heroicon::CurrencyDollar)
@@ -164,7 +164,7 @@ class ConnectedProductsTable
                                     ->step(0.01)
                                     ->prefix(fn ($get, $record) => strtoupper($get('currency') ?? ($record?->currency ?? 'NOK')))
                                     ->helperText('Enter the product price. This will create or update the Stripe price automatically.'),
-                                
+
                                 Select::make('currency')
                                     ->label('Currency')
                                     ->options([
@@ -179,16 +179,16 @@ class ConnectedProductsTable
                             ->fillForm(function (ConnectedProduct $record) {
                                 // Get current price value
                                 $price = $record->price;
-                                if (!$price && $record->default_price && $record->stripe_account_id) {
+                                if (! $price && $record->default_price && $record->stripe_account_id) {
                                     $defaultPrice = \App\Models\ConnectedPrice::where('stripe_price_id', $record->default_price)
                                         ->where('stripe_account_id', $record->stripe_account_id)
                                         ->first();
-                                    
+
                                     if ($defaultPrice && $defaultPrice->unit_amount) {
                                         $price = number_format($defaultPrice->unit_amount / 100, 2, '.', '');
                                     }
                                 }
-                                
+
                                 return [
                                     'price' => $price,
                                     'currency' => $record->currency ?: 'nok',
@@ -196,7 +196,7 @@ class ConnectedProductsTable
                             })
                             ->action(function (ConnectedProduct $record, array $data) {
                                 $updates = [];
-                                
+
                                 // Convert price to string format for storage (handle empty values)
                                 if (isset($data['price']) && $data['price'] !== null && $data['price'] !== '') {
                                     $updates['price'] = str_replace(',', '.', str_replace(' ', '', (string) $data['price']));
@@ -204,14 +204,14 @@ class ConnectedProductsTable
                                     // Allow clearing the price
                                     $updates['price'] = null;
                                 }
-                                
+
                                 if (isset($data['currency'])) {
                                     $updates['currency'] = $data['currency'];
                                 }
-                                
-                                if (!empty($updates)) {
+
+                                if (! empty($updates)) {
                                     $record->update($updates);
-                                    
+
                                     Notification::make()
                                         ->success()
                                         ->title('Product price updated')
@@ -227,11 +227,12 @@ class ConnectedProductsTable
                     ->color('gray')
                     ->sortable()
                     ->formatStateUsing(function ($state, ConnectedProduct $record) {
-                        if (!$state) {
+                        if (! $state) {
                             return '-';
                         }
                         $currency = strtoupper($record->currency ?? 'NOK');
-                        return number_format($state / 100, 2, '.', '') . ' ' . $currency;
+
+                        return number_format($state / 100, 2, '.', '').' '.$currency;
                     })
                     ->toggleable(),
 
@@ -243,7 +244,7 @@ class ConnectedProductsTable
                         return $query->orderBy('compare_at_price_amount', $direction);
                     })
                     ->formatStateUsing(function ($state) {
-                        return $state ? $state . '%' : '-';
+                        return $state ? $state.'%' : '-';
                     })
                     ->toggleable(),
 
@@ -313,7 +314,7 @@ class ConnectedProductsTable
                             ])
                             ->action(function (ConnectedProduct $record, array $data) {
                                 $record->update(['product_code' => $data['product_code'] ?? null]);
-                                
+
                                 Notification::make()
                                     ->success()
                                     ->title('Product code updated')
@@ -402,6 +403,7 @@ class ConnectedProductsTable
                         } catch (\Throwable $e) {
                             // Fallback if Filament facade not available
                         }
+
                         return $query->where('active', true);
                     })
                     ->searchable()
@@ -411,7 +413,7 @@ class ConnectedProductsTable
                 Filter::make('has_variants')
                     ->label('Has Variants')
                     ->query(function (Builder $query, array $data): Builder {
-                        if (!isset($data['has_variants']) || $data['has_variants'] === null) {
+                        if (! isset($data['has_variants']) || $data['has_variants'] === null) {
                             return $query;
                         }
 
@@ -465,7 +467,7 @@ class ConnectedProductsTable
                 Filter::make('has_discount')
                     ->label('Has Discount')
                     ->query(function (Builder $query, array $data): Builder {
-                        if (!isset($data['has_discount']) || $data['has_discount'] === null) {
+                        if (! isset($data['has_discount']) || $data['has_discount'] === null) {
                             return $query;
                         }
 
@@ -525,7 +527,7 @@ class ConnectedProductsTable
                         ->color('primary')
                         ->form(function (Collection $records) {
                             $count = $records->count();
-                            
+
                             return [
                                 // Info text
                                 TextInput::make('info')
@@ -551,7 +553,7 @@ class ConnectedProductsTable
                                 Toggle::make('active')
                                     ->label('Active')
                                     ->default(true)
-                                    ->disabled(fn ($get) => !$get('update_active'))
+                                    ->disabled(fn ($get) => ! $get('update_active'))
                                     ->dehydrated(fn ($get) => $get('update_active'))
                                     ->columnSpan(1),
 
@@ -563,7 +565,7 @@ class ConnectedProductsTable
                                 Toggle::make('shippable')
                                     ->label('Shippable')
                                     ->default(false)
-                                    ->disabled(fn ($get) => !$get('update_shippable'))
+                                    ->disabled(fn ($get) => ! $get('update_shippable'))
                                     ->dehydrated(fn ($get) => $get('update_shippable'))
                                     ->columnSpan(1),
 
@@ -575,7 +577,7 @@ class ConnectedProductsTable
                                 Toggle::make('no_price_in_pos')
                                     ->label('No Price in POS')
                                     ->default(false)
-                                    ->disabled(fn ($get) => !$get('update_no_price_in_pos'))
+                                    ->disabled(fn ($get) => ! $get('update_no_price_in_pos'))
                                     ->dehydrated(fn ($get) => $get('update_no_price_in_pos'))
                                     ->columnSpan(1),
 
@@ -598,7 +600,7 @@ class ConnectedProductsTable
                                         'service' => 'Service',
                                         'good' => 'Good',
                                     ])
-                                    ->disabled(fn ($get) => !$get('update_type'))
+                                    ->disabled(fn ($get) => ! $get('update_type'))
                                     ->dehydrated(fn ($get) => $get('update_type'))
                                     ->columnSpan(1),
 
@@ -613,8 +615,8 @@ class ConnectedProductsTable
                                         try {
                                             $tenant = \Filament\Facades\Filament::getTenant();
                                             $stripeAccountId = $tenant?->stripe_account_id;
-                                            
-                                            if (!$stripeAccountId) {
+
+                                            if (! $stripeAccountId) {
                                                 return [];
                                             }
 
@@ -628,7 +630,7 @@ class ConnectedProductsTable
                                     })
                                     ->searchable()
                                     ->placeholder('No vendor')
-                                    ->disabled(fn ($get) => !$get('update_vendor'))
+                                    ->disabled(fn ($get) => ! $get('update_vendor'))
                                     ->dehydrated(fn ($get) => $get('update_vendor'))
                                     ->columnSpan(1),
 
@@ -640,7 +642,7 @@ class ConnectedProductsTable
                                 TextInput::make('product_code')
                                     ->label('Product Code (PLU)')
                                     ->maxLength(50)
-                                    ->disabled(fn ($get) => !$get('update_product_code'))
+                                    ->disabled(fn ($get) => ! $get('update_product_code'))
                                     ->dehydrated(fn ($get) => $get('update_product_code'))
                                     ->columnSpan(1),
 
@@ -667,10 +669,10 @@ class ConnectedProductsTable
                                         if ($stripeAccountId) {
                                             $query->where(function ($q) use ($stripeAccountId) {
                                                 $q->where('stripe_account_id', $stripeAccountId)
-                                                  ->orWhere(function ($q2) {
-                                                      $q2->whereNull('stripe_account_id')
-                                                         ->where('is_standard', true);
-                                                  });
+                                                    ->orWhere(function ($q2) {
+                                                        $q2->whereNull('stripe_account_id')
+                                                            ->where('is_standard', true);
+                                                    });
                                             });
                                         } else {
                                             // If no stripe_account_id, return global standard codes
@@ -683,7 +685,7 @@ class ConnectedProductsTable
                                             ->orderBy('code', 'asc')
                                             ->get()
                                             ->mapWithKeys(function ($record) {
-                                                return [$record->code => $record->code . ' - ' . $record->name];
+                                                return [$record->code => $record->code.' - '.$record->name];
                                             });
                                     })
                                     ->getSearchResultsUsing(function (string $search) {
@@ -699,17 +701,17 @@ class ConnectedProductsTable
                                         $query = \App\Models\ArticleGroupCode::query()
                                             ->where(function ($q) use ($search) {
                                                 $q->where('code', 'like', "%{$search}%")
-                                                  ->orWhere('name', 'like', "%{$search}%");
+                                                    ->orWhere('name', 'like', "%{$search}%");
                                             });
 
                                         // Show store-specific codes and global standard codes
                                         if ($stripeAccountId) {
                                             $query->where(function ($q) use ($stripeAccountId) {
                                                 $q->where('stripe_account_id', $stripeAccountId)
-                                                  ->orWhere(function ($q2) {
-                                                      $q2->whereNull('stripe_account_id')
-                                                         ->where('is_standard', true);
-                                                  });
+                                                    ->orWhere(function ($q2) {
+                                                        $q2->whereNull('stripe_account_id')
+                                                            ->where('is_standard', true);
+                                                    });
                                             });
                                         } else {
                                             // If no stripe_account_id, return global standard codes
@@ -723,17 +725,18 @@ class ConnectedProductsTable
                                             ->limit(50)
                                             ->get()
                                             ->mapWithKeys(function ($record) {
-                                                return [$record->code => $record->code . ' - ' . $record->name];
+                                                return [$record->code => $record->code.' - '.$record->name];
                                             });
                                     })
                                     ->getOptionLabelUsing(function ($value) {
                                         $code = \App\Models\ArticleGroupCode::where('code', $value)->first();
-                                        return $code ? $code->code . ' - ' . $code->name : $value;
+
+                                        return $code ? $code->code.' - '.$code->name : $value;
                                     })
                                     ->searchable()
                                     ->preload()
                                     ->placeholder('Select article group')
-                                    ->disabled(fn ($get) => !$get('update_article_group_code'))
+                                    ->disabled(fn ($get) => ! $get('update_article_group_code'))
                                     ->dehydrated(fn ($get) => $get('update_article_group_code'))
                                     ->columnSpan(1),
 
@@ -755,7 +758,7 @@ class ConnectedProductsTable
                                     ->numeric()
                                     ->step(0.01)
                                     ->prefix('kr')
-                                    ->disabled(fn ($get) => !$get('update_price'))
+                                    ->disabled(fn ($get) => ! $get('update_price'))
                                     ->dehydrated(fn ($get) => $get('update_price'))
                                     ->columnSpan(1)
                                     ->visible(fn ($get) => $get('update_price')),
@@ -770,7 +773,7 @@ class ConnectedProductsTable
                                         'dkk' => 'DKK',
                                     ])
                                     ->default('nok')
-                                    ->disabled(fn ($get) => !$get('update_price'))
+                                    ->disabled(fn ($get) => ! $get('update_price'))
                                     ->dehydrated(fn ($get) => $get('update_price'))
                                     ->columnSpan(1)
                                     ->visible(fn ($get) => $get('update_price')),
@@ -786,7 +789,7 @@ class ConnectedProductsTable
                                     ->step(0.01)
                                     ->prefix('kr')
                                     ->helperText('Leave empty to clear compare at price')
-                                    ->disabled(fn ($get) => !$get('update_compare_at_price'))
+                                    ->disabled(fn ($get) => ! $get('update_compare_at_price'))
                                     ->dehydrated(false)
                                     ->afterStateUpdated(function ($state, $set) {
                                         if ($state !== null && $state !== '') {
@@ -801,7 +804,7 @@ class ConnectedProductsTable
                                 Checkbox::make('clear_compare_at_price')
                                     ->label('Clear compare at price for all products')
                                     ->helperText('Check this to remove compare at price from all selected products')
-                                    ->disabled(fn ($get) => !$get('update_compare_at_price'))
+                                    ->disabled(fn ($get) => ! $get('update_compare_at_price'))
                                     ->dehydrated(fn ($get) => $get('update_compare_at_price') && $get('clear_compare_at_price'))
                                     ->columnSpanFull()
                                     ->visible(fn ($get) => $get('update_compare_at_price')),
@@ -825,7 +828,7 @@ class ConnectedProductsTable
                                         try {
                                             $tenant = \Filament\Facades\Filament::getTenant();
                                             $stripeAccountId = $tenant?->stripe_account_id;
-                                            
+
                                             if ($stripeAccountId) {
                                                 return \App\Models\Collection::where('stripe_account_id', $stripeAccountId)
                                                     ->orderBy('name', 'asc')
@@ -835,11 +838,12 @@ class ConnectedProductsTable
                                         } catch (\Throwable $e) {
                                             // Fallback
                                         }
+
                                         return [];
                                     })
                                     ->searchable()
                                     ->helperText('Select collections to add to all products. Existing collections will be preserved unless you use "Replace Collections" mode.')
-                                    ->disabled(fn ($get) => !$get('update_collections'))
+                                    ->disabled(fn ($get) => ! $get('update_collections'))
                                     ->dehydrated(fn ($get) => $get('update_collections'))
                                     ->columnSpanFull()
                                     ->visible(fn ($get) => $get('update_collections')),
@@ -847,7 +851,7 @@ class ConnectedProductsTable
                                 Checkbox::make('replace_collections')
                                     ->label('Replace existing collections')
                                     ->helperText('If checked, selected products will only have the collections you select above. If unchecked, collections will be added to existing ones.')
-                                    ->disabled(fn ($get) => !$get('update_collections'))
+                                    ->disabled(fn ($get) => ! $get('update_collections'))
                                     ->dehydrated(fn ($get) => $get('update_collections'))
                                     ->columnSpanFull()
                                     ->visible(fn ($get) => $get('update_collections')),
@@ -881,41 +885,41 @@ class ConnectedProductsTable
                             $updatedCount = 0;
 
                             // Status & Visibility
-                            if (!empty($data['update_active'])) {
+                            if (! empty($data['update_active'])) {
                                 $updates['active'] = (bool) ($data['active'] ?? false);
                             }
 
-                            if (!empty($data['update_shippable'])) {
+                            if (! empty($data['update_shippable'])) {
                                 $updates['shippable'] = (bool) ($data['shippable'] ?? false);
                             }
 
-                            if (!empty($data['update_no_price_in_pos'])) {
+                            if (! empty($data['update_no_price_in_pos'])) {
                                 $updates['no_price_in_pos'] = (bool) ($data['no_price_in_pos'] ?? false);
                             }
 
                             // Product Details
-                            if (!empty($data['update_type']) && isset($data['type'])) {
+                            if (! empty($data['update_type']) && isset($data['type'])) {
                                 $updates['type'] = $data['type'];
                             }
 
-                            if (!empty($data['update_vendor'])) {
-                                if (!empty($data['clear_vendor'])) {
+                            if (! empty($data['update_vendor'])) {
+                                if (! empty($data['clear_vendor'])) {
                                     $updates['vendor_id'] = null;
                                 } elseif (isset($data['vendor_id'])) {
                                     $updates['vendor_id'] = $data['vendor_id'];
                                 }
                             }
 
-                            if (!empty($data['update_product_code'])) {
-                                if (!empty($data['clear_product_code'])) {
+                            if (! empty($data['update_product_code'])) {
+                                if (! empty($data['clear_product_code'])) {
                                     $updates['product_code'] = null;
                                 } elseif (isset($data['product_code'])) {
                                     $updates['product_code'] = $data['product_code'];
                                 }
                             }
 
-                            if (!empty($data['update_article_group_code'])) {
-                                if (!empty($data['clear_article_group_code'])) {
+                            if (! empty($data['update_article_group_code'])) {
+                                if (! empty($data['clear_article_group_code'])) {
                                     $updates['article_group_code'] = null;
                                 } elseif (isset($data['article_group_code'])) {
                                     $updates['article_group_code'] = $data['article_group_code'];
@@ -923,7 +927,7 @@ class ConnectedProductsTable
                             }
 
                             // Pricing
-                            if (!empty($data['update_price'])) {
+                            if (! empty($data['update_price'])) {
                                 if (isset($data['price']) && $data['price'] !== null && $data['price'] !== '') {
                                     $updates['price'] = str_replace(',', '.', str_replace(' ', '', (string) $data['price']));
                                 }
@@ -932,8 +936,8 @@ class ConnectedProductsTable
                                 }
                             }
 
-                            if (!empty($data['update_compare_at_price'])) {
-                                if (!empty($data['clear_compare_at_price'])) {
+                            if (! empty($data['update_compare_at_price'])) {
+                                if (! empty($data['clear_compare_at_price'])) {
                                     $updates['compare_at_price_amount'] = null;
                                 } elseif (isset($data['compare_at_price_decimal']) && $data['compare_at_price_decimal'] !== null && $data['compare_at_price_decimal'] !== '') {
                                     $updates['compare_at_price_amount'] = (int) round((float) $data['compare_at_price_decimal'] * 100);
@@ -943,15 +947,15 @@ class ConnectedProductsTable
                             }
 
                             // Apply updates
-                            if (!empty($updates)) {
+                            if (! empty($updates)) {
                                 $updatedCount = ConnectedProduct::whereIn('id', $records->pluck('id'))
                                     ->update($updates);
                             }
 
                             // Handle collections
-                            if (!empty($data['update_collections']) && isset($data['collections'])) {
+                            if (! empty($data['update_collections']) && isset($data['collections'])) {
                                 $collectionIds = is_array($data['collections']) ? $data['collections'] : [];
-                                $replaceMode = !empty($data['replace_collections']);
+                                $replaceMode = ! empty($data['replace_collections']);
 
                                 foreach ($records as $product) {
                                     if ($replaceMode) {
@@ -965,10 +969,10 @@ class ConnectedProductsTable
                             }
 
                             // Show notification
-                            if ($updatedCount > 0 || !empty($data['update_collections'])) {
+                            if ($updatedCount > 0 || ! empty($data['update_collections'])) {
                                 $message = "Successfully updated {$updatedCount} product(s)";
-                                if (!empty($data['update_collections'])) {
-                                    $message .= " and updated collections";
+                                if (! empty($data['update_collections'])) {
+                                    $message .= ' and updated collections';
                                 }
 
                                 Notification::make()
@@ -1002,8 +1006,8 @@ class ConnectedProductsTable
                                     try {
                                         $tenant = \Filament\Facades\Filament::getTenant();
                                         $stripeAccountId = $tenant?->stripe_account_id;
-                                        
-                                        if (!$stripeAccountId) {
+
+                                        if (! $stripeAccountId) {
                                             return [];
                                         }
 
@@ -1024,13 +1028,14 @@ class ConnectedProductsTable
                         ])
                         ->action(function (Collection $records, array $data): void {
                             $vendorId = $data['vendor_id'] ?? null;
-                            
-                            if (!$vendorId) {
+
+                            if (! $vendorId) {
                                 Notification::make()
                                     ->danger()
                                     ->title('Vendor selection required')
                                     ->body('Please select a vendor to assign.')
                                     ->send();
+
                                 return;
                             }
 
