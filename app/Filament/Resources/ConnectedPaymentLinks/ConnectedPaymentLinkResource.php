@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\ConnectedPaymentLinks;
 
+use App\Enums\AddonType;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ConnectedPaymentLinks\Pages\CreateConnectedPaymentLink;
 use App\Filament\Resources\ConnectedPaymentLinks\Pages\EditConnectedPaymentLink;
 use App\Filament\Resources\ConnectedPaymentLinks\Pages\ListConnectedPaymentLinks;
@@ -9,9 +11,10 @@ use App\Filament\Resources\ConnectedPaymentLinks\Pages\ViewConnectedPaymentLink;
 use App\Filament\Resources\ConnectedPaymentLinks\Schemas\ConnectedPaymentLinkForm;
 use App\Filament\Resources\ConnectedPaymentLinks\Schemas\ConnectedPaymentLinkInfolist;
 use App\Filament\Resources\ConnectedPaymentLinks\Tables\ConnectedPaymentLinksTable;
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
+use App\Models\Addon;
 use App\Models\ConnectedPaymentLink;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -50,11 +53,26 @@ class ConnectedPaymentLinkResource extends Resource
         return __('filament.navigation_groups.payments');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return false;
+        }
+
+        return Addon::query()
+            ->where('store_id', $tenant->getKey())
+            ->where('type', AddonType::PaymentLinks)
+            ->where('is_active', true)
+            ->exists();
+    }
+
     public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null
     {
         if (! $record) {
             return null;
         }
+
         return $record->name ?? $record->url ?? $record->stripe_payment_link_id;
     }
 

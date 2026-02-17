@@ -48,7 +48,7 @@ class WebflowSitesNavigationPage extends Page
         }
 
         $sites = WebflowSite::query()
-            ->whereHas('addon', fn ($q) => $q->where('store_id', $tenant->getKey()))
+            ->where('store_id', $tenant->getKey())
             ->where('is_active', true)
             ->with(['collections' => fn ($q) => $q->where('is_active', true)->orderBy('name')])
             ->orderBy('name')

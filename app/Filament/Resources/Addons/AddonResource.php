@@ -22,6 +22,11 @@ class AddonResource extends Resource
 
     protected static ?string $slug = 'addons';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function getNavigationGroup(): ?string
     {
         return __('filament.navigation_groups.settings');

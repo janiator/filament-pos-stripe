@@ -8,12 +8,12 @@ The project includes a **Filament Webflow** package (`packages/filament-webflow`
 
 ## Add-ons
 
-Add-ons are per-store modules (e.g. **Webflow CMS**, **Event Tickets**). You must activate an add-on for a store before you can use the related features or link Webflow sites.
+Add-ons are per-store modules that gate access to features. Available types: **Webflow CMS**, **Event Tickets**, **Gift Cards**, **Payment Links**, **Transfers**, **Workflows**, **POS**. You must enable an add-on for a store before the related menu items and features appear.
 
 1. In Filament, **select a store** (tenant) first.
-2. Go to **Settings → Add-ons** and click **Create**.
-3. Choose **Type** (e.g. “Webflow CMS” or “Event Tickets”) and leave **Active** on. Save.
-4. Only one addon per type per store is allowed. Once the add-on is active, the **Webflow CMS** menu (and **Event Tickets** under Payments, for that type) becomes visible for that store, and you can link Webflow site keys (see below).
+2. Go to **Settings → Add-ons**. You see one card per add-on type, each with a short description and status (On/Off).
+3. Click **Enable** on a card to turn that add-on on for the store. Only one add-on per type per store is allowed.
+4. Once an add-on is active, the related navigation and features become visible: **Webflow CMS** (and **Event Tickets** under Payments) for Webflow/Event Tickets; **Gift Cards**, **Payment Links**, **Transfers** under Payments; **Workflows** under Automation; **POS** (sessions, devices, terminals, receipts, etc.). On the Add-ons page, enabled Webflow-capable add-ons show **Add site** and **Manage sites**; other types show an **Open X** link to the main screen for that feature.
 
 ---
 
@@ -25,7 +25,6 @@ Add-ons are per-store modules (e.g. **Webflow CMS**, **Event Tickets**). You mus
 2. In Filament, **select the store** (tenant). Go to **Webflow CMS → Webflow Sites**.
 3. On the Webflow Sites list page, click the **Create** button (top right).
 4. Fill in:
-   - **Add-on** – select the active add-on (Webflow CMS or Event Tickets) this site belongs to.
    - **Name** – e.g. your site or client name.
    - **Webflow Site ID** – from Webflow: Site settings → General → Site ID (or from the site URL in the designer).
    - **API Token** – from Webflow: Account → Integrations → API access → create token (needs CMS read/write if you push data).
@@ -46,20 +45,25 @@ Add-ons are per-store modules (e.g. **Webflow CMS**, **Event Tickets**). You mus
 
 ### How do I manage events (event tickets)?
 
+Events are managed from **one place**: **Payments → Event Tickets**. Event content (name, date, venue, description, image) comes from Webflow; you only configure the link, ticket types, and payment links in Filament.
+
 1. **Select a store** and ensure the **Event Tickets** add-on is active (Settings → Add-ons). The **Event Tickets** menu under Payments only appears when that add-on is active.
-2. **Connect Webflow** and **manage CMS** (see above): activate a “Webflow CMS” or “Event Tickets” add-on, then link a Webflow site and activate the events collection (e.g. “Arrangementers”). Optionally **Pull from Webflow** on that collection.
-3. **Create or import event tickets:**
-   - **Create** (manual): In Filament go to **Payments → Event Tickets** and click the **Create** button (top right). Fill in event details, ticket types, Stripe payment link/price IDs, and link to a Webflow CMS item.
-   - **Import** (from Webflow): Run:
-     ```bash
-     php artisan event-tickets:import-from-webflow <store_slug_or_id> [--collection=<webflow_collection_id>] [--pull]
-     ```
-     This creates/updates **Event Ticket** records and links them to Webflow CMS items. Use `--pull` to sync from Webflow before importing.
-4. On **Payments → Event Tickets** you can:
-   - Edit **event details** (name, date, venue, etc.) and **Ticket 1 / Ticket 2** (labels, availability, payment link ID, price ID).
-   - Link the event to a **Webflow CMS item** (dropdown: items from your store’s Webflow collections).
-   - Set **Sold out** / **Archived** as needed.
-5. When customers pay via the Stripe payment link, sold counts and sold-out state update automatically and sync back to Webflow (Billett 1/2 Solgte, Utsolgt) so the site can show availability without extra client-side logic.
+2. **Connect Webflow** and **pull your events collection** (see above): activate a “Webflow CMS” or “Event Tickets” add-on, link a Webflow site, activate the events collection (e.g. “Arrangementers”), and run **Pull from Webflow** on that collection so items exist in the app.
+3. **Create an event:**
+   - Go to **Payments → Event Tickets** and click **Create**.
+   - **Select a Webflow CMS item** (required). Event details (name, date, venue, description, image URL, etc.) are filled automatically from that item.
+   - For **Ticket 1** and **Ticket 2** you can:
+     - **Ticket 2** has an **Enable ticket 2** switch; turn it off if the event only has one ticket type.
+     - **Use existing payment link**: choose from the store’s payment links (Payments → Payment Links). No manual copy-paste of Stripe IDs.
+     - **Create new payment link**: enter a label, **price (NOK)**, and max to sell. The app creates a Stripe product, one-time price, and payment link (with application fee from the store’s commission rate) and attaches it to the event.
+   - Save. All editing (payment links, availability, archived) is done here; content stays in Webflow.
+4. **Sync from Webflow:** On the Event Tickets list, use the **Sync from Webflow** header action to create or update Event Ticket records from your events collection. You can optionally tick “Pull from Webflow first” to sync the latest CMS items before importing. Then open each event to set or change payment links if needed.
+5. **Edit an event:** Open the event from the list. Use **Sync from Webflow** in the header to refresh event details from the linked CMS item. Change payment links (existing or create new), availability, or archived as needed.
+6. **From Webflow CMS Items:** When viewing an events collection under Webflow CMS → [Site] → [Collection] → Manage items, each row shows an **Event ticket** column (Linked / —). Use **Edit event ticket** or **Configure event ticket** to open the Event Ticket in Filament (edit if linked, create with that item preselected if not).
+7. When customers pay via the Stripe payment link, sold counts and sold-out state update automatically and sync back to Webflow (Billett 1/2 Solgte, Utsolgt) so the site can show availability without extra client-side logic.
+
+**What happens when you link an Event Ticket to a Webflow CMS item?**  
+Linking sets the ticket’s `webflow_item_id` to that CMS item. From then on, the job **PushTicketCountsToWebflow** runs when ticket sales or availability change: it pushes the ticket’s sold counts and sold-out state into that item’s `field_data` in Webflow (e.g. `billett-1-solgte`, `billett-2-solgte`, `utsolgt`) and publishes the item. Your Webflow site can then display live availability from those CMS fields without extra client logic.
 
 ---
 
@@ -96,9 +100,9 @@ Add-ons are per-store modules (e.g. **Webflow CMS**, **Event Tickets**). You mus
 
 ### Flow
 
-1. **Setup**: Activate the **Event Tickets** add-on for the store (Settings → Add-ons). Then connect a Webflow site in Filament (Webflow CMS → Webflow Sites; select the add-on when creating the site), discover collections, activate the “Arrangementers” (or equivalent) collection. Optionally run **Pull from Webflow** to sync items.
-2. **Import**: Run `php artisan event-tickets:import-from-webflow {store_id_or_slug} [--pull]` to create/update `EventTicket` records from the Webflow collection and link them to `webflow_items`.
-3. **Configuration**: In Filament (Event Tickets), set payment link IDs and price IDs (Stripe) and ticket availability per event.
+1. **Setup**: Activate the **Event Tickets** add-on for the store (Settings → Add-ons). Connect a Webflow site (Webflow CMS → Webflow Sites), discover collections, activate the events collection (e.g. “Arrangementers”), and run **Pull from Webflow** so items exist.
+2. **Create or sync events:** Either **Create** (link a Webflow CMS item, then set ticket types and payment links) or use **Sync from Webflow** on the Event Tickets list to create/update events from the collection. Payment links can be chosen from the store’s existing links or created inline (product + price + payment link with application fee from store commission rate).
+3. **Configuration**: In Filament (Event Tickets), edit any event to change payment links (existing or create new), availability, or use **Sync from Webflow** to refresh content from the linked CMS item.
 4. **Sales**: Customers use the Stripe payment link on the Webflow site. On `charge.succeeded`, `HandleChargeWebhook` finds the `EventTicket` by payment link ID, increments the correct ticket sold count, updates sold-out state, and dispatches `PushTicketCountsToWebflow`.
 5. **Webflow sync**: Job `PushTicketCountsToWebflow` updates the linked Webflow item’s field data (e.g. Billett 1/2 Solgte, Utsolgt) and publishes the item so the site shows sold-out state without client-side checks.
 
@@ -128,4 +132,4 @@ Exact slugs depend on the Webflow collection schema; adjust in `App\Jobs\PushTic
 ## Relevant files
 
 - **Package**: `packages/filament-webflow/src/` (WebflowPlugin, WebflowApiClient, WebflowSiteResource, WebflowCollectionItemsPage, PullWebflowItems, PushWebflowItem, DiscoverCollections)
-- **App**: `app/Models/Addon.php`, `app/Enums/AddonType.php`, `app/Filament/Resources/Addons/`, `app/Models/EventTicket.php`, `app/Filament/Resources/EventTickets/`, `app/Actions/Webhooks/HandleChargeWebhook.php` (event ticket handling), `app/Jobs/PushTicketCountsToWebflow.php`, `app/Console/Commands/ImportEventTicketsFromWebflow.php`
+- **App**: `app/Models/Addon.php`, `app/Enums/AddonType.php`, `app/Filament/Resources/Addons/`, `app/Models/EventTicket.php`, `app/Filament/Resources/EventTickets/`, `app/Actions/EventTickets/` (MapWebflowItemToEventTicketData, ImportEventTicketsFromWebflowCollection, CreateEventTicketPaymentLink), `app/Actions/Webhooks/HandleChargeWebhook.php` (event ticket handling), `app/Jobs/PushTicketCountsToWebflow.php`, `app/Console/Commands/ImportEventTicketsFromWebflow.php`

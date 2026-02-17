@@ -212,18 +212,11 @@ class Store extends Model implements StripeAccount
     }
 
     /**
-     * Get Webflow sites connected to this store (via addons).
+     * Get Webflow sites connected to this store.
      */
     public function webflowSites()
     {
-        return $this->hasManyThrough(
-            \Positiv\FilamentWebflow\Models\WebflowSite::class,
-            Addon::class,
-            'store_id',
-            'addon_id',
-            'id',
-            'id'
-        );
+        return $this->hasMany(\Positiv\FilamentWebflow\Models\WebflowSite::class);
     }
 
     /**

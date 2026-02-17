@@ -6,7 +6,6 @@ use App\Enums\AddonType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Addon extends Model
 {
@@ -31,8 +30,19 @@ class Addon extends Model
         return $this->belongsTo(Store::class);
     }
 
-    public function webflowSites(): HasMany
+    /**
+     * Whether the given store has an active add-on of the given type.
+     */
+    public static function storeHasActiveAddon(?int $storeId, AddonType $type): bool
     {
-        return $this->hasMany(\Positiv\FilamentWebflow\Models\WebflowSite::class, 'addon_id');
+        if (! $storeId) {
+            return false;
+        }
+
+        return self::query()
+            ->where('store_id', $storeId)
+            ->where('type', $type)
+            ->where('is_active', true)
+            ->exists();
     }
 }

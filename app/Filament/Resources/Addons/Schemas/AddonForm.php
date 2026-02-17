@@ -8,6 +8,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 
 class AddonForm
 {
@@ -23,8 +24,12 @@ class AddonForm
                     ->rules([
                         'required',
                         Rule::enum(AddonType::class),
-                        Rule::unique('addons')->where('store_id', fn () => \Filament\Facades\Filament::getTenant()?->id)->ignore(fn () => request()->route('record')),
-                    ]),
+                    ])
+                    ->unique(
+                        table: 'addons',
+                        column: 'type',
+                        modifyRuleUsing: fn (Unique $rule) => $rule->where('store_id', \Filament\Facades\Filament::getTenant()?->id)
+                    ),
                 Toggle::make('is_active')
                     ->label('Active')
                     ->default(true),

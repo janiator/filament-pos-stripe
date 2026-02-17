@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\ConnectedTransfers;
 
+use App\Enums\AddonType;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ConnectedTransfers\Pages\CreateConnectedTransfer;
 use App\Filament\Resources\ConnectedTransfers\Pages\EditConnectedTransfer;
 use App\Filament\Resources\ConnectedTransfers\Pages\ListConnectedTransfers;
@@ -9,9 +11,10 @@ use App\Filament\Resources\ConnectedTransfers\Pages\ViewConnectedTransfer;
 use App\Filament\Resources\ConnectedTransfers\Schemas\ConnectedTransferForm;
 use App\Filament\Resources\ConnectedTransfers\Schemas\ConnectedTransferInfolist;
 use App\Filament\Resources\ConnectedTransfers\Tables\ConnectedTransfersTable;
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
+use App\Models\Addon;
 use App\Models\ConnectedTransfer;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -50,12 +53,27 @@ class ConnectedTransferResource extends Resource
         return __('filament.navigation_groups.payments');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return false;
+        }
+
+        return Addon::query()
+            ->where('store_id', $tenant->getKey())
+            ->where('type', AddonType::Transfers)
+            ->where('is_active', true)
+            ->exists();
+    }
+
     public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null
     {
         if (! $record) {
             return null;
         }
-        return $record->formatted_amount . ' - ' . ($record->description ?? $record->stripe_transfer_id);
+
+        return $record->formatted_amount.' - '.($record->description ?? $record->stripe_transfer_id);
     }
 
     public static function form(Schema $schema): Schema

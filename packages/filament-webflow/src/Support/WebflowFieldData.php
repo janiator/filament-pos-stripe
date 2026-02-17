@@ -118,6 +118,33 @@ class WebflowFieldData
     }
 
     /**
+     * Get a human-readable display name from a Webflow item's field_data.
+     * Tries common title/name slugs, then the first non-empty string value.
+     *
+     * @param  array<string, mixed>  $fieldData
+     */
+    public static function displayNameFromFieldData(array $fieldData): string
+    {
+        $trySlugs = ['name', 'title', 'event-name', 'arrangement-navn', 'heading', 'headline'];
+        foreach ($trySlugs as $slug) {
+            if (isset($fieldData[$slug])) {
+                $v = self::displayValue($fieldData[$slug]);
+                if ($v !== null && $v !== '') {
+                    return $v;
+                }
+            }
+        }
+        foreach ($fieldData as $value) {
+            $v = self::displayValue($value);
+            if ($v !== null && $v !== '') {
+                return $v;
+            }
+        }
+
+        return '';
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
     private static function firstScalarFromArray(array $data): ?string

@@ -2,11 +2,14 @@
 
 namespace App\Providers\Filament;
 
+use App\Enums\AddonType;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Resources\Shield\Roles\RoleResource;
 use App\Http\Middleware\FilamentEmbedMode;
+use App\Models\Addon;
 use App\Models\Store;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -22,6 +25,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Leek\FilamentWorkflows\Resources\WorkflowResource;
 use Positiv\FilamentWebflow\WebflowPlugin;
 
 class AppPanelProvider extends PanelProvider
@@ -48,7 +52,11 @@ class AppPanelProvider extends PanelProvider
             ->plugin(FilamentShieldPlugin::make());
 
         if (class_exists(\Leek\FilamentWorkflows\WorkflowsPlugin::class)) {
-            $panel = $panel->plugin(\Leek\FilamentWorkflows\WorkflowsPlugin::make()->navigationGroup(__('filament.navigation_groups.automation')));
+            $panel = $panel->plugin(
+                \Leek\FilamentWorkflows\WorkflowsPlugin::make()
+                    ->navigationGroup(__('filament.navigation_groups.automation'))
+                    ->navigation(false)
+            );
         }
 
         $panel = $panel->plugin(WebflowPlugin::make()->navigationGroup('Webflow CMS'));
@@ -89,6 +97,13 @@ class AppPanelProvider extends PanelProvider
                 'Webflow CMS',
             ])
             ->navigationItems([
+                NavigationItem::make('Workflows')
+                    ->label('Workflows')
+                    ->url(fn () => WorkflowResource::getUrl('index'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->group(__('filament.navigation_groups.automation'))
+                    ->sort(0)
+                    ->visible(fn () => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Workflows)),
                 NavigationItem::make('Horizon')
                     ->label(__('filament.navigation.horizon'))
                     ->url('/horizon', shouldOpenInNewTab: true)

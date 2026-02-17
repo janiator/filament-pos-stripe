@@ -24,14 +24,14 @@ it('creates addon for store and types with webflow are correct', function () {
     expect(AddonType::typesWithWebflow())->toContain(AddonType::WebflowCms->value, AddonType::EventTickets->value);
 });
 
-it('store has addons and webflow sites through addons', function () {
+it('store has addons and webflow sites', function () {
     $addon = Addon::factory()->for($this->store)->create(['type' => AddonType::WebflowCms]);
 
     expect($this->store->addons)->toHaveCount(1);
     expect($this->store->addons->first()->id)->toBe($addon->id);
 
     $site = WebflowSite::create([
-        'addon_id' => $addon->id,
+        'store_id' => $this->store->id,
         'webflow_site_id' => 'webflow_'.uniqid(),
         'name' => 'Test Site',
         'is_active' => true,
@@ -48,10 +48,11 @@ it('event tickets addon type is in types with webflow', function () {
     expect(AddonType::typesWithWebflow())->toContain($addon->type->value);
 });
 
-it('import event tickets command fails with clear message when no webflow collection for store', function () {
+it('import event tickets command completes with zero created and updated when no webflow collection for store', function () {
     Addon::factory()->for($this->store)->eventTickets()->create();
 
-    Artisan::call('event-tickets:import-from-webflow', ['store' => $this->store->slug]);
+    $exitCode = Artisan::call('event-tickets:import-from-webflow', ['store' => $this->store->slug]);
 
-    expect(Artisan::output())->toContain('No Webflow collection found');
+    expect($exitCode)->toBe(0);
+    expect(Artisan::output())->toContain('Created: 0, Updated: 0');
 });

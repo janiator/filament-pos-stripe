@@ -60,7 +60,7 @@ class WebflowSiteResource extends Resource
         $query = parent::getEloquentQuery();
         $tenant = Filament::getTenant();
         if ($tenant) {
-            $query->whereHas('addon', fn ($q) => $q->where('store_id', $tenant->getKey()));
+            $query->where('store_id', $tenant->getKey());
         }
 
         return $query;
@@ -70,25 +70,6 @@ class WebflowSiteResource extends Resource
     {
         return $schema
             ->components([
-                \Filament\Forms\Components\Select::make('addon_id')
-                    ->label('Add-on')
-                    ->options(function () {
-                        $tenant = Filament::getTenant();
-                        if (! $tenant) {
-                            return [];
-                        }
-
-                        return Addon::query()
-                            ->where('store_id', $tenant->getKey())
-                            ->where('is_active', true)
-                            ->whereIn('type', AddonType::typesWithWebflow())
-                            ->get()
-                            ->mapWithKeys(fn (Addon $a) => [$a->id => $a->type->label().' ('.$a->type->value.')'])
-                            ->all();
-                    })
-                    ->required()
-                    ->native(false)
-                    ->searchable(),
                 \Filament\Forms\Components\TextInput::make('name')
                     ->label(__('Name'))
                     ->required()
