@@ -52,7 +52,8 @@ class WebflowSiteResource extends Resource
                 \Filament\Forms\Components\TextInput::make('webflow_site_id')
                     ->label('Webflow Site ID')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->unique(table: 'webflow_sites', column: 'webflow_site_id', ignoreRecord: true),
                 \Filament\Forms\Components\TextInput::make('api_token')
                     ->label('API Token')
                     ->password()
