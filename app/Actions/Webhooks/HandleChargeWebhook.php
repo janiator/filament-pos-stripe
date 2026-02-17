@@ -3,8 +3,10 @@
 namespace App\Actions\Webhooks;
 
 use App\Models\ConnectedCharge;
+use App\Models\EventTicket;
 use App\Models\Store;
 use Stripe\Charge;
+use Stripe\StripeClient;
 
 /**
  * Processes Stripe charge webhooks. Looks up by stripe_payment_intent_id first when
@@ -120,6 +122,52 @@ class HandleChargeWebhook
             'charge_record_id' => $chargeRecord->id,
             'was_created' => $wasCreated,
         ]);
+
+        // If charge.succeeded and payment is via a payment link, check for event ticket and increment sold count
+        if ($eventType === 'charge.succeeded' && $charge->payment_intent) {
+            $this->handleEventTicketPurchase($charge, $accountId, $store);
+        }
+    }
+
+    private function handleEventTicketPurchase(Charge $charge, string $accountId, Store $store): void
+    {
+        try {
+            $stripe = new StripeClient(config('cashier.secret'));
+            $paymentIntent = $stripe->paymentIntents->retrieve(
+                $charge->payment_intent,
+                ['stripe_account' => $accountId]
+            );
+            $paymentLinkId = $paymentIntent->payment_link ?? null;
+            if (! $paymentLinkId) {
+                return;
+            }
+
+            $eventTicket = EventTicket::where('store_id', $store->id)->findByPaymentLinkId($paymentLinkId);
+            if (! $eventTicket) {
+                return;
+            }
+
+            $quantity = 1;
+            $meta = $paymentIntent->metadata ? (array) $paymentIntent->metadata : [];
+            if (isset($meta['quantity']) && is_numeric($meta['quantity'])) {
+                $quantity = (int) $meta['quantity'];
+            }
+
+            $eventTicket->incrementSoldForPaymentLink($paymentLinkId, $quantity);
+
+            \Log::info('Event ticket sold count updated', [
+                'event_ticket_id' => $eventTicket->id,
+                'payment_link_id' => $paymentLinkId,
+                'quantity' => $quantity,
+            ]);
+
+            \App\Jobs\PushTicketCountsToWebflow::dispatch($eventTicket);
+        } catch (\Throwable $e) {
+            \Log::warning('Event ticket purchase handling failed', [
+                'charge_id' => $charge->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
