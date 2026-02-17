@@ -2,26 +2,27 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Dashboard;
+use App\Filament\Resources\Shield\Roles\RoleResource;
 use App\Http\Middleware\FilamentEmbedMode;
+use App\Models\Store;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use App\Models\Store;
-use App\Filament\Resources\Shield\Roles\RoleResource;
-use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Navigation\NavigationItem;
-use App\Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Filament\Support\Enums\Width;
+use Positiv\FilamentWebflow\WebflowPlugin;
 
 class AppPanelProvider extends PanelProvider
 {
@@ -33,6 +34,8 @@ class AppPanelProvider extends PanelProvider
             ->path('app')
             ->viteTheme('resources/css/filament/app/theme.css')
             ->login()
+            ->profile()
+            ->databaseNotifications()
             ->tenant(Store::class)
             ->tenantRoutePrefix('store')
             ->colors([
@@ -47,6 +50,8 @@ class AppPanelProvider extends PanelProvider
         if (class_exists(\Leek\FilamentWorkflows\WorkflowsPlugin::class)) {
             $panel = $panel->plugin(\Leek\FilamentWorkflows\WorkflowsPlugin::make()->navigationGroup(__('filament.navigation_groups.automation')));
         }
+
+        $panel = $panel->plugin(WebflowPlugin::make()->navigationGroup('Webflow CMS'));
 
         return $panel
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
@@ -81,6 +86,7 @@ class AppPanelProvider extends PanelProvider
                 __('filament.navigation_groups.automation'),
                 __('filament.navigation_groups.system'),
                 __('filament.navigation_groups.administration'),
+                'Webflow CMS',
             ])
             ->navigationItems([
                 NavigationItem::make('Horizon')
