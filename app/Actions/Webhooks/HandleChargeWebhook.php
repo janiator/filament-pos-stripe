@@ -3,8 +3,10 @@
 namespace App\Actions\Webhooks;
 
 use App\Models\ConnectedCharge;
+use App\Models\EventTicket;
 use App\Models\Store;
 use Stripe\Charge;
+use Stripe\StripeClient;
 
 /**
  * Processes Stripe charge webhooks. Looks up by stripe_payment_intent_id first when
@@ -70,6 +72,8 @@ class HandleChargeWebhook
 
         $data = $this->buildChargeData($charge, $store->stripe_account_id);
 
+        $chargeRecord = null;
+
         // Look up by payment_intent_id first when present: merge into existing row and preserve POS fields
         if ($charge->payment_intent) {
             $existing = ConnectedCharge::where('stripe_payment_intent_id', $charge->payment_intent)
@@ -91,35 +95,95 @@ class HandleChargeWebhook
                     'charge_record_id' => $existing->id,
                 ]);
 
-                return;
+                $chargeRecord = $existing;
             }
         }
 
         // No row found by payment_intent_id: updateOrCreate by (stripe_charge_id, stripe_account_id)
-        $chargeRecord = ConnectedCharge::where('stripe_charge_id', $charge->id)
-            ->where('stripe_account_id', $store->stripe_account_id)
-            ->first();
+        if (! $chargeRecord) {
+            $chargeRecord = ConnectedCharge::where('stripe_charge_id', $charge->id)
+                ->where('stripe_account_id', $store->stripe_account_id)
+                ->first();
 
-        $wasCreated = false;
-        if ($chargeRecord) {
-            $chargeRecord->fill($data);
-            $chargeRecord->stripe_account_id = $store->stripe_account_id;
-            foreach (self::PRESERVED_POS_FIELDS as $field) {
-                if ($chargeRecord->getRawOriginal($field) !== null) {
-                    $chargeRecord->$field = $chargeRecord->getRawOriginal($field);
+            $wasCreated = false;
+            if ($chargeRecord) {
+                $chargeRecord->fill($data);
+                $chargeRecord->stripe_account_id = $store->stripe_account_id;
+                foreach (self::PRESERVED_POS_FIELDS as $field) {
+                    if ($chargeRecord->getRawOriginal($field) !== null) {
+                        $chargeRecord->$field = $chargeRecord->getRawOriginal($field);
+                    }
                 }
+                $chargeRecord->save();
+            } else {
+                $chargeRecord = ConnectedCharge::create($data);
+                $wasCreated = true;
             }
-            $chargeRecord->save();
-        } else {
-            $chargeRecord = ConnectedCharge::create($data);
-            $wasCreated = true;
+
+            \Log::info('Charge webhook processed successfully', [
+                'charge_id' => $charge->id,
+                'charge_record_id' => $chargeRecord->id,
+                'was_created' => $wasCreated,
+            ]);
         }
 
-        \Log::info('Charge webhook processed successfully', [
-            'charge_id' => $charge->id,
-            'charge_record_id' => $chargeRecord->id,
-            'was_created' => $wasCreated,
-        ]);
+        // If charge.succeeded and payment is via a payment link, check for event ticket and increment sold count
+        // Only process once per charge to ensure idempotency on webhook retries
+        if ($eventType === 'charge.succeeded' && $charge->payment_intent && ! $chargeRecord->event_ticket_processed) {
+            $this->handleEventTicketPurchase($charge, $accountId, $store, $chargeRecord);
+        }
+    }
+
+    private function handleEventTicketPurchase(Charge $charge, string $accountId, Store $store, ConnectedCharge $chargeRecord): void
+    {
+        try {
+            $stripe = new StripeClient(config('cashier.secret'));
+            $paymentIntent = $stripe->paymentIntents->retrieve(
+                $charge->payment_intent,
+                ['stripe_account' => $accountId]
+            );
+            $paymentLinkId = $paymentIntent->payment_link ?? null;
+            if (! $paymentLinkId) {
+                return;
+            }
+
+            $eventTicket = EventTicket::findByStoreAndPaymentLinkId($store->id, $paymentLinkId);
+            if (! $eventTicket) {
+                return;
+            }
+
+            // Retrieve quantity from Checkout Session line items (Payment Links use Checkout Sessions)
+            $quantity = 1;
+            $checkoutSessions = $stripe->checkout->sessions->all([
+                'payment_intent' => $charge->payment_intent,
+            ], ['stripe_account' => $accountId]);
+
+            if ($checkoutSessions->data && count($checkoutSessions->data) > 0) {
+                $session = $checkoutSessions->data[0];
+                $lineItems = $stripe->checkout->sessions->allLineItems($session->id, [], ['stripe_account' => $accountId]);
+                if ($lineItems->data && count($lineItems->data) > 0) {
+                    $quantity = $lineItems->data[0]->quantity ?? 1;
+                }
+            }
+
+            $eventTicket->incrementSoldForPaymentLink($paymentLinkId, $quantity);
+
+            // Mark as processed to ensure idempotency on webhook retries
+            $chargeRecord->update(['event_ticket_processed' => true]);
+
+            \Log::info('Event ticket sold count updated', [
+                'event_ticket_id' => $eventTicket->id,
+                'payment_link_id' => $paymentLinkId,
+                'quantity' => $quantity,
+            ]);
+
+            \App\Jobs\PushTicketCountsToWebflow::dispatch($eventTicket);
+        } catch (\Throwable $e) {
+            \Log::warning('Event ticket purchase handling failed', [
+                'charge_id' => $charge->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
