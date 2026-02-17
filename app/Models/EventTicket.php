@@ -55,6 +55,16 @@ class EventTicket extends Model
             ->first();
     }
 
+    public static function findByStoreAndPaymentLinkId(int $storeId, string $paymentLinkId): ?self
+    {
+        return static::where('store_id', $storeId)
+            ->where(function ($query) use ($paymentLinkId) {
+                $query->where('ticket_1_payment_link_id', $paymentLinkId)
+                    ->orWhere('ticket_2_payment_link_id', $paymentLinkId);
+            })
+            ->first();
+    }
+
     public function incrementSoldForPaymentLink(string $paymentLinkId, int $quantity = 1): void
     {
         if ($this->ticket_1_payment_link_id === $paymentLinkId) {
