@@ -42,6 +42,15 @@ class CollectionsRelationManager extends RelationManager
                     ->icon('heroicon-o-arrow-path')
                     ->action(function () {
                         $site = $this->getOwnerRecord();
+                        if (empty($site->api_token)) {
+                            Notification::make()
+                                ->title('API token required')
+                                ->body('Please add an API token to this site before discovering collections.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
                         $action = new DiscoverCollections;
                         $result = $action($site);
                         Notification::make()

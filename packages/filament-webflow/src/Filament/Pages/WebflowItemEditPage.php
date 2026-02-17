@@ -191,7 +191,7 @@ class WebflowItemEditPage extends Page
 
         if ($shouldRedirect) {
             $url = WebflowCollectionItemsPage::getUrl(
-                ['collection' => $record->collection_id],
+                ['collection' => $record->collection?->id],
                 true,
                 null,
                 Filament::getTenant()
@@ -207,7 +207,7 @@ class WebflowItemEditPage extends Page
     {
         $record = $this->getRecord();
         $listUrl = WebflowCollectionItemsPage::getUrl(
-            ['collection' => $record?->collection_id],
+            ['collection' => $record?->collection?->id],
             true,
             null,
             Filament::getTenant()
@@ -277,7 +277,7 @@ class WebflowItemEditPage extends Page
     {
         $record = $this->getRecord();
         $listUrl = WebflowCollectionItemsPage::getUrl(
-            ['collection' => $record?->collection_id],
+            ['collection' => $record?->collection?->id],
             true,
             null,
             Filament::getTenant()

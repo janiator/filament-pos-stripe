@@ -90,7 +90,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
             IconColumn::make('is_draft')->label('Draft')->boolean()->toggleable(),
         ];
 
-        $schema = static::orderSchemaFields($collection->schema ?? []);
+        $schema = \Positiv\FilamentWebflow\Support\WebflowSchemaFormBuilder::orderSchemaFields($collection->schema ?? []);
         foreach ($schema as $field) {
             $slug = $field['slug'] ?? null;
             if (! $slug) {
@@ -111,7 +111,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
                     ->formatStateUsing(fn ($state) => WebflowFieldData::displayValue($state))
                     ->limit(40)
                     ->searchable(query: function ($query, $search) use ($slug) {
-                        $query->where('field_data->'.$slug, 'like', '%'.$search.'%');
+                        $query->where('field_data->>'.$slug, 'like', '%'.$search.'%');
                     })
                     ->toggleable();
             }
@@ -186,30 +186,6 @@ class WebflowCollectionItemsPage extends Page implements HasTable
                     ->action(fn ($records) => $records->each(fn (WebflowItem $r) => PushWebflowItem::dispatch($r, false)))
                     ->deselectRecordsAfterCompletion(),
             ]);
-    }
-
-    /**
-     * Order schema fields so name and slug come before description, then the rest.
-     *
-     * @param  array<int, array<string, mixed>>  $schema
-     * @return array<int, array<string, mixed>>
-     */
-    protected static function orderSchemaFields(array $schema): array
-    {
-        $order = ['name' => 0, 'slug' => 1, 'description' => 2];
-        usort($schema, function (array $a, array $b) use ($order): int {
-            $slugA = $a['slug'] ?? '';
-            $slugB = $b['slug'] ?? '';
-            $posA = $order[$slugA] ?? 999;
-            $posB = $order[$slugB] ?? 999;
-            if ($posA !== $posB) {
-                return $posA <=> $posB;
-            }
-
-            return 0;
-        });
-
-        return $schema;
     }
 
     public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): string

@@ -136,7 +136,7 @@ class WebflowSchemaFormBuilder
      * @param  array<int, array<string, mixed>>  $schema
      * @return array<int, array<string, mixed>>
      */
-    protected static function orderSchemaFields(array $schema): array
+    public static function orderSchemaFields(array $schema): array
     {
         $order = ['name' => 0, 'slug' => 1, 'description' => 2];
         usort($schema, function (array $a, array $b) use ($order): int {
