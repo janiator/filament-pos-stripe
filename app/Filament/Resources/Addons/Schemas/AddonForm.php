@@ -23,8 +23,19 @@ class AddonForm
                     ->rules([
                         'required',
                         Rule::enum(AddonType::class),
-                        Rule::unique('addons')->where('store_id', fn () => \Filament\Facades\Filament::getTenant()?->id)->ignore(fn () => request()->route('record')),
-                    ]),
+                    ])
+                    ->unique(
+                        table: 'addons',
+                        column: 'type',
+                        ignoreRecord: true,
+                        modifyRuleUsing: function ($rule) {
+                            $tenant = \Filament\Facades\Filament::getTenant();
+                            if ($tenant) {
+                                $rule->where('store_id', $tenant->id);
+                            }
+                            return $rule;
+                        }
+                    ),
                 Toggle::make('is_active')
                     ->label('Active')
                     ->default(true),

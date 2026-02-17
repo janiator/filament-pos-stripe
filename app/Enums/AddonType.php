@@ -15,11 +15,6 @@ enum AddonType: string
         };
     }
 
-    public function allowsWebflow(): bool
-    {
-        return true;
-    }
-
     /**
      * Addon type slugs that allow linking Webflow sites.
      *
