@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\PosDevice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PosDevicesController extends BaseApiController
 {
@@ -24,7 +25,7 @@ class PosDevicesController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         $devices = PosDevice::where('store_id', $store->id)
-            ->with(['terminalLocations.terminalReaders', 'receiptPrinters'])
+            ->with(['terminalLocations.terminalReaders', 'receiptPrinters', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])
             ->orderBy('device_name')
             ->get();
 
@@ -51,7 +52,11 @@ class PosDevicesController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         $validated = $request->validate([
-            'device_identifier' => 'required|string|unique:pos_devices,device_identifier',
+            'device_identifier' => [
+                'required',
+                'string',
+                Rule::unique('pos_devices', 'device_identifier')->where('store_id', $store->id),
+            ],
             'device_name' => 'required|string|max:255',
             'platform' => 'required|string|in:ios,android',
             'device_model' => 'nullable|string|max:255',
@@ -97,7 +102,7 @@ class PosDevicesController extends BaseApiController
 
         $device = PosDevice::where('id', $id)
             ->where('store_id', $store->id)
-            ->with(['terminalLocations.terminalReaders', 'receiptPrinters'])
+            ->with(['terminalLocations.terminalReaders', 'receiptPrinters', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])
             ->firstOrFail();
 
         return response()->json([
@@ -140,6 +145,8 @@ class PosDevicesController extends BaseApiController
             'device_status' => 'sometimes|string|in:active,inactive,maintenance,offline',
             'device_metadata' => 'nullable|array',
             'default_printer_id' => 'nullable|exists:receipt_printers,id',
+            'last_connected_terminal_location_id' => 'nullable|exists:terminal_locations,id',
+            'last_connected_terminal_reader_id' => 'nullable|exists:terminal_readers,id',
         ]);
 
         // Validate that the printer belongs to the same store
@@ -147,7 +154,7 @@ class PosDevicesController extends BaseApiController
             $printer = \App\Models\ReceiptPrinter::where('id', $validated['default_printer_id'])
                 ->where('store_id', $store->id)
                 ->first();
-            
+
             if (!$printer) {
                 return response()->json([
                     'message' => 'Receipt printer not found or does not belong to this store',
@@ -155,7 +162,30 @@ class PosDevicesController extends BaseApiController
             }
         }
 
+        // Validate that last-connected terminal location and reader belong to this store
+        if (array_key_exists('last_connected_terminal_location_id', $validated) && $validated['last_connected_terminal_location_id']) {
+            $loc = \App\Models\TerminalLocation::where('id', $validated['last_connected_terminal_location_id'])
+                ->where('store_id', $store->id)
+                ->first();
+            if (!$loc) {
+                return response()->json([
+                    'message' => 'Terminal location not found or does not belong to this store',
+                ], 422);
+            }
+        }
+        if (array_key_exists('last_connected_terminal_reader_id', $validated) && $validated['last_connected_terminal_reader_id']) {
+            $reader = \App\Models\TerminalReader::where('id', $validated['last_connected_terminal_reader_id'])
+                ->where('store_id', $store->id)
+                ->first();
+            if (!$reader) {
+                return response()->json([
+                    'message' => 'Terminal reader not found or does not belong to this store',
+                ], 422);
+            }
+        }
+
         $device->update($validated);
+        $device->load(['lastConnectedTerminalLocation', 'lastConnectedTerminalReader']);
 
         return response()->json([
             'message' => 'POS device updated successfully',
@@ -555,6 +585,26 @@ class PosDevicesController extends BaseApiController
     /**
      * Format device response with all information
      */
+    /**
+     * Format last-connected terminal for API response (for auto-reconnect)
+     */
+    protected function formatLastConnectedTerminal(PosDevice $device): ?array
+    {
+        $location = $device->lastConnectedTerminalLocation;
+        $reader = $device->lastConnectedTerminalReader;
+        if (!$location && !$reader) {
+            return null;
+        }
+        return [
+            'location_id' => $location?->id,
+            'stripe_location_id' => $location?->stripe_location_id,
+            'location_display_name' => $location?->display_name,
+            'reader_id' => $reader?->id,
+            'stripe_reader_id' => $reader?->stripe_reader_id,
+            'reader_label' => $reader?->label,
+        ];
+    }
+
     protected function formatDeviceResponse(PosDevice $device): array
     {
         return [
@@ -593,6 +643,7 @@ class PosDevicesController extends BaseApiController
             }),
             'receipt_printers_count' => $device->receiptPrinters->count(),
             'default_printer_id' => $device->default_printer_id,
+            'last_connected' => $this->formatLastConnectedTerminal($device),
             'receipt_printers' => $device->receiptPrinters->map(function ($printer) {
                 return [
                     'id' => $printer->id,
