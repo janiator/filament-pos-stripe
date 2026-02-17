@@ -32,28 +32,60 @@ class WebflowItemEditPage extends Page
 
     public ?string $previousUrl = null;
 
+    /** Item ID from route – kept public so Livewire persists it on update requests. */
+    public int|string|null $itemId = null;
+
     protected ?WebflowItem $record = null;
 
     public function mount(int|string $item): void
     {
-        $tenant = Filament::getTenant();
-        $this->record = WebflowItem::query()
-            ->with('collection.site')
-            ->where('id', $item)
-            ->whereHas('collection', function ($q) use ($tenant) {
-                $q->where('is_active', true)
-                    ->whereHas('site', fn ($q2) => $tenant ? $q2->where('store_id', $tenant->getKey()) : $q2);
-            })
-            ->firstOrFail();
+        $this->itemId = $item;
+        $this->record = $this->resolveRecord();
+        if ($this->record === null) {
+            abort(404);
+        }
 
         $this->data = $this->record->field_data ?? [];
-        $this->stripImageFieldsFromState();
+        $this->loadImageStateFromRecord();
+        $this->data = $this->dataWithSchemaKeys($this->data);
+
+        $formSchema = $this->getSchema('form');
+        if ($formSchema !== null) {
+            $formSchema->fill($this->data);
+        }
+
         $this->previousUrl = url()->previous();
     }
 
     public function getRecord(): ?WebflowItem
     {
+        if ($this->record !== null) {
+            return $this->record;
+        }
+        if ($this->itemId === null) {
+            return null;
+        }
+
+        $this->record = $this->resolveRecord();
+
         return $this->record;
+    }
+
+    protected function resolveRecord(): ?WebflowItem
+    {
+        $tenant = Filament::getTenant();
+        if ($this->itemId === null) {
+            return null;
+        }
+
+        return WebflowItem::query()
+            ->with('collection.site')
+            ->where('id', $this->itemId)
+            ->whereHas('collection', function ($q) use ($tenant) {
+                $q->where('is_active', true)
+                    ->whereHas('site', fn ($q2) => $tenant ? $q2->whereHas('addon', fn ($aq) => $aq->where('store_id', $tenant->getKey())) : $q2);
+            })
+            ->first();
     }
 
     public function getTitle(): string|Htmlable
@@ -87,6 +119,8 @@ class WebflowItemEditPage extends Page
         if (! $collection instanceof WebflowCollection) {
             return $schema->components([]);
         }
+
+        $this->data = $this->dataWithSchemaKeys($this->data);
 
         $components = WebflowSchemaFormBuilder::build($collection);
         if (empty($components)) {
@@ -220,26 +254,66 @@ class WebflowItemEditPage extends Page
     }
 
     /**
-     * Remove Image/MultiImage keys from form state so SpatieMediaLibraryFileUpload
-     * loads from the model's media collections instead of raw field_data (which may be objects).
+     * Load Image/MultiImage field state from the record's media (uuid map) so the file upload shows existing files.
      */
-    protected function stripImageFieldsFromState(): void
+    protected function loadImageStateFromRecord(): void
     {
         $collection = $this->record?->collection;
         if (! $collection instanceof WebflowCollection) {
             return;
         }
-        $schema = $collection->schema ?? [];
-        foreach ($schema as $field) {
+        foreach ($collection->schema ?? [] as $field) {
             $type = $field['type'] ?? null;
             if ($type !== 'Image' && $type !== 'MultiImage') {
                 continue;
             }
             $slug = $field['slug'] ?? null;
-            if (is_string($slug)) {
-                unset($this->data[$slug]);
+            if (! is_string($slug)) {
+                continue;
+            }
+            $media = $this->record->getMedia($slug);
+            if ($media->isEmpty()) {
+                $this->data[$slug] = $type === 'Image' ? null : [];
+            } else {
+                $this->data[$slug] = $media->mapWithKeys(fn ($m) => [$m->getAttributeValue('uuid') => $m->getAttributeValue('uuid')])->all();
             }
         }
+    }
+
+    /**
+     * Merge schema field keys into state so Livewire exposes data.{slug} for entangle.
+     * Image/MultiImage: only add null/[] when key is missing (so loadImageStateFromRecord is not overwritten).
+     *
+     * @param  array<string, mixed>  $current
+     * @return array<string, mixed>
+     */
+    protected function dataWithSchemaKeys(array $current): array
+    {
+        $collection = $this->record?->collection;
+        if (! $collection instanceof WebflowCollection) {
+            return $current;
+        }
+        $defaults = [];
+        foreach ($collection->schema ?? [] as $field) {
+            $slug = $field['slug'] ?? null;
+            if (! is_string($slug)) {
+                continue;
+            }
+            $type = $field['type'] ?? null;
+            if ($type === 'Image') {
+                if (! array_key_exists($slug, $current)) {
+                    $defaults[$slug] = null;
+                }
+            } elseif ($type === 'MultiImage') {
+                if (! array_key_exists($slug, $current)) {
+                    $defaults[$slug] = [];
+                }
+            } elseif (! array_key_exists($slug, $current)) {
+                $defaults[$slug] = null;
+            }
+        }
+
+        return array_merge($defaults, $current);
     }
 
     /**

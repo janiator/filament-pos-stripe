@@ -51,7 +51,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
         $collectionId = (int) $this->collection;
         $this->collectionModel = WebflowCollection::where('id', $collectionId)
             ->where('is_active', true)
-            ->whereHas('site', fn ($q) => $tenant ? $q->where('store_id', $tenant->getKey()) : $q)
+            ->whereHas('site', fn ($q) => $tenant ? $q->whereHas('addon', fn ($aq) => $aq->where('store_id', $tenant->getKey())) : $q)
             ->firstOrFail();
     }
 
@@ -60,7 +60,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
         // Redirect to first available collection or Webflow Sites
         $tenant = Filament::getTenant();
         $first = WebflowCollection::where('is_active', true)
-            ->whereHas('site', fn ($q) => $tenant ? $q->where('store_id', $tenant->getKey()) : $q)
+            ->whereHas('site', fn ($q) => $tenant ? $q->whereHas('addon', fn ($aq) => $aq->where('store_id', $tenant->getKey())) : $q)
             ->first();
         if ($first) {
             $this->collection = $first->id;

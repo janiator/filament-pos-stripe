@@ -2,6 +2,8 @@
 
 namespace Positiv\FilamentWebflow\Filament\Pages;
 
+use App\Enums\AddonType;
+use App\Models\Addon;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationItem;
@@ -19,6 +21,20 @@ class WebflowSitesNavigationPage extends Page
 
     protected string $view = 'filament-panels::pages.page';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return false;
+        }
+
+        return Addon::query()
+            ->where('store_id', $tenant->getKey())
+            ->where('is_active', true)
+            ->whereIn('type', AddonType::typesWithWebflow())
+            ->exists();
+    }
+
     /**
      * Register Webflow sites as parent nav items with active collections as children.
      *
@@ -32,7 +48,7 @@ class WebflowSitesNavigationPage extends Page
         }
 
         $sites = WebflowSite::query()
-            ->where('store_id', $tenant->getKey())
+            ->whereHas('addon', fn ($q) => $q->where('store_id', $tenant->getKey()))
             ->where('is_active', true)
             ->with(['collections' => fn ($q) => $q->where('is_active', true)->orderBy('name')])
             ->orderBy('name')

@@ -2,7 +2,18 @@
 
 ## Overview
 
-The project includes a **Filament Webflow** package (`packages/filament-webflow`) for integrating Webflow CMS with the POS, and an **Event Tickets** add-on for selling simple event tickets with Webflow-driven content and Stripe payment links.
+The project includes a **Filament Webflow** package (`packages/filament-webflow`) for integrating Webflow CMS with the POS, and an **Event Tickets** add-on for selling simple event tickets with Webflow-driven content and Stripe payment links. Webflow site linking is managed through **Add-ons**: you activate an add-on (e.g. Webflow CMS or Event Tickets) for a store, then link Webflow site keys to that add-on.
+
+---
+
+## Add-ons
+
+Add-ons are per-store modules (e.g. **Webflow CMS**, **Event Tickets**). You must activate an add-on for a store before you can use the related features or link Webflow sites.
+
+1. In Filament, **select a store** (tenant) first.
+2. Go to **Settings → Add-ons** and click **Create**.
+3. Choose **Type** (e.g. “Webflow CMS” or “Event Tickets”) and leave **Active** on. Save.
+4. Only one addon per type per store is allowed. Once the add-on is active, the **Webflow CMS** menu (and **Event Tickets** under Payments, for that type) becomes visible for that store, and you can link Webflow site keys (see below).
 
 ---
 
@@ -10,10 +21,11 @@ The project includes a **Filament Webflow** package (`packages/filament-webflow`
 
 ### How do I connect a Webflow site to the store?
 
-1. In Filament, **select a store** (tenant) first. The Webflow CMS menu and Webflow Sites list are only visible when you are in a store context (e.g. open **Stores**, then click a store, or go to a URL like `/app/store/your-store-slug/`).
-2. In the sidebar, go to **Webflow CMS → Webflow Sites**.
+1. **Activate an add-on** that supports Webflow (see **Add-ons** above): e.g. create and activate a “Webflow CMS” or “Event Tickets” add-on for the store. The Webflow CMS menu only appears when the store has at least one such active add-on.
+2. In Filament, **select the store** (tenant). Go to **Webflow CMS → Webflow Sites**.
 3. On the Webflow Sites list page, click the **Create** button (top right).
 4. Fill in:
+   - **Add-on** – select the active add-on (Webflow CMS or Event Tickets) this site belongs to.
    - **Name** – e.g. your site or client name.
    - **Webflow Site ID** – from Webflow: Site settings → General → Site ID (or from the site URL in the designer).
    - **API Token** – from Webflow: Account → Integrations → API access → create token (needs CMS read/write if you push data).
@@ -27,15 +39,15 @@ The project includes a **Filament Webflow** package (`packages/filament-webflow`
 2. In the same **CMS Collections** table, click **Manage items** on a collection row to open the CMS items page for that collection.
 3. You are on the **Webflow CMS Items** page for that collection:
    - **Table**: lists all synced items (columns come from the collection schema; columns are toggleable, filters available for Published/Draft).
-   - **Pull from Webflow**: header action to sync items from Webflow into the app (run the job).
+   - **Pull from Webflow**: header action to sync items from Webflow into the app (run the job). Image and MultiImage fields are downloaded into local media so the edit form can show and replace them. **Queue required:** a queue worker must be running (`php artisan queue:work` or Horizon) for image downloads to run. Images are stored on the **public** disk (`storage/app/public`); ensure `php artisan storage:link` has been run so they are served at `/storage/...`.
    - **Edit** (row): opens a dedicated **Edit** page with a CMS-like form: fields are generated from the collection schema (PlainText, RichText, Number, Switch, DateTime, Email, Phone, Link, Option, etc.) with proper labels and validation.
    - **Push to Webflow** (row or bulk): send changed data to Webflow and optionally publish.
-4. On the **Edit** page you can save changes locally, then use **Push to Webflow** to sync and publish. To get items from Webflow first, use **Pull from Webflow** on the list, then edit and push as needed.
+4. On the **Edit** page you can save changes locally, then use **Push to Webflow** to sync and publish. To get items from Webflow first, use **Pull from Webflow** on the list, then edit and push as needed. If images do not appear after a pull: (1) ensure a queue worker is running (`php artisan queue:work` or Horizon); (2) run `php artisan storage:link` so the public disk is served; (3) check logs for `WebflowItem: syncing media` or `failed to download image` to confirm the job ran and whether downloads failed.
 
 ### How do I manage events (event tickets)?
 
-1. **Select a store** (same as for Webflow Sites – Event Tickets are per store).
-2. **Connect Webflow** and **manage CMS** (see above). Activate the events collection (e.g. “Arrangementers”) and optionally **Pull from Webflow** on that collection.
+1. **Select a store** and ensure the **Event Tickets** add-on is active (Settings → Add-ons). The **Event Tickets** menu under Payments only appears when that add-on is active.
+2. **Connect Webflow** and **manage CMS** (see above): activate a “Webflow CMS” or “Event Tickets” add-on, then link a Webflow site and activate the events collection (e.g. “Arrangementers”). Optionally **Pull from Webflow** on that collection.
 3. **Create or import event tickets:**
    - **Create** (manual): In Filament go to **Payments → Event Tickets** and click the **Create** button (top right). Fill in event details, ticket types, Stripe payment link/price IDs, and link to a Webflow CMS item.
    - **Import** (from Webflow): Run:
@@ -58,7 +70,7 @@ The project includes a **Filament Webflow** package (`packages/filament-webflow`
 
 ### Features
 
-- **Webflow sites**: Connect a Webflow site to a store (tenant) with API token; discover CMS collections.
+- **Webflow sites**: Connect a Webflow site to an **add-on** (per store) with API token; discover CMS collections. The add-on must be active before the Webflow CMS menu and site linking are available.
 - **Navigation**: Under **Webflow CMS**, each connected site appears as a menu item with its **active collections** as children; clicking a site opens the site edit page, clicking a collection opens the CMS items table for that collection.
 - **Dynamic collection items**: View and edit CMS items in Filament via **Webflow CMS Items** page (`?collection={id}`); table columns are driven by the collection; **Edit** opens a dedicated edit page with a schema-driven form (field types: PlainText, RichText, Number, Switch, DateTime, Email, Phone, Link, Option, **Image**, **MultiImage**, etc.). Image and MultiImage fields use **Spatie Media Library**: uploads are stored on the item; on save, media URLs are synced into `field_data` so **Push to Webflow** receives the correct URLs. Images from Webflow (or stored in `field_data`) are shown as URLs/thumbnails in the table, not as `[object Object]`.
 - **Sync**: Pull items from Webflow (job `PullWebflowItems`), push changes (job `PushWebflowItem`); actions available on the collection items page. Activating a collection in the site’s CMS Collections tab auto-queues an initial pull.
@@ -66,13 +78,14 @@ The project includes a **Filament Webflow** package (`packages/filament-webflow`
 
 ### Database (package migrations)
 
-- `webflow_sites` – store_id, webflow_site_id, api_token (encrypted), name, domain, is_active
+- `addons` (app) – store_id, type (e.g. webflow_cms, event_tickets), is_active
+- `webflow_sites` – addon_id, webflow_site_id, api_token (encrypted), name, domain, is_active
 - `webflow_collections` – webflow_site_id, webflow_collection_id, name, slug, schema (JSON), is_active, last_synced_at
 - `webflow_items` – webflow_collection_id, webflow_item_id, field_data (JSON), is_published, is_archived, is_draft, last_synced_at
 
 ### Tenant scoping
 
-- `WebflowSite` is scoped by `store_id`. The app’s `Store` model defines `webflowSites()`; the package’s `WebflowSite` model defines `store()` and the resource uses `$tenantOwnershipRelationshipName = 'store'` so Filament scopes and associates records by the current store (tenant).
+- `WebflowSite` belongs to an **Addon** (`addon_id`); Addon belongs to Store. The app’s `Store` model defines `webflowSites()` via `hasManyThrough` (Store → Addon → WebflowSite). The package’s `WebflowSite` model defines `addon()` and `store()` (via addon); the WebflowSiteResource scopes the query by `addon.store_id` and only registers navigation when the store has an active add-on that supports Webflow.
 
 ---
 
@@ -83,7 +96,7 @@ The project includes a **Filament Webflow** package (`packages/filament-webflow`
 
 ### Flow
 
-1. **Setup**: Connect a Webflow site in Filament (Webflow Sites), discover collections, activate the “Arrangementers” (or equivalent) collection. Optionally run **Pull from Webflow** to sync items.
+1. **Setup**: Activate the **Event Tickets** add-on for the store (Settings → Add-ons). Then connect a Webflow site in Filament (Webflow CMS → Webflow Sites; select the add-on when creating the site), discover collections, activate the “Arrangementers” (or equivalent) collection. Optionally run **Pull from Webflow** to sync items.
 2. **Import**: Run `php artisan event-tickets:import-from-webflow {store_id_or_slug} [--pull]` to create/update `EventTicket` records from the Webflow collection and link them to `webflow_items`.
 3. **Configuration**: In Filament (Event Tickets), set payment link IDs and price IDs (Stripe) and ticket availability per event.
 4. **Sales**: Customers use the Stripe payment link on the Webflow site. On `charge.succeeded`, `HandleChargeWebhook` finds the `EventTicket` by payment link ID, increments the correct ticket sold count, updates sold-out state, and dispatches `PushTicketCountsToWebflow`.
@@ -115,4 +128,4 @@ Exact slugs depend on the Webflow collection schema; adjust in `App\Jobs\PushTic
 ## Relevant files
 
 - **Package**: `packages/filament-webflow/src/` (WebflowPlugin, WebflowApiClient, WebflowSiteResource, WebflowCollectionItemsPage, PullWebflowItems, PushWebflowItem, DiscoverCollections)
-- **App**: `app/Models/EventTicket.php`, `app/Filament/Resources/EventTickets/`, `app/Actions/Webhooks/HandleChargeWebhook.php` (event ticket handling), `app/Jobs/PushTicketCountsToWebflow.php`, `app/Console/Commands/ImportEventTicketsFromWebflow.php`
+- **App**: `app/Models/Addon.php`, `app/Enums/AddonType.php`, `app/Filament/Resources/Addons/`, `app/Models/EventTicket.php`, `app/Filament/Resources/EventTickets/`, `app/Actions/Webhooks/HandleChargeWebhook.php` (event ticket handling), `app/Jobs/PushTicketCountsToWebflow.php`, `app/Console/Commands/ImportEventTicketsFromWebflow.php`

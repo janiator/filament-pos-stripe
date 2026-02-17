@@ -34,8 +34,8 @@ class ImportEventTicketsFromWebflow extends Command
 
         $collectionId = $this->option('collection');
         $collection = $collectionId
-            ? WebflowCollection::where('webflow_collection_id', $collectionId)->whereHas('site', fn ($q) => $q->where('store_id', $store->id))->first()
-            : WebflowCollection::where('is_active', true)->whereHas('site', fn ($q) => $q->where('store_id', $store->id))->first();
+            ? WebflowCollection::where('webflow_collection_id', $collectionId)->whereHas('site.addon', fn ($q) => $q->where('store_id', $store->id))->first()
+            : WebflowCollection::where('is_active', true)->whereHas('site.addon', fn ($q) => $q->where('store_id', $store->id))->first();
 
         if (! $collection) {
             $this->error('No Webflow collection found for this store. Connect a site and discover collections in Filament first.');

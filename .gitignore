@@ -25,3 +25,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 jobberiet-export.zip
+/packages/filament-webflow/vendor/
+.cursor/*
+.junie/*
+

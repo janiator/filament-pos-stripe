@@ -61,6 +61,42 @@ class WebflowFieldData
     }
 
     /**
+     * Collect all image URLs from a field value (single Image URL or MultiImage list).
+     *
+     * @return array<int, string>
+     */
+    public static function extractImageUrls(mixed $value): array
+    {
+        if ($value === null) {
+            return [];
+        }
+        if (is_string($value) && str_starts_with($value, 'http')) {
+            return [$value];
+        }
+        if (is_array($value)) {
+            $url = self::extractUrlFromImageLike($value);
+            if ($url !== null) {
+                return [$url];
+            }
+            $urls = [];
+            foreach ($value as $item) {
+                if (is_array($item)) {
+                    $u = self::extractUrlFromImageLike($item);
+                    if ($u !== null) {
+                        $urls[] = $u;
+                    }
+                } elseif (is_string($item) && str_starts_with($item, 'http')) {
+                    $urls[] = $item;
+                }
+            }
+
+            return $urls;
+        }
+
+        return [];
+    }
+
+    /**
      * Get value suitable for Webflow API fieldData (URL string for images when we have one).
      *
      * @param  array<string, mixed>  $data

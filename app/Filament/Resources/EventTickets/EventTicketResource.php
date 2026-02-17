@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\EventTickets;
 
+use App\Enums\AddonType;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\EventTickets\Pages\CreateEventTicket;
 use App\Filament\Resources\EventTickets\Pages\EditEventTicket;
 use App\Filament\Resources\EventTickets\Pages\ListEventTickets;
+use App\Models\Addon;
 use App\Models\EventTicket;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -43,6 +46,20 @@ class EventTicketResource extends Resource
     public static function getNavigationLabel(): string
     {
         return 'Event Tickets';
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return false;
+        }
+
+        return Addon::query()
+            ->where('store_id', $tenant->getKey())
+            ->where('type', AddonType::EventTickets)
+            ->where('is_active', true)
+            ->exists();
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
@@ -95,7 +112,7 @@ class EventTicketResource extends Resource
                                 return $query;
                             }
 
-                            return $query->whereHas('collection.site', fn ($sq) => $sq->where('store_id', $tenantId));
+                            return $query->whereHas('collection.site.addon', fn ($sq) => $sq->where('store_id', $tenantId));
                         }
                     )
                     ->searchable()

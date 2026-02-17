@@ -27,10 +27,18 @@ class PullWebflowItems implements ShouldQueue
 
     public function handle(): void
     {
-        $site = $this->collection->site;
+        $collection = WebflowCollection::with('site')->find($this->collection->id);
+        if (! $collection) {
+            Log::warning('PullWebflowItems: Collection no longer exists', ['collection_id' => $this->collection->id]);
+
+            return;
+        }
+
+        $site = $collection->site;
         if (! $site || ! $site->api_token) {
             Log::warning('PullWebflowItems: Site or API token missing', [
-                'collection_id' => $this->collection->id,
+                'collection_id' => $collection->id,
+                'webflow_site_id' => $collection->webflow_site_id,
             ]);
 
             return;
@@ -42,27 +50,38 @@ class PullWebflowItems implements ShouldQueue
         $total = 0;
 
         do {
-            $response = $client->listItems($this->collection->webflow_collection_id, $offset, $batchSize);
+            try {
+                $response = $client->listItems($collection->webflow_collection_id, $offset, $batchSize);
+            } catch (\Throwable $e) {
+                Log::error('PullWebflowItems: Webflow API listItems failed', [
+                    'collection_id' => $collection->id,
+                    'webflow_collection_id' => $collection->webflow_collection_id,
+                    'offset' => $offset,
+                    'message' => $e->getMessage(),
+                ]);
+                throw $e;
+            }
+
             $items = $response['items'] ?? [];
             if (! is_array($items)) {
                 break;
             }
 
             foreach ($items as $item) {
-                $this->upsertItem($item);
+                $this->upsertItem($item, $collection);
                 $total++;
             }
 
             $offset += $batchSize;
         } while (count($items) === $batchSize);
 
-        $this->collection->update(['last_synced_at' => now()]);
+        $collection->update(['last_synced_at' => now()]);
     }
 
     /**
      * @param  array<string, mixed>  $item
      */
-    private function upsertItem(array $item): void
+    private function upsertItem(array $item, WebflowCollection $collection): void
     {
         $webflowItemId = $item['id'] ?? null;
         if (! $webflowItemId) {
@@ -74,9 +93,9 @@ class PullWebflowItems implements ShouldQueue
             $fieldData = [];
         }
 
-        WebflowItem::updateOrCreate(
+        $webflowItem = WebflowItem::updateOrCreate(
             [
-                'webflow_collection_id' => $this->collection->id,
+                'webflow_collection_id' => $collection->id,
                 'webflow_item_id' => $webflowItemId,
             ],
             [
@@ -89,5 +108,7 @@ class PullWebflowItems implements ShouldQueue
                 'last_synced_at' => now(),
             ]
         );
+
+        $webflowItem->syncMediaFromFieldData();
     }
 }
