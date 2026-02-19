@@ -29,3 +29,4 @@ jobberiet-export.zip
 .cursor/*
 .junie/*
 
+/.env.testing
