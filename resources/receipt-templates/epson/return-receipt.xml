@@ -28,7 +28,7 @@
 <text>Kasse-ID: {{session_number}}   Ansatt: {{cashier_name}}</text>
 <feed/>
 <text lang="en"/>
-<text>Ordre-ID: {{transaction_id}}</text>
+<text>Ordre-ID: {{order_number}}</text>
 <feed/>
 <text lang="en"/>
 <text>Kvitteringsnummer: {{receipt_number}}</text>

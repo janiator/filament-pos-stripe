@@ -245,6 +245,7 @@ class ReceiptGenerationService
             'date' => now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s'),
             'original_receipt_number' => $originalReceipt->receipt_number,
             'transaction_id' => $charge->stripe_charge_id,
+            'order_number' => (string) $charge->id,
             'refund_amount' => $displayRefundAmount / 100,
             'total_refunded_amount' => $charge->amount_refunded / 100, // Total refunded so far
             'original_amount' => $charge->amount / 100,
