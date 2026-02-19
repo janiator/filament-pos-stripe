@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PosDevices;
 
+use App\Enums\AddonType;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\PosDevices\Pages\CreatePosDevice;
 use App\Filament\Resources\PosDevices\Pages\EditPosDevice;
@@ -12,6 +13,7 @@ use App\Filament\Resources\PosDevices\Schemas\PosDeviceInfolist;
 use App\Filament\Resources\PosDevices\Tables\PosDevicesTable;
 use App\Models\PosDevice;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -50,6 +52,11 @@ class PosDeviceResource extends Resource
         return __('filament.navigation_groups.terminals_and_equipment');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return \App\Models\Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Pos);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return PosDeviceForm::configure($schema);
@@ -86,4 +93,3 @@ class PosDeviceResource extends Resource
         ];
     }
 }
-

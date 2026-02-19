@@ -196,6 +196,14 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * Get addons for this store.
+     */
+    public function addons()
+    {
+        return $this->hasMany(Addon::class);
+    }
+
+    /**
      * Get event tickets for this store.
      */
     public function eventTickets()
@@ -204,11 +212,11 @@ class Store extends Model implements StripeAccount
     }
 
     /**
-     * Get Webflow sites connected to this store (from filament-webflow package).
+     * Get Webflow sites connected to this store.
      */
     public function webflowSites()
     {
-        return $this->hasMany(\Positiv\FilamentWebflow\Models\WebflowSite::class, 'store_id');
+        return $this->hasMany(\Positiv\FilamentWebflow\Models\WebflowSite::class);
     }
 
     /**

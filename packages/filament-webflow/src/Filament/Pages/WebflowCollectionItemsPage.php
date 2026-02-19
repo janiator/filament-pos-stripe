@@ -51,7 +51,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
         $collectionId = (int) $this->collection;
         $this->collectionModel = WebflowCollection::where('id', $collectionId)
             ->where('is_active', true)
-            ->whereHas('site', fn ($q) => $tenant ? $q->where('store_id', $tenant->getKey()) : $q)
+            ->whereHas('site', fn ($q) => $tenant ? $q->whereHas('addon', fn ($aq) => $aq->where('store_id', $tenant->getKey())) : $q)
             ->firstOrFail();
     }
 
@@ -60,7 +60,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
         // Redirect to first available collection or Webflow Sites
         $tenant = Filament::getTenant();
         $first = WebflowCollection::where('is_active', true)
-            ->whereHas('site', fn ($q) => $tenant ? $q->where('store_id', $tenant->getKey()) : $q)
+            ->whereHas('site', fn ($q) => $tenant ? $q->whereHas('addon', fn ($aq) => $aq->where('store_id', $tenant->getKey())) : $q)
             ->first();
         if ($first) {
             $this->collection = $first->id;
@@ -119,6 +119,19 @@ class WebflowCollectionItemsPage extends Page implements HasTable
 
         $columns[] = TextColumn::make('last_synced_at')->label('Last synced')->dateTime()->sortable()->toggleable();
 
+        if (class_exists(\App\Models\EventTicket::class)) {
+            $columns[] = TextColumn::make('event_ticket_status')
+                ->label('Event ticket')
+                ->getStateUsing(function (WebflowItem $record): string {
+                    $linked = \App\Models\EventTicket::where('webflow_item_id', $record->id)->exists();
+
+                    return $linked ? 'Linked' : '—';
+                })
+                ->badge()
+                ->color(fn (string $state): string => $state === 'Linked' ? 'success' : 'gray')
+                ->toggleable();
+        }
+
         $editPageUrl = fn (WebflowItem $record): string => WebflowItemEditPage::getUrl(
             ['item' => $record->id],
             true,
@@ -169,16 +182,31 @@ class WebflowCollectionItemsPage extends Page implements HasTable
                     ->requiresConfirmation()
                     ->modalHeading('Pull items from Webflow?'),
             ])
-            ->actions([
+            ->actions(array_filter([
                 Action::make('edit')
                     ->label('Edit')
                     ->icon('heroicon-o-pencil-square')
                     ->url($editPageUrl),
+                class_exists(\App\Models\EventTicket::class)
+                    ? Action::make('configureEventTicket')
+                        ->label(fn (WebflowItem $record): string => \App\Models\EventTicket::where('webflow_item_id', $record->id)->exists() ? 'Edit event ticket' : 'Configure event ticket')
+                        ->icon('heroicon-o-ticket')
+                        ->url(function (WebflowItem $record): string {
+                            $eventTicket = \App\Models\EventTicket::where('webflow_item_id', $record->id)->first();
+                            $resource = \App\Filament\Resources\EventTickets\EventTicketResource::class;
+                            $tenant = Filament::getTenant();
+                            if ($eventTicket) {
+                                return $resource::getUrl('edit', ['record' => $eventTicket], true, null, $tenant);
+                            }
+
+                            return $resource::getUrl('create', [], true, null, $tenant).'?webflow_item_id='.$record->id;
+                        })
+                    : null,
                 \Filament\Actions\Action::make('pushToWebflow')
                     ->label('Push to Webflow')
                     ->icon('heroicon-o-arrow-up-tray')
                     ->action(fn (WebflowItem $record) => PushWebflowItem::dispatch($record, false)),
-            ])
+            ]))
             ->bulkActions([
                 \Filament\Actions\BulkAction::make('pushSelected')
                     ->label('Push selected to Webflow')

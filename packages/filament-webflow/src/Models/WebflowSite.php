@@ -28,7 +28,6 @@ class WebflowSite extends Model
         'api_token',
     ];
 
-    /** Relationship used by Filament for tenant (store) ownership. */
     public function store(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Store::class);

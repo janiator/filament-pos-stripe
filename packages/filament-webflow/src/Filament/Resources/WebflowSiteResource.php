@@ -2,7 +2,10 @@
 
 namespace Positiv\FilamentWebflow\Filament\Resources;
 
+use App\Enums\AddonType;
+use App\Models\Addon;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
@@ -23,9 +26,6 @@ class WebflowSiteResource extends Resource
 
     protected static ?string $slug = 'webflow-sites';
 
-    /** Relationship on WebflowSite that points to the tenant (Store). */
-    protected static ?string $tenantOwnershipRelationshipName = 'store';
-
     public static function getModelLabel(): string
     {
         return __('filament-webflow::webflow.site');
@@ -39,6 +39,31 @@ class WebflowSiteResource extends Resource
     public static function getNavigationLabel(): string
     {
         return __('filament-webflow::webflow.sites');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return false;
+        }
+
+        return Addon::query()
+            ->where('store_id', $tenant->getKey())
+            ->where('is_active', true)
+            ->whereIn('type', AddonType::typesWithWebflow())
+            ->exists();
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $tenant = Filament::getTenant();
+        if ($tenant) {
+            $query->where('store_id', $tenant->getKey());
+        }
+
+        return $query;
     }
 
     public static function form(Schema $schema): Schema

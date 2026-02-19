@@ -154,6 +154,7 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ## Database
 
+- **NEVER run `migrate:fresh` or `migrate:refresh`.** Artisan uses `.env` only; `phpunit.xml` (e.g. `DB_DATABASE=pos_stripe_test`) is loaded only when running `php artisan test`. So `migrate:fresh --env=testing` still uses the main DB from `.env` and can wipe it. Run tests with `php artisan test`; do not run migrate:fresh.
 - Always use proper Eloquent relationship methods with return type hints. Prefer relationship methods over raw queries or manual joins.
 - Use Eloquent models and relationships before suggesting raw database queries.
 - Avoid `DB::`; prefer `Model::query()`. Generate code that leverages Laravel's ORM capabilities rather than bypassing them.

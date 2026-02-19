@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\PosPurchases;
 
+use App\Enums\AddonType;
 use App\Filament\Resources\PosPurchases\Pages\ListPosPurchases;
 use App\Filament\Resources\PosPurchases\Pages\ViewPosPurchase;
 use App\Filament\Resources\PosPurchases\Schemas\PosPurchaseInfolist;
 use App\Filament\Resources\PosPurchases\Tables\PosPurchasesTable;
 use App\Models\ConnectedCharge;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -15,7 +17,6 @@ use Filament\Tables\Table;
 
 class PosPurchaseResource extends Resource
 {
-
     protected static ?string $model = ConnectedCharge::class;
 
     // Disable automatic tenant scoping - we'll handle it manually
@@ -45,6 +46,11 @@ class PosPurchaseResource extends Resource
         return __('filament.navigation_groups.pos_system');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return \App\Models\Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Pos);
+    }
+
     public static function getNavigationSort(): ?int
     {
         return 2;
@@ -55,10 +61,10 @@ class PosPurchaseResource extends Resource
         // Call Filament's parent method to get proper query setup
         // Then override with our custom filters
         $query = parent::getEloquentQuery();
-        
+
         // Only show charges that are POS purchases (have pos_session_id)
         $query->whereNotNull('pos_session_id');
-        
+
         // Scope by tenant's stripe_account_id
         // ConnectedCharge uses stripe_account_id, not store_id relationship
         try {
@@ -69,7 +75,7 @@ class PosPurchaseResource extends Resource
         } catch (\Throwable $e) {
             // Fallback if Filament facade not available
         }
-        
+
         return $query;
     }
 
@@ -78,9 +84,10 @@ class PosPurchaseResource extends Resource
         if (! $record) {
             return null;
         }
-        
-        $chargeId = $record->stripe_charge_id ?? 'Cash #' . $record->id;
-        return $chargeId . ' - ' . $record->formatted_amount;
+
+        $chargeId = $record->stripe_charge_id ?? 'Cash #'.$record->id;
+
+        return $chargeId.' - '.$record->formatted_amount;
     }
 
     public static function infolist(Schema $schema): Schema

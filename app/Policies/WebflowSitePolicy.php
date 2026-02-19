@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Foundation\Auth\User as AuthUser;
 use Positiv\FilamentWebflow\Models\WebflowSite;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class WebflowSitePolicy
 {
     use HandlesAuthorization;
-
+    
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:WebflowSite');
@@ -66,4 +66,5 @@ class WebflowSitePolicy
     {
         return $authUser->can('Reorder:WebflowSite');
     }
+
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ReceiptPrinters;
 
+use App\Enums\AddonType;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ReceiptPrinters\Pages\CreateReceiptPrinter;
 use App\Filament\Resources\ReceiptPrinters\Pages\EditReceiptPrinter;
@@ -10,6 +11,7 @@ use App\Filament\Resources\ReceiptPrinters\Schemas\ReceiptPrinterForm;
 use App\Filament\Resources\ReceiptPrinters\Tables\ReceiptPrintersTable;
 use App\Models\ReceiptPrinter;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -45,6 +47,11 @@ class ReceiptPrinterResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return __('filament.navigation_groups.terminals_and_equipment');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return \App\Models\Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Pos);
     }
 
     public static function form(Schema $schema): Schema

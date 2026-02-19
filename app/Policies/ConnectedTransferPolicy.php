@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\ConnectedTransfer;
 use Illuminate\Auth\Access\HandlesAuthorization;
-use Illuminate\Foundation\Auth\User as AuthUser;
 
 class ConnectedTransferPolicy
 {
     use HandlesAuthorization;
-
+    
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:ConnectedTransfer');
@@ -66,4 +66,5 @@ class ConnectedTransferPolicy
     {
         return $authUser->can('Reorder:ConnectedTransfer');
     }
+
 }
