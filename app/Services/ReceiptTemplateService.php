@@ -6,6 +6,7 @@ use App\Models\PaymentMethod;
 use App\Models\Receipt;
 use App\Models\ReceiptTemplate;
 use App\Models\Store;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Mustache_Engine;
@@ -558,12 +559,18 @@ class ReceiptTemplateService
         }
 
         // Get store logo as ePOS base64 raster (required by ePOS-Print XML; see Epson manual)
+        // Cache the raster output keyed by logo path and modification time
         $storeLogoBase64 = null;
         $storeLogoWidth = null;
         $storeLogoHeight = null;
         if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
-            $logoBlob = Storage::disk('public')->get($store->logo_path);
-            $raster = $this->convertImageToEposRaster($logoBlob, 576);
+            $logoMtime = Storage::disk('public')->lastModified($store->logo_path);
+            $cacheKey = 'epos_logo_raster:'.md5($store->logo_path.':'.$logoMtime);
+            $raster = Cache::remember($cacheKey, now()->addDays(7), function () use ($store) {
+                $logoBlob = Storage::disk('public')->get($store->logo_path);
+
+                return $this->convertImageToEposRaster($logoBlob, 576);
+            });
             if ($raster !== null) {
                 $storeLogoBase64 = $raster['base64'];
                 $storeLogoWidth = $raster['width'];
@@ -668,6 +675,13 @@ class ReceiptTemplateService
         $src = @imagecreatefromstring($imageData);
         if ($src === false) {
             return null;
+        }
+
+        // Convert palette-based images (GIF, palette PNG) to truecolor.
+        // imagecolorat() returns a palette index for palette images, not packed ARGB,
+        // which causes flattenImageOntoWhite to produce garbled output.
+        if (! imageistruecolor($src)) {
+            imagepalettetotruecolor($src);
         }
 
         $srcW = imagesx($src);
