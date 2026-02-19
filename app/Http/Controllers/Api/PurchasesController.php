@@ -128,7 +128,7 @@ class PurchasesController extends BaseApiController
                                     ->whereRaw(
                                         "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
                                       EXISTS (
-                                          SELECT 1 
+                                          SELECT 1
                                           FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
                                           WHERE (
                                               -- Search in item name fields
@@ -157,10 +157,10 @@ class PurchasesController extends BaseApiController
                                         ->whereRaw(
                                             "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
                                           EXISTS (
-                                              SELECT 1 
+                                              SELECT 1
                                               FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
-                                              WHERE 
-                                                  (item->>'product_id')::int = ? OR 
+                                              WHERE
+                                                  (item->>'product_id')::int = ? OR
                                                   (item->>'variant_id')::int = ? OR
                                                   (item->>'purchase_item_product_id')::int = ? OR
                                                   (item->>'purchase_item_variant_id')::int = ?
@@ -176,11 +176,11 @@ class PurchasesController extends BaseApiController
                                     ->whereRaw(
                                         "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
                                       EXISTS (
-                                          SELECT 1 
+                                          SELECT 1
                                           FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
-                                          JOIN connected_products ON 
+                                          JOIN connected_products ON
                                               COALESCE((item->>'purchase_item_product_id')::int, (item->>'product_id')::int) = connected_products.id
-                                          WHERE connected_products.stripe_account_id = ? 
+                                          WHERE connected_products.stripe_account_id = ?
                                             AND connected_products.name ILIKE ?
                                       )",
                                         [$store->stripe_account_id, "%{$search}%"]
@@ -193,11 +193,11 @@ class PurchasesController extends BaseApiController
                                     ->whereRaw(
                                         "jsonb_typeof(receipt_data::jsonb) = 'object' AND jsonb_typeof((receipt_data::jsonb)->'items') = 'array' AND
                                       EXISTS (
-                                          SELECT 1 
+                                          SELECT 1
                                           FROM jsonb_array_elements((receipt_data::jsonb)->'items') AS item
-                                          JOIN product_variants ON 
+                                          JOIN product_variants ON
                                               COALESCE((item->>'purchase_item_variant_id')::int, (item->>'variant_id')::int) = product_variants.id
-                                          WHERE product_variants.stripe_account_id = ? 
+                                          WHERE product_variants.stripe_account_id = ?
                                             AND (
                                                 product_variants.sku ILIKE ? OR
                                                 product_variants.barcode ILIKE ? OR
@@ -799,7 +799,7 @@ class PurchasesController extends BaseApiController
             return $this->processSplitPayment($request);
         }
 
-        // Single payment validation
+        // Single payment validation (cart.subtotal, cart.total_tax, cart.total_discounts accepted so they are stored in charge metadata)
         $validator = Validator::make($request->all(), [
             'pos_session_id' => ['required', 'integer', 'exists:pos_sessions,id'],
             'payment_method_code' => ['required', 'string'],
@@ -809,7 +809,12 @@ class PurchasesController extends BaseApiController
             'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
+            'cart.items.*.tax_rate' => ['nullable', 'numeric', 'min:0', 'max:1'],
+            'cart.items.*.tax_inclusive' => ['nullable', 'boolean'],
             'cart.total' => ['required', 'integer', 'min:1'],
+            'cart.subtotal' => ['nullable', 'integer', 'min:0'],
+            'cart.total_tax' => ['nullable', 'integer', 'min:0'],
+            'cart.total_discounts' => ['nullable', 'integer', 'min:0'],
             'cart.currency' => ['nullable', 'string', 'size:3'],
             'cart.customer_id' => ['nullable', 'integer'],
             'cart.note' => ['nullable', 'string', 'max:1000'],
@@ -1151,7 +1156,12 @@ class PurchasesController extends BaseApiController
             'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
+            'cart.items.*.tax_rate' => ['nullable', 'numeric', 'min:0', 'max:1'],
+            'cart.items.*.tax_inclusive' => ['nullable', 'boolean'],
             'cart.total' => ['required', 'integer', 'min:1'],
+            'cart.subtotal' => ['nullable', 'integer', 'min:0'],
+            'cart.total_tax' => ['nullable', 'integer', 'min:0'],
+            'cart.total_discounts' => ['nullable', 'integer', 'min:0'],
             'cart.currency' => ['nullable', 'string', 'size:3'],
             'cart.customer_id' => ['nullable', 'integer'],
             'cart.note' => ['nullable', 'string', 'max:1000'],

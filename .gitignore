@@ -27,3 +27,4 @@ Thumbs.db
 jobberiet-export.zip
 /packages/filament-webflow/vendor/
 /.env.testing
+/.cursor/*

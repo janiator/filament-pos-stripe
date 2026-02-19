@@ -22,6 +22,7 @@ class Store extends Model implements StripeAccount
         'email',
         'z_report_email',
         'organisasjonsnummer',
+        'address',
         'logo_path',
         'commission_type',
         'commission_rate',

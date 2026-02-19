@@ -130,4 +130,54 @@ class ReceiptLogoRenderingTest extends TestCase
         $this->assertStringContainsString('<logo key1="34" key2="48"/>', $xml);
         $this->assertStringNotContainsString('<image width="', $xml);
     }
+
+    /** Copy receipt must show same line items and transaction ID as original (not "Cash payment" or "N/A") */
+    public function test_copy_receipt_xml_shows_original_items_and_transaction_id(): void
+    {
+        $store = Store::factory()->create([
+            'logo_path' => null,
+            'stripe_account_id' => 'acct_test_'.uniqid(),
+        ]);
+
+        $salesReceiptData = [
+            'receipt_data' => [
+                'items' => [
+                    ['name' => '10. august', 'quantity' => 1, 'unit_price' => '100,00', 'line_total' => '100,00', 'price_amount' => 10000],
+                    ['name' => '3 pack callaway supersoft hvit', 'quantity' => 1, 'unit_price' => '99,00', 'line_total' => '99,00', 'price_amount' => 9900],
+                ],
+                'total' => 199,
+                'date' => now()->format('Y-m-d H:i:s'),
+                'transaction_id' => 'ch_142',
+            ],
+        ];
+
+        $salesReceipt = $this->createReceiptForStore($store, $salesReceiptData);
+        $salesReceipt->load(['store', 'charge', 'posSession', 'user']);
+
+        // Copy with same charge_id but no original_receipt_id (simulates POS receipts/generate with type=copy)
+        $copyReceipt = Receipt::factory()->create([
+            'store_id' => $store->id,
+            'pos_session_id' => $salesReceipt->pos_session_id,
+            'charge_id' => $salesReceipt->charge_id,
+            'user_id' => $salesReceipt->user_id,
+            'receipt_type' => 'copy',
+            'original_receipt_id' => null,
+            'receipt_number' => Receipt::generateReceiptNumber($store->id, 'copy'),
+            'receipt_data' => [
+                'store' => ['name' => $store->name],
+                'charge_id' => $salesReceipt->charge->stripe_charge_id,
+                'amount' => 199,
+            ],
+        ]);
+        $copyReceipt->load(['store', 'charge', 'posSession', 'user']);
+
+        $templateService = app(ReceiptTemplateService::class);
+        $xml = $templateService->renderReceipt($copyReceipt);
+
+        $this->assertStringContainsString('10. august', $xml, 'Copy receipt XML must contain original line items');
+        $this->assertStringContainsString('callaway supersoft', $xml, 'Copy receipt XML must contain original line items');
+        $this->assertStringNotContainsString('Cash payment', $xml, 'Copy receipt must not show fallback "Cash payment"');
+        $this->assertStringNotContainsString('Transaksjons-ID: N/A', $xml, 'Copy receipt must not show N/A for transaction id');
+        $this->assertMatchesRegularExpression('/Transaksjons-ID: .+/', $xml, 'Copy receipt must show a transaction id');
+    }
 }

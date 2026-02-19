@@ -3,8 +3,9 @@
 namespace App\Filament\Resources\Receipts\Pages;
 
 use App\Filament\Resources\Receipts\ReceiptResource;
-use Filament\Resources\Pages\ViewRecord;
+use App\Services\ReceiptTemplateService;
 use Filament\Actions\Action;
+use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 
 class ViewReceiptPreview extends ViewRecord
@@ -13,19 +14,34 @@ class ViewReceiptPreview extends ViewRecord
 
     protected string $view = 'filament.resources.receipts.pages.view-receipt-preview';
 
-    public function getTitle(): string | Htmlable
+    public function getTitle(): string|Htmlable
     {
-        return 'Receipt Preview: ' . $this->record->receipt_number;
-    }
-
-    public function getPreviewUrl(): string
-    {
-        return route('receipts.preview', ['id' => $this->record->id]);
+        return 'Receipt Preview: '.$this->record->receipt_number;
     }
 
     public function getXmlUrl(): string
     {
         return route('receipts.xml.simple', ['id' => $this->record->id]);
+    }
+
+    /**
+     * Returns receipt XML formatted for readable preview: pretty-printed and base64 image content replaced with a placeholder.
+     */
+    public function getFormattedReceiptXml(): string
+    {
+        $raw = app(ReceiptTemplateService::class)->renderReceipt($this->record);
+
+        $placeholder = '[Base64 image data omitted for display]';
+        $xml = preg_replace('/<image([^>]*)>\K[\s\S]*?(?=<\/image>)/', $placeholder, $raw);
+
+        $dom = new \DOMDocument('1.0');
+        $dom->preserveWhiteSpace = false;
+        $dom->formatOutput = true;
+        if (@$dom->loadXML($xml) === false) {
+            return $xml;
+        }
+
+        return $dom->saveXML();
     }
 
     protected function getHeaderActions(): array
@@ -40,4 +56,3 @@ class ViewReceiptPreview extends ViewRecord
         ];
     }
 }
-

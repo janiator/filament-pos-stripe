@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Receipt;
 use App\Models\ConnectedCharge;
-use App\Models\Store;
-use App\Models\PosSession;
 use App\Models\ConnectedProduct;
+use App\Models\PosSession;
+use App\Models\Receipt;
+use App\Models\Store;
 
 class ReceiptGenerationService
 {
@@ -16,11 +16,9 @@ class ReceiptGenerationService
     {
         $this->templateService = $templateService;
     }
+
     /**
      * Generate receipt XML for printing
-     *
-     * @param Receipt $receipt
-     * @return string
      */
     public function generateReceiptXml(Receipt $receipt): string
     {
@@ -30,9 +28,7 @@ class ReceiptGenerationService
     /**
      * Generate a sales receipt for a charge (single or split payment)
      *
-     * @param ConnectedCharge|array $chargeOrCharges Primary charge or array of charges for split payment
-     * @param PosSession|null $session
-     * @return Receipt
+     * @param  ConnectedCharge|array  $chargeOrCharges  Primary charge or array of charges for split payment
      */
     public function generateSalesReceipt(ConnectedCharge|array $chargeOrCharges, ?PosSession $session = null): Receipt
     {
@@ -42,21 +38,21 @@ class ReceiptGenerationService
         $isSplitPayment = count($charges) > 1;
 
         $session = $session ?? $primaryCharge->posSession;
-        
+
         // Get store from session or find by stripe_account_id
         $store = $session?->store;
-        if (!$store && $primaryCharge->stripe_account_id) {
+        if (! $store && $primaryCharge->stripe_account_id) {
             $store = Store::where('stripe_account_id', $primaryCharge->stripe_account_id)->first();
         }
-        
-        if (!$store) {
+
+        if (! $store) {
             throw new \Exception('Cannot generate receipt: Store not found for charge');
         }
 
         // Get items from primary charge metadata
         $items = [];
         $metadata = is_array($primaryCharge->metadata) ? $primaryCharge->metadata : json_decode($primaryCharge->metadata ?? '{}', true);
-        
+
         if (isset($metadata['items']) && is_array($metadata['items'])) {
             $items = $metadata['items'];
             // Ensure items have 'name' field for receipt display (keep both name and description)
@@ -96,13 +92,15 @@ class ReceiptGenerationService
             }
         }
 
-        // Calculate totals
+        // Calculate totals (total_tax from cart is in øre; normalize to NOK for receipt_data)
         $totalAmount = array_sum(array_column($charges, 'amount'));
-        $subtotal = $metadata['subtotal'] ?? ($totalAmount / 100);
+        $subtotal = isset($metadata['subtotal']) ? (is_int($metadata['subtotal']) ? $metadata['subtotal'] / 100 : (float) $metadata['subtotal']) : ($totalAmount / 100);
         $totalDiscounts = $metadata['total_discounts'] ?? 0;
-        $totalTax = $metadata['total_tax'] ?? $this->calculateTaxFromAmount($totalAmount);
+        $totalTaxNok = isset($metadata['total_tax'])
+            ? ((int) $metadata['total_tax']) / 100
+            : $this->calculateTaxFromAmount($totalAmount);
         $tipAmount = $metadata['tip_amount'] ?? 0;
-        
+
         // Get cart-level discounts from metadata
         $cartDiscounts = $metadata['discounts'] ?? [];
 
@@ -133,7 +131,7 @@ class ReceiptGenerationService
                 'organization_number' => $store->organisasjonsnummer ?? ($storeMetadata['organization_number'] ?? ''),
             ],
             'receipt_number' => Receipt::generateReceiptNumber($store->id, 'sales'),
-            'date' => ($primaryCharge->paid_at?->setTimezone('Europe/Oslo') ?? now()->setTimezone('Europe/Oslo'))->format('Y-m-d H:i:s'),
+            'date' => ($primaryCharge->paid_at?->setTimezone('Europe/Oslo') ?? $primaryCharge->created_at?->setTimezone('Europe/Oslo') ?? now()->setTimezone('Europe/Oslo'))->format('Y-m-d H:i:s'),
             'transaction_id' => $primaryCharge->stripe_charge_id ?? $primaryCharge->id, // Use charge ID if no Stripe charge ID (for cash payments)
             'session_number' => $session?->session_number,
             'cashier' => $session?->user?->name ?? 'Unknown',
@@ -141,7 +139,7 @@ class ReceiptGenerationService
             'discounts' => $cartDiscounts, // Cart-level discounts array
             'subtotal' => $subtotal,
             'total_discounts' => $totalDiscounts,
-            'tax' => $totalTax,
+            'tax' => $totalTaxNok,
             'total' => $totalAmount / 100,
             'is_split_payment' => $isSplitPayment,
             'payments' => $payments,
@@ -177,27 +175,28 @@ class ReceiptGenerationService
     {
         // Default 25% VAT in Norway
         $taxRate = 0.25;
+
         return round(($amountInOre / 100) * $taxRate / (1 + $taxRate), 2);
     }
 
     /**
      * Generate a return receipt
-     * 
-     * @param ConnectedCharge $charge The charge being refunded
-     * @param Receipt $originalReceipt The original receipt (sales or delivery)
-     * @param int|null $refundAmount Optional: specific refund amount for this receipt (in minor units). If null, uses charge->amount_refunded
+     *
+     * @param  ConnectedCharge  $charge  The charge being refunded
+     * @param  Receipt  $originalReceipt  The original receipt (sales or delivery)
+     * @param  int|null  $refundAmount  Optional: specific refund amount for this receipt (in minor units). If null, uses charge->amount_refunded
      */
     public function generateReturnReceipt(ConnectedCharge $charge, Receipt $originalReceipt, ?int $refundAmount = null): Receipt
     {
         $session = $charge->posSession;
-        
+
         // Get store from session or find by stripe_account_id
         $store = $session?->store;
-        if (!$store && $charge->stripe_account_id) {
+        if (! $store && $charge->stripe_account_id) {
             $store = Store::where('stripe_account_id', $charge->stripe_account_id)->first();
         }
-        
-        if (!$store) {
+
+        if (! $store) {
             throw new \Exception('Cannot generate receipt: Store not found for charge');
         }
 
@@ -214,7 +213,7 @@ class ReceiptGenerationService
                     'name' => $item['name'] ?? $item['description'] ?? 'Vare',
                     'quantity' => $item['quantity'] ?? 1,
                     'unit_price' => $refundAmountFormatted,
-                    'line_total' => '-' . $refundAmountFormatted,
+                    'line_total' => '-'.$refundAmountFormatted,
                 ];
             }
         } else {
@@ -223,7 +222,7 @@ class ReceiptGenerationService
                 'name' => $charge->description ?? 'Retur',
                 'quantity' => 1,
                 'unit_price' => $refundAmountFormatted,
-                'line_total' => '-' . $refundAmountFormatted,
+                'line_total' => '-'.$refundAmountFormatted,
             ];
         }
 
@@ -276,29 +275,25 @@ class ReceiptGenerationService
      * Generate a delivery receipt for deferred payment (Utleveringskvittering)
      * Complies with Kassasystemforskriften § 2-8-7
      * Used for credit sales that will be invoiced/paid later (e.g., dry cleaning)
-     *
-     * @param ConnectedCharge $charge
-     * @param PosSession|null $session
-     * @return Receipt
      */
     public function generateDeliveryReceipt(ConnectedCharge $charge, ?PosSession $session = null): Receipt
     {
         $session = $session ?? $charge->posSession;
-        
+
         // Get store from session or find by stripe_account_id
         $store = $session?->store;
-        if (!$store && $charge->stripe_account_id) {
+        if (! $store && $charge->stripe_account_id) {
             $store = Store::where('stripe_account_id', $charge->stripe_account_id)->first();
         }
-        
-        if (!$store) {
+
+        if (! $store) {
             throw new \Exception('Cannot generate receipt: Store not found for charge');
         }
 
         // Get items from charge metadata
         $items = [];
         $metadata = is_array($charge->metadata) ? $charge->metadata : json_decode($charge->metadata ?? '{}', true);
-        
+
         if (isset($metadata['items']) && is_array($metadata['items'])) {
             $items = $metadata['items'];
             // Ensure items have 'name' field for receipt display (keep both name and description)
@@ -324,7 +319,7 @@ class ReceiptGenerationService
         $subtotal = $metadata['subtotal'] ?? ($charge->amount / 100);
         $totalDiscounts = $metadata['total_discounts'] ?? 0;
         $totalTax = $metadata['total_tax'] ?? $this->calculateTaxFromAmount($charge->amount);
-        
+
         // Get cart-level discounts from metadata
         $cartDiscounts = $metadata['discounts'] ?? [];
 
@@ -398,4 +393,3 @@ class ReceiptGenerationService
         return $this->calculateTaxFromAmount($charge->amount);
     }
 }
-
