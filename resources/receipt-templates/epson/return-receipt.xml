@@ -94,6 +94,7 @@
 <barcode type="code128_auto" hri="none" font="font_a" width="2" height="40">{{receipt_number}}</barcode>
 <feed/>
 <text>—————————————————————————————————————————————</text>
+<feed/>
 <text>Takk for besøket, velkommen igjen!</text>
 <feed/>
 <feed/>
