@@ -26,6 +26,9 @@ All templates support the following Mustache variables:
 - `{{store_name}}` - Store name
 - `{{organization_number}}` - Organization number (from store metadata)
 - `{{store_address}}` - Store address (from store metadata)
+- `{{store_logo_base64}}` - Base64-encoded 1-bit raster of the store logo (ePOS-Print compliant), or empty if no logo
+- `{{store_logo_width}}` - Logo width in dots (when logo is set)
+- `{{store_logo_height}}` - Logo height in dots (when logo is set)
 
 ### Receipt Information
 - `{{receipt_number}}` - Sequential receipt number
@@ -51,6 +54,14 @@ All templates support the following Mustache variables:
 
 ### Return Receipt Specific
 - `{{original_receipt_number}}` - Original receipt number (for returns/copies)
+
+## Store logo on receipts
+
+All receipt types can show the store logo at the top of the receipt.
+
+- **Setup:** In the Filament admin panel, edit the Store and upload an image in the "Store Logo" field (Store Information section). The logo is stored on the `public` disk under `store-logos/`. Supported formats: JPEG, PNG, WebP, GIF (max 5MB).
+- **Rendering:** Per the [Epson ePOS-Print XML User's Manual](https://files.support.epson.com/pdf/pos/bulk/epos-print_xml_um_en_revk.pdf), the `<image>` element expects **base64-encoded raster data** (1-bit monochrome), not a URL. When a store has a logo (`logo_path` set and the file exists), the app converts the image to ePOS raster and passes `{{store_logo_base64}}`, `{{store_logo_width}}`, and `{{store_logo_height}}` (width/height in dots). If no logo is set or the file is missing or invalid, the template uses the default Epson `<logo>` block instead.
+- **Templates:** Each Epson XML template uses: `{{#store_logo_base64}}` / `<image width="{{store_logo_width}}" height="{{store_logo_height}}">{{store_logo_base64}}</image>` with a `{{^store_logo_base64}}` fallback to `<logo key1="34" key2="48"/>`. Do not remove this block if you customize templates.
 
 ## Items Array
 
