@@ -137,7 +137,8 @@ class HandleChargeWebhook
     private function handleEventTicketPurchase(Charge $charge, string $accountId, Store $store, ConnectedCharge $chargeRecord): void
     {
         try {
-            $stripe = new StripeClient(config('cashier.secret'));
+            $secret = config('cashier.secret') ?? config('services.stripe.secret');
+            $stripe = new StripeClient($secret);
             $paymentIntent = $stripe->paymentIntents->retrieve(
                 $charge->payment_intent,
                 ['stripe_account' => $accountId]

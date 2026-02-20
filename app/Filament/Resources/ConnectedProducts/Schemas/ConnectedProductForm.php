@@ -203,134 +203,8 @@ class ConnectedProductForm
 
                                         Grid::make(2)
                                             ->schema([
-                                                Select::make('article_group_code')
-                                                    ->label('Article Group Code (SAF-T)')
-                                                    ->options(function (Get $get) {
-                                                        // Prioritize tenant's stripe_account_id
-                                                        $stripeAccountId = null;
-                                                        try {
-                                                            $tenant = \Filament\Facades\Filament::getTenant();
-                                                            $stripeAccountId = $tenant?->stripe_account_id;
-                                                        } catch (\Throwable $e) {
-                                                            // Fallback
-                                                        }
-
-                                                        if (! $stripeAccountId) {
-                                                            $stripeAccountId = $get('stripe_account_id');
-                                                        }
-
-                                                        $query = ArticleGroupCode::query();
-
-                                                        // Show store-specific codes and global standard codes
-                                                        if ($stripeAccountId) {
-                                                            $query->where(function ($q) use ($stripeAccountId) {
-                                                                $q->where('stripe_account_id', $stripeAccountId)
-                                                                    ->orWhere(function ($q2) {
-                                                                        $q2->whereNull('stripe_account_id')
-                                                                            ->where('is_standard', true);
-                                                                    });
-                                                            });
-                                                        } else {
-                                                            // If no stripe_account_id, return global standard codes
-                                                            $query->whereNull('stripe_account_id')
-                                                                ->where('is_standard', true);
-                                                        }
-
-                                                        return $query->where('active', true)
-                                                            ->orderBy('sort_order', 'asc')
-                                                            ->orderBy('code', 'asc')
-                                                            ->get()
-                                                            ->mapWithKeys(function ($record) {
-                                                                return [$record->code => $record->code.' - '.$record->name];
-                                                            });
-                                                    })
-                                                    ->getSearchResultsUsing(function (string $search, Get $get) {
-                                                        // Prioritize tenant's stripe_account_id
-                                                        $stripeAccountId = null;
-                                                        try {
-                                                            $tenant = \Filament\Facades\Filament::getTenant();
-                                                            $stripeAccountId = $tenant?->stripe_account_id;
-                                                        } catch (\Throwable $e) {
-                                                            // Fallback
-                                                        }
-
-                                                        if (! $stripeAccountId) {
-                                                            $stripeAccountId = $get('stripe_account_id');
-                                                        }
-
-                                                        $query = ArticleGroupCode::query()
-                                                            ->where(function ($q) use ($search) {
-                                                                $q->where('code', 'like', "%{$search}%")
-                                                                    ->orWhere('name', 'like', "%{$search}%");
-                                                            });
-
-                                                        // Show store-specific codes and global standard codes
-                                                        if ($stripeAccountId) {
-                                                            $query->where(function ($q) use ($stripeAccountId) {
-                                                                $q->where('stripe_account_id', $stripeAccountId)
-                                                                    ->orWhere(function ($q2) {
-                                                                        $q2->whereNull('stripe_account_id')
-                                                                            ->where('is_standard', true);
-                                                                    });
-                                                            });
-                                                        } else {
-                                                            // If no stripe_account_id, return global standard codes
-                                                            $query->whereNull('stripe_account_id')
-                                                                ->where('is_standard', true);
-                                                        }
-
-                                                        return $query->where('active', true)
-                                                            ->orderBy('sort_order', 'asc')
-                                                            ->orderBy('code', 'asc')
-                                                            ->limit(50)
-                                                            ->get()
-                                                            ->mapWithKeys(function ($record) {
-                                                                return [$record->code => $record->code.' - '.$record->name];
-                                                            });
-                                                    })
-                                                    ->getOptionLabelUsing(function ($value) {
-                                                        $code = ArticleGroupCode::where('code', $value)->first();
-
-                                                        return $code ? $code->code.' - '.$code->name : $value;
-                                                    })
-                                                    ->searchable()
-                                                    ->preload()
-                                                    ->default(function () {
-                                                        // Default to '04999' (Øvrige) for new products
-                                                        return '04999';
-                                                    })
-                                                    ->helperText('PredefinedBasicID-04: Product category for SAF-T reporting. VAT rate will be set from the selected code.')
-                                                    ->placeholder('Select article group')
-                                                    ->live(onBlur: false)
-                                                    ->afterStateUpdated(function ($state, $set, $get) {
-                                                        // Auto-set VAT from article group code immediately when changed
-                                                        // $state is now a code string (not ID) because options() uses code as key
-                                                        if ($state) {
-                                                            $articleGroupCode = ArticleGroupCode::where('code', $state)->first();
-                                                            if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
-                                                                // Always update VAT when article group code changes
-                                                                $set('vat_percent', $articleGroupCode->default_vat_percent * 100);
-                                                            } else {
-                                                                // Clear VAT if article group code has no default
-                                                                $set('vat_percent', null);
-                                                            }
-                                                        } else {
-                                                            // Clear VAT if article group code is cleared
-                                                            $set('vat_percent', null);
-                                                        }
-                                                    }),
-
-                                                TextInput::make('vat_percent')
-                                                    ->label('VAT Percentage (%)')
-                                                    ->numeric()
-                                                    ->step(0.01)
-                                                    ->minValue(0)
-                                                    ->maxValue(100)
-                                                    ->suffix('%')
-                                                    ->default(25)
-                                                    ->helperText('VAT percentage for this product. Auto-set from article group code (default 04999 = 25%), but can be manually overridden.')
-                                                    ->placeholder('Auto from article group code')
-                                                    ->reactive(),
+                                                self::buildArticleGroupCodeSelect(),
+                                                self::buildVatPercentInputForCreate(),
                                             ])
                                             ->columnSpanFull(),
                                     ])
@@ -1168,168 +1042,8 @@ class ConnectedProductForm
 
                                         Grid::make(2)
                                             ->schema([
-                                                Select::make('article_group_code')
-                                                    ->label('Article Group Code (SAF-T)')
-                                                    ->options(function (Get $get, $record) {
-                                                        // Prioritize tenant's stripe_account_id
-                                                        $stripeAccountId = null;
-                                                        try {
-                                                            $tenant = \Filament\Facades\Filament::getTenant();
-                                                            $stripeAccountId = $tenant?->stripe_account_id;
-                                                        } catch (\Throwable $e) {
-                                                            // Fallback
-                                                        }
-
-                                                        if (! $stripeAccountId) {
-                                                            $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-                                                        }
-
-                                                        $query = ArticleGroupCode::query();
-
-                                                        // Show store-specific codes and global standard codes
-                                                        if ($stripeAccountId) {
-                                                            $query->where(function ($q) use ($stripeAccountId) {
-                                                                $q->where('stripe_account_id', $stripeAccountId)
-                                                                    ->orWhere(function ($q2) {
-                                                                        $q2->whereNull('stripe_account_id')
-                                                                            ->where('is_standard', true);
-                                                                    });
-                                                            });
-                                                        } else {
-                                                            // If no stripe_account_id, return global standard codes
-                                                            $query->whereNull('stripe_account_id')
-                                                                ->where('is_standard', true);
-                                                        }
-
-                                                        return $query->where('active', true)
-                                                            ->orderBy('sort_order', 'asc')
-                                                            ->orderBy('code', 'asc')
-                                                            ->get()
-                                                            ->mapWithKeys(function ($record) {
-                                                                return [$record->code => $record->code.' - '.$record->name];
-                                                            });
-                                                    })
-                                                    ->getSearchResultsUsing(function (string $search, Get $get, $record) {
-                                                        // Prioritize tenant's stripe_account_id
-                                                        $stripeAccountId = null;
-                                                        try {
-                                                            $tenant = \Filament\Facades\Filament::getTenant();
-                                                            $stripeAccountId = $tenant?->stripe_account_id;
-                                                        } catch (\Throwable $e) {
-                                                            // Fallback
-                                                        }
-
-                                                        if (! $stripeAccountId) {
-                                                            $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-                                                        }
-
-                                                        $query = ArticleGroupCode::query()
-                                                            ->where(function ($q) use ($search) {
-                                                                $q->where('code', 'like', "%{$search}%")
-                                                                    ->orWhere('name', 'like', "%{$search}%");
-                                                            });
-
-                                                        // Show store-specific codes and global standard codes
-                                                        if ($stripeAccountId) {
-                                                            $query->where(function ($q) use ($stripeAccountId) {
-                                                                $q->where('stripe_account_id', $stripeAccountId)
-                                                                    ->orWhere(function ($q2) {
-                                                                        $q2->whereNull('stripe_account_id')
-                                                                            ->where('is_standard', true);
-                                                                    });
-                                                            });
-                                                        } else {
-                                                            // If no stripe_account_id, return global standard codes
-                                                            $query->whereNull('stripe_account_id')
-                                                                ->where('is_standard', true);
-                                                        }
-
-                                                        return $query->where('active', true)
-                                                            ->orderBy('sort_order', 'asc')
-                                                            ->orderBy('code', 'asc')
-                                                            ->limit(50)
-                                                            ->get()
-                                                            ->mapWithKeys(function ($record) {
-                                                                return [$record->code => $record->code.' - '.$record->name];
-                                                            });
-                                                    })
-                                                    ->getOptionLabelUsing(function ($value) {
-                                                        $code = ArticleGroupCode::where('code', $value)->first();
-
-                                                        return $code ? $code->code.' - '.$code->name : $value;
-                                                    })
-                                                    ->searchable()
-                                                    ->preload()
-                                                    ->default(function ($record) {
-                                                        // Default to '04999' (Øvrige) for new products
-                                                        if (! $record) {
-                                                            return '04999';
-                                                        }
-
-                                                        // $record->article_group_code is already a code string
-                                                        return $record->article_group_code;
-                                                    })
-                                                    ->helperText('PredefinedBasicID-04: Product category for SAF-T reporting. VAT rate will be set from the selected code.')
-                                                    ->placeholder('Select article group')
-                                                    ->live(onBlur: false)
-                                                    ->afterStateUpdated(function ($state, $set, $get) {
-                                                        // Auto-set VAT from article group code immediately when changed
-                                                        // $state is now a code string (not ID) because options() uses code as key
-                                                        if ($state) {
-                                                            $articleGroupCode = ArticleGroupCode::where('code', $state)->first();
-                                                            if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
-                                                                // Always update VAT when article group code changes
-                                                                $set('vat_percent', $articleGroupCode->default_vat_percent * 100);
-                                                            } else {
-                                                                // Clear VAT if article group code has no default
-                                                                $set('vat_percent', null);
-                                                            }
-                                                        } else {
-                                                            // Clear VAT if article group code is cleared
-                                                            $set('vat_percent', null);
-                                                        }
-                                                    }),
-
-                                                TextInput::make('vat_percent')
-                                                    ->label('VAT Percentage (%)')
-                                                    ->numeric()
-                                                    ->step(0.01)
-                                                    ->minValue(0)
-                                                    ->maxValue(100)
-                                                    ->suffix('%')
-                                                    ->formatStateUsing(function ($state, $record) {
-                                                        if ($state !== null && $state !== '') {
-                                                            return $state;
-                                                        }
-                                                        $code = $record?->article_group_code;
-                                                        if (! $code) {
-                                                            return null;
-                                                        }
-                                                        $agc = ArticleGroupCode::where('code', $code)->where('active', true)->first();
-                                                        if ($agc && $agc->default_vat_percent !== null) {
-                                                            return (float) $agc->default_vat_percent * 100;
-                                                        }
-
-                                                        return null;
-                                                    })
-                                                    ->dehydrateStateUsing(function ($state, $record) {
-                                                        if ($state !== null && $state !== '') {
-                                                            return $state;
-                                                        }
-                                                        $code = $record?->article_group_code;
-                                                        if (! $code) {
-                                                            return null;
-                                                        }
-                                                        $agc = ArticleGroupCode::where('code', $code)->where('active', true)->first();
-                                                        if ($agc && $agc->default_vat_percent !== null) {
-                                                            return (float) $agc->default_vat_percent * 100;
-                                                        }
-
-                                                        return null;
-                                                    })
-                                                    ->helperText('VAT percentage for this product. Auto-set from article group code, but can be manually overridden.')
-                                                    ->placeholder('Auto from article group code')
-                                                    ->reactive(),
+                                                self::buildArticleGroupCodeSelect(),
+                                                self::buildVatPercentInputForEdit(),
                                             ])
                                             ->columnSpanFull(),
                                     ])
@@ -1368,20 +1082,7 @@ class ConnectedProductForm
                                                 'vendor',
                                                 'name',
                                                 modifyQueryUsing: function ($query, $get, $record) {
-                                                    // Prioritize tenant's stripe_account_id (most reliable for preload)
-                                                    $stripeAccountId = null;
-
-                                                    try {
-                                                        $tenant = \Filament\Facades\Filament::getTenant();
-                                                        $stripeAccountId = $tenant?->stripe_account_id;
-                                                    } catch (\Throwable $e) {
-                                                        // Fallback if Filament facade not available
-                                                    }
-
-                                                    // Fallback to record or form state if tenant not available
-                                                    if (! $stripeAccountId) {
-                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-                                                    }
+                                                    $stripeAccountId = self::resolveStripeAccountId($get, $record);
 
                                                     if ($stripeAccountId) {
                                                         return $query->where('stripe_account_id', $stripeAccountId)
@@ -1389,7 +1090,6 @@ class ConnectedProductForm
                                                             ->orderBy('name', 'asc');
                                                     }
 
-                                                    // If no stripe_account_id, return empty query for safety
                                                     return $query->whereRaw('1 = 0');
                                                 }
                                             )
@@ -1934,7 +1634,7 @@ class ConnectedProductForm
                                     ])
                                     ->collapsible()
                                     ->collapsed(true)
-                                    ->visibleOn('edit'),
+                                                    ->visibleOn('edit'),
                             ])
                             ->columnSpan([
                                 'default' => 1,
@@ -1945,5 +1645,166 @@ class ConnectedProductForm
                     ->columnSpanFull()
                     ->visibleOn('edit'),
             ]);
+    }
+
+    /**
+     * Get the stripe_account_id from tenant or form state.
+     */
+    private static function resolveStripeAccountId(Get $get, mixed $record = null): ?string
+    {
+        $stripeAccountId = null;
+        try {
+            $tenant = \Filament\Facades\Filament::getTenant();
+            $stripeAccountId = $tenant?->stripe_account_id;
+        } catch (\Throwable $e) {
+            // Fallback
+        }
+
+        if (! $stripeAccountId) {
+            $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+        }
+
+        return $stripeAccountId;
+    }
+
+    /**
+     * Build the article group code query with store-specific and global standard codes.
+     */
+    private static function buildArticleGroupCodeQuery(?string $stripeAccountId): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = ArticleGroupCode::query();
+
+        if ($stripeAccountId) {
+            $query->where(function ($q) use ($stripeAccountId) {
+                $q->where('stripe_account_id', $stripeAccountId)
+                    ->orWhere(function ($q2) {
+                        $q2->whereNull('stripe_account_id')
+                            ->where('is_standard', true);
+                    });
+            });
+        } else {
+            $query->whereNull('stripe_account_id')
+                ->where('is_standard', true);
+        }
+
+        return $query->where('active', true)
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('code', 'asc');
+    }
+
+    /**
+     * Build the article group code Select field.
+     */
+    private static function buildArticleGroupCodeSelect(): Select
+    {
+        return Select::make('article_group_code')
+            ->label('Article Group Code (SAF-T)')
+            ->options(function (Get $get, $record) {
+                $stripeAccountId = self::resolveStripeAccountId($get, $record);
+
+                return self::buildArticleGroupCodeQuery($stripeAccountId)
+                    ->get()
+                    ->mapWithKeys(fn ($record) => [$record->code => $record->code.' - '.$record->name]);
+            })
+            ->getSearchResultsUsing(function (string $search, Get $get, $record) {
+                $stripeAccountId = self::resolveStripeAccountId($get, $record);
+
+                return self::buildArticleGroupCodeQuery($stripeAccountId)
+                    ->where(function ($q) use ($search) {
+                        $q->where('code', 'like', "%{$search}%")
+                            ->orWhere('name', 'like', "%{$search}%");
+                    })
+                    ->limit(50)
+                    ->get()
+                    ->mapWithKeys(fn ($record) => [$record->code => $record->code.' - '.$record->name]);
+            })
+            ->getOptionLabelUsing(function ($value) {
+                $code = ArticleGroupCode::where('code', $value)->first();
+
+                return $code ? $code->code.' - '.$code->name : $value;
+            })
+            ->searchable()
+            ->preload()
+            ->default(fn ($record) => $record?->article_group_code ?? '04999')
+            ->helperText('PredefinedBasicID-04: Product category for SAF-T reporting. VAT rate will be set from the selected code.')
+            ->placeholder('Select article group')
+            ->live(onBlur: false)
+            ->afterStateUpdated(function ($state, $set) {
+                if ($state) {
+                    $articleGroupCode = ArticleGroupCode::where('code', $state)->first();
+                    if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
+                        $set('vat_percent', $articleGroupCode->default_vat_percent * 100);
+                    } else {
+                        $set('vat_percent', null);
+                    }
+                } else {
+                    $set('vat_percent', null);
+                }
+            });
+    }
+
+    /**
+     * Build the VAT percent TextInput field for create forms.
+     */
+    private static function buildVatPercentInputForCreate(): TextInput
+    {
+        return TextInput::make('vat_percent')
+            ->label('VAT Percentage (%)')
+            ->numeric()
+            ->step(0.01)
+            ->minValue(0)
+            ->maxValue(100)
+            ->suffix('%')
+            ->default(25)
+            ->helperText('VAT percentage for this product. Auto-set from article group code (default 04999 = 25%), but can be manually overridden.')
+            ->placeholder('Auto from article group code')
+            ->reactive();
+    }
+
+    /**
+     * Build the VAT percent TextInput field for edit forms.
+     */
+    private static function buildVatPercentInputForEdit(): TextInput
+    {
+        return TextInput::make('vat_percent')
+            ->label('VAT Percentage (%)')
+            ->numeric()
+            ->step(0.01)
+            ->minValue(0)
+            ->maxValue(100)
+            ->suffix('%')
+            ->formatStateUsing(function ($state, $record) {
+                if ($state !== null && $state !== '') {
+                    return $state;
+                }
+                $code = $record?->article_group_code;
+                if (! $code) {
+                    return null;
+                }
+                $agc = ArticleGroupCode::where('code', $code)->where('active', true)->first();
+                if ($agc && $agc->default_vat_percent !== null) {
+                    return (float) $agc->default_vat_percent * 100;
+                }
+
+                return null;
+            })
+            ->dehydrateStateUsing(function ($state, $record) {
+                if ($state !== null && $state !== '') {
+                    return $state;
+                }
+                $code = $record?->article_group_code;
+                if (! $code) {
+                    return null;
+                }
+                $agc = ArticleGroupCode::where('code', $code)->where('active', true)->first();
+                if ($agc && $agc->default_vat_percent !== null) {
+                    return (float) $agc->default_vat_percent * 100;
+                }
+
+                return null;
+            })
+            ->helperText('VAT percentage for this product. Auto-set from article group code, but can be manually overridden.')
+            ->placeholder('Auto from article group code')
+            ->reactive();
     }
 }
