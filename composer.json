@@ -23,13 +23,14 @@
         "leek/filament-workflows": "^1.2",
         "mustache/mustache": "^3.0",
         "shreejan/actionable-column": "^1.0",
-        "stechstudio/filament-impersonate": "^4.1"
+        "stechstudio/filament-impersonate": "^4.1",
+        "positiv/filament-webflow": "@dev"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
         "filament/blueprint": "^1.0",
         "laravel-lang/lang": "^15.26",
-        "laravel/boost": "^1.8",
+        "laravel/boost": "^2.1",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.24",
         "laravel/sail": "^1.41",
@@ -113,5 +114,8 @@
     }, {
         "type": "composer",
         "url": "https://filament-workflow-engine.composer.sh"
+    }, {
+        "type": "path",
+        "url": "./packages/filament-webflow"
     }]
 }

@@ -438,7 +438,11 @@ paths:
       tags:
         - POS Devices
       summary: Register POS device
-      description: Register a new POS device using device information from device_info_plus
+      description: |
+        Register a new POS device using device information from device_info_plus.
+        The same physical device can be registered on multiple stores (tenants).
+        device_identifier is unique per store, so a device already registered on Store A
+        can be registered again when the user logs in on Store B.
       operationId: registerPosDevice
       requestBody:
         required: true
@@ -453,7 +457,7 @@ paths:
               properties:
                 device_identifier:
                   type: string
-                  description: "Unique device identifier (iOS: identifierForVendor, Android: androidId)"
+                  description: "Device identifier unique per store (iOS: identifierForVendor, Android: androidId). Same device can be registered on multiple stores."
                   example: ABC123-DEF456-GHI789
                 device_name:
                   type: string
@@ -634,6 +638,14 @@ paths:
                   type: object
                   nullable: true
                   additionalProperties: true
+                last_connected_terminal_location_id:
+                  type: integer
+                  nullable: true
+                  description: Terminal location ID this device last connected to (for auto-reconnect)
+                last_connected_terminal_reader_id:
+                  type: integer
+                  nullable: true
+                  description: Terminal reader ID this device last connected to (for auto-reconnect)
       responses:
         '200':
           description: Device updated successfully
@@ -682,6 +694,12 @@ paths:
                   type: object
                   nullable: true
                   additionalProperties: true
+                last_connected_terminal_location_id:
+                  type: integer
+                  nullable: true
+                last_connected_terminal_reader_id:
+                  type: integer
+                  nullable: true
       responses:
         '200':
           description: Device updated successfully
@@ -4164,8 +4182,19 @@ paths:
       tags:
         - Terminals
       summary: List terminal locations
-      description: Get all terminal locations for the current store
+      description: |
+        Get all terminal locations for the current store.
+        Optional query `device_identifier` — when provided, if the POS device has a last-connected terminal,
+        the response includes `last_connected` (location_id, stripe_location_id, reader_id, stripe_reader_id, etc.)
+        for auto-reconnect on the app.
       operationId: listTerminalLocations
+      parameters:
+        - name: device_identifier
+          in: query
+          required: false
+          description: POS device identifier; when set, response may include last_connected for this device
+          schema:
+            type: string
       responses:
         '200':
           description: List of terminal locations
@@ -4178,6 +4207,22 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/TerminalLocation'
+                  last_connected:
+                    type: object
+                    description: Present when device_identifier was sent and device has a last-connected terminal
+                    properties:
+                      location_id:
+                        type: integer
+                      stripe_location_id:
+                        type: string
+                      location_display_name:
+                        type: string
+                      reader_id:
+                        type: integer
+                      stripe_reader_id:
+                        type: string
+                      reader_label:
+                        type: string
         '404':
           description: Store not found
           content:
@@ -4208,6 +4253,73 @@ paths:
                       $ref: '#/components/schemas/TerminalReader'
         '404':
           description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /terminals/readers/register-from-code:
+    post:
+      tags:
+        - Terminals
+      summary: Register terminal reader from registration code
+      description: |
+        Register a Bluetooth reader to the current store and location using a registration
+        code from the reader. If the reader was previously registered to another store,
+        it is removed from that store. Returns the created/updated reader.
+      operationId: registerTerminalReaderFromCode
+      parameters:
+        - name: X-Tenant
+          in: header
+          description: Store slug (optional, defaults to user's current store)
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - registration_code
+              properties:
+                registration_code:
+                  type: string
+                  description: Registration/pairing code from the reader
+                  example: "tmr_abc123"
+                terminal_location_id:
+                  type: integer
+                  nullable: true
+                  description: Internal terminal location ID (use one of terminal_location_id or stripe_location_id)
+                stripe_location_id:
+                  type: string
+                  nullable: true
+                  description: Stripe location ID tml_xxx (use one of terminal_location_id or stripe_location_id)
+                label:
+                  type: string
+                  nullable: true
+                  description: Optional label for the reader
+      responses:
+        '201':
+          description: Reader registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reader:
+                    $ref: '#/components/schemas/RegisteredTerminalReader'
+        '404':
+          description: Store or terminal location not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error or Stripe API error (e.g. invalid registration code)
           content:
             application/json:
               schema:
@@ -4595,7 +4707,12 @@ paths:
                 properties:
                   secret:
                     type: string
+                    description: Stripe connection token secret for the Terminal SDK
                     example: pst_test_1234567890
+                  location:
+                    type: string
+                    description: Stripe location ID (tml_xxx) used for this token; client can set app state for discovery
+                    example: tml_1234567890
         '404':
           description: Store or location not found
           content:
@@ -4921,6 +5038,10 @@ components:
           type: string
           nullable: true
           example: tmr_1234567890
+        serial_number:
+          type: string
+          nullable: true
+          description: Reader serial number from Stripe (used for re-registration across stores)
         label:
           type: string
           example: Counter Reader 1
@@ -4955,6 +5076,31 @@ components:
           type: string
           format: date-time
 
+    RegisteredTerminalReader:
+      type: object
+      description: Response shape for POST /terminals/readers/register-from-code
+      properties:
+        id:
+          type: integer
+          example: 1
+        stripe_reader_id:
+          type: string
+          example: tmr_1234567890
+        serial_number:
+          type: string
+          nullable: true
+        label:
+          type: string
+        device_type:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        terminal_location_id:
+          type: integer
+          nullable: true
+
     PosDevice:
       type: object
       properties:
@@ -4963,7 +5109,7 @@ components:
           example: 1
         device_identifier:
           type: string
-          description: "Unique device identifier (iOS: identifierForVendor, Android: androidId)"
+          description: "Device identifier unique per store (iOS: identifierForVendor, Android: androidId). Same device can be registered on multiple stores."
           example: ABC123-DEF456-GHI789
         device_name:
           type: string
@@ -5059,6 +5205,29 @@ components:
           nullable: true
           example: 1
           description: ID of the default receipt printer for this POS device (set via Filament admin)
+        last_connected:
+          type: object
+          nullable: true
+          description: Last terminal location and reader this device connected to (for auto-reconnect)
+          properties:
+            location_id:
+              type: integer
+              nullable: true
+            stripe_location_id:
+              type: string
+              nullable: true
+            location_display_name:
+              type: string
+              nullable: true
+            reader_id:
+              type: integer
+              nullable: true
+            stripe_reader_id:
+              type: string
+              nullable: true
+            reader_label:
+              type: string
+              nullable: true
         receipt_printers:
           type: array
           description: List of receipt printers attached to this POS device

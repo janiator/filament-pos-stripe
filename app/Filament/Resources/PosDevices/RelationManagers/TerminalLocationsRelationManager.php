@@ -139,6 +139,7 @@ class TerminalLocationsRelationManager extends RelationManager
                     ->icon('heroicon-o-x-mark')
                     ->color('danger')
                     ->requiresConfirmation()
+                    ->visible(fn (TerminalLocation $record): bool => $record->pos_device_id === $this->getOwnerRecord()->id)
                     ->action(function (TerminalLocation $record): void {
                         // Detach by setting pos_device_id to null
                         $record->update(['pos_device_id' => null]);
@@ -153,15 +154,25 @@ class TerminalLocationsRelationManager extends RelationManager
                         ->color('danger')
                         ->requiresConfirmation()
                         ->action(function ($records): void {
-                            // Detach by setting pos_device_id to null
-                            TerminalLocation::whereIn('id', $records->pluck('id'))
-                                ->update(['pos_device_id' => null]);
+                            /** @var \App\Models\PosDevice $posDevice */
+                            $posDevice = $this->getOwnerRecord();
+                            $ids = $records->filter(fn (TerminalLocation $r) => $r->pos_device_id === $posDevice->id)->pluck('id');
+                            if ($ids->isNotEmpty()) {
+                                TerminalLocation::whereIn('id', $ids)->update(['pos_device_id' => null]);
+                            }
                         })
                         ->successNotificationTitle('Terminal locations detached'),
                 ]),
             ])
             ->modifyQueryUsing(function ($query) {
-                // Eager load terminal readers for count
+                /** @var \App\Models\PosDevice $owner */
+                $owner = $this->getOwnerRecord();
+                // If no locations are attached to this device, show the store's terminal locations instead
+                if (! $owner->terminalLocations()->exists()) {
+                    return TerminalLocation::query()
+                        ->where('store_id', $owner->store_id)
+                        ->withCount('terminalReaders');
+                }
                 return $query->withCount('terminalReaders');
             });
     }

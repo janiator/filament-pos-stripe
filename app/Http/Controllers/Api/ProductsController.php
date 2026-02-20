@@ -125,6 +125,7 @@ class ProductsController extends BaseApiController
                         ],
                         'tax_code' => $product->tax_code ?? 'txcd_99999999', // Default to 25% VAT if not set (kept for backward compatibility)
                         'tax_percent' => $this->getTaxPercentFromProduct($product),
+                        'article_group_code' => $product->article_group_code,
                         'unit_label' => $product->unit_label ?? 'stk',
                         'statement_descriptor' => $product->statement_descriptor ?? null,
                         'package_dimensions' => null,
@@ -400,6 +401,7 @@ class ProductsController extends BaseApiController
             ],
             'tax_code' => $product->tax_code ?? 'txcd_99999999', // Default to 25% VAT if not set
             'tax_percent' => $this->getTaxPercentFromProduct($product),
+            'article_group_code' => $product->article_group_code,
             'unit_label' => $product->unit_label ?? 'stk',
             'statement_descriptor' => $product->statement_descriptor ?? null,
             'package_dimensions' => $packageDimensions,
@@ -478,9 +480,9 @@ class ProductsController extends BaseApiController
             return (float) $product->vat_percent / 100; // Convert from percentage (0-100) to decimal (0-1)
         }
 
-        // Second, try to get VAT from article group code
+        // Second, try to get VAT from article group code (scoped by account: prefer account-specific, then global)
         if ($product->article_group_code) {
-            $articleGroupCode = \App\Models\ArticleGroupCode::where('code', $product->article_group_code)->first();
+            $articleGroupCode = $this->resolveArticleGroupCode($product->article_group_code, $product->stripe_account_id);
             if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
                 return (float) $articleGroupCode->default_vat_percent;
             }
@@ -488,6 +490,25 @@ class ProductsController extends BaseApiController
 
         // Fallback to tax_code if article group code doesn't have VAT set
         return $this->getTaxPercentFromCode($product->tax_code);
+    }
+
+    /**
+     * Resolve article group code by code string, preferring account-specific over global.
+     */
+    protected function resolveArticleGroupCode(string $code, ?string $stripeAccountId): ?\App\Models\ArticleGroupCode
+    {
+        $query = \App\Models\ArticleGroupCode::where('code', $code)->where('active', true);
+
+        if ($stripeAccountId) {
+            $query->where(function ($q) use ($stripeAccountId) {
+                $q->where('stripe_account_id', $stripeAccountId)
+                    ->orWhereNull('stripe_account_id');
+            })->orderByRaw('CASE WHEN stripe_account_id IS NOT NULL THEN 0 ELSE 1 END'); // account-specific first
+        } else {
+            $query->whereNull('stripe_account_id');
+        }
+
+        return $query->first();
     }
 
     /**
@@ -750,6 +771,15 @@ class ProductsController extends BaseApiController
             }
             if (isset($validated['article_group_code'])) {
                 $product->article_group_code = $validated['article_group_code'];
+                // Sync VAT from article group so that setting varegruppekode updates VAT (unless client sends vat_percent explicitly)
+                if (! array_key_exists('vat_percent', $validated)) {
+                    $articleGroupCode = $this->resolveArticleGroupCode($product->article_group_code, $product->stripe_account_id);
+                    if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
+                        $product->vat_percent = (float) $articleGroupCode->default_vat_percent * 100; // store as 0-100
+                    } else {
+                        $product->vat_percent = null;
+                    }
+                }
             }
             if (isset($validated['vat_percent'])) {
                 $product->vat_percent = $validated['vat_percent'];

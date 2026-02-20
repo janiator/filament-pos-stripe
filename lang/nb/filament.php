@@ -292,6 +292,15 @@ return [
             'title' => 'SAF-T koder importert',
             'body' => 'Standard SAF-T varegruppekoder har blitt importert.',
         ],
+        'import_quantity_unit_defaults' => [
+            'label' => 'Importer standardenheter',
+            'heading' => 'Importer standard mengdeenheter',
+            'description' => 'Dette vil opprette eller oppdatere standard mengdeenheter (stk, kg, m, l, osv.) for alle butikker og globale enheter. Eksisterende enheter overskrives ikke.',
+            'title' => 'Standardenheter importert',
+            'body' => 'Standard mengdeenheter har blitt importert.',
+            'error_title' => 'Feil ved import',
+            'error_body' => 'Kunne ikke importere mengdeenheter: :message',
+        ],
     ],
 
     // Common Labels
@@ -335,5 +344,3 @@ return [
         'download_xml' => 'Last ned XML',
     ],
 ];
-
-

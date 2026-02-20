@@ -2,14 +2,16 @@
 
 namespace App\Filament\Resources\GiftCards;
 
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
+use App\Enums\AddonType;
 use App\Filament\Resources\GiftCards\Pages\CreateGiftCard;
 use App\Filament\Resources\GiftCards\Pages\EditGiftCard;
 use App\Filament\Resources\GiftCards\Pages\ListGiftCards;
 use App\Filament\Resources\GiftCards\Schemas\GiftCardForm;
 use App\Filament\Resources\GiftCards\Tables\GiftCardsTable;
+use App\Models\Addon;
 use App\Models\GiftCard;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -33,6 +35,20 @@ class GiftCardResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return 'Sales';
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return false;
+        }
+
+        return Addon::query()
+            ->where('store_id', $tenant->getKey())
+            ->where('type', AddonType::GiftCards)
+            ->where('is_active', true)
+            ->exists();
     }
 
     public static function form(Schema $schema): Schema
@@ -70,7 +86,7 @@ class GiftCardResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         try {
             $tenant = \Filament\Facades\Filament::getTenant();
             if ($tenant && $tenant->slug !== 'visivo-admin') {
@@ -80,7 +96,7 @@ class GiftCardResource extends Resource
         } catch (\Throwable $e) {
             // Fallback if Filament facade not available
         }
-        
+
         return $query;
     }
 

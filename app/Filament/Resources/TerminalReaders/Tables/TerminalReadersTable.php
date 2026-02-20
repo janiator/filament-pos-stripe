@@ -33,6 +33,11 @@ class TerminalReadersTable
                     ->copyable()
                     ->placeholder('-'),
 
+                TextColumn::make('serial_number')
+                    ->label('Serial number')
+                    ->copyable()
+                    ->placeholder('-'),
+
                 TextColumn::make('status')
                     ->label('Status')
                     ->placeholder('-'),

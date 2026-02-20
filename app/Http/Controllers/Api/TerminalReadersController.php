@@ -33,6 +33,7 @@ class TerminalReadersController extends BaseApiController
                 return [
                     'id' => $reader->id,
                     'stripe_reader_id' => $reader->stripe_reader_id,
+                    'serial_number' => $reader->serial_number,
                     'label' => $reader->label,
                     'tap_to_pay' => $reader->tap_to_pay,
                     'device_type' => $reader->device_type,

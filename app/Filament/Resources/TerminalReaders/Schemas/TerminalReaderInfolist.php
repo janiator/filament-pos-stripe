@@ -19,6 +19,9 @@ class TerminalReaderInfolist
                     ->placeholder('-'),
                 TextEntry::make('stripe_reader_id')
                     ->placeholder('-'),
+                TextEntry::make('serial_number')
+                    ->label('Serial number')
+                    ->placeholder('-'),
                 TextEntry::make('label'),
                 IconEntry::make('tap_to_pay')
                     ->boolean(),

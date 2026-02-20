@@ -27,6 +27,18 @@ class StoreInfolist
                             ->icon(Heroicon::OutlinedEnvelope)
                             ->copyable(),
 
+                        TextEntry::make('organisasjonsnummer')
+                            ->label('Organisasjonsnummer')
+                            ->copyable()
+                            ->placeholder('-'),
+
+                        TextEntry::make('address')
+                            ->label('Address')
+                            ->icon(Heroicon::OutlinedMapPin)
+                            ->copyable()
+                            ->columnSpanFull()
+                            ->placeholder('-'),
+
                         TextEntry::make('z_report_email')
                             ->label('Z-Report Email')
                             ->icon(Heroicon::OutlinedEnvelope)

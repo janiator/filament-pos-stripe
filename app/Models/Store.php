@@ -6,15 +6,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
-use Laravel\Cashier\Billable as CashierBillable;
 use Lanos\CashierConnect\Billable as ConnectBillable;
 use Lanos\CashierConnect\Contracts\StripeAccount;
+use Laravel\Cashier\Billable as CashierBillable;
 
 class Store extends Model implements StripeAccount
 {
-    use HasFactory;
     use CashierBillable;
     use ConnectBillable;
+    use HasFactory;
 
     protected $fillable = [
         'name',
@@ -22,6 +22,7 @@ class Store extends Model implements StripeAccount
         'email',
         'z_report_email',
         'organisasjonsnummer',
+        'address',
         'logo_path',
         'commission_type',
         'commission_rate',
@@ -36,7 +37,7 @@ class Store extends Model implements StripeAccount
     {
         static::creating(function (Store $store) {
             if (empty($store->slug)) {
-                $store->slug = Str::slug($store->name ?? 'store-' . $store->id);
+                $store->slug = Str::slug($store->name ?? 'store-'.$store->id);
             }
         });
 
@@ -46,8 +47,8 @@ class Store extends Model implements StripeAccount
             if ($store->wasRecentlyCreated) {
                 return;
             }
-            
-            $listener = new \App\Listeners\SyncStoreToStripeListener();
+
+            $listener = new \App\Listeners\SyncStoreToStripeListener;
             $listener->handle($store);
         });
     }
@@ -196,6 +197,30 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * Get addons for this store.
+     */
+    public function addons()
+    {
+        return $this->hasMany(Addon::class);
+    }
+
+    /**
+     * Get event tickets for this store.
+     */
+    public function eventTickets()
+    {
+        return $this->hasMany(EventTicket::class);
+    }
+
+    /**
+     * Get Webflow sites connected to this store.
+     */
+    public function webflowSites()
+    {
+        return $this->hasMany(\Positiv\FilamentWebflow\Models\WebflowSite::class);
+    }
+
+    /**
      * Get the active product declaration for this store
      */
     public function activeProductDeclaration()
@@ -211,12 +236,12 @@ class Store extends Model implements StripeAccount
     {
         try {
             $tenant = \Filament\Facades\Filament::getTenant();
-            
+
             // If no tenant or admin store, sync all stores
-            if (!$tenant || $tenant->slug === 'visivo-admin') {
+            if (! $tenant || $tenant->slug === 'visivo-admin') {
                 return static::whereNotNull('stripe_account_id')->get();
             }
-            
+
             // Otherwise, sync only the current store
             return static::whereNotNull('stripe_account_id')
                 ->where('id', $tenant->id)

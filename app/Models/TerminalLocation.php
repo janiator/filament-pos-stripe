@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Stripe\Terminal\Location as StripeLocation;
 
 class TerminalLocation extends Model
 {
@@ -32,9 +33,31 @@ class TerminalLocation extends Model
             if ($location->wasRecentlyCreated) {
                 return;
             }
-            
+
             $listener = new \App\Listeners\SyncTerminalLocationToStripeListener();
             $listener->handle($location);
+        });
+
+        static::deleting(function (TerminalLocation $location): void {
+            // Delete all readers first (triggers TerminalReader deleting → Stripe delete)
+            foreach ($location->terminalReaders as $reader) {
+                $reader->delete();
+            }
+            if (empty($location->stripe_location_id)) {
+                return;
+            }
+            $store = $location->store;
+            if (! $store || ! $store->hasStripeAccount()) {
+                return;
+            }
+            try {
+                StripeLocation::retrieve(
+                    $location->stripe_location_id,
+                    $store->stripeAccountOptions([], true)
+                )->delete();
+            } catch (\Throwable) {
+                // DB delete still proceeds if Stripe fails (e.g. already deleted)
+            }
         });
     }
 
