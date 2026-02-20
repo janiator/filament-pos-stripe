@@ -3,114 +3,36 @@
 namespace Database\Seeders;
 
 use App\Models\QuantityUnit;
-use App\Models\Store;
 use Illuminate\Database\Seeder;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 class QuantityUnitSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * Creates a single global set of 10 standard quantity units (store_id and
+     * stripe_account_id null). All stores use these via the API/Filament scope.
+     * Uses firstOrCreate so existing units are left unchanged. If the seeder
+     * runs concurrently, the unique index prevents duplicates; we catch and continue.
      */
     public function run(): void
     {
-        // Standard quantity units that should be available for all stores
         $standardUnits = [
-            [
-                'name' => 'Piece',
-                'symbol' => 'stk',
-                'description' => 'Per item/piece',
-                'is_standard' => true,
-                'active' => true,
-            ],
-            [
-                'name' => 'Kilogram',
-                'symbol' => 'kg',
-                'description' => 'Per kilogram (weight)',
-                'is_standard' => true,
-                'active' => true,
-            ],
-            [
-                'name' => 'Gram',
-                'symbol' => 'g',
-                'description' => 'Per gram (weight)',
-                'is_standard' => true,
-                'active' => true,
-            ],
-            [
-                'name' => 'Meter',
-                'symbol' => 'm',
-                'description' => 'Per meter (length)',
-                'is_standard' => true,
-                'active' => true,
-            ],
-            [
-                'name' => 'Centimeter',
-                'symbol' => 'cm',
-                'description' => 'Per centimeter (length)',
-                'is_standard' => true,
-                'active' => true,
-            ],
-            [
-                'name' => 'Liter',
-                'symbol' => 'l',
-                'description' => 'Per liter (volume)',
-                'is_standard' => true,
-                'active' => true,
-            ],
-            [
-                'name' => 'Milliliter',
-                'symbol' => 'ml',
-                'description' => 'Per milliliter (volume)',
-                'is_standard' => true,
-                'active' => true,
-            ],
-            [
-                'name' => 'Hour',
-                'symbol' => 't',
-                'description' => 'Per hour (time)',
-                'is_standard' => true,
-                'active' => true,
-            ],
-            [
-                'name' => 'Square Meter',
-                'symbol' => 'm²',
-                'description' => 'Per square meter (area)',
-                'is_standard' => true,
-                'active' => true,
-            ],
-            [
-                'name' => 'Cubic Meter',
-                'symbol' => 'm³',
-                'description' => 'Per cubic meter (volume)',
-                'is_standard' => true,
-                'active' => true,
-            ],
+            ['name' => 'Piece', 'symbol' => 'stk', 'description' => 'Per item/piece'],
+            ['name' => 'Kilogram', 'symbol' => 'kg', 'description' => 'Per kilogram (weight)'],
+            ['name' => 'Gram', 'symbol' => 'g', 'description' => 'Per gram (weight)'],
+            ['name' => 'Meter', 'symbol' => 'm', 'description' => 'Per meter (length)'],
+            ['name' => 'Centimeter', 'symbol' => 'cm', 'description' => 'Per centimeter (length)'],
+            ['name' => 'Liter', 'symbol' => 'l', 'description' => 'Per liter (volume)'],
+            ['name' => 'Milliliter', 'symbol' => 'ml', 'description' => 'Per milliliter (volume)'],
+            ['name' => 'Hour', 'symbol' => 't', 'description' => 'Per hour (time)'],
+            ['name' => 'Square Meter', 'symbol' => 'm²', 'description' => 'Per square meter (area)'],
+            ['name' => 'Cubic Meter', 'symbol' => 'm³', 'description' => 'Per cubic meter (volume)'],
         ];
 
-        // Get all stores or create for null store_id (global standard units)
-        $stores = Store::all();
-
-        foreach ($stores as $store) {
-            foreach ($standardUnits as $unit) {
-                QuantityUnit::firstOrCreate(
-                    [
-                        'store_id' => $store->id,
-                        'stripe_account_id' => $store->stripe_account_id,
-                        'name' => $unit['name'],
-                        'symbol' => $unit['symbol'],
-                    ],
-                    [
-                        'description' => $unit['description'],
-                        'is_standard' => $unit['is_standard'],
-                        'active' => $unit['active'],
-                    ]
-                );
-            }
-        }
-
-        // Also create global standard units (without store_id) for stores that don't have them yet
         foreach ($standardUnits as $unit) {
-            QuantityUnit::firstOrCreate(
+            $this->firstOrCreateUnit(
                 [
                     'store_id' => null,
                     'stripe_account_id' => null,
@@ -119,13 +41,25 @@ class QuantityUnitSeeder extends Seeder
                 ],
                 [
                     'description' => $unit['description'],
-                    'is_standard' => $unit['is_standard'],
-                    'active' => $unit['active'],
+                    'is_standard' => true,
+                    'active' => true,
                 ]
             );
         }
     }
+
+    /**
+     * Create or find a quantity unit. Catches duplicate key from concurrent seeder runs.
+     *
+     * @param  array<string, mixed>  $search
+     * @param  array<string, mixed>  $attributes
+     */
+    private function firstOrCreateUnit(array $search, array $attributes): void
+    {
+        try {
+            QuantityUnit::firstOrCreate($search, $attributes);
+        } catch (UniqueConstraintViolationException) {
+            // Concurrent run already inserted this row; ignore.
+        }
+    }
 }
-
-
-

@@ -27,6 +27,7 @@ class Store extends Model implements StripeAccount
         'commission_type',
         'commission_rate',
         'stripe_account_id',
+        'default_terminal_location_id',
     ];
 
     protected $casts = [
@@ -61,6 +62,14 @@ class Store extends Model implements StripeAccount
     public function terminalLocations()
     {
         return $this->hasMany(\App\Models\TerminalLocation::class);
+    }
+
+    /**
+     * Default terminal location used when registering new POS devices.
+     */
+    public function defaultTerminalLocation(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\TerminalLocation::class, 'default_terminal_location_id');
     }
 
     public function terminalReaders()

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\PosDevice;
+use App\Models\TerminalLocation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,8 +16,8 @@ class PosDevicesController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json([
                 'message' => 'Store not found',
             ], 404);
@@ -42,8 +43,8 @@ class PosDevicesController extends BaseApiController
     public function store(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json([
                 'message' => 'Store not found',
             ], 404);
@@ -79,9 +80,15 @@ class PosDevicesController extends BaseApiController
 
         $device = PosDevice::create($validated);
 
+        if ($store->default_terminal_location_id) {
+            TerminalLocation::where('id', $store->default_terminal_location_id)
+                ->where('store_id', $store->id)
+                ->update(['pos_device_id' => $device->id]);
+        }
+
         return response()->json([
             'message' => 'POS device registered successfully',
-            'device' => $this->formatDeviceResponse($device),
+            'device' => $this->formatDeviceResponse($device->load('terminalLocations')),
         ], 201);
     }
 
@@ -91,8 +98,8 @@ class PosDevicesController extends BaseApiController
     public function show(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json([
                 'message' => 'Store not found',
             ], 404);
@@ -116,8 +123,8 @@ class PosDevicesController extends BaseApiController
     public function update(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json([
                 'message' => 'Store not found',
             ], 404);
@@ -155,7 +162,7 @@ class PosDevicesController extends BaseApiController
                 ->where('store_id', $store->id)
                 ->first();
 
-            if (!$printer) {
+            if (! $printer) {
                 return response()->json([
                     'message' => 'Receipt printer not found or does not belong to this store',
                 ], 422);
@@ -167,7 +174,7 @@ class PosDevicesController extends BaseApiController
             $loc = \App\Models\TerminalLocation::where('id', $validated['last_connected_terminal_location_id'])
                 ->where('store_id', $store->id)
                 ->first();
-            if (!$loc) {
+            if (! $loc) {
                 return response()->json([
                     'message' => 'Terminal location not found or does not belong to this store',
                 ], 422);
@@ -177,7 +184,7 @@ class PosDevicesController extends BaseApiController
             $reader = \App\Models\TerminalReader::where('id', $validated['last_connected_terminal_reader_id'])
                 ->where('store_id', $store->id)
                 ->first();
-            if (!$reader) {
+            if (! $reader) {
                 return response()->json([
                     'message' => 'Terminal reader not found or does not belong to this store',
                 ], 422);
@@ -200,8 +207,8 @@ class PosDevicesController extends BaseApiController
     public function heartbeat(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json([
                 'message' => 'Store not found',
             ], 404);
@@ -225,7 +232,7 @@ class PosDevicesController extends BaseApiController
         // If so, create a start event to indicate the device came back online
         $inactivityThreshold = now()->subMinutes(10);
         $wasInactive = $oldLastSeenAt === null || $oldLastSeenAt < $inactivityThreshold;
-        
+
         // Check if there's already a recent start event (within last 30 seconds)
         // to avoid creating duplicate events if multiple heartbeats arrive quickly
         $recentStartEvent = null;
@@ -245,7 +252,7 @@ class PosDevicesController extends BaseApiController
         $startEventId = null;
 
         // Create start event if device was inactive and no recent start event exists
-        if ($wasInactive && !$recentStartEvent) {
+        if ($wasInactive && ! $recentStartEvent) {
             // Get current session if exists
             $currentSession = \App\Models\PosSession::where('store_id', $store->id)
                 ->where('pos_device_id', $device->id)
@@ -256,7 +263,7 @@ class PosDevicesController extends BaseApiController
             $userId = $request->user()?->id;
 
             // Calculate inactivity duration using the old last_seen_at value
-            $inactivityDuration = $oldLastSeenAt 
+            $inactivityDuration = $oldLastSeenAt
                 ? round($oldLastSeenAt->diffInMinutes(now()), 2)
                 : null;
 
@@ -273,7 +280,7 @@ class PosDevicesController extends BaseApiController
                     'device_name' => $device->device_name,
                     'platform' => $device->platform,
                     'system_version' => $device->system_version,
-                    'user_logged_in' => !is_null($userId),
+                    'user_logged_in' => ! is_null($userId),
                     'inactivity_duration_minutes' => $inactivityDuration,
                     'auto_detected' => true,
                 ],
@@ -304,8 +311,8 @@ class PosDevicesController extends BaseApiController
     public function start(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json([
                 'message' => 'Store not found',
             ], 404);
@@ -364,7 +371,7 @@ class PosDevicesController extends BaseApiController
                 'device_name' => $device->device_name,
                 'platform' => $device->platform,
                 'system_version' => $device->system_version,
-                'user_logged_in' => !is_null($userId),
+                'user_logged_in' => ! is_null($userId),
             ],
             'occurred_at' => now(),
         ]);
@@ -386,8 +393,8 @@ class PosDevicesController extends BaseApiController
     public function shutdown(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json([
                 'message' => 'Store not found',
             ], 404);
@@ -426,9 +433,9 @@ class PosDevicesController extends BaseApiController
             'event_data' => [
                 'device_name' => $device->device_name,
                 'platform' => $device->platform,
-                'has_open_session' => !is_null($currentSession),
+                'has_open_session' => ! is_null($currentSession),
                 'session_id' => $currentSession?->id,
-                'user_logged_in' => !is_null($userId),
+                'user_logged_in' => ! is_null($userId),
             ],
             'occurred_at' => now(),
         ]);
@@ -458,8 +465,8 @@ class PosDevicesController extends BaseApiController
     public function openCashDrawer(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json([
                 'message' => 'Store not found',
             ], 404);
@@ -493,7 +500,7 @@ class PosDevicesController extends BaseApiController
 
         // If nullinnslag (drawer open without sale), session is required
         $isNullinnslag = $validated['nullinnslag'] ?? false;
-        if ($isNullinnslag && !$session) {
+        if ($isNullinnslag && ! $session) {
             return response()->json([
                 'message' => 'Active session required for nullinnslag (drawer open without sale)',
             ], 400);
@@ -508,13 +515,13 @@ class PosDevicesController extends BaseApiController
             'related_charge_id' => $validated['related_charge_id'] ?? null,
             'event_code' => \App\Models\PosEvent::EVENT_CASH_DRAWER_OPEN,
             'event_type' => 'drawer',
-            'description' => $isNullinnslag 
-                ? "Cash drawer opened without sale (nullinnslag)" 
-                : "Cash drawer opened",
+            'description' => $isNullinnslag
+                ? 'Cash drawer opened without sale (nullinnslag)'
+                : 'Cash drawer opened',
             'event_data' => [
                 'nullinnslag' => $isNullinnslag,
                 'reason' => $validated['reason'] ?? null,
-                'has_related_charge' => !empty($validated['related_charge_id']),
+                'has_related_charge' => ! empty($validated['related_charge_id']),
             ],
             'occurred_at' => now(),
         ]);
@@ -534,8 +541,8 @@ class PosDevicesController extends BaseApiController
     public function closeCashDrawer(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json([
                 'message' => 'Store not found',
             ], 404);
@@ -572,7 +579,7 @@ class PosDevicesController extends BaseApiController
             'user_id' => $request->user()->id,
             'event_code' => \App\Models\PosEvent::EVENT_CASH_DRAWER_CLOSE,
             'event_type' => 'drawer',
-            'description' => "Cash drawer closed",
+            'description' => 'Cash drawer closed',
             'event_data' => [],
             'occurred_at' => now(),
         ]);
@@ -592,9 +599,10 @@ class PosDevicesController extends BaseApiController
     {
         $location = $device->lastConnectedTerminalLocation;
         $reader = $device->lastConnectedTerminalReader;
-        if (!$location && !$reader) {
+        if (! $location && ! $reader) {
             return null;
         }
+
         return [
             'location_id' => $location?->id,
             'stripe_location_id' => $location?->stripe_location_id,
@@ -632,6 +640,7 @@ class PosDevicesController extends BaseApiController
             'device_status' => $device->device_status,
             'last_seen_at' => $this->formatDateTimeOslo($device->last_seen_at),
             'device_metadata' => $device->device_metadata,
+            'terminal_location_id' => $device->terminalLocations->first()?->id,
             'terminal_locations_count' => $device->terminalLocations->count(),
             'terminal_locations' => $device->terminalLocations->map(function ($location) {
                 return [

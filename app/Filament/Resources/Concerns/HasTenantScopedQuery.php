@@ -13,7 +13,7 @@ trait HasTenantScopedQuery
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         try {
             $tenant = \Filament\Facades\Filament::getTenant();
             if ($tenant && $tenant->slug !== 'visivo-admin') {
@@ -25,8 +25,7 @@ trait HasTenantScopedQuery
         } catch (\Throwable $e) {
             // Fallback if Filament facade not available
         }
-        
+
         return $query;
     }
 }
-

@@ -5179,11 +5179,18 @@ components:
           nullable: true
           description: Additional device metadata
           additionalProperties: true
+        terminal_location_id:
+          type: integer
+          nullable: true
+          description: ID of the single terminal location assigned to this device (each POS device has at most one)
         terminal_locations_count:
           type: integer
           example: 1
+          description: Number of terminal locations (0 or 1; each device has at most one)
         terminal_locations:
           type: array
+          description: Terminal location(s) assigned to this device (at most one)
+          maxItems: 1
           items:
             type: object
             properties:

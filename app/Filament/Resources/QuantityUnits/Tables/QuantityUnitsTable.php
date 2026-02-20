@@ -2,14 +2,18 @@
 
 namespace App\Filament\Resources\QuantityUnits\Tables;
 
+use App\Models\QuantityUnit;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
 
 class QuantityUnitsTable
 {
@@ -76,10 +80,22 @@ class QuantityUnitsTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+                DeleteAction::make()
+                    ->hidden(fn (QuantityUnit $record): bool => $record->is_standard),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->action(function (Collection $records): void {
+                            $custom = $records->filter(fn (QuantityUnit $r): bool => ! $r->is_standard);
+                            $custom->each->delete();
+                            if ($custom->isEmpty()) {
+                                Notification::make()
+                                    ->warning()
+                                    ->title(__('filament.resources.quantity_unit.bulk_delete_standard_only'))
+                                    ->send();
+                            }
+                        }),
                 ]),
             ])
             ->defaultSort('name', 'asc');

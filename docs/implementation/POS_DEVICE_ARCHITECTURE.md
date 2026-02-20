@@ -15,8 +15,14 @@ POS devices are now separated from Stripe Terminal locations to support multiple
 ### TerminalLocation (Stripe-Specific)
 - Represents a Stripe Terminal location
 - Can optionally be linked to a PosDevice via `pos_device_id`
+- **Each POS device has at most one terminal location** (enforced by unique constraint)
 - Used for Stripe Terminal API operations
 - Belongs to a Store
+
+### Store default terminal location
+- Stores can set a **default terminal location** (`default_terminal_location_id`)
+- When a new POS device is registered (API or otherwise), that location is assigned to the new device if set
+- Configurable in Filament: Store → Terminal Locations relation manager → "Set as default" on the desired location
 
 ### TerminalReader (Stripe-Specific)
 - Represents a Stripe Terminal reader device
@@ -96,6 +102,7 @@ This architecture allows for:
 
 - Existing TerminalLocations remain unchanged
 - New `pos_devices` table created
-- `terminal_locations` table has optional `pos_device_id` foreign key
+- `terminal_locations` table has optional `pos_device_id` foreign key (unique when set: one location per device)
+- Stores have optional `default_terminal_location_id`; new POS devices receive this location on registration when set
 - Can gradually link existing TerminalLocations to PosDevices
 

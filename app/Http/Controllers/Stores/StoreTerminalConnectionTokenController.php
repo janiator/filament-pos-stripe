@@ -14,13 +14,13 @@ class StoreTerminalConnectionTokenController extends Controller
     {
         // Find store by slug
         $storeModel = Store::where('slug', $store)->first();
-        
-        if (!$storeModel) {
+
+        if (! $storeModel) {
             return response()->json([
                 'message' => 'Store not found.',
             ], 404);
         }
-        
+
         // TODO: Authorize the caller
 
         $locationId = $request->input('location_id');
@@ -36,21 +36,31 @@ class StoreTerminalConnectionTokenController extends Controller
                 ], 404);
             }
         } else {
-            $locations = TerminalLocation::where('store_id', $storeModel->id)->get();
-
-            if ($locations->isEmpty()) {
-                return response()->json([
-                    'message' => 'This store has no terminal locations configured.',
-                ], 404);
+            // Try the store's default terminal location first
+            if ($storeModel->default_terminal_location_id) {
+                $location = TerminalLocation::where('id', $storeModel->default_terminal_location_id)
+                    ->where('store_id', $storeModel->id)
+                    ->first();
             }
 
-            if ($locations->count() > 1) {
-                return response()->json([
-                    'message' => 'Multiple terminal locations exist. Please provide a location_id.',
-                ], 422);
-            }
+            // Fall back to auto-detection if no default or default was deleted
+            if (empty($location)) {
+                $locations = TerminalLocation::where('store_id', $storeModel->id)->get();
 
-            $location = $locations->first();
+                if ($locations->isEmpty()) {
+                    return response()->json([
+                        'message' => 'This store has no terminal locations configured.',
+                    ], 404);
+                }
+
+                if ($locations->count() > 1) {
+                    return response()->json([
+                        'message' => 'Multiple terminal locations exist. Please set a default terminal location or provide a location_id.',
+                    ], 422);
+                }
+
+                $location = $locations->first();
+            }
         }
 
         $connectionToken = $storeModel->createConnectionToken([

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fb6448e8b406c35736530fe56039a9cc",
+    "content-hash": "cb1b369d3af2f87fdfe8d5871a56a7f5",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -5770,18 +5770,20 @@
         },
         {
             "name": "positiv/filament-webflow",
-            "version": "dev-main",
+            "version": "dev-dev",
             "dist": {
                 "type": "path",
                 "url": "./packages/filament-webflow",
-                "reference": "839fe07cb6bae2bfb6d02c3dc644ef59d118a888"
+                "reference": "1d8b01ae52a6aac459a649b31035685a68e11eb3"
             },
             "require": {
                 "filament/filament": "^3.2|^4.0",
+                "filament/spatie-laravel-media-library-plugin": "^3.0|^4.0",
                 "illuminate/database": "^10.0|^11.0|^12.0",
                 "illuminate/http": "^10.0|^11.0|^12.0",
                 "illuminate/support": "^10.0|^11.0|^12.0",
-                "php": "^8.2"
+                "php": "^8.2",
+                "spatie/laravel-medialibrary": "^11.0|^12.0"
             },
             "type": "laravel-package",
             "extra": {
@@ -13019,6 +13021,72 @@
                 }
             ],
             "time": "2025-08-20T12:46:37+00:00"
+        },
+        {
+            "name": "pestphp/pest-plugin-livewire",
+            "version": "v4.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/pestphp/pest-plugin-livewire.git",
+                "reference": "0b5a137ec6ceadd19dd2c59b9b60039d64f6b4d2"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/pestphp/pest-plugin-livewire/zipball/0b5a137ec6ceadd19dd2c59b9b60039d64f6b4d2",
+                "reference": "0b5a137ec6ceadd19dd2c59b9b60039d64f6b4d2",
+                "shasum": ""
+            },
+            "require": {
+                "livewire/livewire": "^3.7.4|^4.0.1",
+                "pestphp/pest": "^4.3.1",
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.9.0",
+                "pestphp/pest-dev-tools": "^4.0.0"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/Autoload.php"
+                ],
+                "psr-4": {
+                    "Pest\\Livewire\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "The Pest Livewire Plugin",
+            "keywords": [
+                "framework",
+                "livewire",
+                "pest",
+                "php",
+                "plugin",
+                "test",
+                "testing",
+                "unit"
+            ],
+            "support": {
+                "source": "https://github.com/pestphp/pest-plugin-livewire/tree/v4.1.0"
+            },
+            "funding": [
+                {
+                    "url": "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=66BYDWAT92N6L",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/nunomaduro",
+                    "type": "github"
+                },
+                {
+                    "url": "https://www.patreon.com/nunomaduro",
+                    "type": "patreon"
+                }
+            ],
+            "time": "2026-01-16T00:56:22+00:00"
         },
         {
             "name": "pestphp/pest-plugin-mutate",
