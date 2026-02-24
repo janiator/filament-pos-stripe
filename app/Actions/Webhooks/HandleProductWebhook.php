@@ -41,6 +41,15 @@ class HandleProductWebhook
             'event_type' => $eventType,
         ]);
 
+        if ($eventType === 'product.deleted') {
+            ConnectedProduct::where('stripe_product_id', $product->id)
+                ->where('stripe_account_id', $store->stripe_account_id)
+                ->update(['active' => false]);
+            \Log::info('Product webhook processed (deleted)', ['product_id' => $product->id]);
+
+            return;
+        }
+
         $data = [
             'stripe_product_id' => $product->id,
             'stripe_account_id' => $store->stripe_account_id,
