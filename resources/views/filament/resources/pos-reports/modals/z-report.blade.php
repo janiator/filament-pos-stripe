@@ -530,7 +530,7 @@
                 <table class="z-report-table">
                     <thead class="z-report-sticky-header">
                         <tr>
-                            <th style="text-align: left;">{{ !empty($report['spans_multiple_days']) && $report['spans_multiple_days'] ? 'Dato & Tid' : 'Tid' }}</th>
+                            <th style="text-align: left;">Dato & Tid</th>
                             <th style="text-align: left;">ID</th>
                             <th style="text-align: left;">Status</th>
                             <th style="text-align: left;">Metode</th>
@@ -578,11 +578,7 @@
                             @endphp
                             <tr>
                                 <td style="color: rgb(75 85 99);">
-                                    @if(!empty($transaction['spans_multiple_days']) && $transaction['spans_multiple_days'])
-                                        {{ \Carbon\Carbon::parse($transaction['paid_at'] ?? $transaction['created_at'])->format('d.m.Y H:i:s') }}
-                                    @else
-                                        {{ \Carbon\Carbon::parse($transaction['paid_at'] ?? $transaction['created_at'])->format('H:i:s') }}
-                                    @endif
+                                    {{ \Carbon\Carbon::parse($transaction['paid_at'] ?? $transaction['created_at'])->format('d.m.Y H:i:s') }}
                                 </td>
                                 <td style="font-size: 0.75rem; color: rgb(107 114 128);">{{ substr($transaction['stripe_charge_id'] ?? $transaction['id'], 0, 12) }}...</td>
                                 <td>
