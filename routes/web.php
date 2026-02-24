@@ -11,7 +11,7 @@ Route::get('/', function () {
 // Exclude from CSRF protection since webhooks don't have CSRF tokens
 Route::post('/connectWebhook', StripeConnectWebhookController::class)
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
-    ->name('stripe.connect.webhook.web');
+    ->name('stripeConnect.webhook');
 
 // Filament token-based authentication route
 // This allows FlutterFlow apps to authenticate users via API token and access Filament panel

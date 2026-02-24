@@ -27,6 +27,15 @@ class HandlePriceWebhook
             return;
         }
 
+        if ($eventType === 'price.deleted') {
+            ConnectedPrice::where('stripe_price_id', $price->id)
+                ->where('stripe_account_id', $store->stripe_account_id)
+                ->update(['active' => false]);
+            \Log::info('Price webhook processed (deleted)', ['price_id' => $price->id]);
+
+            return;
+        }
+
         $data = [
             'stripe_price_id' => $price->id,
             'stripe_product_id' => $price->product,
