@@ -57,7 +57,7 @@ class StoreForm
                                 '4:3',
                                 '1:1',
                             ])
-                            ->disk('public')
+                            ->disk(config('filesystems.media_disk', 'public'))
                             ->directory('store-logos')
                             ->visibility('public')
                             ->maxSize(5120) // 5MB

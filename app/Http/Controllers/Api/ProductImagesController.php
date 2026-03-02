@@ -48,7 +48,8 @@ class ProductImagesController extends BaseApiController
             $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
 
             // Serve the file
-            return Storage::disk('public')->response($relativePath, $media->file_name, [
+            $mediaDisk = config('filesystems.media_disk', 'public');
+            return Storage::disk($mediaDisk)->response($relativePath, $media->file_name, [
                 'Content-Type' => $media->mime_type ?? 'image/jpeg',
                 'Content-Disposition' => 'inline; filename="' . $media->file_name . '"',
                 'Cache-Control' => 'public, max-age=3600', // Cache for 1 hour

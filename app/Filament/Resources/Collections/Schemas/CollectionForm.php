@@ -74,7 +74,7 @@ class CollectionForm
                                 '4:3',
                                 '1:1',
                             ])
-                            ->disk('public')
+                            ->disk(config('filesystems.media_disk', 'public'))
                             ->directory('collections')
                             ->visibility('public')
                             ->maxSize(5120) // 5MB
@@ -85,7 +85,7 @@ class CollectionForm
                                 if ($record && $record->image_url) {
                                     $url = $record->image_url;
                                     // Check if it's a storage URL
-                                    $storageUrl = Storage::disk('public')->url('');
+                                    $storageUrl = Storage::disk(config('filesystems.media_disk', 'public'))->url('');
                                     if (str_starts_with($url, $storageUrl)) {
                                         // Extract the relative path
                                         $relativePath = str_replace($storageUrl, '', $url);

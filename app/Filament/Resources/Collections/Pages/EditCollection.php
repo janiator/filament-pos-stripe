@@ -24,7 +24,7 @@ class EditCollection extends EditRecord
         if (isset($data['image'])) {
             if ($data['image']) {
                 // The image field contains the relative path (e.g., collections/file.jpg)
-                $data['image_url'] = Storage::disk('public')->url($data['image']);
+                $data['image_url'] = Storage::disk(config('filesystems.media_disk', 'public'))->url($data['image']);
             } else {
                 // Image was removed, clear image_url
                 $data['image_url'] = null;

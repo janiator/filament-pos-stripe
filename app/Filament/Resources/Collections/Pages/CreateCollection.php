@@ -28,7 +28,7 @@ class CreateCollection extends CreateRecord
         // Set image_url from uploaded image file if present
         if (isset($data['image']) && $data['image']) {
             // The image field contains the relative path (e.g., collections/file.jpg)
-            $data['image_url'] = Storage::disk('public')->url($data['image']);
+            $data['image_url'] = Storage::disk(config('filesystems.media_disk', 'public'))->url($data['image']);
         }
 
         // Remove image field as it's not a database column

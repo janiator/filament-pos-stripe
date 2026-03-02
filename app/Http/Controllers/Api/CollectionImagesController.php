@@ -83,7 +83,8 @@ class CollectionImagesController extends BaseApiController
             $relativePath = parse_url($relativePath, PHP_URL_PATH) ?? $relativePath;
             
             // Check if file exists
-            if (!Storage::disk('public')->exists($relativePath)) {
+            $mediaDisk = config('filesystems.media_disk', 'public');
+            if (!Storage::disk($mediaDisk)->exists($relativePath)) {
                 // Try alternative path extraction methods
                 $alternatives = [];
                 
@@ -106,7 +107,7 @@ class CollectionImagesController extends BaseApiController
                     'full_storage_path' => storage_path('app/public/' . $relativePath),
                     'file_exists' => file_exists(storage_path('app/public/' . $relativePath)),
                     'alternative_paths' => $alternatives,
-                    'storage_listing' => Storage::disk('public')->files('collections'),
+                    'storage_listing' => Storage::disk($mediaDisk)->files('collections'),
                 ]);
                 return response()->json([
                     'error' => 'File not found on disk',
@@ -120,10 +121,10 @@ class CollectionImagesController extends BaseApiController
 
             // Get file info
             $fileName = basename($relativePath);
-            $mimeType = Storage::disk('public')->mimeType($relativePath) ?? 'image/jpeg';
+            $mimeType = Storage::disk($mediaDisk)->mimeType($relativePath) ?? 'image/jpeg';
 
             // Serve the file
-            return Storage::disk('public')->response($relativePath, $fileName, [
+            return Storage::disk($mediaDisk)->response($relativePath, $fileName, [
                 'Content-Type' => $mimeType,
                 'Content-Disposition' => 'inline; filename="' . $fileName . '"',
                 'Cache-Control' => 'public, max-age=3600', // Cache for 1 hour

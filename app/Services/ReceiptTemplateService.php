@@ -563,11 +563,12 @@ class ReceiptTemplateService
         $storeLogoBase64 = null;
         $storeLogoWidth = null;
         $storeLogoHeight = null;
-        if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
-            $logoMtime = Storage::disk('public')->lastModified($store->logo_path);
+        $mediaDisk = config('filesystems.media_disk', 'public');
+        if ($store->logo_path && Storage::disk($mediaDisk)->exists($store->logo_path)) {
+            $logoMtime = Storage::disk($mediaDisk)->lastModified($store->logo_path);
             $cacheKey = 'epos_logo_raster:'.md5($store->logo_path.':'.$logoMtime);
-            $raster = Cache::remember($cacheKey, now()->addDays(7), function () use ($store) {
-                $logoBlob = Storage::disk('public')->get($store->logo_path);
+            $raster = Cache::remember($cacheKey, now()->addDays(7), function () use ($store, $mediaDisk) {
+                $logoBlob = Storage::disk($mediaDisk)->get($store->logo_path);
 
                 return $this->convertImageToEposRaster($logoBlob, 576);
             });

@@ -167,7 +167,7 @@ class CollectionsController extends BaseApiController
         }
 
         // If it's an external URL (Stripe, CDN, etc.), return as-is
-        $storageUrl = Storage::disk('public')->url('');
+        $storageUrl = Storage::disk(config('filesystems.media_disk', 'public'))->url('');
         if (! str_starts_with($collection->image_url, $storageUrl) &&
             ! str_starts_with($collection->image_url, config('app.url')) &&
             ! str_starts_with($collection->image_url, request()->getSchemeAndHttpHost())) {

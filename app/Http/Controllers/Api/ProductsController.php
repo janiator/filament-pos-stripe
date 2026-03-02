@@ -541,7 +541,7 @@ class ProductsController extends BaseApiController
 
         // If it's a local storage URL, check if it's a product media file
         // Variants typically use external URLs, but if they reference product media, use product image route
-        $storageUrl = Storage::disk('public')->url('');
+        $storageUrl = Storage::disk(config('filesystems.media_disk', 'public'))->url('');
         if (str_starts_with($variant->image_url, $storageUrl) ||
             str_starts_with($variant->image_url, config('app.url')) ||
             str_starts_with($variant->image_url, request()->getSchemeAndHttpHost())) {

@@ -45,9 +45,10 @@ class SafTController extends BaseApiController
                 $validated['to_date']
             );
 
-            // Store file temporarily
+            // Store file (disk configurable for S3, e.g. FILESYSTEM_SAF_T_DISK=s3)
             $path = 'saf-t/' . $filename;
-            Storage::put($path, $xmlContent);
+            $safTDisk = config('filesystems.saf_t_disk') ?? config('filesystems.default');
+            Storage::disk($safTDisk)->put($path, $xmlContent);
 
             // Return download URL or file content
             return response()->json([
@@ -108,12 +109,13 @@ class SafTController extends BaseApiController
         }
 
         $path = 'saf-t/' . $filename;
+        $safTDisk = config('filesystems.saf_t_disk') ?? config('filesystems.default');
 
-        if (!Storage::exists($path)) {
+        if (!Storage::disk($safTDisk)->exists($path)) {
             abort(404, 'File not found');
         }
 
-        return Storage::download($path, $filename, [
+        return Storage::disk($safTDisk)->download($path, $filename, [
             'Content-Type' => 'application/xml',
         ]);
     }

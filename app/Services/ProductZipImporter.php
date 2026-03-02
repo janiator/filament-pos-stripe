@@ -513,7 +513,7 @@ class ProductZipImporter
         File::copy($sourcePath, $fullDestPath);
 
         // Return full storage URL so API can properly generate signed URLs
-        return Storage::disk('public')->url($destPath);
+        return Storage::disk(config('filesystems.media_disk', 'public'))->url($destPath);
     }
 
     protected function copyVariantImage(string $imagePath, int $productId, ?string $sku): ?string
@@ -535,6 +535,6 @@ class ProductZipImporter
         File::copy($sourcePath, $fullDestPath);
 
         // Return full storage URL for consistency
-        return Storage::disk('public')->url($destPath);
+        return Storage::disk(config('filesystems.media_disk', 'public'))->url($destPath);
     }
 }

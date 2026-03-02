@@ -57,9 +57,10 @@ class ViewPosDevice extends ViewRecord
                             $data['to_date']
                         );
 
-                        // Store file temporarily
+                        // Store file (disk configurable for S3 via FILESYSTEM_SAF_T_DISK)
                         $path = 'saf-t/' . $filename;
-                        Storage::put($path, $xmlContent);
+                        $safTDisk = config('filesystems.saf_t_disk') ?? config('filesystems.default');
+                        Storage::disk($safTDisk)->put($path, $xmlContent);
 
                         // Generate signed URL (valid for 24 hours)
                         // Use absolute URL to ensure proper signature validation

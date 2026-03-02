@@ -17,6 +17,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Configurable disk names (for S3 migration)
+    |--------------------------------------------------------------------------
+    | Set FILESYSTEM_MEDIA_DISK=s3 to store product/collection/store images on S3.
+    | Set FILESYSTEM_SAF_T_DISK=s3 to store SAF-T and report exports on S3.
+    */
+
+    'media_disk' => env('FILESYSTEM_MEDIA_DISK', 'public'),
+    'saf_t_disk' => env('FILESYSTEM_SAF_T_DISK', null), // null = use default disk
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |
@@ -51,11 +62,12 @@ return [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
+            'region' => env('AWS_DEFAULT_REGION', 'eu-north-1'),
             'bucket' => env('AWS_BUCKET'),
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'public',
             'throw' => false,
             'report' => false,
         ],
