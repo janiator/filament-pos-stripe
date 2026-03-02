@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Collection extends Model
 {
@@ -13,6 +14,7 @@ class Collection extends Model
 
     protected $fillable = [
         'store_id',
+        'parent_id',
         'stripe_account_id',
         'name',
         'description',
@@ -35,6 +37,47 @@ class Collection extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    /**
+     * Get the parent collection (for nested/hierarchy)
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Collection::class, 'parent_id');
+    }
+
+    /**
+     * Get child collections
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Collection::class, 'parent_id')->orderBy('sort_order')->orderBy('name');
+    }
+
+    /**
+     * Scope: root collections only (no parent)
+     */
+    public function scopeRoots($query)
+    {
+        return $query->whereNull('parent_id');
+    }
+
+    /**
+     * Get all descendant collection IDs (for cycle prevention in forms/API)
+     */
+    public static function descendantIds(int $collectionId): array
+    {
+        $collection = self::with('children')->find($collectionId);
+        if (! $collection) {
+            return [];
+        }
+        $ids = [];
+        foreach ($collection->children as $child) {
+            $ids[] = $child->id;
+            $ids = array_merge($ids, self::descendantIds($child->id));
+        }
+        return $ids;
     }
 
     /**

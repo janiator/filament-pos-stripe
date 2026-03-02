@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Collections\Schemas;
 
+use App\Models\Collection;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -10,6 +12,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Filament\Facades\Filament;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 
@@ -21,6 +24,28 @@ class CollectionForm
             ->components([
                 Section::make('Basic Information')
                     ->schema([
+                        Select::make('parent_id')
+                            ->label('Parent collection')
+                            ->placeholder('None (root collection)')
+                            ->options(function (): array {
+                                $store = Filament::getTenant();
+                                if (! $store) {
+                                    return [];
+                                }
+                                $query = Collection::where('stripe_account_id', $store->stripe_account_id)
+                                    ->orderBy('sort_order')
+                                    ->orderBy('name');
+                                $record = isset($this->record) ? $this->record : null;
+                                if ($record) {
+                                    $excludeIds = array_merge([$record->id], Collection::descendantIds($record->id));
+                                    $query->whereNotIn('id', $excludeIds);
+                                }
+                                return $query->pluck('name', 'id')->all();
+                            })
+                            ->searchable()
+                            ->columnSpanFull()
+                            ->helperText('Optional parent for nested collections'),
+
                         TextInput::make('name')
                             ->label('Collection Name')
                             ->required()

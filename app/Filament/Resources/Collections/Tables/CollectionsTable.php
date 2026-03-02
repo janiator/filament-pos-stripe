@@ -15,7 +15,7 @@ class CollectionsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->orderBy('sort_order'))
+            ->modifyQueryUsing(fn ($query) => $query->with('parent')->orderBy('sort_order'))
             ->columns([
                 TextColumn::make('name')
                     ->label('Name')
@@ -33,6 +33,11 @@ class CollectionsTable
                 TextColumn::make('handle')
                     ->label('Handle')
                     ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('parent.name')
+                    ->label('Parent')
+                    ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('products_count')

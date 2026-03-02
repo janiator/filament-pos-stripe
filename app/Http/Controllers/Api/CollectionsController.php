@@ -44,17 +44,27 @@ class CollectionsController extends BaseApiController
                 });
             }
 
+            // Filter by parent_id (null = root collections only)
+            if ($request->has('parent_id')) {
+                $parentId = $request->get('parent_id');
+                $query->where('parent_id', $parentId === '' || $parentId === 'null' ? null : (int) $parentId);
+            }
+
+            $withChildren = filter_var($request->get('with_children', false), FILTER_VALIDATE_BOOLEAN);
+
             // Get paginated results
             $perPage = min($request->get('per_page', 50), 100); // Max 100 per page
             $collections = $query->withCount('products')
+                ->when($withChildren, fn ($q) => $q->with(['children' => fn ($c) => $c->withCount('products')->orderBy('sort_order')->orderBy('name')]))
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->paginate($perPage);
 
             // Transform collections
-            $transformedCollections = $collections->getCollection()->map(function ($collection) {
-                return [
+            $transformedCollections = $collections->getCollection()->map(function ($collection) use ($withChildren) {
+                $item = [
                     'id' => $collection->id,
+                    'parent_id' => $collection->parent_id,
                     'name' => $collection->name,
                     'description' => $collection->description,
                     'handle' => $collection->handle,
@@ -66,6 +76,23 @@ class CollectionsController extends BaseApiController
                     'created_at' => $this->formatDateTimeOslo($collection->created_at),
                     'updated_at' => $this->formatDateTimeOslo($collection->updated_at),
                 ];
+                if ($withChildren && $collection->relationLoaded('children')) {
+                    $item['children'] = $collection->children->map(fn ($c) => [
+                        'id' => $c->id,
+                        'parent_id' => $c->parent_id,
+                        'name' => $c->name,
+                        'description' => $c->description,
+                        'handle' => $c->handle,
+                        'image_url' => $this->getCollectionImageUrl($c),
+                        'active' => $c->active,
+                        'sort_order' => $c->sort_order,
+                        'products_count' => $c->products_count,
+                        'metadata' => $c->metadata,
+                        'created_at' => $this->formatDateTimeOslo($c->created_at),
+                        'updated_at' => $this->formatDateTimeOslo($c->updated_at),
+                    ])->values()->all();
+                }
+                return $item;
             });
 
             // Check if there are products with no collection
@@ -142,6 +169,7 @@ class CollectionsController extends BaseApiController
         return response()->json([
             'collection' => [
                 'id' => $collection->id,
+                'parent_id' => $collection->parent_id,
                 'name' => $collection->name,
                 'description' => $collection->description,
                 'handle' => $collection->handle,
@@ -155,6 +183,20 @@ class CollectionsController extends BaseApiController
                 'updated_at' => $this->formatDateTimeOslo($collection->updated_at),
             ],
         ]);
+    }
+
+    /**
+     * Get all descendant collection IDs (children, grandchildren, etc.) to prevent cycles
+     */
+    protected function getCollectionDescendantIds(Collection $collection): array
+    {
+        $collection->loadMissing('children');
+        $ids = [];
+        foreach ($collection->children as $child) {
+            $ids[] = $child->id;
+            $ids = array_merge($ids, $this->getCollectionDescendantIds($child));
+        }
+        return $ids;
     }
 
     /**
@@ -209,16 +251,26 @@ class CollectionsController extends BaseApiController
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'handle' => 'nullable|string|max:255|unique:collections,handle,NULL,id,stripe_account_id,'.$store->stripe_account_id,
+            'parent_id' => 'nullable|integer|exists:collections,id',
             'image_url' => 'nullable|url',
             'active' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
             'metadata' => 'nullable|array',
         ]);
 
+        // Ensure parent belongs to same store
+        if (! empty($validated['parent_id'])) {
+            $parent = Collection::where('stripe_account_id', $store->stripe_account_id)->find($validated['parent_id']);
+            if (! $parent) {
+                return response()->json(['error' => 'Parent collection not found or not in this store.'], 422);
+            }
+        }
+
         try {
             $collection = new Collection;
             $collection->store_id = $store->id;
             $collection->stripe_account_id = $store->stripe_account_id;
+            $collection->parent_id = $validated['parent_id'] ?? null;
             $collection->name = $validated['name'];
             $collection->description = $validated['description'] ?? null;
             $collection->handle = $validated['handle'] ?? \Str::slug($validated['name']);
@@ -231,6 +283,7 @@ class CollectionsController extends BaseApiController
             return response()->json([
                 'collection' => [
                     'id' => $collection->id,
+                    'parent_id' => $collection->parent_id,
                     'name' => $collection->name,
                     'description' => $collection->description,
                     'handle' => $collection->handle,
@@ -270,16 +323,36 @@ class CollectionsController extends BaseApiController
 
         $collection = Collection::where('stripe_account_id', $store->stripe_account_id)
             ->findOrFail($id);
+        $collection->load('children'); // for cycle check when updating parent_id
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'handle' => 'nullable|string|max:255|unique:collections,handle,'.$id.',id,stripe_account_id,'.$store->stripe_account_id,
+            'parent_id' => 'nullable|integer|exists:collections,id',
             'image_url' => 'nullable|url',
             'active' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
             'metadata' => 'nullable|array',
         ]);
+
+        // Prevent setting parent to self or any descendant
+        if (array_key_exists('parent_id', $validated)) {
+            $newParentId = $validated['parent_id'];
+            if ((int) $newParentId === (int) $id) {
+                return response()->json(['error' => 'Collection cannot be its own parent.'], 422);
+            }
+            if ($newParentId) {
+                $parent = Collection::where('stripe_account_id', $store->stripe_account_id)->find($newParentId);
+                if (! $parent) {
+                    return response()->json(['error' => 'Parent collection not found or not in this store.'], 422);
+                }
+                $descendantIds = $this->getCollectionDescendantIds($collection);
+                if (in_array((int) $newParentId, $descendantIds, true)) {
+                    return response()->json(['error' => 'Cannot set parent to a descendant (would create a cycle).'], 422);
+                }
+            }
+        }
 
         try {
             if (isset($validated['name'])) {
@@ -290,6 +363,9 @@ class CollectionsController extends BaseApiController
             }
             if (isset($validated['handle'])) {
                 $collection->handle = $validated['handle'];
+            }
+            if (array_key_exists('parent_id', $validated)) {
+                $collection->parent_id = $validated['parent_id'] ?: null;
             }
             if (isset($validated['image_url'])) {
                 $collection->image_url = $validated['image_url'];
@@ -309,6 +385,7 @@ class CollectionsController extends BaseApiController
             return response()->json([
                 'collection' => [
                     'id' => $collection->id,
+                    'parent_id' => $collection->parent_id,
                     'name' => $collection->name,
                     'description' => $collection->description,
                     'handle' => $collection->handle,
