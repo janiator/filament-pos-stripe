@@ -3,6 +3,7 @@
 namespace App\Jobs\Shopify;
 
 use App\Models\ConnectedProduct;
+use App\Models\ProductVariant;
 use Carbon\Carbon;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
@@ -360,9 +361,10 @@ class ImportShopifyProductsChunkJob implements ShouldQueue
         $id = (string) ($variant['id'] ?? $variant['variant_id'] ?? '');
         $sku = (string) ($variant['sku'] ?? '');
 
-        $opt1 = (string) ($variant['option1'] ?? $variant['option_1'] ?? '');
-        $opt2 = (string) ($variant['option2'] ?? $variant['option_2'] ?? '');
-        $opt3 = (string) ($variant['option3'] ?? $variant['option_3'] ?? '');
+        // Support both Shopify CSV (option1_value) and API-style (option1 / option_1)
+        $opt1 = (string) ($variant['option1'] ?? $variant['option_1'] ?? $variant['option1_value'] ?? '');
+        $opt2 = (string) ($variant['option2'] ?? $variant['option_2'] ?? $variant['option2_value'] ?? '');
+        $opt3 = (string) ($variant['option3'] ?? $variant['option_3'] ?? $variant['option3_value'] ?? '');
 
         $raw = $id !== '' ? $id : ($sku !== '' ? $sku : trim($opt1 . '|' . $opt2 . '|' . $opt3));
         if ($raw === '') $raw = 'default';
@@ -435,6 +437,11 @@ class ImportShopifyProductsChunkJob implements ShouldQueue
             }
         }
 
+        // Normalize option keys (CSV uses option1_value, API uses option1)
+        $o1 = (string) ($variant['option1'] ?? $variant['option_1'] ?? $variant['option1_value'] ?? '');
+        $o2 = (string) ($variant['option2'] ?? $variant['option_2'] ?? $variant['option2_value'] ?? '');
+        $o3 = (string) ($variant['option3'] ?? $variant['option_3'] ?? $variant['option3_value'] ?? '');
+
         $payload = [
             'product'     => $stripeProductId,
             'currency'    => strtolower($currency),
@@ -446,9 +453,9 @@ class ImportShopifyProductsChunkJob implements ShouldQueue
                 'variant_title'  => $title !== '' ? $title : null,
                 'sku'            => $sku !== '' ? $sku : null,
                 'barcode'        => $barcode !== '' ? $barcode : null,
-                'option1'        => (string) ($variant['option1'] ?? $variant['option_1'] ?? ''),
-                'option2'        => (string) ($variant['option2'] ?? $variant['option_2'] ?? ''),
-                'option3'        => (string) ($variant['option3'] ?? $variant['option_3'] ?? ''),
+                'option1'        => $o1 !== '' ? $o1 : null,
+                'option2'        => $o2 !== '' ? $o2 : null,
+                'option3'        => $o3 !== '' ? $o3 : null,
             ], fn ($v) => $v !== null && $v !== ''),
         ];
 
@@ -725,6 +732,67 @@ class ImportShopifyProductsChunkJob implements ShouldQueue
                     $productMeta['shopify'] = $shopifyMeta;
                     $cp->product_meta = $productMeta;
                     $cp->save();
+
+                    // Create or update ProductVariant records for POS (Stripe prices already synced above)
+                    if (! empty($variants)) {
+                        foreach ($variants as $v) {
+                            if (! is_array($v)) continue;
+                            $vKey = $this->variantKey($v, $handle);
+                            $map = $variantsMap[$vKey] ?? null;
+                            $priceId = is_array($map) ? (string) ($map['price_id'] ?? '') : '';
+                            $unitAmount = is_array($map) ? (int) ($map['unit_amount'] ?? 0) : 0;
+                            if ($priceId === '') continue;
+
+                            $opt1Name  = (string) ($v['option1_name'] ?? $v['option1 Name'] ?? '');
+                            $opt1Value = (string) ($v['option1'] ?? $v['option_1'] ?? $v['option1_value'] ?? '');
+                            $opt2Name  = (string) ($v['option2_name'] ?? $v['option2 Name'] ?? '');
+                            $opt2Value = (string) ($v['option2'] ?? $v['option_2'] ?? $v['option2_value'] ?? '');
+                            $opt3Name  = (string) ($v['option3_name'] ?? $v['option3 Name'] ?? '');
+                            $opt3Value = (string) ($v['option3'] ?? $v['option_3'] ?? $v['option3_value'] ?? '');
+
+                            $sku = (string) ($v['sku'] ?? '');
+                            $barcode = (string) ($v['barcode'] ?? '');
+                            $variantTitle = (string) ($map['title'] ?? $v['title'] ?? '');
+                            if ($variantTitle === '' && ($opt1Value !== '' || $opt2Value !== '' || $opt3Value !== '')) {
+                                $variantTitle = trim(implode(' / ', array_filter([$opt1Value, $opt2Value, $opt3Value])));
+                            }
+                            if ($variantTitle === '') $variantTitle = 'Default';
+
+                            $pv = ProductVariant::query()
+                                ->where('connected_product_id', $cp->id)
+                                ->where('stripe_account_id', $this->stripeAccountId)
+                                ->where(function ($q) use ($sku, $opt1Value, $opt2Value, $opt3Value) {
+                                    if ($sku !== '') {
+                                        $q->where('sku', $sku);
+                                    } else {
+                                        $q->where('option1_value', $opt1Value)
+                                          ->where('option2_value', $opt2Value)
+                                          ->where('option3_value', $opt3Value);
+                                    }
+                                })
+                                ->first();
+
+                            if (! $pv) {
+                                $pv = new ProductVariant();
+                                $pv->connected_product_id = $cp->id;
+                                $pv->stripe_account_id = $this->stripeAccountId;
+                                $pv->stripe_product_id = $stripeProductId;
+                            }
+                            $pv->stripe_price_id = $priceId;
+                            $pv->sku = $sku !== '' ? $sku : null;
+                            $pv->barcode = $barcode !== '' ? $barcode : null;
+                            $pv->option1_name = $opt1Name !== '' ? $opt1Name : null;
+                            $pv->option1_value = $opt1Value !== '' ? $opt1Value : null;
+                            $pv->option2_name = $opt2Name !== '' ? $opt2Name : null;
+                            $pv->option2_value = $opt2Value !== '' ? $opt2Value : null;
+                            $pv->option3_name = $opt3Name !== '' ? $opt3Name : null;
+                            $pv->option3_value = $opt3Value !== '' ? $opt3Value : null;
+                            $pv->price_amount = $unitAmount;
+                            $pv->currency = strtolower($this->currency ?: 'nok');
+                            $pv->active = true;
+                            $pv->saveQuietly();
+                        }
+                    }
 
                     $this->bumpProgress([
                         'variants_total'   => $variantCount,
