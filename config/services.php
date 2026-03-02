@@ -42,4 +42,9 @@ return [
         'connect_webhook_secret' => env('STRIPE_CONNECT_WEBHOOK_SECRET'),
     ],
 
+    'shopify_import' => [
+        'images_disk' => env('SHOPIFY_IMPORT_IMAGES_DISK', 'public'),
+        'images_path_prefix' => env('SHOPIFY_IMPORT_IMAGES_PATH_PREFIX', 'shopify-import'),
+    ],
+
 ];

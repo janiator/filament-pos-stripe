@@ -33,10 +33,6 @@ class ShopifyImportTest extends Page implements HasForms
     protected static ?string               $title           = 'Shopify CSV Import';
     protected static string|UnitEnum|null  $navigationGroup = 'Dev';
 
-    private const CACHE_TTL_HOURS = 12;
-    private const CONSOLE_MAX = 300;
-    private const RECENT_MAX = 30;
-
     public function getView(): string
     {
         return 'filament.pages.shopify-import-test';
@@ -47,13 +43,20 @@ class ShopifyImportTest extends Page implements HasForms
         return Width::Full;
     }
 
+    private const CACHE_TTL_HOURS = 12;
+    private const CONSOLE_MAX     = 600;
+    private const RECENT_MAX      = 40;
+
+    private const IMPORT_QUEUE = 'shopify-import';
+
     public array $formData = [
-        'csv_path'          => null,
-        'stripe_account_id' => '',
-        'currency'          => 'nok',
-        'download_images'   => false,
-        'update_existing'   => true,
-        'chunk_size'        => 25,
+        'csv_path'           => null,
+        'stripe_account_id'  => '',
+        'currency'           => 'nok',
+        'include_images'     => true,
+        'strict_image_check' => true,
+        'update_existing'    => true,
+        'chunk_size'         => 10,
     ];
 
     public ?array $parseResult  = null;
@@ -64,24 +67,45 @@ class ShopifyImportTest extends Page implements HasForms
     public ?string $currentBatchId = null;
 
     public array $importProgress = [
-        'status'          => 'idle',
-        'current'         => 0,
-        'total'           => 0,
-        'percent'         => 0,
-        'imported'        => 0,
-        'skipped'         => 0,
-        'updated'         => 0,
-        'created'         => 0,
-        'errors'          => 0,
-        'download_images' => false,
-        'update_existing' => true,
-        'currency'        => 'nok',
-        'chunk_size'      => 25,
-        'run_id'          => null,
-        'batch_id'        => null,
+        'status'            => 'idle',
+        'current'           => 0,
+        'total'             => 0,
+        'percent'           => 0,
+
+        'imported'          => 0,
+        'skipped'           => 0,
+        'updated'           => 0,
+        'created'           => 0,
+        'errors'            => 0,
+
+        'images_total'      => 0,
+        'images_valid'      => 0,
+        'images_invalid'    => 0,
+
+        'variants_total'    => 0,
+        'variants_ok'       => 0,
+        'variants_bad'      => 0,
+        'prices_created'    => 0,
+        'prices_reused'     => 0,
+        'prices_replaced'   => 0,
+
+        'started_at'        => null,
+        'last_tick_at'      => null,
+        'rate_per_min'      => 0,
+        'eta_seconds'       => null,
+
+        'include_images'     => false,
+        'strict_image_check' => true,
+        'update_existing'    => true,
+        'currency'           => 'nok',
+        'chunk_size'         => 10,
+
+        'queue'             => self::IMPORT_QUEUE,
+        'run_id'            => null,
+        'batch_id'          => null,
     ];
 
-    public array $importConsole = [];
+    public array $importConsole  = [];
     public array $recentProducts = [];
 
     public function mount(): void
@@ -133,24 +157,31 @@ class ShopifyImportTest extends Page implements HasForms
                     ->default('nok')
                     ->required(),
 
-                Forms\Toggle::make('download_images')
-                    ->label('Download product images')
-                    ->helperText('If enabled, jobs will attempt to include image handling (implementation depends on your pipeline).')
-                    ->inline(false),
+                Forms\Toggle::make('include_images')
+                    ->label('Include product images (Stripe product.images as URLs)')
+                    ->helperText('We only send validated HTTPS image URLs to Stripe (optional).')
+                    ->inline(false)
+                    ->default(true),
+
+                Forms\Toggle::make('strict_image_check')
+                    ->label('Strict image URL validation (recommended)')
+                    ->helperText('Checks https, status 200/206, content-type image/*, size sanity. Invalid URLs are NOT sent.')
+                    ->inline(false)
+                    ->default(true),
 
                 Forms\Toggle::make('update_existing')
-                    ->label('Update existing products')
-                    ->helperText('If enabled, existing products (same handle) will be updated. If disabled, they will be skipped.')
+                    ->label('Update existing products/prices')
+                    ->helperText('If enabled: update Stripe product and replace prices if amounts changed. If disabled: existing handle is skipped.')
                     ->inline(false)
                     ->default(true),
 
                 Forms\TextInput::make('chunk_size')
-                    ->label('Chunk size')
+                    ->label('Chunk size (products per job)')
                     ->numeric()
-                    ->minValue(5)
+                    ->minValue(1)
                     ->maxValue(200)
-                    ->default(25)
-                    ->helperText('How many products each queue job processes. 25–50 is usually ideal.')
+                    ->default(10)
+                    ->helperText('Default 10. Jobs run on queue: ' . self::IMPORT_QUEUE)
                     ->required(),
             ]);
     }
@@ -163,105 +194,186 @@ class ShopifyImportTest extends Page implements HasForms
                 ->icon('heroicon-o-magnifying-glass')
                 ->action('parseCsv'),
 
+            Actions\Action::make('importLocal')
+                ->label('Import to CMS (local only)')
+                ->color('warning')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->action('importLocal'),
+
             Actions\Action::make('runImport')
-                ->label('Run Import')
+                ->label('Sync to Stripe (queue)')
                 ->color('success')
                 ->icon('heroicon-o-arrow-up-tray')
                 ->action('runImport'),
 
-            Actions\Action::make('resetRun')
+            Actions\Action::make('resetRunState')
                 ->label('Reset view')
-                ->icon('heroicon-o-arrow-path')
                 ->color('gray')
+                ->icon('heroicon-o-arrow-path')
                 ->action('resetRunState'),
         ];
     }
 
-    /* ----------------------------
-     * TTL / keys / console helpers
-     * ---------------------------- */
-
-    protected function ttl()
+    private static function ttl(): \DateTimeInterface
     {
         return now()->addHours(self::CACHE_TTL_HOURS);
     }
 
-    protected function cacheBase(?string $runId = null): string
+    private static function cacheKey(string $runId, string $suffix): string
     {
-        $rid = $runId ?: (string) ($this->currentRunId ?: 'none');
-        return "shopify_import:{$rid}";
+        return "shopify_import:{$runId}:{$suffix}";
     }
 
-    protected function cacheKey(string $suffix, ?string $runId = null): string
+    private static function batchMapKey(string $batchId): string
     {
-        return $this->cacheBase($runId) . ':' . $suffix;
+        return "shopify_import:batch_map:{$batchId}:run_id";
     }
 
-    protected function pushConsole(string $message, string $level = 'info', ?string $runId = null): void
+    public static function batchThen(Batch $batch): void
     {
-        $line = [
-            'time'    => now()->format('H:i:s'),
-            'level'   => $level,
-            'message' => $message,
-        ];
+        $runId = (string) Cache::get(self::batchMapKey($batch->id), '');
+        if ($runId === '') return;
 
-        $this->importConsole[] = $line;
-        $this->importConsole = array_slice($this->importConsole, -self::CONSOLE_MAX);
+        $progress = Cache::get(self::cacheKey($runId, 'progress'), []);
+        if (! is_array($progress)) $progress = [];
 
-        $rid = $runId ?: $this->currentRunId;
-        if ($rid) {
-            $console = Cache::get($this->cacheKey('console', $rid), []);
-            if (! is_array($console)) $console = [];
-            $console[] = $line;
-            Cache::put($this->cacheKey('console', $rid), array_slice($console, -self::CONSOLE_MAX), $this->ttl());
+        // If already failed, do not force finished.
+        if (($progress['status'] ?? null) !== 'failed') {
+            $progress['status']  = 'finished';
+            $progress['percent'] = 100;
         }
-    }
 
-    protected function storeLastError(string $runId, string $message, ?Throwable $e = null): void
-    {
-        $payload = [
-            'message' => $message,
-            'at' => now()->toIso8601String(),
-            'exception' => $e ? [
-                'class' => get_class($e),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace_head' => implode("\n", array_slice(explode("\n", $e->getTraceAsString()), 0, 25)),
-            ] : null,
+        $progress['batch_id']     = $batch->id;
+        $progress['last_tick_at'] = now()->toIso8601String();
+
+        Cache::put(self::cacheKey($runId, 'progress'), $progress, self::ttl());
+
+        $result = Cache::get(self::cacheKey($runId, 'result'), []);
+        if (! is_array($result)) $result = [];
+
+        $result['finished_at'] = now()->toIso8601String();
+        $result['batch_id']    = $batch->id;
+
+        $result['stats']['import'] = [
+            'total_products'   => (int) ($progress['total'] ?? 0),
+            'imported'         => (int) ($progress['imported'] ?? 0),
+            'skipped'          => (int) ($progress['skipped'] ?? 0),
+            'updated'          => (int) ($progress['updated'] ?? 0),
+            'created'          => (int) ($progress['created'] ?? 0),
+            'error_count'      => (int) ($progress['errors'] ?? 0),
+            'images_total'     => (int) ($progress['images_total'] ?? 0),
+            'images_valid'     => (int) ($progress['images_valid'] ?? 0),
+            'images_invalid'   => (int) ($progress['images_invalid'] ?? 0),
+            'variants_total'   => (int) ($progress['variants_total'] ?? 0),
+            'variants_ok'      => (int) ($progress['variants_ok'] ?? 0),
+            'variants_bad'     => (int) ($progress['variants_bad'] ?? 0),
+            'prices_created'   => (int) ($progress['prices_created'] ?? 0),
+            'prices_reused'    => (int) ($progress['prices_reused'] ?? 0),
+            'prices_replaced'  => (int) ($progress['prices_replaced'] ?? 0),
+            'rate_per_min'     => (int) ($progress['rate_per_min'] ?? 0),
         ];
 
-        Cache::put($this->cacheKey('last_error', $runId), $payload, $this->ttl());
+        Cache::put(self::cacheKey($runId, 'result'), $result, self::ttl());
 
-        // Mirror into result for the UI
-        $result = Cache::get($this->cacheKey('result', $runId), []);
-        if (! is_array($result)) $result = [];
-        $result['last_error'] = $payload;
-        Cache::put($this->cacheKey('result', $runId), $result, $this->ttl());
+        $console = Cache::get(self::cacheKey($runId, 'console'), []);
+        if (! is_array($console)) $console = [];
+        $console[] = [
+            'time'    => now()->format('H:i:s'),
+            'level'   => 'ok',
+            'message' => 'Batch finished.',
+        ];
+        Cache::put(self::cacheKey($runId, 'console'), array_slice($console, -self::CONSOLE_MAX), self::ttl());
     }
 
-    /* ----------------------------
-     * Normalization / preflight
-     * ---------------------------- */
+    public static function batchCatch(Batch $batch, Throwable $e): void
+    {
+        $runId = (string) Cache::get(self::batchMapKey($batch->id), '');
+        if ($runId === '') return;
+
+        $progress = Cache::get(self::cacheKey($runId, 'progress'), []);
+        if (! is_array($progress)) $progress = [];
+        $progress['status']   = 'failed';
+        $progress['batch_id'] = $batch->id ?? ($progress['batch_id'] ?? null);
+
+        Cache::put(self::cacheKey($runId, 'progress'), $progress, self::ttl());
+
+        $result = Cache::get(self::cacheKey($runId, 'result'), []);
+        if (! is_array($result)) $result = [];
+
+        $at = now()->toIso8601String();
+        $result['last_error'] = [
+            'message' => "Batch failed: {$e->getMessage()}",
+            'at'      => $at,
+            'exception' => [
+                'class'      => get_class($e),
+                'code'       => $e->getCode(),
+                'file'       => $e->getFile(),
+                'line'       => $e->getLine(),
+                'trace_head' => implode("\n", array_slice(explode("\n", $e->getTraceAsString()), 0, 24)),
+            ],
+        ];
+
+        $errors = (array) ($result['errors'] ?? []);
+        $errors[] = "{$at} — Batch failed: {$e->getMessage()}";
+        $result['errors'] = array_slice($errors, -80);
+
+        Cache::put(self::cacheKey($runId, 'result'), $result, self::ttl());
+
+        $console = Cache::get(self::cacheKey($runId, 'console'), []);
+        if (! is_array($console)) $console = [];
+        $console[] = [
+            'time'    => now()->format('H:i:s'),
+            'level'   => 'err',
+            'message' => 'Batch failed: ' . $e->getMessage(),
+        ];
+        Cache::put(self::cacheKey($runId, 'console'), array_slice($console, -self::CONSOLE_MAX), self::ttl());
+
+        Log::error('ShopifyImportTest batch failed', [
+            'run_id'   => $runId,
+            'batch_id' => $batch->id ?? null,
+            'error'    => $e->getMessage(),
+        ]);
+    }
+
+    public static function batchFinally(Batch $batch): void
+    {
+        $runId = (string) Cache::get(self::batchMapKey($batch->id), '');
+        if ($runId === '') return;
+
+        $progress = Cache::get(self::cacheKey($runId, 'progress'), []);
+        if (! is_array($progress)) $progress = [];
+        $progress['batch_id'] = $batch->id;
+
+        Cache::put(self::cacheKey($runId, 'progress'), $progress, self::ttl());
+
+        $result = Cache::get(self::cacheKey($runId, 'result'), []);
+        if (! is_array($result)) $result = [];
+        $result['batch_id'] = $batch->id;
+
+        Cache::put(self::cacheKey($runId, 'result'), $result, self::ttl());
+    }
 
     protected function normalizedFormState(): array
     {
         $data = $this->form->getState() ?: [];
 
-        $csvPath         = $data['csv_path'] ?? null;
-        $stripeAccountId = trim((string) ($data['stripe_account_id'] ?? ''));
-        $currency        = strtolower(trim((string) ($data['currency'] ?? 'nok')));
-        $downloadImages  = (bool) ($data['download_images'] ?? false);
-        $updateExisting  = (bool) ($data['update_existing'] ?? true);
-        $chunkSize       = (int) ($data['chunk_size'] ?? 25);
+        $csvPath          = $data['csv_path'] ?? null;
+        $stripeAccountId  = trim((string) ($data['stripe_account_id'] ?? ''));
+        $currency         = strtolower(trim((string) ($data['currency'] ?? 'nok')));
+        $includeImages    = (bool) ($data['include_images'] ?? true);
+        $strictImageCheck = (bool) ($data['strict_image_check'] ?? true);
+        $updateExisting   = (bool) ($data['update_existing'] ?? true);
+        $chunkSize        = (int) ($data['chunk_size'] ?? 10);
 
         $currency  = $currency !== '' ? $currency : 'nok';
-        $chunkSize = max(5, min(200, $chunkSize));
+        $chunkSize = max(1, min(200, $chunkSize));
 
         return compact(
             'csvPath',
             'stripeAccountId',
             'currency',
-            'downloadImages',
+            'includeImages',
+            'strictImageCheck',
             'updateExisting',
             'chunkSize'
         );
@@ -280,59 +392,87 @@ class ShopifyImportTest extends Page implements HasForms
         return true;
     }
 
-    protected function preflightOrThrow(string $csvPath, string $stripeAccountId): void
+    private function pushConsole(string $message, string $level = 'info', ?string $runId = null): void
     {
-        if (! Storage::disk('local')->exists($csvPath)) {
-            throw new \RuntimeException("CSV not found on disk: {$csvPath}");
-        }
+        $rid = $runId ?: $this->currentRunId;
 
-        $abs = Storage::disk('local')->path($csvPath);
-        if (! is_readable($abs)) {
-            throw new \RuntimeException("CSV is not readable: {$abs}");
-        }
+        $line = [
+            'time'    => now()->format('H:i:s'),
+            'level'   => $level,
+            'message' => $message,
+        ];
 
-        // Batches table sanity check (common “why batch doesn't work” pain)
-        try {
-            DB::table('job_batches')->limit(1)->get();
-        } catch (Throwable $e) {
-            throw new \RuntimeException(
-                "Missing/invalid job_batches table. Run: php artisan queue:batches-table && php artisan migrate",
-                0,
-                $e
-            );
-        }
+        $this->importConsole[] = $line;
+        $this->importConsole = array_slice($this->importConsole, -self::CONSOLE_MAX);
 
-        // Job must be Batchable (your exact error)
-        $uses = class_uses(ImportShopifyProductsChunkJob::class) ?: [];
-        if (! in_array(\Illuminate\Bus\Batchable::class, $uses, true)) {
-            throw new \RuntimeException('Import job is not Batchable. Add "use Illuminate\Bus\Batchable;" to the job.');
-        }
+        if (! $rid) return;
 
-        // Stripe account id format sanity
-        if (! Str::startsWith($stripeAccountId, 'acct_')) {
-            // Not fatal, but warn in console
-            $this->pushConsole("Warning: Stripe Account ID does not start with acct_ ({$stripeAccountId})", 'warn');
-        }
+        $key = self::cacheKey($rid, 'console');
+        $console = Cache::get($key, []);
+        if (! is_array($console)) $console = [];
+        $console[] = $line;
+
+        Cache::put($key, array_slice($console, -self::CONSOLE_MAX), self::ttl());
     }
 
-    /* ----------------------------
-     * Parse CSV (with richer diagnostics)
-     * ---------------------------- */
+    private function failRun(?string $runId, string $message, ?Throwable $e = null): void
+    {
+        $rid = $runId ?: $this->currentRunId;
+        $at = now()->toIso8601String();
+
+        $payload = [
+            'message' => $message,
+            'at'      => $at,
+        ];
+
+        if ($e) {
+            $payload['exception'] = [
+                'class'      => get_class($e),
+                'code'       => $e->getCode(),
+                'file'       => $e->getFile(),
+                'line'       => $e->getLine(),
+                'trace_head' => implode("\n", array_slice(explode("\n", $e->getTraceAsString()), 0, 24)),
+            ];
+        }
+
+        $this->importProgress['status'] = 'failed';
+
+        if ($rid) {
+            Cache::put(self::cacheKey($rid, 'progress'), array_merge($this->importProgress, [
+                'status' => 'failed',
+            ]), self::ttl());
+
+            $result = Cache::get(self::cacheKey($rid, 'result'), []);
+            if (! is_array($result)) $result = [];
+            $result['last_error'] = $payload;
+
+            $errors = (array) ($result['errors'] ?? []);
+            $errors[] = "{$at} — {$message}";
+            $result['errors'] = array_slice($errors, -80);
+
+            Cache::put(self::cacheKey($rid, 'result'), $result, self::ttl());
+        }
+
+        $this->pushConsole($message, 'err', $rid);
+
+        Notification::make()
+            ->title('Import failed')
+            ->body($message)
+            ->danger()
+            ->send();
+
+        Log::error('ShopifyImportTest failure', [
+            'run_id' => $rid,
+            'msg'    => $message,
+            'ex'     => $e ? $e->getMessage() : null,
+        ]);
+    }
 
     public function parseCsv(): void
     {
         $s = $this->normalizedFormState();
 
         if (! $this->ensureRequiredOrNotify($s['csvPath'], $s['stripeAccountId'])) {
-            return;
-        }
-
-        try {
-            $this->preflightOrThrow($s['csvPath'], $s['stripeAccountId']);
-        } catch (Throwable $e) {
-            $this->pushConsole('Preflight failed: ' . $e->getMessage(), 'err');
-            Notification::make()->title('Preflight failed')->body($e->getMessage())->danger()->send();
-            Log::error('ShopifyImportTest preflight failed', ['error' => $e->getMessage()]);
             return;
         }
 
@@ -343,43 +483,92 @@ class ShopifyImportTest extends Page implements HasForms
             $parsed   = $importer->parse($absolute);
 
             $products = $parsed['products'] ?? [];
+            if (! is_array($products)) $products = [];
 
-            // Extra diagnostics
-            $handles = array_values(array_filter(array_map(fn ($p) => (string) ($p['handle'] ?? ''), $products)));
-            $dupes = [];
+            $handles = array_values(array_filter(array_map(
+                fn ($p) => (string) ($p['handle'] ?? ''),
+                $products
+            )));
+
+            $existingMap = [];
             if (! empty($handles)) {
-                $counts = array_count_values($handles);
-                foreach ($counts as $h => $c) {
-                    if ($c > 1) $dupes[] = ['handle' => $h, 'count' => $c];
+                $productCodes = array_map(
+                    fn (string $h) => 'shopify:' . $h,
+                    $handles,
+                );
+
+                $existing = ConnectedProduct::query()
+                    ->where('stripe_account_id', $s['stripeAccountId'])
+                    ->whereIn('product_code', $productCodes)
+                    ->get(['id', 'product_code', 'name', 'updated_at', 'stripe_product_id', 'product_meta']);
+
+                foreach ($existing as $row) {
+                    $meta   = (array) ($row->product_meta ?? []);
+                    $handle = (string) data_get($meta, 'shopify.handle', '');
+
+                    if ($handle === '' && is_string($row->product_code)) {
+                        if (str_starts_with($row->product_code, 'shopify:')) {
+                            $handle = substr($row->product_code, strlen('shopify:'));
+                        } else {
+                            $handle = (string) $row->product_code;
+                        }
+                    }
+
+                    if ($handle !== '') {
+                        $existingMap[$handle] = $row;
+                    }
                 }
             }
 
-            // Existing map
-            $existingMap = [];
-            try {
-                if (! empty($handles)) {
-                    $existing = ConnectedProduct::query()
-                        ->where('stripe_account_id', $s['stripeAccountId'])
-                        ->whereIn('handle', $handles)
-                        ->get(['id', 'handle', 'title', 'updated_at', 'stripe_product_id', 'extra']);
+            $handleCounts = [];
+            $missingHandle = 0;
+            $productsWithImages = 0;
+            $productsNoImages = 0;
+            $variantsMissingPrice = 0;
+            $variantsTotal = 0;
 
-                    foreach ($existing as $row) {
-                        $existingMap[(string) $row->handle] = $row;
+            foreach ($products as $p) {
+                $h = (string) ($p['handle'] ?? '');
+                if ($h === '') { $missingHandle++; continue; }
+                $handleCounts[$h] = ($handleCounts[$h] ?? 0) + 1;
+
+                $imgs = $p['images'] ?? [];
+                $imgCount = is_array($imgs) ? count($imgs) : (int) ($p['image_count'] ?? 0);
+                if ($imgCount > 0) $productsWithImages++; else $productsNoImages++;
+
+                $vars = $p['variants'] ?? [];
+                if (is_array($vars)) {
+                    foreach ($vars as $v) {
+                        if (! is_array($v)) continue;
+                        $variantsTotal++;
+                        $price = $v['price'] ?? $v['variant_price'] ?? null;
+                        $ps = trim((string) $price);
+                        if ($ps === '' || $ps === '0' || $ps === '0.00' || $ps === '0,00') {
+                            $variantsMissingPrice++;
+                        }
                     }
                 }
-            } catch (Throwable $e) {
-                Log::warning('ShopifyImportTest: existing ConnectedProduct lookup failed', ['error' => $e->getMessage()]);
+            }
+
+            $duplicateHandles = 0;
+            foreach ($handleCounts as $cnt) {
+                if ($cnt > 1) $duplicateHandles += ($cnt - 1);
             }
 
             $plan = [
-                'total_products' => count($products),
-                'existing'       => 0,
-                'new'            => 0,
-                'would_update'   => 0,
-                'will_skip'      => 0,
-                'duplicates'     => $dupes,
-                'items'          => [],
-                'existing_items' => [],
+                'total_products'          => count($products),
+                'existing'                => 0,
+                'new'                     => 0,
+                'would_update'            => 0,
+                'will_skip'               => 0,
+                'items'                   => [],
+                'existing_items'          => [],
+                'missing_handle'          => $missingHandle,
+                'duplicate_handles'       => $duplicateHandles,
+                'products_with_images'    => $productsWithImages,
+                'products_without_images' => $productsNoImages,
+                'variants_total'          => $variantsTotal,
+                'variants_missing_price'  => $variantsMissingPrice,
             ];
 
             foreach ($products as $p) {
@@ -387,7 +576,8 @@ class ShopifyImportTest extends Page implements HasForms
                 if ($handle === '') continue;
 
                 $variantCount = (int) ($p['variant_count'] ?? count($p['variants'] ?? []));
-                $imageCount   = is_array($p['images'] ?? null) ? count($p['images']) : (int) ($p['image_count'] ?? 0);
+                $imageUrls    = is_array($p['images'] ?? null) ? $p['images'] : [];
+                $imageCount   = is_array($imageUrls) ? count($imageUrls) : (int) ($p['image_count'] ?? 0);
 
                 $exists = isset($existingMap[$handle]);
                 $diffs  = [];
@@ -395,13 +585,16 @@ class ShopifyImportTest extends Page implements HasForms
                 if ($exists) {
                     $plan['existing']++;
 
-                    $existingTitle = (string) ($existingMap[$handle]->title ?? '');
+                    $existingRow   = $existingMap[$handle];
+                    $existingTitle = (string) ($existingRow->name ?? '');
                     $newTitle      = (string) ($p['title'] ?? '');
-                    if ($existingTitle !== '' && $newTitle !== '' && $existingTitle !== $newTitle) $diffs[] = 'title';
+                    if ($existingTitle !== '' && $newTitle !== '' && $existingTitle !== $newTitle) {
+                        $diffs[] = 'title';
+                    }
 
-                    $exExtra = (array) ($existingMap[$handle]->extra ?? []);
-                    $exVar   = (int) data_get($exExtra, 'shopify.variant_count', 0);
-                    $exImg   = (int) data_get($exExtra, 'shopify.image_count', 0);
+                    $exMeta = (array) ($existingRow->product_meta ?? []);
+                    $exVar  = (int) data_get($exMeta, 'shopify.variant_count', 0);
+                    $exImg  = (int) data_get($exMeta, 'shopify.image_count', 0);
 
                     if ($exVar && $variantCount && $exVar !== $variantCount) $diffs[] = 'variants';
                     if ($exImg && $imageCount && $exImg !== $imageCount)     $diffs[] = 'images';
@@ -413,8 +606,8 @@ class ShopifyImportTest extends Page implements HasForms
                     $plan['existing_items'][] = [
                         'handle'            => $handle,
                         'title'             => (string) ($p['title'] ?? ''),
-                        'stripe_product_id' => (string) ($existingMap[$handle]->stripe_product_id ?? ''),
-                        'updated_at'        => optional($existingMap[$handle]->updated_at)->toDateTimeString(),
+                        'stripe_product_id' => (string) ($existingRow->stripe_product_id ?? ''),
+                        'updated_at'        => optional($existingRow->updated_at)->toDateTimeString(),
                     ];
                 } else {
                     $plan['new']++;
@@ -435,46 +628,84 @@ class ShopifyImportTest extends Page implements HasForms
                 ];
             }
 
+            $stats = (array) ($parsed['stats'] ?? []);
+            $stats['missing_handle']          = $missingHandle;
+            $stats['duplicate_handles']       = $duplicateHandles;
+            $stats['products_with_images']    = $productsWithImages;
+            $stats['products_without_images'] = $productsNoImages;
+            $stats['variants_total']          = $variantsTotal;
+            $stats['variants_missing_price']  = $variantsMissingPrice;
+
+            $parsed['stats'] = $stats;
+
             $this->parseResult  = $parsed;
             $this->planResult   = $plan;
             $this->importResult = null;
 
             $this->importProgress = array_merge($this->importProgress, [
-                'status'          => 'pending',
-                'current'         => 0,
-                'total'           => (int) $plan['total_products'],
-                'percent'         => 0,
-                'imported'        => 0,
-                'skipped'         => 0,
-                'updated'         => 0,
-                'created'         => 0,
-                'errors'          => 0,
-                'download_images' => $s['downloadImages'],
-                'update_existing' => $s['updateExisting'],
-                'currency'        => $s['currency'],
-                'chunk_size'      => $s['chunkSize'],
+                'status'              => 'pending',
+                'current'             => 0,
+                'total'               => (int) $plan['total_products'],
+                'percent'             => 0,
+
+                'imported'            => 0,
+                'skipped'             => 0,
+                'updated'             => 0,
+                'created'             => 0,
+                'errors'              => 0,
+
+                'images_total'        => 0,
+                'images_valid'        => 0,
+                'images_invalid'      => 0,
+
+                'variants_total'      => 0,
+                'variants_ok'         => 0,
+                'variants_bad'        => 0,
+                'prices_created'      => 0,
+                'prices_reused'       => 0,
+                'prices_replaced'     => 0,
+
+                'started_at'          => null,
+                'last_tick_at'        => null,
+                'rate_per_min'        => 0,
+                'eta_seconds'         => null,
+
+                'include_images'      => $s['includeImages'],
+                'strict_image_check'  => $s['strictImageCheck'],
+                'update_existing'     => $s['updateExisting'],
+                'currency'            => $s['currency'],
+                'chunk_size'          => $s['chunkSize'],
+                'queue'               => self::IMPORT_QUEUE,
             ]);
 
             $this->importConsole = [];
             $this->pushConsole(
-                "Parse OK: {$plan['total_products']} products | new={$plan['new']} existing={$plan['existing']} update={$plan['would_update']} skip={$plan['will_skip']}",
+                "Parse complete — {$plan['total_products']} products (new: {$plan['new']}, existing: {$plan['existing']}, would update: {$plan['would_update']}, will skip: {$plan['will_skip']})",
                 'ok'
             );
 
-            if (! empty($dupes)) {
-                $this->pushConsole("Warning: duplicate handles found (" . count($dupes) . "). Import will dedupe by handle.", 'warn');
-            }
-
-            Notification::make()->title('Parse complete')->body('CSV parsed and plan generated.')->success()->send();
+            Notification::make()
+                ->title('Parse complete')
+                ->body('CSV parsed and import plan generated.')
+                ->success()
+                ->send();
         } catch (Throwable $e) {
-            $this->parseResult = null;
-            $this->planResult  = null;
+            $this->parseResult  = null;
+            $this->planResult   = null;
             $this->importResult = null;
 
-            $this->importProgress['status'] = 'failed';
+            $this->importProgress['status']  = 'failed';
+            $this->importProgress['total']   = 0;
+            $this->importProgress['current'] = 0;
+            $this->importProgress['percent'] = 0;
+
             $this->pushConsole('Parse failed: ' . $e->getMessage(), 'err');
 
-            Notification::make()->title('Parse failed')->body($e->getMessage())->danger()->send();
+            Notification::make()
+                ->title('Parse failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
 
             Log::error('ShopifyImportTest parse failed', [
                 'error' => $e->getMessage(),
@@ -484,9 +715,136 @@ class ShopifyImportTest extends Page implements HasForms
         }
     }
 
-    /* ----------------------------
-     * Run import (no default Laravel error pages)
-     * ---------------------------- */
+    /**
+     * Step 2: import parsed Shopify products into CMS (ConnectedProduct) ONLY
+     * No Stripe calls here – just create/update local records so you can review
+     * them in the ConnectedProduct resource before syncing.
+     */
+    public function importLocal(): void
+    {
+        $s = $this->normalizedFormState();
+
+        if (! $this->ensureRequiredOrNotify($s['csvPath'], $s['stripeAccountId'])) {
+            return;
+        }
+
+        try {
+            // Ensure we have parsed data
+            if (! $this->parseResult || ! $this->planResult) {
+                $this->parseCsv();
+                if (! $this->parseResult || ! $this->planResult) {
+                    return;
+                }
+                $s = $this->normalizedFormState();
+            }
+
+            $products = $this->parseResult['products'] ?? [];
+            if (! is_array($products) || count($products) === 0) {
+                Notification::make()
+                    ->title('No products')
+                    ->body('Nothing to import to CMS.')
+                    ->warning()
+                    ->send();
+                return;
+            }
+
+            $created = 0;
+            $updated = 0;
+            $skipped = 0;
+            $errors  = 0;
+
+            foreach ($products as $p) {
+                $handle = (string) ($p['handle'] ?? '');
+                $title  = (string) ($p['title'] ?? '');
+                $vendor = (string) ($p['vendor'] ?? '');
+                $type   = (string) ($p['type'] ?? '');
+                $tags   = (string) ($p['tags'] ?? '');
+
+                if ($handle === '' && $title === '') {
+                    $skipped++;
+                    continue;
+                }
+
+                $productCode = $handle !== ''
+                    ? ('shopify:' . $handle)
+                    : ('shopify:__no_handle:' . md5($title));
+
+                $cp = ConnectedProduct::query()
+                    ->where('stripe_account_id', $s['stripeAccountId'])
+                    ->where('product_code', $productCode)
+                    ->first();
+
+                $isNew = false;
+
+                if (! $cp) {
+                    $cp = new ConnectedProduct();
+                    $cp->stripe_account_id = $s['stripeAccountId'];
+
+                    // Placeholder so sqlite NOT NULL stripe_product_id is satisfied.
+                    // Real Stripe product id will be set later by the queue job.
+                    $cp->stripe_product_id = 'local:' . Str::uuid();
+                    $cp->product_code      = $productCode;
+                    $isNew = true;
+                }
+
+                $cp->name        = $title !== '' ? $title : $handle;
+                $cp->description = (string) ($p['body_html'] ?? $cp->description);
+                if ($type !== '') {
+                    $cp->type = $type;
+                } elseif (! $cp->type) {
+                    // fallback type for Shopify imports
+                    $cp->type = 'shopify_product';
+                }
+
+                $cp->active   = true;
+                $cp->currency = $s['currency'] ?: ($cp->currency ?: 'nok');
+
+                $meta = (array) ($cp->product_meta ?? []);
+                $meta['source'] = $meta['source'] ?? 'shopify_csv_import';
+
+                $shopifyMeta = (array) ($meta['shopify'] ?? []);
+                $shopifyMeta['handle'] = $handle;
+                $shopifyMeta['vendor'] = $vendor;
+                $shopifyMeta['type']   = $type;
+                $shopifyMeta['tags']   = $tags;
+                $shopifyMeta['title']  = $title;
+
+                $shopifyMeta['variant_count'] = (int) ($p['variant_count'] ?? count($p['variants'] ?? []));
+                $shopifyMeta['image_count']   = (int) ($p['image_count'] ?? (is_array($p['images'] ?? null) ? count($p['images']) : 0));
+
+                $meta['shopify'] = $shopifyMeta;
+
+                $cp->product_meta = $meta;
+
+                $cp->save();
+
+                if ($isNew) $created++; else $updated++;
+            }
+
+            $msg = "Local import complete. Created {$created}, updated {$updated}, skipped {$skipped}, errors {$errors}.";
+            $this->pushConsole($msg, 'ok');
+
+            Notification::make()
+                ->title('Local import')
+                ->body($msg)
+                ->success()
+                ->send();
+        } catch (Throwable $e) {
+            $this->pushConsole('Local import failed: ' . $e->getMessage(), 'err');
+
+            Notification::make()
+                ->title('Local import failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            Log::error('ShopifyImportTest local import failed', [
+                'error' => $e->getMessage(),
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+            ]);
+        }
+    }
 
     public function runImport(): void
     {
@@ -496,188 +854,194 @@ class ShopifyImportTest extends Page implements HasForms
             return;
         }
 
+        // job_batches table exists?
         try {
-            $this->preflightOrThrow($s['csvPath'], $s['stripeAccountId']);
+            DB::table('job_batches')->limit(1)->get();
         } catch (Throwable $e) {
-            $this->pushConsole('Preflight failed: ' . $e->getMessage(), 'err');
-            Notification::make()->title('Preflight failed')->body($e->getMessage())->danger()->send();
-            Log::error('ShopifyImportTest preflight failed', ['error' => $e->getMessage()]);
+            $this->failRun(null, "Missing job_batches table. Run: php artisan queue:batches-table && php artisan migrate", $e);
             return;
         }
 
-        // Ensure parse exists
-        if (! $this->parseResult || ! $this->planResult) {
-            $this->parseCsv();
-            if (! $this->parseResult || ! $this->planResult) return;
-        }
-
-        $products = $this->parseResult['products'] ?? [];
-        $total    = count($products);
-
-        if ($total <= 0) {
-            Notification::make()->title('No products found')->body('Parsed CSV contains 0 products.')->warning()->send();
-            return;
-        }
-
-        $runId = (string) Str::uuid();
-        $this->currentRunId = $runId;
-
-        // Write run JSON for jobs
-        $jsonRel = "tmp/shopify-import/runs/{$runId}.json";
-        Storage::disk('local')->put($jsonRel, json_encode([
-            'meta' => [
-                'stripe_account_id' => $s['stripeAccountId'],
-                'currency' => $s['currency'],
-                'download_images' => $s['downloadImages'],
-                'update_existing' => $s['updateExisting'],
-                'created_at' => now()->toIso8601String(),
-                'source_csv' => $s['csvPath'],
-            ],
-            'products' => $products,
-        ], JSON_UNESCAPED_UNICODE));
-
-        // init cache
-        Cache::put($this->cacheKey('progress', $runId), [
-            'status'          => 'running',
-            'current'         => 0,
-            'total'           => $total,
-            'percent'         => 0,
-            'imported'        => 0,
-            'skipped'         => 0,
-            'updated'         => 0,
-            'created'         => 0,
-            'errors'          => 0,
-            'download_images' => $s['downloadImages'],
-            'update_existing' => $s['updateExisting'],
-            'currency'        => $s['currency'],
-            'chunk_size'      => $s['chunkSize'],
-            'run_id'          => $runId,
-            'batch_id'        => null,
-        ], $this->ttl());
-
-        Cache::put($this->cacheKey('console', $runId), [], $this->ttl());
-        Cache::put($this->cacheKey('recent', $runId), [], $this->ttl());
-        Cache::put($this->cacheKey('result', $runId), [
-            'run_id'      => $runId,
-            'batch_id'    => null,
-            'finished_at' => null,
-            'stats'       => ['import' => [
-                'total_products' => $total, 'imported' => 0, 'skipped' => 0, 'updated' => 0, 'created' => 0, 'error_count' => 0,
-            ]],
-            'errors' => [],
-            'per_product' => [],
-            'plan' => $this->planResult,
-            'last_error' => null,
-        ], $this->ttl());
-
-        $this->pushConsole("Import start: run={$runId} total={$total} chunk={$s['chunkSize']} currency={$s['currency']} images=" . ($s['downloadImages'] ? 'ON' : 'OFF') . " update=" . ($s['updateExisting'] ? 'ON' : 'OFF'), 'info', $runId);
-
-        // build jobs
-        $jobs = [];
-        for ($offset = 0; $offset < $total; $offset += $s['chunkSize']) {
-            $jobs[] = new ImportShopifyProductsChunkJob(
-                runId: $runId,
-                stripeAccountId: $s['stripeAccountId'],
-                jsonRelativePath: $jsonRel,
-                offset: $offset,
-                limit: min($s['chunkSize'], $total - $offset),
-                currency: $s['currency'],
-                downloadImages: $s['downloadImages'],
-                updateExisting: $s['updateExisting'],
-            );
+        // cache table exists if CACHE_STORE=database
+        if (config('cache.default') === 'database') {
+            try {
+                DB::table(config('cache.stores.database.table', 'cache'))->limit(1)->get();
+            } catch (Throwable $e) {
+                $this->failRun(null, "Missing cache table for CACHE_STORE=database. Run: php artisan cache:table && php artisan migrate", $e);
+                return;
+            }
         }
 
         try {
+            if (! $this->parseResult || ! $this->planResult) {
+                $this->parseCsv();
+                if (! $this->parseResult || ! $this->planResult) return;
+            }
+
+            $products = $this->parseResult['products'] ?? [];
+            if (! is_array($products)) $products = [];
+            $total = count($products);
+
+            if ($total <= 0) {
+                Notification::make()
+                    ->title('No products found')
+                    ->body('Parsed CSV contains 0 products.')
+                    ->warning()
+                    ->send();
+                return;
+            }
+
+            $runId = (string) Str::uuid();
+            $this->currentRunId = $runId;
+
+            $jsonRel = "tmp/shopify-import/runs/{$runId}.json";
+            Storage::disk('local')->put($jsonRel, json_encode([
+                'meta' => [
+                    'stripe_account_id'   => $s['stripeAccountId'],
+                    'currency'            => $s['currency'],
+                    'include_images'      => $s['includeImages'],
+                    'strict_image_check'  => $s['strictImageCheck'],
+                    'update_existing'     => $s['updateExisting'],
+                    'queue'               => self::IMPORT_QUEUE,
+                    'created_at'          => now()->toIso8601String(),
+                ],
+                'products' => $products,
+            ], JSON_UNESCAPED_UNICODE));
+
+            $startedAt = now()->toIso8601String();
+
+            Cache::put(self::cacheKey($runId, 'progress'), [
+                'status'              => 'running',
+                'current'             => 0,
+                'total'               => $total,
+                'percent'             => 0,
+
+                'imported'            => 0,
+                'skipped'             => 0,
+                'updated'             => 0,
+                'created'             => 0,
+                'errors'              => 0,
+
+                'images_total'        => 0,
+                'images_valid'        => 0,
+                'images_invalid'      => 0,
+
+                'variants_total'      => 0,
+                'variants_ok'         => 0,
+                'variants_bad'        => 0,
+                'prices_created'      => 0,
+                'prices_reused'       => 0,
+                'prices_replaced'     => 0,
+
+                'started_at'          => $startedAt,
+                'last_tick_at'        => null,
+                'rate_per_min'        => 0,
+                'eta_seconds'         => null,
+
+                'include_images'      => $s['includeImages'],
+                'strict_image_check'  => $s['strictImageCheck'],
+                'update_existing'     => $s['updateExisting'],
+                'currency'            => $s['currency'],
+                'chunk_size'          => $s['chunkSize'],
+                'queue'               => self::IMPORT_QUEUE,
+
+                'run_id'              => $runId,
+                'batch_id'            => null,
+            ], self::ttl());
+
+            Cache::put(self::cacheKey($runId, 'console'), [[
+                'time'    => now()->format('H:i:s'),
+                'level'   => 'info',
+                'message' => "Import start: run={$runId} total={$total} chunk={$s['chunkSize']} currency={$s['currency']} images=" . ($s['includeImages'] ? 'ON' : 'OFF') . " strict=" . ($s['strictImageCheck'] ? 'ON' : 'OFF') . " update=" . ($s['updateExisting'] ? 'ON' : 'OFF') . " queue=" . self::IMPORT_QUEUE,
+            ], [
+                'time'    => now()->format('H:i:s'),
+                'level'   => 'info',
+                'message' => "Worker: php artisan queue:work --queue=" . self::IMPORT_QUEUE . ",default --sleep=1 --tries=1 --timeout=0",
+            ]], self::ttl());
+
+            Cache::put(self::cacheKey($runId, 'recent'), [], self::ttl());
+
+            Cache::put(self::cacheKey($runId, 'result'), [
+                'run_id'      => $runId,
+                'batch_id'    => null,
+                'finished_at' => null,
+                'last_error'  => null,
+                'stats'       => [
+                    'import' => [
+                        'total_products'   => $total,
+                        'imported'         => 0,
+                        'skipped'          => 0,
+                        'updated'          => 0,
+                        'created'          => 0,
+                        'error_count'      => 0,
+                        'images_total'     => 0,
+                        'images_valid'     => 0,
+                        'images_invalid'   => 0,
+                        'variants_total'   => 0,
+                        'variants_ok'      => 0,
+                        'variants_bad'     => 0,
+                        'prices_created'   => 0,
+                        'prices_reused'    => 0,
+                        'prices_replaced'  => 0,
+                        'rate_per_min'     => 0,
+                    ],
+                ],
+                'errors'      => [],
+                'per_product' => [],
+                'plan'        => $this->planResult,
+            ], self::ttl());
+
+            $jobs = [];
+            for ($offset = 0; $offset < $total; $offset += $s['chunkSize']) {
+                $jobs[] = (new ImportShopifyProductsChunkJob(
+                    runId: $runId,
+                    stripeAccountId: $s['stripeAccountId'],
+                    jsonRelativePath: $jsonRel,
+                    offset: $offset,
+                    limit: min($s['chunkSize'], $total - $offset),
+                    currency: $s['currency'],
+                    includeImages: $s['includeImages'],
+                    strictImageCheck: $s['strictImageCheck'],
+                    updateExisting: $s['updateExisting'],
+                ))->onQueue(self::IMPORT_QUEUE);
+            }
+
             $batch = Bus::batch($jobs)
-                ->name("Shopify CSV Import ({$s['stripeAccountId']})")
+                ->name("Shopify CSV → Stripe ({$s['stripeAccountId']})")
                 ->allowFailures()
-                ->then(function (Batch $batch) use ($runId): void {
-                    $progress = Cache::get($this->cacheKey('progress', $runId), []);
-                    if (! is_array($progress)) $progress = [];
-                    $progress['status'] = 'finished';
-                    $progress['percent'] = 100;
-                    $progress['batch_id'] = $batch->id;
-                    Cache::put($this->cacheKey('progress', $runId), $progress, $this->ttl());
-
-                    $result = Cache::get($this->cacheKey('result', $runId), []);
-                    if (! is_array($result)) $result = [];
-                    $result['finished_at'] = now()->toIso8601String();
-                    $result['batch_id'] = $batch->id;
-                    $result['stats']['import'] = [
-                        'total_products' => (int) ($progress['total'] ?? 0),
-                        'imported'       => (int) ($progress['imported'] ?? 0),
-                        'skipped'        => (int) ($progress['skipped'] ?? 0),
-                        'updated'        => (int) ($progress['updated'] ?? 0),
-                        'created'        => (int) ($progress['created'] ?? 0),
-                        'error_count'    => (int) ($progress['errors'] ?? 0),
-                    ];
-                    Cache::put($this->cacheKey('result', $runId), $result, $this->ttl());
-
-                    $this->pushConsole('Batch finished.', 'ok', $runId);
-                })
-                ->catch(function (Batch $batch, Throwable $e) use ($runId): void {
-                    $progress = Cache::get($this->cacheKey('progress', $runId), []);
-                    if (! is_array($progress)) $progress = [];
-                    $progress['status'] = 'failed';
-                    $progress['batch_id'] = $batch->id;
-                    Cache::put($this->cacheKey('progress', $runId), $progress, $this->ttl());
-
-                    $this->pushConsole('Batch failed: ' . $e->getMessage(), 'err', $runId);
-                    $this->storeLastError($runId, 'Batch failed: ' . $e->getMessage(), $e);
-
-                    Log::error('ShopifyImportTest batch failed', [
-                        'run_id' => $runId,
-                        'batch_id' => $batch->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                })
-                ->finally(function (Batch $batch) use ($runId): void {
-                    $progress = Cache::get($this->cacheKey('progress', $runId), []);
-                    if (! is_array($progress)) $progress = [];
-                    $progress['batch_id'] = $batch->id;
-                    Cache::put($this->cacheKey('progress', $runId), $progress, $this->ttl());
-
-                    $result = Cache::get($this->cacheKey('result', $runId), []);
-                    if (! is_array($result)) $result = [];
-                    $result['batch_id'] = $batch->id;
-                    Cache::put($this->cacheKey('result', $runId), $result, $this->ttl());
-                })
+                ->then([self::class, 'batchThen'])
+                ->catch([self::class, 'batchCatch'])
+                ->finally([self::class, 'batchFinally'])
+                ->onQueue(self::IMPORT_QUEUE)
                 ->dispatch();
 
             $this->currentBatchId = $batch->id;
 
-            // hydrate UI
-            $this->importProgress = Cache::get($this->cacheKey('progress', $runId), $this->importProgress);
-            $this->importConsole  = Cache::get($this->cacheKey('console', $runId), []);
-            $this->recentProducts = Cache::get($this->cacheKey('recent', $runId), []);
+            Cache::put(self::batchMapKey($batch->id), $runId, self::ttl());
+
+            $progress = Cache::get(self::cacheKey($runId, 'progress'), []);
+            if (is_array($progress)) {
+                $progress['batch_id'] = $batch->id;
+                Cache::put(self::cacheKey($runId, 'progress'), $progress, self::ttl());
+            }
+
+            $result = Cache::get(self::cacheKey($runId, 'result'), []);
+            if (is_array($result)) {
+                $result['batch_id'] = $batch->id;
+                Cache::put(self::cacheKey($runId, 'result'), $result, self::ttl());
+            }
+
+            $this->importProgress = Cache::get(self::cacheKey($runId, 'progress'), $this->importProgress);
+            $this->importConsole  = Cache::get(self::cacheKey($runId, 'console'), []);
+            $this->recentProducts = Cache::get(self::cacheKey($runId, 'recent'), []);
 
             Notification::make()
                 ->title('Import queued')
-                ->body("Queued {$total} products in " . count($jobs) . " jobs. Make sure queue workers are running.")
+                ->body("Queued {$total} products in " . count($jobs) . " jobs on queue: " . self::IMPORT_QUEUE)
                 ->success()
                 ->send();
         } catch (Throwable $e) {
-            // This is the key: no default Laravel error page
-            $this->pushConsole('Dispatch failed: ' . $e->getMessage(), 'err', $runId);
-
-            Cache::put($this->cacheKey('progress', $runId), array_merge(Cache::get($this->cacheKey('progress', $runId), []), [
-                'status' => 'failed',
-            ]), $this->ttl());
-
-            $this->storeLastError($runId, 'Dispatch failed: ' . $e->getMessage(), $e);
-
-            Notification::make()
-                ->title('Import failed to start')
-                ->body($e->getMessage())
-                ->danger()
-                ->send();
-
-            Log::error('ShopifyImportTest dispatch failed', [
-                'run_id' => $runId,
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
+            $this->failRun($this->currentRunId, 'Dispatch failed: ' . $e->getMessage(), $e);
         }
     }
 
@@ -687,56 +1051,93 @@ class ShopifyImportTest extends Page implements HasForms
 
         $runId = $this->currentRunId;
 
-        $progress = Cache::get($this->cacheKey('progress', $runId));
-        if (is_array($progress)) $this->importProgress = array_merge($this->importProgress, $progress);
+        $progress = Cache::get(self::cacheKey($runId, 'progress'));
+        if (is_array($progress)) {
+            $this->importProgress = array_merge($this->importProgress, $progress);
+        }
 
-        $console = Cache::get($this->cacheKey('console', $runId));
-        if (is_array($console)) $this->importConsole = array_slice($console, -self::CONSOLE_MAX);
+        $console = Cache::get(self::cacheKey($runId, 'console'));
+        if (is_array($console)) {
+            $this->importConsole = array_slice($console, -self::CONSOLE_MAX);
+        }
 
-        $recent = Cache::get($this->cacheKey('recent', $runId));
-        if (is_array($recent)) $this->recentProducts = array_slice($recent, -self::RECENT_MAX);
+        $recent = Cache::get(self::cacheKey($runId, 'recent'));
+        if (is_array($recent)) {
+            $this->recentProducts = array_slice($recent, -self::RECENT_MAX);
+        }
 
         $status = (string) ($this->importProgress['status'] ?? 'idle');
         if ($status === 'finished' || $status === 'failed') {
-            $result = Cache::get($this->cacheKey('result', $runId));
-            if (is_array($result)) $this->importResult = $result;
+            $result = Cache::get(self::cacheKey($runId, 'result'));
+            if (is_array($result)) {
+                $this->importResult = $result;
+            }
         }
     }
 
     public function clearConsole(): void
     {
         $this->importConsole = [];
-
         if ($this->currentRunId) {
-            Cache::put($this->cacheKey('console', $this->currentRunId), [], $this->ttl());
+            Cache::put(self::cacheKey($this->currentRunId, 'console'), [], self::ttl());
         }
     }
 
     public function resetRunState(): void
     {
-        $this->currentRunId = null;
-        $this->currentBatchId = null;
-        $this->parseResult = null;
-        $this->planResult = null;
+        $this->parseResult  = null;
+        $this->planResult   = null;
         $this->importResult = null;
 
-        $this->importProgress = array_merge($this->importProgress, [
-            'status' => 'idle',
-            'current' => 0,
-            'total' => 0,
-            'percent' => 0,
-            'imported' => 0,
-            'skipped' => 0,
-            'updated' => 0,
-            'created' => 0,
-            'errors' => 0,
-            'run_id' => null,
-            'batch_id' => null,
-        ]);
+        $this->currentRunId   = null;
+        $this->currentBatchId = null;
 
-        $this->importConsole = [];
+        $this->importConsole  = [];
         $this->recentProducts = [];
 
-        Notification::make()->title('Reset')->body('View state reset.')->success()->send();
+        $this->importProgress = [
+            'status'            => 'idle',
+            'current'           => 0,
+            'total'             => 0,
+            'percent'           => 0,
+
+            'imported'          => 0,
+            'skipped'           => 0,
+            'updated'           => 0,
+            'created'           => 0,
+            'errors'            => 0,
+
+            'images_total'      => 0,
+            'images_valid'      => 0,
+            'images_invalid'    => 0,
+
+            'variants_total'    => 0,
+            'variants_ok'       => 0,
+            'variants_bad'      => 0,
+            'prices_created'    => 0,
+            'prices_reused'     => 0,
+            'prices_replaced'   => 0,
+
+            'started_at'        => null,
+            'last_tick_at'      => null,
+            'rate_per_min'      => 0,
+            'eta_seconds'       => null,
+
+            'include_images'     => false,
+            'strict_image_check' => true,
+            'update_existing'    => true,
+            'currency'           => 'nok',
+            'chunk_size'         => 10,
+
+            'queue'             => self::IMPORT_QUEUE,
+            'run_id'            => null,
+            'batch_id'          => null,
+        ];
+
+        Notification::make()
+            ->title('Reset')
+            ->body('View state reset (cache from old runs remains until TTL expires).')
+            ->success()
+            ->send();
     }
 }

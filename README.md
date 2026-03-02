@@ -93,6 +93,13 @@ API specification available in `api-spec.yaml`. Main endpoints:
 - `/api/products` - Product management
 - `/api/saf-t/generate` - SAF-T export
 
+## Import of CSV
+
+```
+php artisan queue:batches-table
+php artisan migrate
+```
+
 ## Compliance
 
 This system is designed to comply with:
