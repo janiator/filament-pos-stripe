@@ -141,11 +141,16 @@ await File('saf-t-export.xml').writeAsBytes(fileResponse.bodyBytes);
 ✅ **Audit Trail**: Complete transaction history with timestamps
 ✅ **Schema Compliance**: Follows Norwegian SAF-T Cash Register Schema v1.00
 
+## Validation and test submission
+
+- **Validate SAF-T:** Use the "Validate SAF-T" action (POS device view) to generate a file and validate it against the official [Norwegian SAF-T Cash Register schema](https://github.com/Skatteetaten/saf-t). The current generator may need to be aligned with the schema (element names/structure) for validation to pass.
+- **Test submission to Skatteetaten:** Use "Prepare for test submission" to generate an **anonymized** file for sending via Altinn TT02. See [SAF_T_TEST_SUBMISSION.md](SAF_T_TEST_SUBMISSION.md) and [Skatteetaten testinnsending](https://www.skatteetaten.no/bedrift-og-organisasjon/starte-og-drive/rutiner-regnskap-og-kassasystem/saf-t-regnskap/testinnsending/).
+
 ## Future Enhancements
 
 1. **Product-Level Tax**: Use actual tax rates from products
 2. **Digital Signatures**: Add digital signature validation - **See [Digital Signatures Requirements](../compliance/DIGITAL_SIGNATURES_REQUIREMENTS.md)**
-3. **Validation**: Validate XML against XSD schema
+3. **Schema alignment**: Ensure generator output matches Norwegian XSD exactly so validation passes
 4. **Scheduled Generation**: Automatic monthly SAF-T generation
 5. **Filament Admin**: Admin interface for SAF-T file management
 

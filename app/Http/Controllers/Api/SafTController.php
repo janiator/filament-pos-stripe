@@ -90,20 +90,22 @@ class SafTController extends BaseApiController
         }
 
         // Extract store slug from filename to verify ownership
-        // Format: SAF-T_{store-slug}_{from_date}_{to_date}.xml
-        if (!preg_match('/^SAF-T_([^_]+)_/', $filename, $matches)) {
+        // Format: SAF-T_{store-slug}_... or SAF-T_TEST_{store-slug}_...
+        if (!preg_match('/^SAF-T_(?:TEST_)?([^_]+)_/', $filename, $matches)) {
             abort(400, 'Invalid filename format');
         }
 
         $storeSlug = $matches[1];
         $store = Store::where('slug', $storeSlug)->first();
 
-        if (!$store) {
+        if (! $store) {
             abort(404, 'Store not found');
         }
 
         // Verify filename belongs to this store
-        if (!str_starts_with($filename, "SAF-T_{$store->slug}_")) {
+        $prefix = "SAF-T_{$store->slug}_";
+        $prefixTest = "SAF-T_TEST_{$store->slug}_";
+        if (! str_starts_with($filename, $prefix) && ! str_starts_with($filename, $prefixTest)) {
             abort(403, 'Unauthorized access to this file');
         }
 
