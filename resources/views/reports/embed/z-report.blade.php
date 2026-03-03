@@ -590,7 +590,7 @@
             <table class="transaction-table">
                 <thead>
                     <tr>
-                        <th style="width: 12%;">{{ !empty($report['spans_multiple_days']) && $report['spans_multiple_days'] ? 'Dato & Tid' : 'Tid' }}</th>
+                        <th style="width: 12%;">Dato & Tid</th>
                         <th style="width: 10%;">ID</th>
                         <th style="width: 10%;">Status</th>
                         <th style="width: 10%;">Metode</th>
@@ -631,13 +631,7 @@
                             };
                         @endphp
                         <tr>
-                            <td>
-                                @if(!empty($transaction['spans_multiple_days']) && $transaction['spans_multiple_days'])
-                                    {{ \Carbon\Carbon::parse($transaction['paid_at'] ?? $transaction['created_at'])->format('d.m.Y H:i:s') }}
-                                @else
-                                    {{ \Carbon\Carbon::parse($transaction['paid_at'] ?? $transaction['created_at'])->format('H:i:s') }}
-                                @endif
-                            </td>
+                            <td>{{ \Carbon\Carbon::parse($transaction['paid_at'] ?? $transaction['created_at'])->format('d.m.Y H:i:s') }}</td>
                             <td style="font-size: 6pt;">{{ substr($transaction['stripe_charge_id'] ?? $transaction['id'], 0, 10) }}...</td>
                             <td>
                                 <span class="{{ $statusClass }}">{{ $statusLabel }}</span>

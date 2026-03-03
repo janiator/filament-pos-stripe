@@ -3519,9 +3519,18 @@ paths:
       tags:
         - Products
       summary: List products
-      description: Get paginated list of active products for POS
+      description: |
+        Get paginated list of products. By default only active products are returned (for POS).
+        For admin screens (e.g. Products Categories Manager) pass include_inactive=1 to list all products including inactive.
       operationId: listProducts
       parameters:
+        - name: include_inactive
+          in: query
+          description: If 1 or true, include inactive products. Use for admin/product manager screens. Default is to return only active products.
+          required: false
+          schema:
+            type: boolean
+            default: false
         - name: search
           in: query
           description: |
@@ -6620,6 +6629,42 @@ components:
         unit_label:
           type: string
           nullable: true
+        vendor_id:
+          type: integer
+          nullable: true
+          description: Vendor ID for product edit form (Leverandør)
+        article_group_code:
+          type: string
+          nullable: true
+          description: Article group code for product edit form (Varegruppekode)
+        quantity_unit_id:
+          type: integer
+          nullable: true
+          description: Quantity unit ID for product edit form (Enhet)
+        vendor:
+          type: object
+          nullable: true
+          description: Vendor object for display (optional; app can resolve from vendor_id using vendors list)
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        quantity_unit:
+          type: object
+          nullable: true
+          description: Quantity unit object for display (optional; app can resolve from quantity_unit_id using quantity-units list)
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            symbol:
+              type: string
+              nullable: true
+            description:
+              type: string
+              nullable: true
         statement_descriptor:
           type: string
           nullable: true

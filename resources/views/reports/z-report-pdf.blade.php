@@ -363,7 +363,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>{{ !empty($report['spans_multiple_days']) && $report['spans_multiple_days'] ? 'Dato & Tid' : 'Tid' }}</th>
+                        <th>Dato & Tid</th>
                         <th>ID</th>
                         <th>Metode</th>
                         <th>Betalingskode</th>
@@ -377,13 +377,7 @@
                 <tbody>
                     @foreach($report['complete_transaction_list'] as $transaction)
                         <tr>
-                            <td>
-                                @if(!empty($transaction['spans_multiple_days']) && $transaction['spans_multiple_days'])
-                                    {{ \Carbon\Carbon::parse($transaction['paid_at'] ?? $transaction['created_at'])->format('d.m.Y H:i:s') }}
-                                @else
-                                    {{ \Carbon\Carbon::parse($transaction['paid_at'] ?? $transaction['created_at'])->format('H:i:s') }}
-                                @endif
-                            </td>
+                            <td>{{ \Carbon\Carbon::parse($transaction['paid_at'] ?? $transaction['created_at'])->format('d.m.Y H:i:s') }}</td>
                             <td style="font-size: 7pt;">{{ substr($transaction['stripe_charge_id'] ?? $transaction['id'], 0, 12) }}...</td>
                             <td>{{ ucfirst($transaction['payment_method'] ?? 'N/A') }}</td>
                             <td>{{ $transaction['payment_code'] ?? 'N/A' }}</td>

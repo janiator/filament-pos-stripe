@@ -10,30 +10,53 @@ return [
     | registered when running `php artisan connect:webhook`. These events
     | will be sent to your webhook endpoint for processing.
     |
+    | After changing this config, re-register the webhook so Stripe sends
+    | these events: either run `php artisan connect:webhook --url=<APP_URL>/api/stripe/connect/webhook`
+    | or in Stripe Dashboard: Developers > Webhooks > your Connect endpoint > add events.
+    |
     */
 
     'events' => [
-        // Customer events (core Connect events)
+        // Account events
+        'account.updated',
+
+        // Customer events
+        'customer.created',
         'customer.updated',
         'customer.deleted',
-        
-        // Subscription events (core Connect events)
+
+        // Subscription events
         'customer.subscription.created',
         'customer.subscription.updated',
         'customer.subscription.deleted',
-        
-        // Charge events (core Connect events)
-        'charge.succeeded',
-        
-        // Invoice events (for subscriptions - core Connect events)
-        'invoice.payment_action_required',
-        'invoice.payment_succeeded',
-        
-        // Additional events that may be valid for Connect
-        'customer.created',
         'customer.subscription.paused',
         'customer.subscription.resumed',
         'customer.subscription.trial_will_end',
+
+        // Product events
+        'product.created',
+        'product.updated',
+        'product.deleted',
+
+        // Price events
+        'price.created',
+        'price.updated',
+        'price.deleted',
+
+        // Charge events
+        'charge.succeeded',
+
+        // Payment method events
+        'payment_method.attached',
+        'payment_method.detached',
+        'payment_method.updated',
+        'payment_method.automatically_updated',
+
+        // Payment link events
+        'payment_link.created',
+        'payment_link.updated',
+
+        // Transfer events
         'transfer.created',
         'transfer.updated',
         'transfer.reversed',
