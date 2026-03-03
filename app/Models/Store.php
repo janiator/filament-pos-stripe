@@ -78,6 +78,14 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * Get the store's settings (POS, receipts, etc.)
+     */
+    public function settings(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\Setting::class);
+    }
+
+    /**
      * Get POS devices for this store
      */
     public function posDevices()
