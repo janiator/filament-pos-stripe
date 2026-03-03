@@ -21,9 +21,11 @@ class SyncProductPrice
             return;
         }
 
-        // Prefer stored price/currency (Filament source of truth); fall back to accessor (e.g. default_price)
-        $priceForSync = $product->getRawOriginal('price');
-        $currencyForSync = $product->getRawOriginal('currency');
+        // Use current attribute value (bypasses accessor) so this works both inside model
+        // events (where getRawOriginal still holds the old value) and after save completes.
+        // Fall back to accessor (e.g. derived from default_price) when the raw attribute is empty.
+        $priceForSync = $product->getAttributes()['price'] ?? null;
+        $currencyForSync = $product->getAttributes()['currency'] ?? null;
         if ($priceForSync === null || $priceForSync === '') {
             $priceForSync = $product->price;
             $currencyForSync = $product->currency ?? 'nok';
