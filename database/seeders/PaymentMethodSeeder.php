@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\PaymentMethod;
 use App\Models\Store;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class PaymentMethodSeeder extends Seeder
 {
@@ -115,59 +115,55 @@ class PaymentMethodSeeder extends Seeder
             ];
 
             foreach ($defaultMethods as $method) {
-                // Check if payment method with this code already exists for this store
-                $existing = PaymentMethod::where('store_id', $store->id)
+                $method['store_id'] = $store->id;
+
+                $existing = DB::table('payment_methods')
+                    ->where('store_id', $store->id)
                     ->where('code', $method['code'])
                     ->first();
 
                 if ($existing) {
-                    // Update existing record only with missing/null values (preserve user customizations)
                     $updates = [];
-                    
-                    // Only update provider if not set
-                    if (!$existing->provider || $existing->provider === 'other') {
+
+                    if (! $existing->provider || $existing->provider === 'other') {
                         $updates['provider'] = $method['provider'];
                     }
-                    
-                    // Only update provider_method if not set
-                    if (!$existing->provider_method && isset($method['provider_method'])) {
+
+                    if (! $existing->provider_method && isset($method['provider_method'])) {
                         $updates['provider_method'] = $method['provider_method'];
                     }
-                    
-                    // Only update pos_suitable if not explicitly set (defaults to true)
+
                     if ($existing->pos_suitable === null) {
                         $updates['pos_suitable'] = $method['pos_suitable'] ?? true;
                     }
-                    
-                    // Only update SAF-T codes if not set
-                    if (!$existing->saf_t_payment_code) {
+
+                    if (! $existing->saf_t_payment_code) {
                         $updates['saf_t_payment_code'] = $method['saf_t_payment_code'];
                     }
-                    if (!$existing->saf_t_event_code) {
+                    if (! $existing->saf_t_event_code) {
                         $updates['saf_t_event_code'] = $method['saf_t_event_code'];
                     }
-                    
-                    // Only update sort_order if it's the default (0) and we have a different default
-                    // This preserves intentional sort_order = 0 settings
+
                     if ($existing->sort_order === 0 && isset($method['sort_order']) && $method['sort_order'] !== 0) {
                         $updates['sort_order'] = $method['sort_order'];
                     }
-                    
-                    // Only update colors if not set
-                    if (!$existing->background_color && isset($method['background_color'])) {
+
+                    if (! $existing->background_color && isset($method['background_color'])) {
                         $updates['background_color'] = $method['background_color'];
                     }
-                    if (!$existing->icon_color && isset($method['icon_color'])) {
+                    if (! $existing->icon_color && isset($method['icon_color'])) {
                         $updates['icon_color'] = $method['icon_color'];
                     }
-                    
-                    // Apply updates only if there are any
-                    if (!empty($updates)) {
-                        $existing->update($updates);
+
+                    if (! empty($updates)) {
+                        DB::table('payment_methods')
+                            ->where('id', $existing->id)
+                            ->update($updates);
                     }
                 } else {
-                    PaymentMethod::create(array_merge($method, [
-                        'store_id' => $store->id,
+                    DB::table('payment_methods')->insert(array_merge($method, [
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]));
                 }
             }

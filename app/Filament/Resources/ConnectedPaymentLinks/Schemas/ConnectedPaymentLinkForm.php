@@ -268,13 +268,13 @@ class ConnectedPaymentLinkForm
                     ->visibleOn('create'),
 
                 TextInput::make('application_fee_amount')
-                    ->label('Application Fee (cents)')
+                    ->label('Application Fee (øre)')
                     ->numeric()
                     ->minValue(0)
                     ->helperText(function (Get $get) {
                         $priceId = $get('stripe_price_id');
                         if (!$priceId) {
-                            return 'Fixed fee in cents (e.g., 500 = $5.00). Can only be used with one-time prices.';
+                            return 'Fixed fee in øre (e.g., 500 = 5,00 NOK). Can only be used with one-time prices.';
                         }
                         
                         // Check if price is recurring
@@ -283,7 +283,7 @@ class ConnectedPaymentLinkForm
                             return 'Fixed fee cannot be used with recurring prices. Use percentage fee instead.';
                         }
                         
-                        return 'Fixed fee in cents (e.g., 500 = $5.00). Can only be used with one-time prices.';
+                        return 'Fixed fee in øre (e.g., 500 = 5,00 NOK). Can only be used with one-time prices.';
                     })
                     ->visible(function (Get $get) {
                         $priceId = $get('stripe_price_id');

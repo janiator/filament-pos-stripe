@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PosSessions;
 
+use App\Enums\AddonType;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\PosSessions\Pages\CreatePosSession;
 use App\Filament\Resources\PosSessions\Pages\EditPosSession;
@@ -13,6 +14,7 @@ use App\Filament\Resources\PosSessions\Schemas\PosSessionInfolist;
 use App\Filament\Resources\PosSessions\Tables\PosSessionsTable;
 use App\Models\PosSession;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -29,9 +31,6 @@ class PosSessionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    // Show in navigation - allows viewing all POS sessions and Z-reports across all devices
-    protected static bool $shouldRegisterNavigation = true;
-
     public static function getNavigationLabel(): string
     {
         return __('filament.resources.pos_session.navigation');
@@ -40,6 +39,11 @@ class PosSessionResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return __('filament.navigation_groups.pos_system');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return \App\Models\Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Pos);
     }
 
     public static function getNavigationSort(): ?int

@@ -11,6 +11,8 @@
 /.idea
 /.nova
 /.phpunit.cache
+/.cursor
+/.junie
 /.vscode
 /.zed
 /auth.json
@@ -25,5 +27,8 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 jobberiet-export.zip
-/packages/filament-webflow/vendor/
+/packages/*/vendor/
+/packages/*/composer.lock
 /.env.testing
+/.cursor/*
+.junie/*

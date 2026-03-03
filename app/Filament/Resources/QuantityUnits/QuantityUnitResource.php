@@ -9,19 +9,39 @@ use App\Filament\Resources\QuantityUnits\Pages\ViewQuantityUnit;
 use App\Filament\Resources\QuantityUnits\Schemas\QuantityUnitForm;
 use App\Filament\Resources\QuantityUnits\Schemas\QuantityUnitInfolist;
 use App\Filament\Resources\QuantityUnits\Tables\QuantityUnitsTable;
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\QuantityUnit;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class QuantityUnitResource extends Resource
 {
-    use HasTenantScopedQuery;
-
     protected static ?string $model = QuantityUnit::class;
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        try {
+            $tenant = Filament::getTenant();
+            if ($tenant && $tenant->slug !== 'visivo-admin') {
+                $query->where(function ($q) use ($tenant) {
+                    $q->where(function ($q2) {
+                        $q2->whereNull('store_id')->whereNull('stripe_account_id');
+                    })->orWhereHas('store', fn ($q2) => $q2->where('stores.id', $tenant->id));
+                });
+            } else {
+                $query->whereNull('store_id')->whereNull('stripe_account_id');
+            }
+        } catch (\Throwable) {
+            //
+        }
+
+        return $query;
+    }
 
     protected static ?string $tenantOwnershipRelationshipName = null;
 

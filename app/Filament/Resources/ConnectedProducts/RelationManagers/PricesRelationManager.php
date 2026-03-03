@@ -8,6 +8,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -190,12 +191,20 @@ class PricesRelationManager extends RelationManager
                         if ($store) {
                             if ($store->commission_type === 'percentage') {
                                 $defaultFeePercent = $store->commission_rate;
+                                // For one-time prices, convert percentage to fixed amount
+                                if ($record->type !== 'recurring' && $record->unit_amount) {
+                                    $defaultFeeAmount = (int) round(($record->unit_amount * $store->commission_rate) / 100);
+                                }
                             } elseif ($store->commission_type === 'fixed') {
                                 $defaultFeeAmount = $store->commission_rate;
                             }
                         }
                         
                         return [
+                            TextInput::make('name')
+                                ->label('Name')
+                                ->maxLength(255)
+                                ->helperText('Optional: A name for this payment link'),
                             Select::make('link_type')
                                 ->label('Link Type')
                                 ->options([
@@ -206,45 +215,56 @@ class PricesRelationManager extends RelationManager
                                 ->required()
                                 ->live()
                                 ->helperText('Direct: Charge goes directly to connected account. Destination: Charge goes to platform with transfer.'),
-                            
-                            TextInput::make('name')
-                                ->label('Name')
-                                ->maxLength(255)
-                                ->helperText('Optional: A name for this payment link'),
-                            
                             TextInput::make('application_fee_percent')
                                 ->label('Application Fee (%)')
                                 ->numeric()
                                 ->minValue(0)
                                 ->maxValue(100)
                                 ->default($defaultFeePercent)
-                                ->helperText(function (Get $get) use ($record) {
+                                ->helperText(function () use ($record) {
                                     if ($record->type === 'recurring') {
-                                        return 'Percentage fee (e.g., 5 = 5%). This will be applied as a percentage of each subscription invoice.';
+                                        return 'Percentage fee (e.g., 5 = 5%). This will be applied as a percentage of each subscription invoice. Can only be used with recurring prices.';
                                     }
-                                    
-                                    return 'Percentage fee (e.g., 5 = 5%). For one-time prices, this will be automatically converted to a fixed amount in cents based on the price.';
+                                    return 'Percentage fee can only be used with recurring prices. Use fixed fee amount for one-time prices.';
                                 })
-                                ->visible(fn () => true),
-                            
+                                ->visible(fn () => $record->type === 'recurring'),
                             TextInput::make('application_fee_amount')
-                                ->label('Application Fee (cents)')
+                                ->label('Application Fee (øre)')
                                 ->numeric()
                                 ->minValue(0)
                                 ->default($defaultFeeAmount)
-                                ->helperText(function (Get $get) use ($record) {
+                                ->helperText(function () use ($record) {
                                     if ($record->type === 'recurring') {
                                         return 'Fixed fee cannot be used with recurring prices. Use percentage fee instead.';
                                     }
-                                    
-                                    return 'Fixed fee in cents (e.g., 500 = $5.00). Can only be used with one-time prices.';
+                                    return 'Fixed fee in øre (e.g., 500 = 5,00 NOK). Can only be used with one-time prices.';
                                 })
                                 ->visible(fn () => $record->type !== 'recurring'),
-                            
                             TextInput::make('after_completion_redirect_url')
                                 ->label('Redirect URL')
                                 ->url()
                                 ->helperText('Optional: URL to redirect to after payment completion'),
+                            Toggle::make('adjustable_quantity_enabled')
+                                ->label('Allow Customers to Adjust Quantity')
+                                ->default(false)
+                                ->helperText('Enable this to let customers change the quantity of items during checkout')
+                                ->live(),
+                            TextInput::make('adjustable_quantity_minimum')
+                                ->label('Minimum Quantity')
+                                ->numeric()
+                                ->minValue(1)
+                                ->default(1)
+                                ->helperText('Minimum quantity customers can select (default: 1)')
+                                ->visible(fn (Get $get) => $get('adjustable_quantity_enabled') === true)
+                                ->required(fn (Get $get) => $get('adjustable_quantity_enabled') === true),
+                            TextInput::make('adjustable_quantity_maximum')
+                                ->label('Maximum Quantity')
+                                ->numeric()
+                                ->minValue(1)
+                                ->default(99)
+                                ->helperText('Maximum quantity customers can select (default: 99)')
+                                ->visible(fn (Get $get) => $get('adjustable_quantity_enabled') === true)
+                                ->required(fn (Get $get) => $get('adjustable_quantity_enabled') === true),
                         ];
                     })
                     ->action(function (ConnectedPrice $record, array $data) {
@@ -262,13 +282,21 @@ class PricesRelationManager extends RelationManager
                             throw new \Exception('Store not found for this product.');
                         }
                         
-                        // Prepare line items
-                        $lineItems = [
-                            [
-                                'price' => $record->stripe_price_id,
-                                'quantity' => 1,
-                            ],
+                        // Build line item (matching ConnectedPaymentLinkForm / CreateConnectedPaymentLink)
+                        $lineItem = [
+                            'price' => $record->stripe_price_id,
+                            'quantity' => 1,
                         ];
+                        if (!empty($data['adjustable_quantity_enabled'])) {
+                            $lineItem['adjustable_quantity'] = ['enabled' => true];
+                            if (isset($data['adjustable_quantity_minimum']) && $data['adjustable_quantity_minimum'] !== null && $data['adjustable_quantity_minimum'] !== '') {
+                                $lineItem['adjustable_quantity']['minimum'] = (int) $data['adjustable_quantity_minimum'];
+                            }
+                            if (isset($data['adjustable_quantity_maximum']) && $data['adjustable_quantity_maximum'] !== null && $data['adjustable_quantity_maximum'] !== '') {
+                                $lineItem['adjustable_quantity']['maximum'] = (int) $data['adjustable_quantity_maximum'];
+                            }
+                        }
+                        $lineItems = [$lineItem];
                         
                         $linkData = [
                             'line_items' => $lineItems,
@@ -279,19 +307,15 @@ class PricesRelationManager extends RelationManager
                         
                         // Add application fee (works for both direct and destination links)
                         if ($record->type === 'recurring') {
-                            // For recurring prices, use application_fee_percent
                             if (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
                                 $linkData['application_fee_percent'] = (float) $data['application_fee_percent'];
                             }
                         } else {
-                            // For one-time prices, use application_fee_amount
                             if (isset($data['application_fee_amount']) && $data['application_fee_amount'] !== null && $data['application_fee_amount'] !== '') {
                                 $linkData['application_fee_amount'] = (int) $data['application_fee_amount'];
                             } elseif (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
-                                // Convert percentage to amount in cents for one-time prices
                                 $feePercent = (float) $data['application_fee_percent'];
-                                $feeAmount = (int) round(($record->unit_amount * $feePercent) / 100);
-                                $linkData['application_fee_amount'] = $feeAmount;
+                                $linkData['application_fee_amount'] = (int) round(($record->unit_amount * $feePercent) / 100);
                             }
                         }
                         

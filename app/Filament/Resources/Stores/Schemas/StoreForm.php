@@ -8,7 +8,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Storage;
 
 class StoreForm
 {
@@ -29,7 +28,7 @@ class StoreForm
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->disabled(fn ($record) => $record && $record->stripe_account_id)
-                            ->helperText(fn ($record) => $record && $record->stripe_account_id 
+                            ->helperText(fn ($record) => $record && $record->stripe_account_id
                                 ? 'Email cannot be synced to Stripe for connected accounts. Update it in the Stripe Dashboard or Connect onboarding flow.'
                                 : 'Email address for the store'),
 
@@ -37,6 +36,12 @@ class StoreForm
                             ->label('Organisasjonsnummer')
                             ->maxLength(255)
                             ->helperText('Organization number (org.nr.) used on receipts'),
+
+                        TextInput::make('address')
+                            ->label('Store address')
+                            ->maxLength(500)
+                            ->columnSpanFull()
+                            ->helperText('Address shown on receipts (e.g. street, postcode and city)'),
 
                         TextInput::make('z_report_email')
                             ->label('Z-Report Email')
@@ -72,7 +77,7 @@ class StoreForm
                             ->label('Commission type')
                             ->options([
                                 'percentage' => 'Percentage',
-                                'fixed'      => 'Fixed (minor units)',
+                                'fixed' => 'Fixed (minor units)',
                             ])
                             ->default('percentage')
                             ->inline()

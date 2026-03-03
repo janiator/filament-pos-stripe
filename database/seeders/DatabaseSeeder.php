@@ -7,7 +7,9 @@ use App\Models\Store;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
@@ -45,33 +47,47 @@ class DatabaseSeeder extends Seeder
         );
 
         // Assign super_admin role to admin user
-        if (!$admin->hasRole('super_admin')) {
+        if (! $admin->hasRole('super_admin')) {
             $admin->assignRole('super_admin');
         }
 
         // Assign store to admin user
-        if (!$admin->stores->contains($store)) {
+        if (! $admin->stores->contains($store)) {
             $admin->stores()->attach($store);
         }
 
         $this->command->info('Admin user created: admin@visivo.no / admin');
-        $this->command->info('Admin store created: ' . $store->name);
+        $this->command->info('Admin store created: '.$store->name);
+
+        // Generate Filament Shield permissions and policies (non-interactive)
+        $this->command->newLine();
+        $this->command->info('Generating Filament Shield permissions and policies...');
+        Artisan::call('shield:generate', [
+            '--all' => true,
+            '--panel' => 'app',
+            '--option' => 'policies_and_permissions',
+        ]);
+        $this->command->info('Shield generation completed.');
+
+        // Give super_admin role all permissions (config uses define_via_gate => false)
+        $superAdminRole->syncPermissions(Permission::where('guard_name', 'web')->pluck('name'));
+        $this->command->info('Super admin role granted all permissions.');
 
         // Run Stripe sync after seeding (only if not in testing environment)
-        if (!app()->environment('testing')) {
+        if (! app()->environment('testing')) {
             $this->command->newLine();
             $this->command->info('Syncing everything from Stripe...');
 
             try {
-                $syncAction = new SyncEverythingFromStripe();
+                $syncAction = new SyncEverythingFromStripe;
                 $result = $syncAction(false); // Don't send notifications from seeder
 
-                $this->command->info("✓ Sync completed!");
+                $this->command->info('✓ Sync completed!');
                 $this->command->line("  Found: {$result['total']} items");
                 $this->command->line("  Created: {$result['created']} items");
                 $this->command->line("  Updated: {$result['updated']} items");
 
-                if (!empty($result['errors'])) {
+                if (! empty($result['errors'])) {
                     $errorCount = count($result['errors']);
                     $this->command->warn("  Errors: {$errorCount} error(s) occurred");
                     if ($errorCount <= 5) {
@@ -82,7 +98,7 @@ class DatabaseSeeder extends Seeder
                         foreach (array_slice($result['errors'], 0, 5) as $error) {
                             $this->command->error("    - {$error}");
                         }
-                        $this->command->warn("    ... and " . ($errorCount - 5) . " more error(s)");
+                        $this->command->warn('    ... and '.($errorCount - 5).' more error(s)');
                     }
                 }
             } catch (\Throwable $e) {

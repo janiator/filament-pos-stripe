@@ -65,6 +65,7 @@ Feature-specific documentation:
 - **STRIPE_VARIANT_ARCHITECTURE.md** - Stripe variant architecture
 - **STRIPE_SYNC_AND_SHOPIFY_COMPARISON.md** - Stripe sync and Shopify comparison
 - **TEST_COVERAGE_SUMMARY.md** - Test coverage summary
+- **WEBFLOW_EVENT_TICKETS.md** - Webflow CMS integration and Event Tickets add-on
 
 ## 📖 Quick Links
 

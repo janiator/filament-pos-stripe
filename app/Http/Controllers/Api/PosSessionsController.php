@@ -121,13 +121,19 @@ class PosSessionsController extends BaseApiController
             'opening_data' => 'nullable|array',
         ]);
 
-        // 3) Ensure this device doesn't already have an open session
-        $existingSession = PosSession::where('store_id', $store->id)
-            ->where('pos_device_id', $validated['pos_device_id'])
+        // 3) Ensure this device doesn't already have an open session (any store)
+        $existingSession = PosSession::where('pos_device_id', $validated['pos_device_id'])
             ->where('status', 'open')
             ->first();
 
         if ($existingSession) {
+            if ($existingSession->store_id !== $store->id) {
+                return response()->json([
+                    'message' => 'You need to close other open POS sessions on the current device before opening a new session.',
+                    'session' => $this->formatSessionResponse($existingSession),
+                ], 409);
+            }
+
             return response()->json([
                 'message' => 'Device already has an open session',
                 'session' => $this->formatSessionResponse($existingSession),
@@ -184,13 +190,19 @@ class PosSessionsController extends BaseApiController
             'opening_data' => 'nullable|array',
         ]);
 
-        // Check if device already has an open session
-        $existingSession = PosSession::where('store_id', $store->id)
-            ->where('pos_device_id', $validated['pos_device_id'])
+        // Check if device already has an open session (any store)
+        $existingSession = PosSession::where('pos_device_id', $validated['pos_device_id'])
             ->where('status', 'open')
             ->first();
 
         if ($existingSession) {
+            if ($existingSession->store_id !== $store->id) {
+                return response()->json([
+                    'message' => 'You need to close other open POS sessions on the current device before opening a new session.',
+                    'session' => $this->formatSessionResponse($existingSession),
+                ], 409);
+            }
+
             return response()->json([
                 'message' => 'Device already has an open session',
                 'session' => $this->formatSessionResponse($existingSession),

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PaymentMethods;
 
+use App\Enums\AddonType;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\PaymentMethods\Pages\CreatePaymentMethod;
 use App\Filament\Resources\PaymentMethods\Pages\EditPaymentMethod;
@@ -10,6 +11,7 @@ use App\Filament\Resources\PaymentMethods\Schemas\PaymentMethodForm;
 use App\Filament\Resources\PaymentMethods\Tables\PaymentMethodsTable;
 use App\Models\PaymentMethod;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -45,6 +47,11 @@ class PaymentMethodResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return __('filament.navigation_groups.pos_system');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return \App\Models\Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Pos);
     }
 
     public static function getNavigationSort(): ?int

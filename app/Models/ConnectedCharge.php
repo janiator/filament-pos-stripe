@@ -47,6 +47,7 @@ class ConnectedCharge extends Model
         'payment_code',
         'tip_amount',
         'article_group_code',
+        'event_ticket_processed',
     ];
 
     protected $casts = [
@@ -60,6 +61,7 @@ class ConnectedCharge extends Model
         'paid_at' => 'datetime',
         'metadata' => 'array',
         'outcome' => 'array',
+        'event_ticket_processed' => 'boolean',
     ];
 
     public function store(): BelongsTo

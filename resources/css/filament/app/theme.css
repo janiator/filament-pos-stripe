@@ -3,3 +3,12 @@
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
 @source '../../../../vendor/leek/filament-workflows';
+
+/* Ensure addons page card styles are not overridden by layout/cascade */
+.fi-addons-page-cards {
+    color: inherit;
+    background: transparent;
+}
+.fi-addons-page-cards > * {
+    isolation: isolate;
+}

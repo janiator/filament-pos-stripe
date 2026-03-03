@@ -55,6 +55,13 @@ class TerminalReaderForm
                     ->helperText('Created on Stripe when this reader is registered.')
                     ->visibleOn(['view', 'edit']),
 
+                TextInput::make('serial_number')
+                    ->label('Serial number')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->helperText('From Stripe; used for re-registration across locations.')
+                    ->visibleOn(['view', 'edit']),
+
                 TextInput::make('device_type')
                     ->label('Device Type')
                     ->disabled()

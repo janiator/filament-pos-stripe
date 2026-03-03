@@ -27,8 +27,12 @@ class ProductsController extends BaseApiController
             $this->authorizeTenant($request, $store);
 
             // Build query
-            $query = ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
-                ->where('active', true); // Only active products for POS
+            $query = ConnectedProduct::where('stripe_account_id', $store->stripe_account_id);
+
+            // By default only active products (for POS). Admin/manager can pass include_inactive=1 to see all.
+            if (! $request->boolean('include_inactive')) {
+                $query->where('active', true);
+            }
 
             // Filter by freetext search term if provided
             // Searches across product fields and variant fields (SKU, barcode, variant names, etc.)
@@ -86,7 +90,8 @@ class ProductsController extends BaseApiController
             // Get paginated results
             // TODO restore this $perPage = min($request->get('per_page', 100), 100); // Max 100 per page
             $perPage = 100; // Max 100 per page
-            $products = $query->orderBy('name')
+            $products = $query->with(['vendor', 'quantityUnit'])
+                ->orderBy('name')
                 ->paginate($perPage);
 
             // Transform products for POS
@@ -125,10 +130,16 @@ class ProductsController extends BaseApiController
                         ],
                         'tax_code' => $product->tax_code ?? 'txcd_99999999', // Default to 25% VAT if not set (kept for backward compatibility)
                         'tax_percent' => $this->getTaxPercentFromProduct($product),
+                        'article_group_code' => $product->article_group_code,
                         'unit_label' => $product->unit_label ?? 'stk',
                         'statement_descriptor' => $product->statement_descriptor ?? null,
                         'package_dimensions' => null,
                         'product_meta' => $product->product_meta ?? null,
+                        'vendor_id' => $product->vendor_id,
+                        'article_group_code' => $product->article_group_code,
+                        'quantity_unit_id' => $product->quantity_unit_id,
+                        'vendor' => null,
+                        'quantity_unit' => null,
                         'created_at' => $this->formatDateTimeOslo($product->created_at),
                         'updated_at' => $this->formatDateTimeOslo($product->updated_at),
                     ];
@@ -167,7 +178,8 @@ class ProductsController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         // Try to find by ID first, then by stripe_product_id
-        $product = ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
+        $product = ConnectedProduct::with(['vendor', 'quantityUnit'])
+            ->where('stripe_account_id', $store->stripe_account_id)
             ->where(function ($query) use ($id) {
                 $query->where('id', $id)
                     ->orWhere('stripe_product_id', $id);
@@ -369,6 +381,8 @@ class ProductsController extends BaseApiController
             }
         }
 
+        $quantityUnitData = $this->getQuantityUnitForProduct($product);
+
         return [
             'id' => $product->id,
             'stripe_product_id' => $product->stripe_product_id ?? null,
@@ -400,11 +414,19 @@ class ProductsController extends BaseApiController
             ],
             'tax_code' => $product->tax_code ?? 'txcd_99999999', // Default to 25% VAT if not set
             'tax_percent' => $this->getTaxPercentFromProduct($product),
+            'article_group_code' => $product->article_group_code,
             'unit_label' => $product->unit_label ?? 'stk',
             'statement_descriptor' => $product->statement_descriptor ?? null,
             'package_dimensions' => $packageDimensions,
             'product_meta' => $product->product_meta ?? null,
             'collections' => $collections,
+            'vendor_id' => $product->vendor_id,
+            'article_group_code' => $product->article_group_code,
+            'quantity_unit_id' => $product->quantity_unit_id,
+            'vendor' => $product->relationLoaded('vendor') && $product->vendor
+                ? ['id' => $product->vendor->id, 'name' => $product->vendor->name]
+                : null,
+            'quantity_unit' => $quantityUnitData['id'] !== null ? $quantityUnitData : null,
             'created_at' => $this->formatDateTimeOslo($product->created_at),
             'updated_at' => $this->formatDateTimeOslo($product->updated_at),
         ];
@@ -478,9 +500,9 @@ class ProductsController extends BaseApiController
             return (float) $product->vat_percent / 100; // Convert from percentage (0-100) to decimal (0-1)
         }
 
-        // Second, try to get VAT from article group code
+        // Second, try to get VAT from article group code (scoped by account: prefer account-specific, then global)
         if ($product->article_group_code) {
-            $articleGroupCode = \App\Models\ArticleGroupCode::where('code', $product->article_group_code)->first();
+            $articleGroupCode = $this->resolveArticleGroupCode($product->article_group_code, $product->stripe_account_id);
             if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
                 return (float) $articleGroupCode->default_vat_percent;
             }
@@ -488,6 +510,25 @@ class ProductsController extends BaseApiController
 
         // Fallback to tax_code if article group code doesn't have VAT set
         return $this->getTaxPercentFromCode($product->tax_code);
+    }
+
+    /**
+     * Resolve article group code by code string, preferring account-specific over global.
+     */
+    protected function resolveArticleGroupCode(string $code, ?string $stripeAccountId): ?\App\Models\ArticleGroupCode
+    {
+        $query = \App\Models\ArticleGroupCode::where('code', $code)->where('active', true);
+
+        if ($stripeAccountId) {
+            $query->where(function ($q) use ($stripeAccountId) {
+                $q->where('stripe_account_id', $stripeAccountId)
+                    ->orWhereNull('stripe_account_id');
+            })->orderByRaw('CASE WHEN stripe_account_id IS NOT NULL THEN 0 ELSE 1 END'); // account-specific first
+        } else {
+            $query->whereNull('stripe_account_id');
+        }
+
+        return $query->first();
     }
 
     /**
@@ -750,6 +791,15 @@ class ProductsController extends BaseApiController
             }
             if (isset($validated['article_group_code'])) {
                 $product->article_group_code = $validated['article_group_code'];
+                // Sync VAT from article group so that setting varegruppekode updates VAT (unless client sends vat_percent explicitly)
+                if (! array_key_exists('vat_percent', $validated)) {
+                    $articleGroupCode = $this->resolveArticleGroupCode($product->article_group_code, $product->stripe_account_id);
+                    if ($articleGroupCode && $articleGroupCode->default_vat_percent !== null) {
+                        $product->vat_percent = (float) $articleGroupCode->default_vat_percent * 100; // store as 0-100
+                    } else {
+                        $product->vat_percent = null;
+                    }
+                }
             }
             if (isset($validated['vat_percent'])) {
                 $product->vat_percent = $validated['vat_percent'];

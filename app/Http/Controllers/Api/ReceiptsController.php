@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Receipt;
 use App\Models\ConnectedCharge;
+use App\Models\Receipt;
 use App\Services\ReceiptGenerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,8 +23,8 @@ class ReceiptsController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -74,11 +74,11 @@ class ReceiptsController extends BaseApiController
         // Pre-load charge data and correction events for all charges
         $charges = [];
         $correctionEvents = [];
-        if (!empty($chargeIds)) {
+        if (! empty($chargeIds)) {
             $charges = ConnectedCharge::whereIn('id', $chargeIds)
                 ->get()
                 ->keyBy('id');
-            
+
             // Check for correction events/receipts for these charges
             $correctionEvents = \App\Models\PosEvent::whereIn('related_charge_id', $chargeIds)
                 ->where('event_code', \App\Models\PosEvent::EVENT_CORRECTION_RECEIPT)
@@ -92,6 +92,7 @@ class ReceiptsController extends BaseApiController
             // Refresh receipt to ensure we have the latest printed status from database
             $receipt->refresh();
             $charge = $receipt->charge_id ? ($charges[$receipt->charge_id] ?? null) : null;
+
             return $this->formatReceiptListResponse($receipt, $charge, $correctionEvents);
         })->toArray();
 
@@ -107,14 +108,14 @@ class ReceiptsController extends BaseApiController
         // Add available receipt types as "virtual" receipts in the list
         foreach ($chargesWithReceipts as $chargeId) {
             $charge = $charges[$chargeId] ?? null;
-            $hasCorrection = in_array($chargeId, $correctionEvents) || 
+            $hasCorrection = in_array($chargeId, $correctionEvents) ||
                             Receipt::where('charge_id', $chargeId)
                                 ->where('receipt_type', 'correction')
                                 ->where('store_id', $store->id)
                                 ->exists();
-            
+
             $availableTypes = $this->getAvailableReceiptTypes($chargeId, $store->id, $charge, $hasCorrection);
-            
+
             foreach ($availableTypes as $availableType) {
                 $receiptList[] = $this->formatAvailableReceiptType($availableType);
             }
@@ -137,8 +138,8 @@ class ReceiptsController extends BaseApiController
     public function generate(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -154,7 +155,7 @@ class ReceiptsController extends BaseApiController
             ->where('stripe_account_id', $store->stripe_account_id)
             ->firstOrFail();
 
-        $session = isset($validated['pos_session_id']) 
+        $session = isset($validated['pos_session_id'])
             ? \App\Models\PosSession::find($validated['pos_session_id'])
             : $charge->posSession;
 
@@ -162,6 +163,30 @@ class ReceiptsController extends BaseApiController
 
         if ($receiptType === 'sales') {
             $receipt = $this->receiptService->generateSalesReceipt($charge, $session);
+        } elseif ($receiptType === 'copy') {
+            // Copy must be based on an existing sales/return receipt so it shows same lines and transaction id
+            $originalReceipt = Receipt::where('charge_id', $charge->id)
+                ->whereIn('receipt_type', ['sales', 'return'])
+                ->orderByDesc('id')
+                ->first();
+            if ($originalReceipt && ! $originalReceipt->hasCopyReceipt()) {
+                $receipt = $this->createCopyReceipt($originalReceipt);
+            } else {
+                $receipt = Receipt::create([
+                    'store_id' => $store->id,
+                    'pos_session_id' => $session?->id,
+                    'charge_id' => $charge->id,
+                    'user_id' => $request->user()->id,
+                    'receipt_number' => Receipt::generateReceiptNumber($store->id, 'copy'),
+                    'receipt_type' => 'copy',
+                    'original_receipt_id' => null,
+                    'receipt_data' => [
+                        'store' => ['name' => $store->name],
+                        'charge_id' => $charge->stripe_charge_id,
+                        'amount' => $charge->amount / 100,
+                    ],
+                ]);
+            }
         } else {
             // For other types, create a basic receipt
             $receipt = Receipt::create([
@@ -193,8 +218,8 @@ class ReceiptsController extends BaseApiController
     public function show(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -219,21 +244,21 @@ class ReceiptsController extends BaseApiController
 
     /**
      * Get receipt XML for printing
-     * 
+     *
      * Returns the receipt XML without modifying print status.
      * According to Kassasystemforskriften § 2-8-4:
      * - If receipt is not printed: Returns original receipt XML
      * - If receipt is already printed: Returns copy receipt XML (marked as "KOPI")
      *   - Only one copy receipt allowed per original (enforced)
      *   - STEB receipts can be reprinted multiple times (exception)
-     * 
+     *
      * Call mark-printed endpoint after successful print.
      */
     public function xml(Request $request, string $id): \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -245,7 +270,7 @@ class ReceiptsController extends BaseApiController
             ->with(['store', 'charge', 'posSession', 'user', 'originalReceipt'])
             ->first();
 
-        if (!$receipt) {
+        if (! $receipt) {
             return response()->json(['message' => 'Receipt not found'], 404);
         }
 
@@ -253,7 +278,7 @@ class ReceiptsController extends BaseApiController
         // According to Kassasystemforskriften § 2-8-4: original receipts can only be printed once
         if ($receipt->printed) {
             // Check if receipt can still be printed (only STEB receipts can be reprinted)
-            if (!$receipt->canBePrinted()) {
+            if (! $receipt->canBePrinted()) {
                 return response()->json([
                     'message' => 'Receipt cannot be reprinted. According to Kassasystemforskriften § 2-8-4, original receipts can only be printed once.',
                     'error' => 'reprint_not_allowed',
@@ -274,7 +299,7 @@ class ReceiptsController extends BaseApiController
                         'receipt_type' => $receipt->receipt_type,
                     ], 403);
                 }
-                
+
                 // For sales and return receipts, check if copy receipt exists
                 // According to § 2-8-4: only one copy receipt can be printed per original
                 if ($receipt->hasCopyReceipt()) {
@@ -300,21 +325,21 @@ class ReceiptsController extends BaseApiController
 
         return response($xml, 200, [
             'Content-Type' => 'application/xml; charset=utf-8',
-            'Content-Disposition' => 'inline; filename="receipt-' . $receipt->receipt_number . '.xml"',
+            'Content-Disposition' => 'inline; filename="receipt-'.$receipt->receipt_number.'.xml"',
         ]);
     }
 
     /**
      * Mark receipt as printed
-     * 
+     *
      * Marks receipt as printed on first call, increments reprint count on subsequent calls.
      * This ensures compliance by tracking all print operations.
      */
     public function markPrinted(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -328,14 +353,14 @@ class ReceiptsController extends BaseApiController
         // - Original receipts can only be printed once (no reprints)
         // - Only one copy receipt can be printed per original
         // - STEB receipts can be printed multiple times (exception)
-        
-        if (!$receipt->printed) {
+
+        if (! $receipt->printed) {
             // First print - always allowed
             $receipt->markAsPrinted();
             $message = 'Receipt marked as printed';
         } else {
             // Receipt already printed - check if reprint is allowed
-            if (!$receipt->canBePrinted()) {
+            if (! $receipt->canBePrinted()) {
                 return response()->json([
                     'message' => 'Receipt cannot be reprinted. According to Kassasystemforskriften § 2-8-4, original receipts can only be printed once, and only one copy receipt is allowed per original.',
                     'error' => 'reprint_not_allowed',
@@ -343,7 +368,7 @@ class ReceiptsController extends BaseApiController
                     'reprint_count' => $receipt->reprint_count,
                 ], 403);
             }
-            
+
             // Only STEB receipts can be reprinted
             if ($receipt->receipt_type === 'steb') {
                 $receipt->incrementReprint();
@@ -366,7 +391,7 @@ class ReceiptsController extends BaseApiController
 
     /**
      * Reprint receipt
-     * 
+     *
      * Enforces reprint rules based on Kassasystemforskriften § 2-8-4:
      * - Original receipts can only be printed once (no reprints)
      * - Only one copy receipt can be printed per original
@@ -375,8 +400,8 @@ class ReceiptsController extends BaseApiController
     public function reprint(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -387,11 +412,12 @@ class ReceiptsController extends BaseApiController
             ->firstOrFail();
 
         // Check if receipt can be reprinted according to Kassasystemforskriften § 2-8-4
-        if (!$receipt->canBePrinted()) {
+        if (! $receipt->canBePrinted()) {
             if ($receipt->receipt_type === 'steb') {
                 $maxReprints = config('receipts.max_reprints_steb', 10);
+
                 return response()->json([
-                    'message' => 'STEB receipt has reached maximum reprint limit (' . $maxReprints . '). Cannot reprint further.',
+                    'message' => 'STEB receipt has reached maximum reprint limit ('.$maxReprints.'). Cannot reprint further.',
                     'error' => 'reprint_limit_exceeded',
                     'reprint_count' => $receipt->reprint_count,
                     'max_reprints' => $maxReprints,
@@ -425,7 +451,7 @@ class ReceiptsController extends BaseApiController
 
     /**
      * Create a copy receipt from an original receipt
-     * 
+     *
      * According to Kassasystemforskriften § 2-8-4: only one copy receipt can be printed per original
      */
     protected function createCopyReceipt(Receipt $originalReceipt): Receipt
@@ -436,13 +462,13 @@ class ReceiptsController extends BaseApiController
         }
 
         $store = $originalReceipt->store;
-        
-        // Prepare receipt data for copy - preserve all original data
+
+        // Prepare receipt data for copy - preserve all original data (including order date and items)
         $receiptData = $originalReceipt->receipt_data;
         $receiptData['original_receipt_number'] = $originalReceipt->receipt_number;
         $receiptNumber = Receipt::generateReceiptNumber($store->id, 'copy');
         $receiptData['receipt_number'] = $receiptNumber;
-        $receiptData['date'] = now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s');
+        // Keep original receipt's date (order time), do not use print time
 
         $copyReceipt = Receipt::create([
             'store_id' => $store->id,
@@ -469,7 +495,7 @@ class ReceiptsController extends BaseApiController
     protected function formatReceiptListResponse(Receipt $receipt, ?ConnectedCharge $charge = null, array $correctionEvents = []): array
     {
         // Get Norwegian display name for receipt type
-        $receiptTypeConfig = config('receipts.types.' . $receipt->receipt_type, []);
+        $receiptTypeConfig = config('receipts.types.'.$receipt->receipt_type, []);
         $receiptTypeDisplayName = $receiptTypeConfig['label'] ?? $receipt->receipt_type;
 
         // Check if receipt can be printed according to Kassasystemforskriften § 2-8-4
@@ -490,15 +516,9 @@ class ReceiptsController extends BaseApiController
 
     /**
      * Get available receipt types that can be generated for a charge
-     * 
+     *
      * Returns receipt types that are available but not yet generated,
      * with their Norwegian display names.
-     * 
-     * @param int $chargeId
-     * @param int $storeId
-     * @param ConnectedCharge|null $charge
-     * @param bool $hasCorrection
-     * @return array
      */
     protected function getAvailableReceiptTypes(int $chargeId, int $storeId, ?ConnectedCharge $charge = null, bool $hasCorrection = false): array
     {
@@ -534,25 +554,25 @@ class ReceiptsController extends BaseApiController
                     // According to § 2-8-4: only one copy receipt allowed per original
                     $hasSalesReceipt = in_array('sales', $existingTypes);
                     $hasReturnReceipt = in_array('return', $existingTypes);
-                    
+
                     if ($hasSalesReceipt) {
                         $salesReceipt = $existingReceipts->firstWhere('receipt_type', 'sales');
                         // Check if copy receipt already exists for this sales receipt
                         $copyExists = Receipt::where('original_receipt_id', $salesReceipt->id)
                             ->where('receipt_type', 'copy')
                             ->exists();
-                        
+
                         // Can generate copy if sales receipt exists and copy doesn't exist yet
-                        $canGenerate = !$copyExists;
+                        $canGenerate = ! $copyExists;
                     } elseif ($hasReturnReceipt) {
                         $returnReceipt = $existingReceipts->firstWhere('receipt_type', 'return');
                         // Check if copy receipt already exists for this return receipt
                         $copyExists = Receipt::where('original_receipt_id', $returnReceipt->id)
                             ->where('receipt_type', 'copy')
                             ->exists();
-                        
+
                         // Can generate copy if return receipt exists and copy doesn't exist yet
-                        $canGenerate = !$copyExists;
+                        $canGenerate = ! $copyExists;
                     }
                     break;
 
@@ -575,7 +595,7 @@ class ReceiptsController extends BaseApiController
 
                 case 'provisional':
                     // Provisional receipts should not be available for completed sales
-                    $canGenerate = !$isCompletedSale;
+                    $canGenerate = ! $isCompletedSale;
                     break;
 
                 case 'training':
@@ -610,9 +630,6 @@ class ReceiptsController extends BaseApiController
 
     /**
      * Format available (non-generated) receipt type as a receipt-like object
-     * 
-     * @param array $availableType
-     * @return array
      */
     protected function formatAvailableReceiptType(array $availableType): array
     {
