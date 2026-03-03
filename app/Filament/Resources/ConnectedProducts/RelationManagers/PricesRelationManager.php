@@ -191,6 +191,10 @@ class PricesRelationManager extends RelationManager
                         if ($store) {
                             if ($store->commission_type === 'percentage') {
                                 $defaultFeePercent = $store->commission_rate;
+                                // For one-time prices, convert percentage to fixed amount
+                                if ($record->type !== 'recurring' && $record->unit_amount) {
+                                    $defaultFeeAmount = (int) round(($record->unit_amount * $store->commission_rate) / 100);
+                                }
                             } elseif ($store->commission_type === 'fixed') {
                                 $defaultFeeAmount = $store->commission_rate;
                             }
