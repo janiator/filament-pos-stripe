@@ -48,16 +48,18 @@ Fields:
 - `created_at` (String)
 - `updated_at` (String)
 
-### API: `ProductsController::formatProductResponse()`
-**Status:** ✅ **MATCHES**
+### API: `ProductsController::transformProductForPos()`
+**Status:** ✅ **MATCHES** (with optional fields)
 
-All fields match. The API returns:
-- All product fields match exactly
-- `product_price` structure matches
-- `prices` array structure matches
-- `variants` array structure matches
-- `product_inventory` structure matches
-- `collections` field is returned by API but not in FlutterFlow struct (acceptable - optional field)
+The API returns all of the above and in addition:
+- `vendor_id` (int, nullable) – for product edit form dropdown (Leverandør)
+- `article_group_code` (string, nullable) – for product edit form (Varegruppekode)
+- `quantity_unit_id` (int, nullable) – for product edit form dropdown (Enhet)
+- `vendor` (object, nullable) – `{ id, name }` for display; optional, app can resolve from `vendor_id` via vendors list
+- `quantity_unit` (object, nullable) – `{ id, name, symbol, description }` for display; optional
+- `collections` – array; optional
+
+**Recommendation:** Ensure FlutterFlow `ProductStruct` includes `vendor_id`, `article_group_code`, and `quantity_unit_id` so the product edit form can pre-select Enhet, Leverandør, and Varegruppekode when opening an existing product. The nested `vendor` and `quantity_unit` are optional if the app resolves labels from IDs using vendors/quantity-units lists.
 
 ---
 

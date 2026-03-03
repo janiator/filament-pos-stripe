@@ -27,8 +27,12 @@ class ProductsController extends BaseApiController
             $this->authorizeTenant($request, $store);
 
             // Build query
-            $query = ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
-                ->where('active', true); // Only active products for POS
+            $query = ConnectedProduct::where('stripe_account_id', $store->stripe_account_id);
+
+            // By default only active products (for POS). Admin/manager can pass include_inactive=1 to see all.
+            if (! $request->boolean('include_inactive')) {
+                $query->where('active', true);
+            }
 
             // Filter by freetext search term if provided
             // Searches across product fields and variant fields (SKU, barcode, variant names, etc.)
@@ -86,7 +90,8 @@ class ProductsController extends BaseApiController
             // Get paginated results
             // TODO restore this $perPage = min($request->get('per_page', 100), 100); // Max 100 per page
             $perPage = 100; // Max 100 per page
-            $products = $query->orderBy('name')
+            $products = $query->with(['vendor', 'quantityUnit'])
+                ->orderBy('name')
                 ->paginate($perPage);
 
             // Transform products for POS
@@ -129,6 +134,11 @@ class ProductsController extends BaseApiController
                         'statement_descriptor' => $product->statement_descriptor ?? null,
                         'package_dimensions' => null,
                         'product_meta' => $product->product_meta ?? null,
+                        'vendor_id' => $product->vendor_id,
+                        'article_group_code' => $product->article_group_code,
+                        'quantity_unit_id' => $product->quantity_unit_id,
+                        'vendor' => null,
+                        'quantity_unit' => null,
                         'created_at' => $this->formatDateTimeOslo($product->created_at),
                         'updated_at' => $this->formatDateTimeOslo($product->updated_at),
                     ];
@@ -167,7 +177,8 @@ class ProductsController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         // Try to find by ID first, then by stripe_product_id
-        $product = ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
+        $product = ConnectedProduct::with(['vendor', 'quantityUnit'])
+            ->where('stripe_account_id', $store->stripe_account_id)
             ->where(function ($query) use ($id) {
                 $query->where('id', $id)
                     ->orWhere('stripe_product_id', $id);
@@ -369,6 +380,8 @@ class ProductsController extends BaseApiController
             }
         }
 
+        $quantityUnitData = $this->getQuantityUnitForProduct($product);
+
         return [
             'id' => $product->id,
             'stripe_product_id' => $product->stripe_product_id ?? null,
@@ -405,6 +418,13 @@ class ProductsController extends BaseApiController
             'package_dimensions' => $packageDimensions,
             'product_meta' => $product->product_meta ?? null,
             'collections' => $collections,
+            'vendor_id' => $product->vendor_id,
+            'article_group_code' => $product->article_group_code,
+            'quantity_unit_id' => $product->quantity_unit_id,
+            'vendor' => $product->relationLoaded('vendor') && $product->vendor
+                ? ['id' => $product->vendor->id, 'name' => $product->vendor->name]
+                : null,
+            'quantity_unit' => $quantityUnitData['id'] !== null ? $quantityUnitData : null,
             'created_at' => $this->formatDateTimeOslo($product->created_at),
             'updated_at' => $this->formatDateTimeOslo($product->updated_at),
         ];
