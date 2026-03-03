@@ -15,7 +15,8 @@ class EditQuantityUnit extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->hidden(fn (): bool => $this->record->is_standard),
         ];
     }
 }

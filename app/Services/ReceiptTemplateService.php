@@ -39,7 +39,29 @@ class ReceiptTemplateService
             $template = $this->getTemplateFromFile($templateType);
         }
 
-        $data = $this->prepareReceiptData($receipt);
+        // Copy receipts: use original receipt's full template data so copy shows same lines and transaction id; only swap receipt number
+        $originalReceipt = null;
+        if ($receipt->receipt_type === 'copy') {
+            if ($receipt->original_receipt_id) {
+                $originalReceipt = $receipt->originalReceipt ?? Receipt::find($receipt->original_receipt_id);
+            }
+            // Fallback: copy may have been created via receipts/generate with no original_receipt_id - find sales/return receipt for same charge
+            if (! $originalReceipt && $receipt->charge_id) {
+                $originalReceipt = Receipt::where('charge_id', $receipt->charge_id)
+                    ->whereIn('receipt_type', ['sales', 'return'])
+                    ->orderByDesc('id')
+                    ->first();
+            }
+            if ($originalReceipt) {
+                $data = $this->prepareReceiptData($originalReceipt);
+                $data['receipt_number'] = $receipt->receipt_number;
+                $data['original_receipt_number'] = $originalReceipt->receipt_number;
+            } else {
+                $data = $this->prepareReceiptData($receipt);
+            }
+        } else {
+            $data = $this->prepareReceiptData($receipt);
+        }
 
         // Use Mustache to render the template
         $xml = $this->mustache->render($template, $data);
@@ -48,6 +70,155 @@ class ReceiptTemplateService
         $xml = $this->sanitizeXml($xml);
 
         return $xml;
+    }
+
+    /**
+     * Convert rendered receipt XML to HTML for on-screen preview (receipt-like layout).
+     */
+    public function renderReceiptAsHtml(Receipt $receipt): string
+    {
+        $xml = $this->renderReceipt($receipt);
+        $xml = preg_replace('/<image([^>]*)>\K[\s\S]*?(?=<\/image>)/', '[IMAGE]', $xml);
+
+        return $this->xmlToHtml($xml);
+    }
+
+    /**
+     * Render a receipt template (XML content) with sample data and return HTML for preview.
+     * Used on the receipt template edit page.
+     */
+    public function renderTemplatePreviewAsHtml(string $templateContent, string $templateType): string
+    {
+        try {
+            $data = $this->getSampleReceiptData($templateType);
+            $xml = $this->renderTemplateContentWithData($templateContent, $data);
+            $xml = preg_replace('/<image([^>]*)>\K[\s\S]*?(?=<\/image>)/', '[IMAGE]', $xml);
+
+            return $this->xmlToHtml($xml);
+        } catch (\Throwable $e) {
+            return '<p class="text-red-600 dark:text-red-400">Preview failed: '.htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8').'</p>';
+        }
+    }
+
+    /**
+     * Sample data for template preview (no real Receipt). Keys match Mustache template variables.
+     *
+     * @return array<string, mixed>
+     */
+    public function getSampleReceiptData(string $templateType): array
+    {
+        $items = [
+            ['formatted_line' => 'Sample product 1        2 x 49,00', 'description_line' => null],
+            ['formatted_line' => 'Another item            1 x 129,00', 'description_line' => null],
+        ];
+        $vatBreakdown = [
+            ['vat_rate' => 25.0, 'vat_base_formatted' => '142,40', 'vat_amount_formatted' => '35,60'],
+        ];
+
+        return [
+            'store_name' => 'Sample Store',
+            'organization_number' => '123 456 789 MVA',
+            'store_address' => 'Sample Street 1, 0123 Oslo',
+            'store_logo_base64' => null,
+            'store_logo_width' => null,
+            'store_logo_height' => null,
+            'session_number' => '001',
+            'cashier_name' => 'Preview User',
+            'transaction_id' => 'ch_preview_123',
+            'order_number' => '1001',
+            'receipt_number' => '1-S-000001',
+            'date_time' => now()->format('d.m.Y H:i'),
+            'items' => $items,
+            'total_amount' => '227,00',
+            'currency' => 'NOK',
+            'vat_rate' => '25',
+            'vat_base' => '142,40',
+            'vat_amount' => '35,60',
+            'vat_breakdown' => $vatBreakdown,
+            'payment_method_display' => 'Kort',
+            'is_split_payment' => false,
+            'payments' => [],
+            'terminal_number' => null,
+            'card_brand' => null,
+            'card_last4' => null,
+            'tip_amount' => null,
+            'original_receipt_number' => null,
+            'customer_name' => 'Sample Customer',
+            'customer_phone' => '123 45 678',
+            'customer_email' => 'customer@example.com',
+            'estimated_pickup_date' => null,
+        ];
+    }
+
+    /**
+     * Render template XML content with given data (Mustache + sanitize).
+     */
+    public function renderTemplateContentWithData(string $templateContent, array $data): string
+    {
+        $xml = $this->mustache->render($templateContent, $data);
+
+        return $this->sanitizeXml($xml);
+    }
+
+    /**
+     * Convert Epson ePOS XML string to HTML for on-screen preview.
+     */
+    protected function xmlToHtml(string $xml): string
+    {
+        $dom = new \DOMDocument('1.0', 'UTF-8');
+        $dom->preserveWhiteSpace = false;
+        if (@$dom->loadXML($xml) === false) {
+            return '<p class="text-red-600 dark:text-red-400">Unable to parse receipt XML for preview.</p>';
+        }
+
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('epos', 'http://www.epson-pos.com/schemas/2011/03/epos-print');
+        $xpath->registerNamespace('s', 'http://schemas.xmlsoap.org/soap/envelope/');
+
+        $eposPrint = $xpath->query('//epos:epos-print')->item(0);
+        if (! $eposPrint) {
+            return '<p class="text-red-600 dark:text-red-400">Receipt content not found in XML.</p>';
+        }
+
+        $lines = [];
+        foreach ($eposPrint->childNodes as $node) {
+            if ($node->nodeType !== XML_ELEMENT_NODE) {
+                continue;
+            }
+            $localName = $node->localName ?? $node->nodeName;
+            switch (strtolower($localName)) {
+                case 'text':
+                    $text = trim($node->textContent ?? '');
+                    if ($text !== '') {
+                        $lines[] = '<div class="receipt-line">'.htmlspecialchars($text, ENT_QUOTES, 'UTF-8').'</div>';
+                    }
+                    break;
+                case 'feed':
+                    $lines[] = '<br>';
+                    break;
+                case 'image':
+                    $lines[] = '<div class="receipt-image-placeholder">[Logo]</div>';
+                    break;
+                case 'logo':
+                    $lines[] = '<div class="receipt-image-placeholder">[Logo]</div>';
+                    break;
+                case 'barcode':
+                    $code = trim($node->textContent ?? '');
+                    if ($code !== '') {
+                        $lines[] = '<div class="receipt-barcode">'.htmlspecialchars($code, ENT_QUOTES, 'UTF-8').'</div>';
+                    }
+                    $lines[] = '<br>';
+                    break;
+                case 'cut':
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        $html = implode("\n", $lines);
+
+        return '<div class="receipt-preview-paper">'.$html.'</div>';
     }
 
     /**
@@ -271,6 +442,102 @@ class ReceiptTemplateService
     }
 
     /**
+     * Build VAT breakdown per rate from charge metadata items (and optional total_tax fallback).
+     *
+     * @param  array<int, array<string, mixed>>  $rawItems  Items from charge metadata (price_amount/discount_amount in øre)
+     * @param  float  $totalAmountNok  Total receipt amount in NOK
+     * @param  array<string, mixed>  $chargeMetadata  Charge metadata (total_tax in NOK, etc.)
+     * @return array<int, array{vat_rate: float, vat_base: float, vat_amount: float, vat_base_formatted: string, vat_amount_formatted: string}>
+     */
+    protected function buildVatBreakdownFromItems(array $rawItems, float $totalAmountNok, array $chargeMetadata): array
+    {
+        $byRate = [];
+
+        foreach ($rawItems as $raw) {
+            $qty = isset($raw['quantity']) && (int) $raw['quantity'] > 0 ? (int) $raw['quantity'] : 1;
+            // Charge metadata may use price_amount (øre) or unit_price (øre per unit)
+            $priceOre = isset($raw['price_amount']) ? (int) $raw['price_amount'] : 0;
+            if ($priceOre === 0 && isset($raw['unit_price'])) {
+                $priceOre = (int) $raw['unit_price'];
+            }
+            $discountOre = isset($raw['discount_amount']) ? (int) $raw['discount_amount'] : 0;
+            $lineTotalOre = $priceOre * $qty - $discountOre;
+            if ($lineTotalOre <= 0) {
+                continue;
+            }
+
+            $rate = null;
+            if (isset($raw['tax_rate']) && is_numeric($raw['tax_rate'])) {
+                $rate = (float) $raw['tax_rate'];
+            }
+            if ($rate === null && ! empty($raw['article_group_code'])) {
+                $agc = \App\Models\ArticleGroupCode::where('code', $raw['article_group_code'])->first();
+                if ($agc !== null && $agc->default_vat_percent !== null) {
+                    $rate = (float) $agc->default_vat_percent;
+                }
+            }
+            if ($rate === null) {
+                $rate = 25.0;
+            }
+            // Normalize: DB may store 0.15 / 0.25 (decimal); we use percentage (15, 25) everywhere
+            if ($rate > 0 && $rate <= 1) {
+                $rate = $rate * 100;
+            }
+
+            $key = (string) round($rate * 100);
+            if (! isset($byRate[$key])) {
+                $byRate[$key] = ['rate' => $rate, 'base' => 0.0, 'tax' => 0.0];
+            }
+
+            $lineTotalNok = $lineTotalOre / 100;
+            $base = round($lineTotalNok / (1 + $rate / 100), 2);
+            $tax = round($lineTotalNok - $base, 2);
+            $byRate[$key]['base'] += $base;
+            $byRate[$key]['tax'] += $tax;
+        }
+
+        if ($byRate !== []) {
+            $out = [];
+            foreach ($byRate as $entry) {
+                $out[] = [
+                    'vat_rate' => $entry['rate'],
+                    'vat_base' => round($entry['base'], 2),
+                    'vat_amount' => round($entry['tax'], 2),
+                    'vat_base_formatted' => number_format($entry['base'], 2, ',', ' '),
+                    'vat_amount_formatted' => number_format($entry['tax'], 2, ',', ' '),
+                ];
+            }
+            usort($out, fn ($a, $b) => $b['vat_rate'] <=> $a['vat_rate']);
+
+            return $out;
+        }
+
+        // No items: use total_tax from metadata when present and > 0, otherwise single 25% row
+        $totalTaxNok = isset($chargeMetadata['total_tax']) && is_numeric($chargeMetadata['total_tax'])
+            ? (float) $chargeMetadata['total_tax']
+            : null;
+        if ($totalTaxNok !== null && $totalTaxNok > 0 && $totalAmountNok > 0) {
+            $vatBase = round($totalAmountNok - $totalTaxNok, 2);
+            $vatAmount = round($totalTaxNok, 2);
+            $vatRate = $vatBase > 0 ? round(($vatAmount / $vatBase) * 100, 2) : 25.0;
+        } else {
+            $vatRate = 25.0;
+            $vatBase = round($totalAmountNok / (1 + 0.25), 2);
+            $vatAmount = round($totalAmountNok - $vatBase, 2);
+        }
+
+        return [
+            [
+                'vat_rate' => $vatRate,
+                'vat_base' => $vatBase,
+                'vat_amount' => $vatAmount,
+                'vat_base_formatted' => number_format($vatBase, 2, ',', ' '),
+                'vat_amount_formatted' => number_format($vatAmount, 2, ',', ' '),
+            ],
+        ];
+    }
+
+    /**
      * Prepare data for template rendering
      */
     protected function prepareReceiptData(Receipt $receipt): array
@@ -278,6 +545,7 @@ class ReceiptTemplateService
         $store = $receipt->store;
         $charge = $receipt->charge;
         $receiptData = $receipt->receipt_data ?? [];
+
         $session = $receipt->posSession;
         $user = $receipt->user;
 
@@ -287,16 +555,21 @@ class ReceiptTemplateService
         // Get organization number from store model or metadata (prefer model field)
         $organizationNumber = $store->organisasjonsnummer ?? ($storeMetadata['organization_number'] ?? '');
 
-        // Calculate VAT (25% standard in Norway)
-        $vatRate = 25.0;
-        $totalAmount = $charge ? ($charge->amount / 100) : ($receipt->receipt_data['total'] ?? 0);
-        $vatBase = round($totalAmount / (1 + ($vatRate / 100)), 2);
-        $vatAmount = round($totalAmount - $vatBase, 2);
+        $totalAmount = $charge ? ($charge->amount / 100) : ($receiptData['total'] ?? 0);
+        $chargeMetadata = $charge && is_array($charge->metadata) ? $charge->metadata : ($charge ? (array) json_decode($charge->metadata ?? '{}', true) : []);
+        $rawItems = isset($chargeMetadata['items']) && is_array($chargeMetadata['items']) ? $chargeMetadata['items'] : [];
+
+        // Build VAT breakdown per rate (so receipt shows 25%, 15%, 0% etc. separately)
+        $vatBreakdown = $this->buildVatBreakdownFromItems($rawItems, $totalAmount, $chargeMetadata);
+        $first = $vatBreakdown[0] ?? null;
+        $vatRate = $first ? $first['vat_rate'] : 25.0;
+        $vatBase = $first ? $first['vat_base'] : round($totalAmount / (1 + 0.25), 2);
+        $vatAmount = $first ? $first['vat_amount'] : round($totalAmount - $vatBase, 2);
 
         // Prepare items and enrich with product information
         $items = [];
-        if ($charge && isset($receipt->receipt_data['items'])) {
-            $items = $receipt->receipt_data['items'];
+        if ($charge && isset($receiptData['items']) && ! empty($receiptData['items'])) {
+            $items = $receiptData['items'];
 
             // Normalize and enrich items with product information
             foreach ($items as &$item) {
@@ -500,7 +773,6 @@ class ReceiptTemplateService
         }
 
         // Format payment method display (handle split payments)
-        $receiptData = $receipt->receipt_data ?? [];
         $isSplitPayment = $receiptData['is_split_payment'] ?? false;
         $storeId = $store->id;
 
@@ -515,11 +787,11 @@ class ReceiptTemplateService
             $paymentMethodDisplay = $this->formatPaymentMethod($charge?->payment_method ?? 'unknown', $storeId);
         }
 
-        // Format date/time in Oslo timezone
-        // Use date from receipt_data if available (from charge paid_at), otherwise use created_at
-        if (isset($receipt->receipt_data['date'])) {
+        // Format date/time in Oslo timezone (order/transaction time, not print time)
+        // Use date from receipt_data if available (from charge paid_at / created_at), otherwise use receipt created_at
+        if (isset($receiptData['date'])) {
             // Parse the date string (already in Oslo timezone from ReceiptGenerationService)
-            $dateTime = \Carbon\Carbon::parse($receipt->receipt_data['date'], 'Europe/Oslo')
+            $dateTime = \Carbon\Carbon::parse($receiptData['date'], 'Europe/Oslo')
                 ->format('d.m.Y H:i');
         } else {
             $dateTime = $receipt->created_at->setTimezone('Europe/Oslo')->format('d.m.Y H:i');
@@ -581,13 +853,13 @@ class ReceiptTemplateService
         return [
             'store_name' => $store->name,
             'organization_number' => $organizationNumber,
-            'store_address' => $storeMetadata['address'] ?? '',
+            'store_address' => $store->address ?? ($storeMetadata['address'] ?? ''),
             'store_logo_base64' => $storeLogoBase64,
             'store_logo_width' => $storeLogoWidth,
             'store_logo_height' => $storeLogoHeight,
             'session_number' => $session?->session_number ?? 'N/A',
             'cashier_name' => $user?->name ?? 'N/A',
-            'transaction_id' => $charge?->stripe_charge_id ?? $receipt->receipt_data['transaction_id'] ?? 'N/A',
+            'transaction_id' => $charge?->stripe_charge_id ?? $receiptData['transaction_id'] ?? 'N/A',
             'order_number' => $orderNumber,
             'receipt_number' => $receipt->receipt_number,
             'date_time' => $dateTime,
@@ -597,6 +869,7 @@ class ReceiptTemplateService
             'vat_rate' => (string) $vatRate,
             'vat_base' => number_format($vatBase, 2, ',', ' '),
             'vat_amount' => number_format($vatAmount, 2, ',', ' '),
+            'vat_breakdown' => $vatBreakdown,
             'payment_method_display' => $paymentMethodDisplay,
             'is_split_payment' => $isSplitPayment,
             'payments' => $receiptData['payments'] ?? [],

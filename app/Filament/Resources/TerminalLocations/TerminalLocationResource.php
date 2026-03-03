@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TerminalLocations;
 
+use App\Enums\AddonType;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\TerminalLocations\Pages\CreateTerminalLocation;
 use App\Filament\Resources\TerminalLocations\Pages\EditTerminalLocation;
@@ -12,6 +13,7 @@ use App\Filament\Resources\TerminalLocations\Schemas\TerminalLocationInfolist;
 use App\Filament\Resources\TerminalLocations\Tables\TerminalLocationsTable;
 use App\Models\TerminalLocation;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -48,6 +50,11 @@ class TerminalLocationResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return __('filament.navigation_groups.terminals_and_equipment');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return \App\Models\Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Pos);
     }
 
     public static function form(Schema $schema): Schema

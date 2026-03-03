@@ -75,6 +75,7 @@ return [
             'label' => 'Mengdeenhet',
             'plural' => 'Mengdeenheter',
             'navigation' => 'Mengdeenheter',
+            'bulk_delete_standard_only' => 'Standardenheter kan ikke slettes. Velg egendefinerte enheter for å slette.',
         ],
         'article_group_code' => [
             'label' => 'Varegruppekode',
@@ -292,6 +293,24 @@ return [
             'title' => 'SAF-T koder importert',
             'body' => 'Standard SAF-T varegruppekoder har blitt importert.',
         ],
+        'import_quantity_unit_defaults' => [
+            'label' => 'Importer standardenheter',
+            'heading' => 'Importer standard mengdeenheter',
+            'description' => 'Dette vil opprette eller oppdatere standard mengdeenheter (stk, kg, m, l, osv.) for alle butikker og globale enheter. Eksisterende enheter overskrives ikke.',
+            'title' => 'Standardenheter importert',
+            'body' => 'Standard mengdeenheter har blitt importert.',
+            'error_title' => 'Feil ved import',
+            'error_body' => 'Kunne ikke importere mengdeenheter: :message',
+        ],
+        'import_payment_method_defaults' => [
+            'label' => 'Importer standard betalingsmetoder',
+            'heading' => 'Importer standard betalingsmetoder',
+            'description' => 'Dette vil opprette eller oppdatere standard betalingsmetoder (kontant, kort, Vipps, osv.) for alle butikker. Eksisterende metoder overskrives ikke.',
+            'title' => 'Betalingsmetoder importert',
+            'body' => 'Standard betalingsmetoder har blitt importert.',
+            'error_title' => 'Feil ved import',
+            'error_body' => 'Kunne ikke importere betalingsmetoder: :message',
+        ],
     ],
 
     // Common Labels
@@ -335,5 +354,3 @@ return [
         'download_xml' => 'Last ned XML',
     ],
 ];
-
-

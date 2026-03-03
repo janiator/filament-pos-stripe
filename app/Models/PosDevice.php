@@ -32,6 +32,8 @@ class PosDevice extends Model
         'last_seen_at',
         'device_metadata',
         'default_printer_id',
+        'last_connected_terminal_location_id',
+        'last_connected_terminal_reader_id',
     ];
 
     protected $casts = [
@@ -90,5 +92,21 @@ class PosDevice extends Model
     public function receipts(): HasManyThrough
     {
         return $this->hasManyThrough(Receipt::class, PosSession::class);
+    }
+
+    /**
+     * Last terminal location this device connected to (for auto-reconnect)
+     */
+    public function lastConnectedTerminalLocation(): BelongsTo
+    {
+        return $this->belongsTo(TerminalLocation::class, 'last_connected_terminal_location_id');
+    }
+
+    /**
+     * Last terminal reader this device connected to (for auto-reconnect)
+     */
+    public function lastConnectedTerminalReader(): BelongsTo
+    {
+        return $this->belongsTo(TerminalReader::class, 'last_connected_terminal_reader_id');
     }
 }

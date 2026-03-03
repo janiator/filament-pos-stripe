@@ -30,3 +30,5 @@ jobberiet-export.zip
 /packages/*/vendor/
 /packages/*/composer.lock
 /.env.testing
+/.cursor/*
+.junie/*

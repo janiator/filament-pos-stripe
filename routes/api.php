@@ -76,6 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Terminal endpoints (Stripe-specific, require authentication)
     Route::get('/terminals/locations', [\App\Http\Controllers\Api\TerminalLocationsController::class, 'index'])->name('api.terminals.locations');
     Route::get('/terminals/readers', [\App\Http\Controllers\Api\TerminalReadersController::class, 'index'])->name('api.terminals.readers');
+    Route::post('/terminals/readers/register-from-code', \App\Http\Controllers\Api\RegisterTerminalReaderController::class)->name('api.terminals.readers.register-from-code');
     Route::post('/stores/{store}/terminal/connection-token', StoreTerminalConnectionTokenController::class)
         ->name('stores.terminal.connection-token');
     Route::post('/stores/{store}/terminal/payment-intents', StoreTerminalPaymentIntentController::class)

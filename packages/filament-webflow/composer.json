@@ -1,0 +1,38 @@
+{
+    "name": "positiv/filament-webflow",
+    "description": "Filament plugin for Webflow CMS integration with dynamic collection resources",
+    "type": "laravel-package",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Positiv",
+            "email": "dev@positiv.no"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "filament/filament": "^3.2|^4.0",
+        "filament/spatie-laravel-media-library-plugin": "^3.0|^4.0",
+        "illuminate/database": "^10.0|^11.0|^12.0",
+        "illuminate/http": "^10.0|^11.0|^12.0",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "spatie/laravel-medialibrary": "^11.0|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Positiv\\FilamentWebflow\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Positiv\\FilamentWebflow\\WebflowServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

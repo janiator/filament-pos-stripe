@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ReceiptTemplates;
 
+use App\Enums\AddonType;
 use App\Filament\Resources\ReceiptTemplates\Pages\CreateReceiptTemplate;
 use App\Filament\Resources\ReceiptTemplates\Pages\EditReceiptTemplate;
 use App\Filament\Resources\ReceiptTemplates\Pages\ListReceiptTemplates;
@@ -9,6 +10,7 @@ use App\Filament\Resources\ReceiptTemplates\Schemas\ReceiptTemplateForm;
 use App\Filament\Resources\ReceiptTemplates\Tables\ReceiptTemplatesTable;
 use App\Models\ReceiptTemplate;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -54,6 +56,11 @@ class ReceiptTemplateResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return __('filament.navigation_groups.pos_system');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return \App\Models\Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Pos);
     }
 
     public static function getNavigationSort(): ?int

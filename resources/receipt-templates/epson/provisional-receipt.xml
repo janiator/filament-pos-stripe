@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
-<feed line="1"/>
 {{#store_logo_base64}}
 <image width="{{store_logo_width}}" height="{{store_logo_height}}">{{store_logo_base64}}</image>
 {{/store_logo_base64}}
 {{^store_logo_base64}}
 <logo key1="34" key2="48"/>
 {{/store_logo_base64}}
-<feed line="2"/>
+<feed line="1"/>
 <text lang="en"/>
 <text width="1" height="1"/>
 <text reverse="false" ul="false" em="true" color="color_1"/>
@@ -43,6 +42,8 @@
 <text>Kasse-ID: {{session_number}}</text>
 <feed/>
 <text>Transaksjons-ID: {{transaction_id}}</text>
+<feed/>
+<text>Kvitteringsnummer: {{receipt_number}}</text>
 <feed/>
 <text>—————————————————————————————————————————————</text>
 <feed/>

@@ -52,12 +52,13 @@ class SyncStoreTerminalReadersFromStripe
                         'stripe_reader_id' => $reader->id,
                     ],
                     [
-                        'store_id'            => $store->id,
-                        'label'               => $reader->label ?? $reader->id,
+                        'store_id'             => $store->id,
+                        'label'                => $reader->label ?? $reader->id,
                         'terminal_location_id' => $terminalLocationId,
-                        'device_type'         => $reader->device_type ?? null,
-                        'status'              => $reader->status ?? null,
-                        'tap_to_pay'          => str_contains($deviceType, 'tap_to_pay'),
+                        'serial_number'        => $reader->serial_number ?? null,
+                        'device_type'          => $reader->device_type ?? null,
+                        'status'               => $reader->status ?? null,
+                        'tap_to_pay'           => str_contains($deviceType, 'tap_to_pay'),
                     ]
                 );
 
