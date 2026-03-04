@@ -27,7 +27,6 @@ class Setting extends Model
         'locale',
         'tax_included',
         'tips_enabled',
-        'show_article_group_codes_in_pos',
         'gift_card_expiration_days',
         // Additional settings stored as JSON
         'additional_settings',
@@ -40,7 +39,6 @@ class Setting extends Model
         'default_vat_rate' => 'decimal:2',
         'tax_included' => 'boolean',
         'tips_enabled' => 'boolean',
-        'show_article_group_codes_in_pos' => 'boolean',
         'gift_card_expiration_days' => 'integer',
         'additional_settings' => 'array',
     ];
@@ -80,7 +78,6 @@ class Setting extends Model
                 'locale' => config('app.locale', 'nb'),
                 'tax_included' => false,
                 'tips_enabled' => true,
-                'show_article_group_codes_in_pos' => true,
             ]
         );
     }

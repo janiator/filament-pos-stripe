@@ -4912,14 +4912,18 @@ components:
         commission_rate:
           type: integer
           example: 10
-        settings:
-          type: object
-          description: POS display settings (included in GET /stores/current and GET /stores/{slug})
-          properties:
-            show_article_group_codes_in_pos:
-              type: boolean
-              default: true
-              description: When true, POS shows article group codes (varegruppekoder); when false, hide them from POS UI.
+        visible_article_group_codes:
+          type: array
+          description: Article group codes that are visible in the POS (active and show_in_pos). Use for product edit dropdown and to decide whether to show article group code on products.
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "04003"
+              name:
+                type: string
+                example: "Varesalg"
 
     Customer:
       type: object
