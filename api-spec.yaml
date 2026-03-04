@@ -2753,13 +2753,13 @@ paths:
       summary: Complete purchase (single or split payment)
       description: |
         Process a complete POS purchase with single or split payment methods.
-        
+
         **Single Payment:** Include `payment_method_code` in request body.
         **Split Payment:** Include `payments` array in request body.
         **Deferred Payment:** Set `metadata.deferred_payment` to `true` to create a purchase with payment on pickup/later.
         When using deferred payment, a delivery receipt (Utleveringskvittering) is generated per Kassasystemforskriften § 2-8-7.
         Payment can be completed later using POST /purchases/{id}/complete-payment.
-        
+
         This endpoint:
         1. Validates the cart and payment method(s)
         2. Processes payment(s) based on method (cash, Stripe, etc.) or creates pending charge for deferred payments
@@ -2769,7 +2769,7 @@ paths:
         6. Updates POS session totals (only for paid charges)
         7. Opens cash drawer for cash payments (not for deferred)
         8. Automatically prints receipt (if configured)
-        
+
         For Stripe payments, the payment intent must already be created and confirmed.
         Include the payment_intent_id in the metadata.
       operationId: createPurchase
@@ -2921,7 +2921,7 @@ paths:
       summary: Complete payment for deferred purchase
       description: |
         Complete payment for a purchase that was created with deferred payment (e.g., dry cleaning, payment on pickup).
-        
+
         This endpoint:
         1. Validates the charge is pending
         2. Processes payment based on the provided payment method
@@ -2931,10 +2931,10 @@ paths:
         6. Updates POS session totals
         7. Opens cash drawer for cash payments
         8. Automatically prints receipt (if configured)
-        
+
         For Stripe payments, the payment intent must already be created and confirmed.
         Include the payment_intent_id in the metadata.
-        
+
         **Compliance:** This complies with Kassasystemforskriften § 2-8-7 (Utleveringskvittering).
         Deferred payments generate delivery receipts initially, then sales receipts when payment is completed.
       operationId: completePurchasePayment
@@ -2962,7 +2962,7 @@ paths:
                   type: integer
                   nullable: true
                   description: |
-                    Optional POS session ID to use for completing the payment. 
+                    Optional POS session ID to use for completing the payment.
                     If not provided, the system will:
                     1. Use the current active session for the provided pos_device_id (if pos_device_id is provided)
                     2. Fall back to the original session from when the deferred payment was created
@@ -2974,7 +2974,7 @@ paths:
                   type: integer
                   nullable: true
                   description: |
-                    Optional POS device ID. If provided and pos_session_id is not provided, 
+                    Optional POS device ID. If provided and pos_session_id is not provided,
                     the system will automatically use the current active open session for this device.
                     This ensures compliance by defaulting to the session the user is currently signed in to.
                     **Compliance:** Recommended to provide this parameter to ensure proper tracking and audit trail.
@@ -3091,19 +3091,19 @@ paths:
       summary: Cancel a pending purchase
       description: |
         Cancels a purchase that is in pending status (e.g., deferred payments).
-        
+
         This endpoint:
         1. Validates the purchase is pending and not paid
         2. Cancels the Stripe payment intent if one exists (for deferred payments)
         3. Changes purchase status to 'cancelled'
         4. Logs a void transaction event (13014)
         5. Updates purchase metadata with cancellation information
-        
+
         **Use cases:**
         - Cancel deferred payments that were never completed
         - Cancel pending orders that customers no longer want
         - Handle abandoned transactions
-        
+
         **Note:** This is different from a refund. Refunds are for completed purchases.
         Cancellation is for pending purchases that never completed payment.
       operationId: cancelPurchase
@@ -3185,16 +3185,16 @@ paths:
       summary: Refund a purchase
       description: |
         Processes refunds for both Stripe and cash payments.
-        
+
         **For Stripe payments:**
         - Creates a refund in Stripe
         - Updates local charge record with refund information
         - Supports full and partial refunds
-        
+
         **For cash payments:**
         - Updates local records only (manual refund process)
         - Cash must be physically returned to customer
-        
+
         **Automatic processes:**
         1. Validates purchase can be refunded (paid, not cancelled)
         2. Processes Stripe refund if applicable
@@ -3203,12 +3203,12 @@ paths:
         5. Logs return receipt event (13013)
         6. Updates POS session totals (decrements amounts)
         7. Auto-prints receipt if configured
-        
+
         **Compliance:**
         - Return receipts are immutable and sequentially numbered
         - All refunds are logged in POS events for audit trail
         - Supports refund reasons for compliance tracking
-        
+
         **Use cases:**
         - Full refunds for returned items
         - Partial refunds for partial returns
@@ -4912,6 +4912,14 @@ components:
         commission_rate:
           type: integer
           example: 10
+        settings:
+          type: object
+          description: POS display settings (included in GET /stores/current and GET /stores/{slug})
+          properties:
+            show_article_group_codes_in_pos:
+              type: boolean
+              default: true
+              description: When true, POS shows article group codes (varegruppekoder); when false, hide them from POS UI.
 
     Customer:
       type: object

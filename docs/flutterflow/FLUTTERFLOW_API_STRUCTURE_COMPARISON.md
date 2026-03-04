@@ -228,6 +228,9 @@ Fields:
 
 The API may return additional fields like `slug` in some contexts (e.g., in `purchase_store`), but the basic `StoreStruct` only has `id` and `name`. This is acceptable if the FlutterFlow app doesn't need the `slug` field for basic store operations.
 
+**Store settings (POS):** `GET /stores/current` and `GET /stores/{slug}` include a `settings` object with POS display options:
+- `settings.show_article_group_codes_in_pos` (bool, default `true`) – When `true`, the POS should show article group codes (varegruppekoder) on products and in product edit; when `false`, hide them from the POS UI. Product API still returns `article_group_code` for tax/receipts; visibility is controlled by this setting.
+
 ---
 
 ## 8. Session Device Structure (Nested)

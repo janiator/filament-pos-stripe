@@ -139,6 +139,12 @@ class SettingsForm
                             ->helperText('Allow tips to be added to transactions. When disabled, tips will be hidden from reports.')
                             ->default(true)
                             ->columnSpan(1),
+
+                        Toggle::make('show_article_group_codes_in_pos')
+                            ->label('Show Article Group Codes in POS')
+                            ->helperText('When enabled, article group codes (varegruppekoder) are visible in the POS app. When disabled, they are hidden from product display and selection.')
+                            ->default(true)
+                            ->columnSpan(1),
                     ])
                     ->columns(2)
                     ->collapsible()

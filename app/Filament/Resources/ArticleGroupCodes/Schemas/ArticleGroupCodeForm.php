@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ArticleGroupCodes\Schemas;
 
+use Closure;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -27,9 +28,8 @@ class ArticleGroupCodeForm
                                 'required',
                                 'string',
                                 'max:10',
-                                function ($attribute, $value, $fail) {
-                                    // Validate code format (should be 5 digits starting with 04)
-                                    if (!preg_match('/^04\d{3}$/', $value)) {
+                                fn (): Closure => function (string $attribute, $value, Closure $fail): void {
+                                    if (! preg_match('/^04\d{3}$/', (string) $value)) {
                                         $fail('The code must be 5 digits starting with "04" (e.g., 04001, 04003).');
                                     }
                                 },

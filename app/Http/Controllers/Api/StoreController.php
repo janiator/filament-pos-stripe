@@ -45,18 +45,21 @@ class StoreController extends BaseApiController
         $user = $request->user();
         $store = Store::where('slug', $slug)->first();
 
-        if (!$store) {
+        if (! $store) {
             return response()->json([
                 'message' => 'Store not found',
             ], 404);
         }
 
         // Check if user has access to this store
-        if (!$user->hasRole('super_admin') && !$user->stores->contains($store)) {
+        if (! $user->hasRole('super_admin') && ! $user->stores->contains($store)) {
             return response()->json([
                 'message' => 'You do not have access to this store',
             ], 403);
         }
+
+        $store->loadMissing('settings');
+        $settings = $store->settings ?? \App\Models\Setting::getForStore($store->id);
 
         return response()->json([
             'store' => [
@@ -67,6 +70,9 @@ class StoreController extends BaseApiController
                 'stripe_account_id' => $store->stripe_account_id,
                 'commission_type' => $store->commission_type,
                 'commission_rate' => $store->commission_rate,
+                'settings' => [
+                    'show_article_group_codes_in_pos' => $settings->show_article_group_codes_in_pos ?? true,
+                ],
             ],
         ]);
     }
@@ -79,11 +85,14 @@ class StoreController extends BaseApiController
         $user = $request->user();
         $store = $user->currentStore();
 
-        if (!$store) {
+        if (! $store) {
             return response()->json([
                 'message' => 'No store assigned to this user',
             ], 404);
         }
+
+        $store->loadMissing('settings');
+        $settings = $store->settings ?? \App\Models\Setting::getForStore($store->id);
 
         return response()->json([
             'store' => [
@@ -94,6 +103,9 @@ class StoreController extends BaseApiController
                 'stripe_account_id' => $store->stripe_account_id,
                 'commission_type' => $store->commission_type,
                 'commission_rate' => $store->commission_rate,
+                'settings' => [
+                    'show_article_group_codes_in_pos' => $settings->show_article_group_codes_in_pos ?? true,
+                ],
             ],
         ]);
     }
@@ -121,25 +133,28 @@ class StoreController extends BaseApiController
             $store = Store::where('slug', $validated['store_slug'])->first();
         }
 
-        if (!$store) {
+        if (! $store) {
             return response()->json([
                 'message' => 'Store not found',
             ], 404);
         }
 
         // Verify user has access to this store
-        if (!$user->hasRole('super_admin') && !$user->stores->contains($store)) {
+        if (! $user->hasRole('super_admin') && ! $user->stores->contains($store)) {
             return response()->json([
                 'message' => 'You do not have access to this store',
             ], 403);
         }
 
         // Set as current store
-        if (!$user->setCurrentStore($store)) {
+        if (! $user->setCurrentStore($store)) {
             return response()->json([
                 'message' => 'Failed to set current store',
             ], 500);
         }
+
+        $store->loadMissing('settings');
+        $settings = $store->settings ?? \App\Models\Setting::getForStore($store->id);
 
         return response()->json([
             'message' => 'Current store changed successfully',
@@ -151,6 +166,9 @@ class StoreController extends BaseApiController
                 'stripe_account_id' => $store->stripe_account_id,
                 'commission_type' => $store->commission_type,
                 'commission_rate' => $store->commission_rate,
+                'settings' => [
+                    'show_article_group_codes_in_pos' => $settings->show_article_group_codes_in_pos ?? true,
+                ],
             ],
         ]);
     }

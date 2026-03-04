@@ -136,7 +136,6 @@ class ProductsController extends BaseApiController
                         'package_dimensions' => null,
                         'product_meta' => $product->product_meta ?? null,
                         'vendor_id' => $product->vendor_id,
-                        'article_group_code' => $product->article_group_code,
                         'quantity_unit_id' => $product->quantity_unit_id,
                         'vendor' => null,
                         'quantity_unit' => null,
@@ -421,7 +420,6 @@ class ProductsController extends BaseApiController
             'product_meta' => $product->product_meta ?? null,
             'collections' => $collections,
             'vendor_id' => $product->vendor_id,
-            'article_group_code' => $product->article_group_code,
             'quantity_unit_id' => $product->quantity_unit_id,
             'vendor' => $product->relationLoaded('vendor') && $product->vendor
                 ? ['id' => $product->vendor->id, 'name' => $product->vendor->name]
