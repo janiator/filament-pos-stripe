@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\ConnectedProducts\Tables;
 
+use App\Actions\ConnectedProducts\ResolveProductVatRate;
+use App\Models\ArticleGroupCode;
 use App\Models\ConnectedProduct;
 use App\Models\Vendor;
 use Filament\Actions\Action;
@@ -919,10 +921,19 @@ class ConnectedProductsTable
                             }
 
                             if (! empty($data['update_article_group_code'])) {
+                                $stripeAccountId = $records->first()?->stripe_account_id
+                                    ?? \Filament\Facades\Filament::getTenant()?->stripe_account_id;
+                                $resolveVat = app(ResolveProductVatRate::class);
                                 if (! empty($data['clear_article_group_code'])) {
                                     $updates['article_group_code'] = null;
+                                    $updates['vat_percent'] = null;
                                 } elseif (isset($data['article_group_code'])) {
                                     $updates['article_group_code'] = $data['article_group_code'];
+                                    $vatPercent = $resolveVat->vatPercentFromArticleGroupCode(
+                                        $data['article_group_code'],
+                                        $stripeAccountId
+                                    );
+                                    $updates['vat_percent'] = $vatPercent;
                                 }
                             }
 
@@ -993,6 +1004,90 @@ class ConnectedProductsTable
                         ->modalDescription('Select which fields to update for the selected products')
                         ->modalSubmitActionLabel('Apply Changes')
                         ->modalWidth('4xl'),
+
+                    BulkAction::make('setArticleGroupCode')
+                        ->label('Set Article Group Code')
+                        ->icon('heroicon-o-tag')
+                        ->color('info')
+                        ->form([
+                            Select::make('article_group_code')
+                                ->label('Article Group Code (SAF-T)')
+                                ->options(function () {
+                                    $stripeAccountId = \Filament\Facades\Filament::getTenant()?->stripe_account_id ?? null;
+                                    $query = ArticleGroupCode::query();
+                                    if ($stripeAccountId) {
+                                        $query->where(function ($q) use ($stripeAccountId) {
+                                            $q->where('stripe_account_id', $stripeAccountId)
+                                                ->orWhere(fn ($q2) => $q2->whereNull('stripe_account_id')->where('is_standard', true));
+                                        });
+                                    } else {
+                                        $query->whereNull('stripe_account_id')->where('is_standard', true);
+                                    }
+
+                                    return $query->where('active', true)
+                                        ->orderBy('sort_order', 'asc')
+                                        ->orderBy('code', 'asc')
+                                        ->get()
+                                        ->mapWithKeys(fn ($record) => [$record->code => $record->code.' - '.$record->name]);
+                                })
+                                ->getSearchResultsUsing(function (string $search) {
+                                    $stripeAccountId = \Filament\Facades\Filament::getTenant()?->stripe_account_id ?? null;
+                                    $query = ArticleGroupCode::query()
+                                        ->where(fn ($q) => $q->where('code', 'like', "%{$search}%")->orWhere('name', 'like', "%{$search}%"));
+                                    if ($stripeAccountId) {
+                                        $query->where(function ($q) use ($stripeAccountId) {
+                                            $q->where('stripe_account_id', $stripeAccountId)
+                                                ->orWhere(fn ($q2) => $q2->whereNull('stripe_account_id')->where('is_standard', true));
+                                        });
+                                    } else {
+                                        $query->whereNull('stripe_account_id')->where('is_standard', true);
+                                    }
+
+                                    return $query->where('active', true)
+                                        ->orderBy('sort_order', 'asc')
+                                        ->orderBy('code', 'asc')
+                                        ->limit(50)
+                                        ->get()
+                                        ->mapWithKeys(fn ($record) => [$record->code => $record->code.' - '.$record->name]);
+                                })
+                                ->getOptionLabelUsing(function ($value) {
+                                    $record = ArticleGroupCode::where('code', $value)->first();
+
+                                    return $record ? $record->code.' - '.$record->name : $value;
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->placeholder('Select article group')
+                                ->required()
+                                ->helperText('VAT rate will be updated from the article group default when set.'),
+                        ])
+                        ->action(function (Collection $records, array $data): void {
+                            $code = $data['article_group_code'] ?? null;
+                            if (! $code) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Article group code required')
+                                    ->send();
+
+                                return;
+                            }
+                            $stripeAccountId = $records->first()?->stripe_account_id
+                                ?? \Filament\Facades\Filament::getTenant()?->stripe_account_id;
+                            $resolveVat = app(ResolveProductVatRate::class);
+                            $vatPercent = $resolveVat->vatPercentFromArticleGroupCode($code, $stripeAccountId);
+                            $updates = [
+                                'article_group_code' => $code,
+                                'vat_percent' => $vatPercent,
+                            ];
+                            $updated = ConnectedProduct::whereIn('id', $records->pluck('id'))->update($updates);
+                            Notification::make()
+                                ->success()
+                                ->title('Article group code set')
+                                ->body("Article group code and VAT have been updated for {$updated} product(s).")
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion()
+                        ->successNotificationTitle('Article group code set'),
 
                     BulkAction::make('setVendor')
                         ->label('Set Vendor')
