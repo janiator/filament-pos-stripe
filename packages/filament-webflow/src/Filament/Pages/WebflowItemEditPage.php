@@ -83,7 +83,7 @@ class WebflowItemEditPage extends Page
             ->where('id', $this->itemId)
             ->whereHas('collection', function ($q) use ($tenant) {
                 $q->where('is_active', true)
-                    ->whereHas('site', fn ($q2) => $tenant ? $q2->whereHas('addon', fn ($aq) => $aq->where('store_id', $tenant->getKey())) : $q2);
+                    ->whereHas('site', fn ($q2) => $tenant ? $q2->where('store_id', $tenant->getKey()) : $q2);
             })
             ->first();
     }
