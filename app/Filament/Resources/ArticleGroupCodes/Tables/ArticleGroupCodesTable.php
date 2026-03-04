@@ -2,14 +2,17 @@
 
 namespace App\Filament\Resources\ArticleGroupCodes\Tables;
 
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
 
 class ArticleGroupCodesTable
 {
@@ -98,6 +101,30 @@ class ArticleGroupCodesTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('showInPos')
+                        ->label('Show in POS')
+                        ->icon('heroicon-o-eye')
+                        ->color('success')
+                        ->action(function (Collection $records): void {
+                            $records->each->update(['show_in_pos' => true]);
+                            Notification::make()
+                                ->success()
+                                ->title('Visible in POS')
+                                ->body("{$records->count()} article group code(s) are now visible in POS.")
+                                ->send();
+                        }),
+                    BulkAction::make('hideInPos')
+                        ->label('Hide in POS')
+                        ->icon('heroicon-o-eye-slash')
+                        ->color('gray')
+                        ->action(function (Collection $records): void {
+                            $records->each->update(['show_in_pos' => false]);
+                            Notification::make()
+                                ->success()
+                                ->title('Hidden in POS')
+                                ->body("{$records->count()} article group code(s) are now hidden from POS.")
+                                ->send();
+                        }),
                     DeleteBulkAction::make(),
                 ]),
             ])
