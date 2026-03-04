@@ -349,18 +349,18 @@ class ConnectedProductForm
                                                 'collections',
                                                 'name',
                                                 modifyQueryUsing: function ($query, $get) {
+                                                    $tenant = \Filament\Facades\Filament::getTenant();
                                                     $stripeAccountId = $get('stripe_account_id');
 
                                                     // Clear any existing orderBy clauses from the relationship
                                                     // (the relationship has orderByPivot which causes PostgreSQL DISTINCT issues)
                                                     $query->getQuery()->orders = [];
 
-                                                    if ($stripeAccountId) {
-                                                        // Select specific columns to avoid PostgreSQL JSON distinct issue
-                                                        // Order by name (which is in SELECT) instead of pivot sort_order
-                                                        return $query->where('stripe_account_id', $stripeAccountId)
-                                                            ->select('collections.id', 'collections.name', 'collections.stripe_account_id')
-                                                            ->orderBy('collections.name', 'asc');
+                                                    // Tenant-scope: only show collections for the current store
+                                                    if ($tenant?->id) {
+                                                        $query->where('collections.store_id', $tenant->id);
+                                                    } elseif ($stripeAccountId) {
+                                                        $query->where('collections.stripe_account_id', $stripeAccountId);
                                                     }
 
                                                     return $query->select('collections.id', 'collections.name', 'collections.stripe_account_id')
@@ -396,18 +396,15 @@ class ConnectedProductForm
                                                             ->default(true),
                                                     ])
                                                     ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set) {
-                                                        // Get stripe_account_id from form state
-                                                        $stripeAccountId = $get('stripe_account_id');
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $stripeAccountId = $get('stripe_account_id') ?? $tenant?->stripe_account_id;
 
                                                         if (! $stripeAccountId) {
                                                             throw new \Exception('Cannot create collection: stripe_account_id is required');
                                                         }
 
-                                                        // Get store_id from tenant
-                                                        $tenant = \Filament\Facades\Filament::getTenant();
                                                         $storeId = $tenant?->id;
 
-                                                        // Create the collection
                                                         $collection = Collection::create([
                                                             'store_id' => $storeId,
                                                             'stripe_account_id' => $stripeAccountId,
@@ -417,7 +414,6 @@ class ConnectedProductForm
                                                             'active' => $data['active'] ?? true,
                                                         ]);
 
-                                                        // Add the new collection to the selected collections
                                                         $currentCollections = $get('collections') ?? [];
                                                         if (! is_array($currentCollections)) {
                                                             $currentCollections = [];
@@ -1174,18 +1170,18 @@ class ConnectedProductForm
                                                 'collections',
                                                 'name',
                                                 modifyQueryUsing: function ($query, $get, $record) {
+                                                    $tenant = \Filament\Facades\Filament::getTenant();
                                                     $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
 
                                                     // Clear any existing orderBy clauses from the relationship
                                                     // (the relationship has orderByPivot which causes PostgreSQL DISTINCT issues)
                                                     $query->getQuery()->orders = [];
 
-                                                    if ($stripeAccountId) {
-                                                        // Select specific columns to avoid PostgreSQL JSON distinct issue
-                                                        // Order by name (which is in SELECT) instead of pivot sort_order
-                                                        return $query->where('stripe_account_id', $stripeAccountId)
-                                                            ->select('collections.id', 'collections.name', 'collections.stripe_account_id')
-                                                            ->orderBy('collections.name', 'asc');
+                                                    // Tenant-scope: only show collections for the current store
+                                                    if ($tenant?->id) {
+                                                        $query->where('collections.store_id', $tenant->id);
+                                                    } elseif ($stripeAccountId) {
+                                                        $query->where('collections.stripe_account_id', $stripeAccountId);
                                                     }
 
                                                     return $query->select('collections.id', 'collections.name', 'collections.stripe_account_id')
@@ -1221,18 +1217,15 @@ class ConnectedProductForm
                                                             ->default(true),
                                                     ])
                                                     ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
-                                                        // Get stripe_account_id from product record or form state
-                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id') ?? $tenant?->stripe_account_id;
 
                                                         if (! $stripeAccountId) {
                                                             throw new \Exception('Cannot create collection: stripe_account_id is required');
                                                         }
 
-                                                        // Get store_id from tenant
-                                                        $tenant = \Filament\Facades\Filament::getTenant();
                                                         $storeId = $tenant?->id;
 
-                                                        // Create the collection
                                                         $collection = Collection::create([
                                                             'store_id' => $storeId,
                                                             'stripe_account_id' => $stripeAccountId,
@@ -1242,7 +1235,6 @@ class ConnectedProductForm
                                                             'active' => $data['active'] ?? true,
                                                         ]);
 
-                                                        // Add the new collection to the selected collections
                                                         $currentCollections = $get('collections') ?? [];
                                                         if (! is_array($currentCollections)) {
                                                             $currentCollections = [];
@@ -1634,7 +1626,7 @@ class ConnectedProductForm
                                     ])
                                     ->collapsible()
                                     ->collapsed(true)
-                                                    ->visibleOn('edit'),
+                                    ->visibleOn('edit'),
                             ])
                             ->columnSpan([
                                 'default' => 1,
