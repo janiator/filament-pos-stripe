@@ -2,12 +2,43 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\ArticleGroupCode;
 use App\Models\Store;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StoreController extends BaseApiController
 {
+    /**
+     * Get article group codes visible in POS for this store (active + show_in_pos).
+     *
+     * @return array<int, array{code: string, name: string}>
+     */
+    private function getVisibleArticleGroupCodesForStore(Store $store): array
+    {
+        $stripeAccountId = $store->stripe_account_id;
+
+        return ArticleGroupCode::query()
+            ->where('active', true)
+            ->where('show_in_pos', true)
+            ->where(function ($q) use ($stripeAccountId) {
+                if ($stripeAccountId) {
+                    $q->where('stripe_account_id', $stripeAccountId)
+                        ->orWhere(function ($q2) {
+                            $q2->whereNull('stripe_account_id')->where('is_standard', true);
+                        });
+                } else {
+                    $q->whereNull('stripe_account_id')->where('is_standard', true);
+                }
+            })
+            ->orderBy('sort_order')
+            ->orderBy('code')
+            ->get(['code', 'name'])
+            ->map(fn ($row) => ['code' => $row->code, 'name' => $row->name])
+            ->values()
+            ->all();
+    }
+
     /**
      * Get all stores accessible by the authenticated user
      */
@@ -58,22 +89,8 @@ class StoreController extends BaseApiController
             ], 403);
         }
 
-        $store->loadMissing('settings');
-        $settings = $store->settings ?? \App\Models\Setting::getForStore($store->id);
-
         return response()->json([
-            'store' => [
-                'id' => $store->id,
-                'slug' => $store->slug,
-                'name' => $store->name,
-                'email' => $store->email,
-                'stripe_account_id' => $store->stripe_account_id,
-                'commission_type' => $store->commission_type,
-                'commission_rate' => $store->commission_rate,
-                'settings' => [
-                    'show_article_group_codes_in_pos' => $settings->show_article_group_codes_in_pos ?? true,
-                ],
-            ],
+            'store' => $this->storePayload($store),
         ]);
     }
 
@@ -91,22 +108,8 @@ class StoreController extends BaseApiController
             ], 404);
         }
 
-        $store->loadMissing('settings');
-        $settings = $store->settings ?? \App\Models\Setting::getForStore($store->id);
-
         return response()->json([
-            'store' => [
-                'id' => $store->id,
-                'slug' => $store->slug,
-                'name' => $store->name,
-                'email' => $store->email,
-                'stripe_account_id' => $store->stripe_account_id,
-                'commission_type' => $store->commission_type,
-                'commission_rate' => $store->commission_rate,
-                'settings' => [
-                    'show_article_group_codes_in_pos' => $settings->show_article_group_codes_in_pos ?? true,
-                ],
-            ],
+            'store' => $this->storePayload($store),
         ]);
     }
 
@@ -153,23 +156,26 @@ class StoreController extends BaseApiController
             ], 500);
         }
 
-        $store->loadMissing('settings');
-        $settings = $store->settings ?? \App\Models\Setting::getForStore($store->id);
-
         return response()->json([
             'message' => 'Current store changed successfully',
-            'store' => [
-                'id' => $store->id,
-                'slug' => $store->slug,
-                'name' => $store->name,
-                'email' => $store->email,
-                'stripe_account_id' => $store->stripe_account_id,
-                'commission_type' => $store->commission_type,
-                'commission_rate' => $store->commission_rate,
-                'settings' => [
-                    'show_article_group_codes_in_pos' => $settings->show_article_group_codes_in_pos ?? true,
-                ],
-            ],
+            'store' => $this->storePayload($store),
         ]);
+    }
+
+    /**
+     * Build store response payload with visible article group codes for POS.
+     */
+    private function storePayload(Store $store): array
+    {
+        return [
+            'id' => $store->id,
+            'slug' => $store->slug,
+            'name' => $store->name,
+            'email' => $store->email,
+            'stripe_account_id' => $store->stripe_account_id,
+            'commission_type' => $store->commission_type,
+            'commission_rate' => $store->commission_rate,
+            'visible_article_group_codes' => $this->getVisibleArticleGroupCodesForStore($store),
+        ];
     }
 }

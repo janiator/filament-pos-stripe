@@ -62,6 +62,11 @@ class ArticleGroupCodesTable
                     ->boolean()
                     ->sortable(),
 
+                IconColumn::make('show_in_pos')
+                    ->label('Visible in POS')
+                    ->boolean()
+                    ->sortable(),
+
                 TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
@@ -80,6 +85,12 @@ class ArticleGroupCodesTable
                     ->placeholder('All')
                     ->trueLabel('Standard only')
                     ->falseLabel('Custom only'),
+
+                TernaryFilter::make('show_in_pos')
+                    ->label('Visible in POS')
+                    ->placeholder('All')
+                    ->trueLabel('Visible in POS only')
+                    ->falseLabel('Hidden in POS only'),
             ])
             ->recordActions([
                 ViewAction::make(),

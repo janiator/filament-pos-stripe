@@ -20,6 +20,7 @@ class ArticleGroupCode extends Model
         'default_vat_percent',
         'is_standard',
         'active',
+        'show_in_pos',
         'sort_order',
     ];
 
@@ -27,6 +28,7 @@ class ArticleGroupCode extends Model
         'default_vat_percent' => 'decimal:2',
         'is_standard' => 'boolean',
         'active' => 'boolean',
+        'show_in_pos' => 'boolean',
         'sort_order' => 'integer',
     ];
 

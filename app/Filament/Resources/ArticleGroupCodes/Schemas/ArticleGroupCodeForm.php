@@ -72,6 +72,11 @@ class ArticleGroupCodeForm
                             ->helperText('Only active codes are available for selection')
                             ->disabled(fn ($record) => $record && $record->is_standard),
 
+                        Toggle::make('show_in_pos')
+                            ->label('Visible in POS')
+                            ->default(true)
+                            ->helperText('When enabled, this code appears in the POS app (e.g. in product edit). When disabled, it is hidden from POS.'),
+
                         Toggle::make('is_standard')
                             ->label('Standard Code')
                             ->default(false)
