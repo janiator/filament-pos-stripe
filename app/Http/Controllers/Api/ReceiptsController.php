@@ -61,8 +61,11 @@ class ReceiptsController extends BaseApiController
             $query->whereDate('created_at', '<=', $request->get('to_date'));
         }
 
+        $perPage = $request->get('per_page', 20);
+        // FlutterFlow infinite scroll: page is zero-indexed (0 = first page)
+        $page = max(1, (int) $request->get('page', 0) + 1);
         $receipts = $query->orderBy('created_at', 'desc')
-            ->paginate($request->get('per_page', 20));
+            ->paginate($perPage, ['*'], 'page', $page);
 
         // Get charge IDs from receipts to fetch available types
         $chargeIds = $receipts->getCollection()
@@ -123,8 +126,8 @@ class ReceiptsController extends BaseApiController
 
         $response = [
             'simpleReceiptList' => $receiptList,
-            'current_page' => $receipts->currentPage(),
-            'last_page' => $receipts->lastPage(),
+            'current_page' => $receipts->currentPage() - 1,
+            'last_page' => $receipts->lastPage() - 1,
             'per_page' => $receipts->perPage(),
             'total' => $receipts->total(),
         ];
