@@ -2,6 +2,7 @@
 
 use App\Actions\EventTickets\MapWebflowItemToEventTicketData;
 use Carbon\Carbon;
+use Positiv\FilamentWebflow\Models\WebflowCollection;
 use Positiv\FilamentWebflow\Models\WebflowItem;
 
 beforeEach(function () {
@@ -47,4 +48,30 @@ it('returns untitled when name is missing', function () {
     $data = MapWebflowItemToEventTicketData::map($item);
 
     expect($data['name'])->toBe('Untitled');
+});
+
+it('uses collection field_mapping when provided', function () {
+    $collection = new WebflowCollection;
+    $collection->id = 1;
+    $collection->field_mapping = [
+        'name' => 'event_title',
+        'venue' => 'location',
+        'ticket_1_sold' => 'sold-1',
+    ];
+    $item = new WebflowItem;
+    $item->id = 1;
+    $item->field_data = [
+        'event_title' => 'Mapped Event Name',
+        'slug' => 'mapped-event',
+        'location' => 'Mapped Venue',
+        'sold-1' => 5,
+    ];
+    $item->is_archived = false;
+
+    $data = MapWebflowItemToEventTicketData::map($item, $collection);
+
+    expect($data['name'])->toBe('Mapped Event Name');
+    expect($data['slug'])->toBe('mapped-event');
+    expect($data['venue'])->toBe('Mapped Venue');
+    expect($data['ticket_1_sold'])->toBe(5);
 });

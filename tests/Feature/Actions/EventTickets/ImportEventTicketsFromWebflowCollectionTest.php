@@ -80,7 +80,7 @@ it('updates existing event ticket when webflow item already linked', function ()
     expect($ticket->name)->toBe('New Name');
 });
 
-it('uses first active collection when collection argument is null', function () {
+it('uses first active collection when collection argument is null and no collection is marked for event tickets', function () {
     WebflowItem::create([
         'webflow_collection_id' => $this->collection->id,
         'webflow_item_id' => 'item_1',
@@ -91,4 +91,31 @@ it('uses first active collection when collection argument is null', function () 
     $result = $import($this->store, null, false);
 
     expect($result['created'])->toBe(1);
+});
+
+it('uses collection marked use_for_event_tickets when collection argument is null', function () {
+    $otherCollection = WebflowCollection::create([
+        'webflow_site_id' => $this->site->id,
+        'webflow_collection_id' => 'col_other',
+        'name' => 'Other',
+        'is_active' => true,
+        'use_for_event_tickets' => false,
+    ]);
+    WebflowItem::create([
+        'webflow_collection_id' => $otherCollection->id,
+        'webflow_item_id' => 'item_other',
+        'field_data' => ['name' => 'Other Event'],
+    ]);
+    $this->collection->update(['use_for_event_tickets' => true]);
+    WebflowItem::create([
+        'webflow_collection_id' => $this->collection->id,
+        'webflow_item_id' => 'item_1',
+        'field_data' => ['name' => 'Main Event'],
+    ]);
+
+    $import = app(ImportEventTicketsFromWebflowCollection::class);
+    $result = $import($this->store, null, false);
+
+    expect($result['created'])->toBe(1);
+    expect(EventTicket::where('store_id', $this->store->id)->first()->name)->toBe('Main Event');
 });

@@ -5,6 +5,7 @@ namespace Positiv\FilamentWebflow\Filament\Resources\WebflowSiteResource\Relatio
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\IconColumn;
@@ -13,6 +14,7 @@ use Filament\Tables\Table;
 use Positiv\FilamentWebflow\Actions\DiscoverCollections;
 use Positiv\FilamentWebflow\Jobs\PullWebflowItems;
 use Positiv\FilamentWebflow\Models\WebflowCollection;
+use Positiv\FilamentWebflow\Support\EventTicketFieldMapping;
 
 class CollectionsRelationManager extends RelationManager
 {
@@ -31,6 +33,12 @@ class CollectionsRelationManager extends RelationManager
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean(),
+                IconColumn::make('use_for_event_tickets')
+                    ->label('Event tickets')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-ticket')
+                    ->falseIcon('heroicon-o-minus')
+                    ->trueColor('success'),
                 TextColumn::make('last_synced_at')
                     ->label('Last synced')
                     ->dateTime()
@@ -104,11 +112,118 @@ class CollectionsRelationManager extends RelationManager
                             }
                         }
                     }),
+                Action::make('useForEventTickets')
+                    ->label(fn (WebflowCollection $record): string => $record->use_for_event_tickets ? 'Unset as event tickets' : 'Use for event tickets')
+                    ->icon(fn (WebflowCollection $record): string => $record->use_for_event_tickets ? 'heroicon-o-minus-circle' : 'heroicon-o-ticket')
+                    ->color(fn (WebflowCollection $record): string => $record->use_for_event_tickets ? 'gray' : 'success')
+                    ->visible(fn (WebflowCollection $record): bool => ! $record->use_for_event_tickets)
+                    ->form(fn (WebflowCollection $record): array => $this->fieldMappingFormSchema($record))
+                    ->fillForm(fn (WebflowCollection $record): array => $this->fieldMappingFill($record))
+                    ->modalHeading('Map CMS fields for event tickets')
+                    ->modalDescription('Choose which CMS field (by slug) to use for each ticket data. Leave empty to use the default.')
+                    ->action(function (array $data, WebflowCollection $record): void {
+                        $storeId = $this->getOwnerRecord()->store_id;
+                        WebflowCollection::query()
+                            ->whereHas('site', fn ($q) => $q->where('store_id', $storeId))
+                            ->where('id', '!=', $record->id)
+                            ->update(['use_for_event_tickets' => false]);
+                        $record->update([
+                            'field_mapping' => array_filter($data, fn ($v) => $v !== null && $v !== ''),
+                            'use_for_event_tickets' => true,
+                        ]);
+                        Notification::make()
+                            ->title('Events collection set')
+                            ->body("Items from \"{$record->name}\" will be used for Event Tickets. You can change the field mapping anytime via \"Configure field mapping\".")
+                            ->success()
+                            ->send();
+                    }),
+                Action::make('configureFieldMapping')
+                    ->label('Configure field mapping')
+                    ->icon('heroicon-o-map')
+                    ->color('gray')
+                    ->visible(fn (WebflowCollection $record): bool => (bool) $record->use_for_event_tickets)
+                    ->form(fn (WebflowCollection $record): array => $this->fieldMappingFormSchema($record))
+                    ->fillForm(fn (WebflowCollection $record): array => $this->fieldMappingFill($record))
+                    ->modalHeading('Map CMS fields for event tickets')
+                    ->modalDescription('Choose which CMS field (by slug) to use for each ticket data.')
+                    ->action(function (array $data, WebflowCollection $record): void {
+                        $record->update([
+                            'field_mapping' => array_filter($data, fn ($v) => $v !== null && $v !== ''),
+                        ]);
+                        Notification::make()
+                            ->title('Field mapping updated')
+                            ->body('The CMS field mapping for event tickets has been saved.')
+                            ->success()
+                            ->send();
+                    }),
+                Action::make('unsetEventTickets')
+                    ->label('Unset as event tickets')
+                    ->icon('heroicon-o-minus-circle')
+                    ->color('gray')
+                    ->visible(fn (WebflowCollection $record): bool => (bool) $record->use_for_event_tickets)
+                    ->requiresConfirmation()
+                    ->modalHeading('Unset event tickets collection?')
+                    ->modalDescription(fn (WebflowCollection $record): string => "Items from \"{$record->name}\" will no longer be used for Event Tickets. Field mapping is preserved.")
+                    ->action(function (WebflowCollection $record): void {
+                        $record->update(['use_for_event_tickets' => false]);
+                        Notification::make()
+                            ->title('Events collection unset')
+                            ->body("\"{$record->name}\" is no longer the event tickets collection.")
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Build form schema for event ticket field mapping (Select per logical key).
+     *
+     * @return array<int, \Filament\Forms\Components\Select>
+     */
+    private function fieldMappingFormSchema(WebflowCollection $record): array
+    {
+        $schema = $record->schema ?? [];
+        $options = ['' => '— None —'];
+        foreach ($schema as $field) {
+            $slug = $field['slug'] ?? null;
+            if ($slug) {
+                $label = $field['displayName'] ?? $slug;
+                $options[$slug] = $label.' ('.$slug.')';
+            }
+        }
+
+        $components = [];
+        foreach (EventTicketFieldMapping::logicalKeys() as $logicalKey) {
+            $label = str_replace('_', ' ', ucfirst($logicalKey));
+            $components[] = Select::make($logicalKey)
+                ->label($label)
+                ->options($options)
+                ->searchable()
+                ->nullable();
+        }
+
+        return $components;
+    }
+
+    /**
+     * Default fill for field mapping form (from record or defaults).
+     *
+     * @return array<string, string|null>
+     */
+    private function fieldMappingFill(WebflowCollection $record): array
+    {
+        $mapping = $record->field_mapping ?? [];
+        $defaults = EventTicketFieldMapping::defaultMapping();
+        $out = [];
+        foreach (EventTicketFieldMapping::logicalKeys() as $key) {
+            $out[$key] = $mapping[$key] ?? $defaults[$key] ?? null;
+        }
+
+        return $out;
     }
 }

@@ -3,6 +3,15 @@
 return [
     /*
     |--------------------------------------------------------------------------
+    | Webflow CMS item edit page class
+    |--------------------------------------------------------------------------
+    | Override with an app page class to add app-specific behaviour (e.g. event
+    | ticket section when collection has use_for_event_tickets).
+    */
+    'item_edit_page' => \Positiv\FilamentWebflow\Filament\Pages\WebflowItemEditPage::class,
+
+    /*
+    |--------------------------------------------------------------------------
     | Webflow API base URL
     |--------------------------------------------------------------------------
     */

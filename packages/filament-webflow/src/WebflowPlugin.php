@@ -30,7 +30,7 @@ class WebflowPlugin implements Plugin
             ])
             ->pages([
                 \Positiv\FilamentWebflow\Filament\Pages\WebflowCollectionItemsPage::class,
-                \Positiv\FilamentWebflow\Filament\Pages\WebflowItemEditPage::class,
+                config('filament-webflow.item_edit_page', \Positiv\FilamentWebflow\Filament\Pages\WebflowItemEditPage::class),
                 \Positiv\FilamentWebflow\Filament\Pages\WebflowSitesNavigationPage::class,
             ]);
     }

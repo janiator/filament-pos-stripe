@@ -3,12 +3,10 @@
 namespace App\Filament\Resources\EventTickets;
 
 use App\Actions\EventTickets\MapWebflowItemToEventTicketData;
-use App\Enums\AddonType;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\EventTickets\Pages\CreateEventTicket;
 use App\Filament\Resources\EventTickets\Pages\EditEventTicket;
 use App\Filament\Resources\EventTickets\Pages\ListEventTickets;
-use App\Models\Addon;
 use App\Models\ConnectedPaymentLink;
 use App\Models\EventTicket;
 use App\Models\Store;
@@ -57,16 +55,7 @@ class EventTicketResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        $tenant = Filament::getTenant();
-        if (! $tenant) {
-            return false;
-        }
-
-        return Addon::query()
-            ->where('store_id', $tenant->getKey())
-            ->where('type', AddonType::EventTickets)
-            ->where('is_active', true)
-            ->exists();
+        return false;
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
@@ -100,7 +89,19 @@ class EventTicketResource extends Resource
                                 return $query;
                             }
 
-                            return $query->whereHas('collection.site.addon', fn ($sq) => $sq->where('store_id', $tenantId));
+                            $hasEventsCollection = \Positiv\FilamentWebflow\Models\WebflowCollection::query()
+                                ->where('use_for_event_tickets', true)
+                                ->whereHas('site', fn ($q) => $q->where('store_id', $tenantId))
+                                ->exists();
+
+                            if ($hasEventsCollection) {
+                                return $query->whereHas('collection', function ($q) use ($tenantId) {
+                                    $q->where('use_for_event_tickets', true)
+                                        ->whereHas('site', fn ($sq) => $sq->where('store_id', $tenantId));
+                                });
+                            }
+
+                            return $query->whereHas('collection.site', fn ($sq) => $sq->where('store_id', $tenantId));
                         }
                     )
                     ->getOptionLabelFromRecordUsing(function ($record) {
