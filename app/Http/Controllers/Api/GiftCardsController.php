@@ -9,8 +9,6 @@ use App\Models\PosSession;
 use App\Services\GiftCardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class GiftCardsController extends BaseApiController
 {
@@ -117,7 +115,7 @@ class GiftCardsController extends BaseApiController
     {
         $giftCard = GiftCard::where('code', $code)->first();
 
-        if (!$giftCard) {
+        if (! $giftCard) {
             return response()->json(['message' => 'Gift card not found'], 404);
         }
 
@@ -163,7 +161,7 @@ class GiftCardsController extends BaseApiController
             $result['gift_card']['balance'] = $result['gift_card']['balance'] / 100;
         }
 
-        if (!$result['valid']) {
+        if (! $result['valid']) {
             return response()->json($result, 400);
         }
 
@@ -177,7 +175,7 @@ class GiftCardsController extends BaseApiController
     {
         $store = $this->getTenantStore($request);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -192,7 +190,7 @@ class GiftCardsController extends BaseApiController
         }
 
         // Search by code
-        if ($request->has('search') && !empty($request->get('search'))) {
+        if ($request->has('search') && ! empty($request->get('search'))) {
             $search = trim($request->get('search'));
             $query->where('code', 'like', "%{$search}%");
         }
@@ -205,9 +203,10 @@ class GiftCardsController extends BaseApiController
             $query->whereDate('purchased_at', '<=', $request->get('date_to'));
         }
 
-        // Pagination
+        // Pagination - FlutterFlow infinite scroll: page is zero-indexed (0 = first page)
         $perPage = min($request->get('per_page', 50), 100);
-        $giftCards = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $page = max(1, (int) $request->get('page', 0) + 1);
+        $giftCards = $query->orderBy('created_at', 'desc')->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
             'data' => $giftCards->items()->map(function ($giftCard) {
@@ -225,8 +224,8 @@ class GiftCardsController extends BaseApiController
             }),
             'total' => $giftCards->total(),
             'per_page' => $giftCards->perPage(),
-            'current_page' => $giftCards->currentPage(),
-            'last_page' => $giftCards->lastPage(),
+            'current_page' => $giftCards->currentPage() - 1,
+            'last_page' => $giftCards->lastPage() - 1,
         ]);
     }
 
@@ -415,6 +414,3 @@ class GiftCardsController extends BaseApiController
         }
     }
 }
-
-
-

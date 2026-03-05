@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Vendor;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class VendorsController extends BaseApiController
 {
@@ -15,8 +15,8 @@ class VendorsController extends BaseApiController
     {
         try {
             $store = $this->getTenantStore($request);
-            
-            if (!$store) {
+
+            if (! $store) {
                 return response()->json(['error' => 'Store not found'], 404);
             }
 
@@ -35,17 +35,18 @@ class VendorsController extends BaseApiController
                 $search = $request->get('search');
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'ilike', "%{$search}%")
-                      ->orWhere('description', 'ilike', "%{$search}%")
-                      ->orWhere('contact_email', 'ilike', "%{$search}%")
-                      ->orWhere('contact_phone', 'ilike', "%{$search}%");
+                        ->orWhere('description', 'ilike', "%{$search}%")
+                        ->orWhere('contact_email', 'ilike', "%{$search}%")
+                        ->orWhere('contact_phone', 'ilike', "%{$search}%");
                 });
             }
 
-            // Get paginated results
+            // Get paginated results - FlutterFlow infinite scroll: page is zero-indexed (0 = first page)
             $perPage = min($request->get('per_page', 50), 100); // Max 100 per page
+            $page = max(1, (int) $request->get('page', 0) + 1);
             $vendors = $query->withCount('products')
                 ->orderBy('name')
-                ->paginate($perPage);
+                ->paginate($perPage, ['*'], 'page', $page);
 
             // Transform vendors
             $transformedVendors = $vendors->getCollection()->map(function ($vendor) {
@@ -67,8 +68,8 @@ class VendorsController extends BaseApiController
             return response()->json([
                 'vendors' => $transformedVendors,
                 'meta' => [
-                    'current_page' => $vendors->currentPage(),
-                    'last_page' => $vendors->lastPage(),
+                    'current_page' => $vendors->currentPage() - 1,
+                    'last_page' => $vendors->lastPage() - 1,
                     'per_page' => $vendors->perPage(),
                     'total' => $vendors->total(),
                 ],
@@ -88,8 +89,8 @@ class VendorsController extends BaseApiController
     public function show(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -122,8 +123,8 @@ class VendorsController extends BaseApiController
     public function store(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -140,7 +141,7 @@ class VendorsController extends BaseApiController
         ]);
 
         try {
-            $vendor = new Vendor();
+            $vendor = new Vendor;
             $vendor->store_id = $store->id;
             $vendor->stripe_account_id = $store->stripe_account_id;
             $vendor->name = $validated['name'];
@@ -172,9 +173,9 @@ class VendorsController extends BaseApiController
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
-                'error' => 'Failed to create vendor: ' . $e->getMessage()
+                'error' => 'Failed to create vendor: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -185,8 +186,8 @@ class VendorsController extends BaseApiController
     public function update(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -250,11 +251,10 @@ class VendorsController extends BaseApiController
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
-                'error' => 'Failed to update vendor: ' . $e->getMessage()
+                'error' => 'Failed to update vendor: '.$e->getMessage(),
             ], 500);
         }
     }
 }
-

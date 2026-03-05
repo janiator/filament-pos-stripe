@@ -215,16 +215,18 @@ class PurchasesController extends BaseApiController
         }
 
         $perPage = min($request->get('per_page', 20), 100); // Max 100 per page
+        // FlutterFlow infinite scroll: page is zero-indexed (0 = first page)
+        $page = max(1, (int) $request->get('page', 0) + 1);
         $purchases = $query->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
             'purchases' => $purchases->getCollection()->map(function ($purchase) {
                 return $this->formatPurchaseResponse($purchase);
             }),
             'meta' => [
-                'current_page' => $purchases->currentPage(),
-                'last_page' => $purchases->lastPage(),
+                'current_page' => $purchases->currentPage() - 1,
+                'last_page' => $purchases->lastPage() - 1,
                 'per_page' => $purchases->perPage(),
                 'total' => $purchases->total(),
             ],

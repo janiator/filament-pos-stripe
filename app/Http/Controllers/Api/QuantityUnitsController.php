@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\QuantityUnit;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class QuantityUnitsController extends BaseApiController
 {
@@ -15,8 +15,8 @@ class QuantityUnitsController extends BaseApiController
     {
         try {
             $store = $this->getTenantStore($request);
-            
-            if (!$store) {
+
+            if (! $store) {
                 return response()->json(['error' => 'Store not found'], 404);
             }
 
@@ -28,24 +28,24 @@ class QuantityUnitsController extends BaseApiController
                 // Include store-specific units
                 $q->where('stripe_account_id', $store->stripe_account_id)
                   // Include global standard units that don't have a store-specific version
-                  ->orWhere(function ($q2) use ($store) {
-                      $q2->whereNull('stripe_account_id')
-                         ->where('is_standard', true)
-                         ->whereNotExists(function ($subQuery) use ($store) {
-                             $subQuery->select(\DB::raw(1))
-                                      ->from('quantity_units as q2')
-                                      ->whereColumn('q2.name', 'quantity_units.name')
-                                      ->where(function ($q3) {
-                                          $q3->whereColumn('q2.symbol', 'quantity_units.symbol')
-                                             ->orWhere(function ($q4) {
-                                                 $q4->whereNull('q2.symbol')
+                    ->orWhere(function ($q2) use ($store) {
+                        $q2->whereNull('stripe_account_id')
+                            ->where('is_standard', true)
+                            ->whereNotExists(function ($subQuery) use ($store) {
+                                $subQuery->select(\DB::raw(1))
+                                    ->from('quantity_units as q2')
+                                    ->whereColumn('q2.name', 'quantity_units.name')
+                                    ->where(function ($q3) {
+                                        $q3->whereColumn('q2.symbol', 'quantity_units.symbol')
+                                            ->orWhere(function ($q4) {
+                                                $q4->whereNull('q2.symbol')
                                                     ->whereNull('quantity_units.symbol');
-                                             });
-                                      })
-                                      ->where('q2.stripe_account_id', $store->stripe_account_id)
-                                      ->where('q2.active', true);
-                         });
-                  });
+                                            });
+                                    })
+                                    ->where('q2.stripe_account_id', $store->stripe_account_id)
+                                    ->where('q2.active', true);
+                            });
+                    });
             });
 
             // Filter by active status if provided
@@ -61,17 +61,18 @@ class QuantityUnitsController extends BaseApiController
                 $search = $request->get('search');
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'ilike', "%{$search}%")
-                      ->orWhere('symbol', 'ilike', "%{$search}%")
-                      ->orWhere('description', 'ilike', "%{$search}%");
+                        ->orWhere('symbol', 'ilike', "%{$search}%")
+                        ->orWhere('description', 'ilike', "%{$search}%");
                 });
             }
 
-            // Get paginated results with distinct to avoid duplicates
+            // Get paginated results - FlutterFlow infinite scroll: page is zero-indexed (0 = first page)
             $perPage = min($request->get('per_page', 100), 100); // Max 100 per page
+            $page = max(1, (int) $request->get('page', 0) + 1);
             $quantityUnits = $query->distinct()
                 ->orderBy('is_standard', 'desc') // Standard units first
                 ->orderBy('name')
-                ->paginate($perPage);
+                ->paginate($perPage, ['*'], 'page', $page);
 
             // Transform quantity units and deduplicate by name+symbol
             // Prefer store-specific units over global standard units
@@ -85,30 +86,32 @@ class QuantityUnitsController extends BaseApiController
                     'is_standard' => $unit->is_standard,
                     'active' => $unit->active,
                     'stripe_account_id' => $unit->stripe_account_id, // Include for client-side deduplication
-                    'display_name' => $unit->name . ($unit->symbol ? ' (' . $unit->symbol . ')' : ''),
+                    'display_name' => $unit->name.($unit->symbol ? ' ('.$unit->symbol.')' : ''),
                     'created_at' => $this->formatDateTimeOslo($unit->created_at),
                     'updated_at' => $this->formatDateTimeOslo($unit->updated_at),
                 ];
             })->filter(function ($unit) use (&$unitsByNameSymbol) {
                 // Deduplicate by name+symbol combination
-                $key = strtolower($unit['name'] . '|' . ($unit['symbol'] ?? ''));
-                
-                if (!isset($unitsByNameSymbol[$key])) {
+                $key = strtolower($unit['name'].'|'.($unit['symbol'] ?? ''));
+
+                if (! isset($unitsByNameSymbol[$key])) {
                     $unitsByNameSymbol[$key] = $unit;
+
                     return true;
                 }
-                
+
                 // If we already have a unit with this name+symbol, prefer store-specific over global
                 $existing = $unitsByNameSymbol[$key];
-                $existingIsStoreSpecific = !empty($existing['stripe_account_id']);
-                $currentIsStoreSpecific = !empty($unit['stripe_account_id']);
-                
+                $existingIsStoreSpecific = ! empty($existing['stripe_account_id']);
+                $currentIsStoreSpecific = ! empty($unit['stripe_account_id']);
+
                 // Replace if current is store-specific and existing is global
-                if ($currentIsStoreSpecific && !$existingIsStoreSpecific) {
+                if ($currentIsStoreSpecific && ! $existingIsStoreSpecific) {
                     $unitsByNameSymbol[$key] = $unit;
+
                     return true;
                 }
-                
+
                 // Otherwise, keep the existing one
                 return false;
             })->values();
@@ -116,8 +119,8 @@ class QuantityUnitsController extends BaseApiController
             return response()->json([
                 'quantity_units' => $transformedUnits,
                 'meta' => [
-                    'current_page' => $quantityUnits->currentPage(),
-                    'last_page' => $quantityUnits->lastPage(),
+                    'current_page' => $quantityUnits->currentPage() - 1,
+                    'last_page' => $quantityUnits->lastPage() - 1,
                     'per_page' => $quantityUnits->perPage(),
                     'total' => $quantityUnits->total(),
                 ],
@@ -131,4 +134,3 @@ class QuantityUnitsController extends BaseApiController
         }
     }
 }
-

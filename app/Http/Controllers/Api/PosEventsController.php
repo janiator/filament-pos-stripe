@@ -15,8 +15,8 @@ class PosEventsController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -55,16 +55,19 @@ class PosEventsController extends BaseApiController
             $query->where('event_data->nullinnslag', $nullinnslag);
         }
 
+        $perPage = $request->get('per_page', 50);
+        // FlutterFlow infinite scroll: page is zero-indexed (0 = first page)
+        $page = max(1, (int) $request->get('page', 0) + 1);
         $events = $query->orderBy('occurred_at', 'desc')
-            ->paginate($request->get('per_page', 50));
+            ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
             'events' => $events->getCollection()->map(function ($event) {
                 return $this->formatEventResponse($event);
             }),
             'pagination' => [
-                'current_page' => $events->currentPage(),
-                'last_page' => $events->lastPage(),
+                'current_page' => $events->currentPage() - 1,
+                'last_page' => $events->lastPage() - 1,
                 'per_page' => $events->perPage(),
                 'total' => $events->total(),
             ],
@@ -77,8 +80,8 @@ class PosEventsController extends BaseApiController
     public function store(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 
@@ -98,7 +101,7 @@ class PosEventsController extends BaseApiController
         // Verify session belongs to store if provided
         if (isset($validated['pos_session_id'])) {
             $session = PosSession::find($validated['pos_session_id']);
-            if (!$session || $session->store_id !== $store->id) {
+            if (! $session || $session->store_id !== $store->id) {
                 return response()->json(['message' => 'Session not found or does not belong to this store'], 404);
             }
         }
@@ -128,8 +131,8 @@ class PosEventsController extends BaseApiController
     public function show(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['message' => 'Store not found'], 404);
         }
 

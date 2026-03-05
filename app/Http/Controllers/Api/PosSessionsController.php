@@ -44,16 +44,19 @@ class PosSessionsController extends BaseApiController
             $query->where('pos_device_id', $request->get('pos_device_id'));
         }
 
+        $perPage = $request->get('per_page', 20);
+        // FlutterFlow infinite scroll: page is zero-indexed (0 = first page)
+        $page = max(1, (int) $request->get('page', 0) + 1);
         $sessions = $query->orderBy('opened_at', 'desc')
-            ->paginate($request->get('per_page', 20));
+            ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
             'sessions' => $sessions->getCollection()->map(function ($session) {
                 return $this->formatSessionResponse($session);
             }),
             'meta' => [
-                'current_page' => $sessions->currentPage(),
-                'last_page' => $sessions->lastPage(),
+                'current_page' => $sessions->currentPage() - 1,
+                'last_page' => $sessions->lastPage() - 1,
                 'per_page' => $sessions->perPage(),
                 'total' => $sessions->total(),
             ],
