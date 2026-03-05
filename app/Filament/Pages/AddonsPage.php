@@ -2,9 +2,12 @@
 
 namespace App\Filament\Pages;
 
+use App\Actions\CleanupWebflowDataForStore;
 use App\Enums\AddonType;
 use App\Models\Addon;
+use App\Models\Store;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -123,12 +126,35 @@ class AddonsPage extends Page
             return;
         }
 
+        $tenant = Filament::getTenant();
+        if (! $tenant instanceof Store) {
+            return;
+        }
+
         $addon->update(['is_active' => false]);
+
+        $deletedSites = 0;
+        if (in_array($typeValue, AddonType::typesWithWebflow(), true)) {
+            $hasOtherWebflowAddon = Addon::query()
+                ->where('store_id', $tenant->getKey())
+                ->where('is_active', true)
+                ->whereIn('type', AddonType::typesWithWebflow())
+                ->exists();
+
+            if (! $hasOtherWebflowAddon) {
+                $deletedSites = app(CleanupWebflowDataForStore::class)($tenant);
+            }
+        }
+
         $this->refreshAddons();
-        Notification::make()
+
+        $notification = Notification::make()
             ->title($addon->type->label().' disabled')
-            ->success()
-            ->send();
+            ->success();
+        if ($deletedSites > 0) {
+            $notification->body($deletedSites.' Webflow site(s) and their data were removed for this store.');
+        }
+        $notification->send();
     }
 
     private function refreshAddons(): void
@@ -169,8 +195,8 @@ class AddonsPage extends Page
     {
         return match ($type) {
             AddonType::EventTickets => [
-                'url' => \App\Filament\Resources\EventTickets\EventTicketResource::getUrl('index'),
-                'label' => 'Open Event Tickets',
+                'url' => WebflowSiteResource::getUrl('index'),
+                'label' => 'Open Webflow CMS',
             ],
             AddonType::GiftCards => [
                 'url' => \App\Filament\Resources\GiftCards\GiftCardResource::getUrl('index'),
