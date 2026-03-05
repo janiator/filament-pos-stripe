@@ -131,6 +131,7 @@ Widget-en bruker følgende API-endepunkt:
 **Query Parameters:**
 - `status` - Filter by status (`closed` for Z-rapporter)
 - `pos_device_id` - Filter by device ID
+- `page` - Page number, 0-based (default: 0). Use for infinite scroll; next page = current_page + 1.
 - `per_page` - Number of results per page (default: 50)
 
 **Response:**
@@ -156,8 +157,8 @@ Widget-en bruker følgende API-endepunkt:
     }
   ],
   "meta": {
-    "current_page": 1,
-    "last_page": 5,
+    "current_page": 0,
+    "last_page": 4,
     "per_page": 50,
     "total": 100
   }

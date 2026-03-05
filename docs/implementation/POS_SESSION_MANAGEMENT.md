@@ -79,7 +79,8 @@ List all sessions for the current store.
 - `status`: Filter by status (`open`, `closed`)
 - `date`: Filter by opening date
 - `pos_device_id`: Filter by device
-- `per_page`: Pagination (default: 20)
+- `page`: Page number, 0-based (default: 0). All list endpoints use 0-based pagination for FlutterFlow infinite scroll.
+- `per_page`: Items per page (default: 20)
 
 **Response:**
 ```json

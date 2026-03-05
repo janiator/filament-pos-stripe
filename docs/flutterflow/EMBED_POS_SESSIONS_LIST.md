@@ -47,6 +47,7 @@ This guide shows how to embed the POS sessions list from the Filament admin pane
 - `status` (optional) - Filter by status: `open`, `closed`, `abandoned`
 - `date` (optional) - Filter by opening date (YYYY-MM-DD)
 - `pos_device_id` (optional) - Filter by device ID
+- `page` (optional) - Page number, 0-based (default: 0). Response `current_page` and `last_page` are also 0-based for infinite scroll.
 - `per_page` (optional) - Results per page (default: 20)
 
 **Response:**
@@ -72,8 +73,8 @@ This guide shows how to embed the POS sessions list from the Filament admin pane
     }
   ],
   "meta": {
-    "current_page": 1,
-    "last_page": 5,
+    "current_page": 0,
+    "last_page": 4,
     "per_page": 20,
     "total": 100
   }

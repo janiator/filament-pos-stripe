@@ -118,8 +118,8 @@ final response = await http.get(
     }
   ],
   "pagination": {
-    "current_page": 1,
-    "last_page": 1,
+    "current_page": 0,
+    "last_page": 0,
     "per_page": 50,
     "total": 1
   }

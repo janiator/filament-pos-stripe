@@ -87,12 +87,13 @@ class ProductsController extends BaseApiController
                 }
             }
 
-            // Get paginated results
+            // Get paginated results - FlutterFlow infinite scroll: page is zero-indexed (0 = first page)
             // TODO restore this $perPage = min($request->get('per_page', 100), 100); // Max 100 per page
             $perPage = 100; // Max 100 per page
+            $page = max(1, (int) $request->get('page', 0) + 1);
             $products = $query->with(['vendor', 'quantityUnit'])
                 ->orderBy('name')
-                ->paginate($perPage);
+                ->paginate($perPage, ['*'], 'page', $page);
 
             // Transform products for POS
             $transformedProducts = $products->getCollection()->map(function ($product) {
@@ -148,8 +149,8 @@ class ProductsController extends BaseApiController
             return response()->json([
                 'product' => $transformedProducts,
                 'meta' => [
-                    'current_page' => $products->currentPage(),
-                    'last_page' => $products->lastPage(),
+                    'current_page' => $products->currentPage() - 1,
+                    'last_page' => $products->lastPage() - 1,
                     'per_page' => $products->perPage(),
                     'total' => $products->total(),
                 ],

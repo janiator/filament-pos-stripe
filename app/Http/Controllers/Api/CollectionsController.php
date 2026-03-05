@@ -44,12 +44,13 @@ class CollectionsController extends BaseApiController
                 });
             }
 
-            // Get paginated results
+            // Get paginated results - FlutterFlow infinite scroll: page is zero-indexed (0 = first page)
             $perPage = min($request->get('per_page', 50), 100); // Max 100 per page
+            $page = max(1, (int) $request->get('page', 0) + 1);
             $collections = $query->withCount('products')
                 ->orderBy('sort_order')
                 ->orderBy('name')
-                ->paginate($perPage);
+                ->paginate($perPage, ['*'], 'page', $page);
 
             // Transform collections
             $transformedCollections = $collections->getCollection()->map(function ($collection) {
@@ -97,8 +98,8 @@ class CollectionsController extends BaseApiController
             return response()->json([
                 'collections' => $transformedCollections,
                 'meta' => [
-                    'current_page' => $collections->currentPage(),
-                    'last_page' => $collections->lastPage(),
+                    'current_page' => $collections->currentPage() - 1,
+                    'last_page' => $collections->lastPage() - 1,
                     'per_page' => $collections->perPage(),
                     'total' => $collections->total() + ($uncategorizedCount > 0 ? 1 : 0),
                 ],

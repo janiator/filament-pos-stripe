@@ -2718,6 +2718,14 @@ paths:
           required: false
           schema:
             type: string
+        - name: page
+          in: query
+          description: Page number (0-based; 0 = first page). Used by FlutterFlow infinite scroll.
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
         - name: per_page
           in: query
           description: Number of items per page (max 100)
@@ -5355,13 +5363,16 @@ components:
 
     PaginationMeta:
       type: object
+      description: Pagination metadata. Page numbers are 0-based for FlutterFlow infinite scroll.
       properties:
         current_page:
           type: integer
-          example: 1
+          description: Current page index (0-based)
+          example: 0
         last_page:
           type: integer
-          example: 10
+          description: Last page index (0-based)
+          example: 9
         per_page:
           type: integer
           example: 20
