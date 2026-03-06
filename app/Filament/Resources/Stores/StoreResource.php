@@ -11,6 +11,7 @@ use App\Filament\Resources\Stores\Schemas\StoreInfolist;
 use App\Filament\Resources\Stores\Tables\StoresTable;
 use App\Models\Store;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -30,7 +31,7 @@ class StoreResource extends Resource
     public static function boot(): void
     {
         parent::boot();
-        
+
         // Completely disable tenant scoping for this resource
         // Store IS the tenant, so it cannot be scoped to itself
         static::scopeToTenant(false);
@@ -49,6 +50,7 @@ class StoreResource extends Resource
         if ($query->getModel()::class === Store::class) {
             return $query;
         }
+
         return $query;
     }
 
@@ -73,17 +75,27 @@ class StoreResource extends Resource
         return null; // Stores is the main resource, no group
     }
 
+    public static function getNavigationUrl(): string
+    {
+        $tenant = Filament::getTenant();
+        if ($tenant instanceof Store) {
+            return static::getUrl('view', ['record' => $tenant]);
+        }
+
+        return static::getUrl();
+    }
+
     public static function canViewAny(): bool
     {
         // Only allow super admins to view all stores
         // Use withoutGlobalScopes to bypass tenant scoping for role checks
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return false;
         }
-        
+
         // Temporarily disable tenant scoping for role check
-        return \Filament\Facades\Filament::getTenant() 
+        return \Filament\Facades\Filament::getTenant()
             ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
             : $user->hasRole('super_admin');
     }
@@ -93,21 +105,21 @@ class StoreResource extends Resource
         // Bypass Filament's tenant scoping entirely by querying Store directly
         // Store IS the tenant, so we can't use parent::getEloquentQuery() which tries to apply tenant scoping
         $query = Store::query()->withoutGlobalScopes();
-        
+
         // Super admins can see all stores, others see none
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return $query->whereRaw('1 = 0');
         }
-        
-        $isSuperAdmin = \Filament\Facades\Filament::getTenant() 
+
+        $isSuperAdmin = \Filament\Facades\Filament::getTenant()
             ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
             : $user->hasRole('super_admin');
-            
-        if (!$isSuperAdmin) {
+
+        if (! $isSuperAdmin) {
             return $query->whereRaw('1 = 0'); // Return empty query
         }
-        
+
         return $query;
     }
 
