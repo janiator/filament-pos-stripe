@@ -27,6 +27,10 @@ class CashDrawerService
             return;
         }
 
+        if (! $device->cash_drawer_enabled) {
+            return;
+        }
+
         // Log cash drawer open event (13005)
         PosEvent::create([
             'store_id' => $posSession->store_id,

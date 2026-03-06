@@ -5,16 +5,11 @@ namespace App\Services;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
-use App\Models\PosSession;
 use App\Models\PosEvent;
+use App\Models\PosSession;
 use App\Models\ProductVariant;
 use App\Models\Receipt;
 use App\Models\Store;
-use App\Services\ReceiptGenerationService;
-use App\Services\CashDrawerService;
-use App\Services\ReceiptPrintService;
-use App\Services\SafTCodeMapper;
-use App\Services\GiftCardService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -24,9 +19,13 @@ use Throwable;
 class PurchaseService
 {
     protected ReceiptGenerationService $receiptService;
+
     protected CashDrawerService $cashDrawerService;
+
     protected ReceiptPrintService $receiptPrintService;
+
     protected ?GiftCardService $giftCardService = null;
+
     protected ?StripeClient $stripeClient = null;
 
     public function __construct(
@@ -44,9 +43,10 @@ class PurchaseService
      */
     protected function getGiftCardService(): GiftCardService
     {
-        if (!$this->giftCardService) {
+        if (! $this->giftCardService) {
             $this->giftCardService = app(GiftCardService::class);
         }
+
         return $this->giftCardService;
     }
 
@@ -54,36 +54,34 @@ class PurchaseService
      * Resolve customer ID from cart data
      * Accepts customer database ID (integer)
      * Returns Stripe customer ID or null
-     *
-     * @param array $cartData
-     * @param string $stripeAccountId
-     * @return string|null
      */
     protected function resolveCustomerId(array $cartData, string $stripeAccountId): ?string
     {
         $customerId = $cartData['customer_id'] ?? null;
-        
+
         // Return null if no customer_id provided
         if ($customerId === null || $customerId === '' || $customerId === 0) {
             return null;
         }
-        
+
         // customer_id is the database ID (integer), look up the customer
         if (is_numeric($customerId)) {
             $customerIdInt = (int) $customerId;
-            
+
             $customer = \App\Models\ConnectedCustomer::where('id', $customerIdInt)
                 ->where('stripe_account_id', $stripeAccountId)
                 ->first();
-            
+
             if ($customer) {
-                if (!$customer->stripe_customer_id) {
+                if (! $customer->stripe_customer_id) {
                     Log::warning('Customer found but has no stripe_customer_id', [
                         'customer_id' => $customerIdInt,
                         'stripe_account_id' => $stripeAccountId,
                     ]);
+
                     return null;
                 }
+
                 return $customer->stripe_customer_id;
             } else {
                 // Log warning if customer_id provided but not found
@@ -100,7 +98,7 @@ class PurchaseService
                 'stripe_account_id' => $stripeAccountId,
             ]);
         }
-        
+
         // If we can't resolve it, return null
         return null;
     }
@@ -108,11 +106,6 @@ class PurchaseService
     /**
      * Process a purchase with the given payment method
      *
-     * @param PosSession $posSession
-     * @param PaymentMethod $paymentMethod
-     * @param array $cartData
-     * @param array $metadata
-     * @return array
      * @throws \Exception
      */
     public function processPurchase(
@@ -125,13 +118,20 @@ class PurchaseService
 
         try {
             // Validate payment method is enabled
-            if (!$paymentMethod->enabled) {
+            if (! $paymentMethod->enabled) {
                 throw new \Exception('Payment method is not enabled');
             }
 
             // Validate payment method belongs to store
             if ($paymentMethod->store_id !== $posSession->store_id) {
                 throw new \Exception('Payment method does not belong to this store');
+            }
+
+            if ($paymentMethod->isCash()) {
+                $device = $posSession->posDevice;
+                if ($device && $device->cash_drawer_enabled === false) {
+                    throw new \App\Exceptions\CashDrawerDisabledException;
+                }
             }
 
             // Extract cart totals
@@ -144,7 +144,7 @@ class PurchaseService
 
             // Process payment based on provider
             $charge = match ($paymentMethod->provider) {
-                'cash' => $isDeferredPayment 
+                'cash' => $isDeferredPayment
                     ? $this->processDeferredPayment($posSession, $paymentMethod, $totalAmount, $currency, $cartData, $metadata)
                     : $this->processCashPayment($posSession, $paymentMethod, $totalAmount, $currency, $cartData, $metadata),
                 'stripe' => $isDeferredPayment
@@ -167,7 +167,7 @@ class PurchaseService
             $posEvent = $this->logSalesReceiptEvent($posSession, $charge, $receipt, $paymentMethod);
 
             // Don't open cash drawer for deferred payments (payment not received yet)
-            if (!$isDeferredPayment && $paymentMethod->isCash()) {
+            if (! $isDeferredPayment && $paymentMethod->isCash()) {
                 $this->cashDrawerService->openCashDrawer($posSession, $totalAmount);
             }
 
@@ -178,7 +178,7 @@ class PurchaseService
 
             // Update POS session totals (only for paid charges)
             // Deferred payments are not included in totals until paid
-            if (!$isDeferredPayment) {
+            if (! $isDeferredPayment) {
                 $this->updatePosSessionTotals($posSession, $charge, $paymentMethod);
             }
 
@@ -216,7 +216,7 @@ class PurchaseService
 
         // Resolve customer ID (local ID -> Stripe customer ID)
         $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id);
-        
+
         // Create charge immediately (cash is always successful)
         // Note: stripe_charge_id is null for cash payments since they don't go through Stripe
         $charge = ConnectedCharge::create([
@@ -273,19 +273,19 @@ class PurchaseService
         // Check if we have a payment intent ID (from terminal or card payment)
         $paymentIntentId = $metadata['payment_intent_id'] ?? null;
 
-        if (!$paymentIntentId) {
+        if (! $paymentIntentId) {
             throw new \Exception('Payment intent ID is required for Stripe payments');
         }
 
         // Retrieve payment intent from Stripe with charges expanded
         $stripe = $this->getStripeClient();
-        
+
         // Retry logic: sometimes charges take a moment to appear after confirmation
         $maxRetries = 3;
         $retryDelay = 1; // seconds
         $paymentIntent = null;
         $stripeChargeId = null;
-        
+
         for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
             $paymentIntent = $stripe->paymentIntents->retrieve(
                 $paymentIntentId,
@@ -298,22 +298,23 @@ class PurchaseService
             }
 
             // First, try to get charge from latest_charge field (often available immediately)
-            if (isset($paymentIntent->latest_charge) && !empty($paymentIntent->latest_charge)) {
+            if (isset($paymentIntent->latest_charge) && ! empty($paymentIntent->latest_charge)) {
                 $stripeChargeId = $paymentIntent->latest_charge;
                 break; // Found charge, exit retry loop
             }
-            
+
             // Otherwise, check if charges are available in the expanded charges array
-            if (isset($paymentIntent->charges) && 
-                isset($paymentIntent->charges->data) && 
+            if (isset($paymentIntent->charges) &&
+                isset($paymentIntent->charges->data) &&
                 count($paymentIntent->charges->data) > 0) {
                 $stripeChargeId = $paymentIntent->charges->data[0]->id;
                 break; // Found charge, exit retry loop
             }
-            
+
             // If no charge found and not last attempt, wait and retry
             if ($attempt < $maxRetries) {
                 sleep($retryDelay);
+
                 continue;
             }
         }
@@ -321,20 +322,20 @@ class PurchaseService
         // Find or create charge from payment intent
         $charge = ConnectedCharge::where('stripe_payment_intent_id', $paymentIntentId)->first();
 
-        if (!$charge) {
+        if (! $charge) {
             // Get the charge from payment intent (should be available after retry)
-            if (!$stripeChargeId) {
+            if (! $stripeChargeId) {
                 // Last resort: try to get charge directly from payment intent
                 // Check latest_charge first (most reliable)
-                if (isset($paymentIntent->latest_charge) && !empty($paymentIntent->latest_charge)) {
+                if (isset($paymentIntent->latest_charge) && ! empty($paymentIntent->latest_charge)) {
                     $stripeChargeId = $paymentIntent->latest_charge;
-                } elseif (isset($paymentIntent->charges) && 
-                          isset($paymentIntent->charges->data) && 
+                } elseif (isset($paymentIntent->charges) &&
+                          isset($paymentIntent->charges->data) &&
                           count($paymentIntent->charges->data) > 0) {
                     $stripeChargeId = $paymentIntent->charges->data[0]->id;
                 }
-                
-                if (!$stripeChargeId) {
+
+                if (! $stripeChargeId) {
                     Log::error('No charge found in payment intent', [
                         'payment_intent_id' => $paymentIntentId,
                         'payment_intent_status' => $paymentIntent->status ?? 'unknown',
@@ -343,14 +344,14 @@ class PurchaseService
                         'has_charges' => isset($paymentIntent->charges),
                         'charges_count' => isset($paymentIntent->charges->data) ? count($paymentIntent->charges->data) : 0,
                     ]);
-                    throw new \Exception('No charge found in payment intent after retries. Payment intent ID: ' . $paymentIntentId);
+                    throw new \Exception('No charge found in payment intent after retries. Payment intent ID: '.$paymentIntentId);
                 }
             }
 
             // Resolve customer ID (local ID -> Stripe customer ID)
             // Prefer cart customer_id if provided, then fall back to payment intent customer
             $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id) ?? $paymentIntent->customer;
-            
+
             $charge = ConnectedCharge::create([
                 'stripe_charge_id' => $stripeChargeId,
                 'stripe_account_id' => $store->stripe_account_id,
@@ -431,7 +432,7 @@ class PurchaseService
         // and automatically confirm the payment status
         // Note: stripe_charge_id is null for non-Stripe payments
         $eventCode = $paymentMethod->saf_t_event_code ?? SafTCodeMapper::mapPaymentMethodToEventCode($paymentMethod->code, $paymentMethod->provider_method);
-        
+
         $charge = ConnectedCharge::create([
             'stripe_charge_id' => null, // Other payment providers don't have Stripe charge ID
             'stripe_account_id' => $store->stripe_account_id,
@@ -485,7 +486,7 @@ class PurchaseService
         $giftCardCode = $metadata['gift_card_code'] ?? null;
         $giftCardPin = $metadata['gift_card_pin'] ?? null;
 
-        if (!$giftCardCode) {
+        if (! $giftCardCode) {
             throw new \Exception('Gift card code is required for gift card payment');
         }
 
@@ -544,14 +545,6 @@ class PurchaseService
      * Process deferred payment (payment on pickup/later)
      * Creates a charge with pending status and generates a delivery receipt
      * Complies with Kassasystemforskriften § 2-8-7 (Utleveringskvittering)
-     *
-     * @param PosSession $posSession
-     * @param PaymentMethod $paymentMethod
-     * @param int $amount
-     * @param string $currency
-     * @param array $cartData
-     * @param array $metadata
-     * @return ConnectedCharge
      */
     protected function processDeferredPayment(
         PosSession $posSession,
@@ -609,12 +602,10 @@ class PurchaseService
      * Complete a deferred payment
      * Updates the charge status and generates a sales receipt
      *
-     * @param ConnectedCharge $charge
-     * @param PaymentMethod $paymentMethod
-     * @param array $paymentData Additional payment data (e.g., payment_intent_id for Stripe)
-     * @param PosSession|null $posSession Optional POS session to use. If not provided, uses the charge's original session.
-     *                                    This allows completing deferred payments on different devices/sessions.
-     * @return array
+     * @param  array  $paymentData  Additional payment data (e.g., payment_intent_id for Stripe)
+     * @param  PosSession|null  $posSession  Optional POS session to use. If not provided, uses the charge's original session.
+     *                                       This allows completing deferred payments on different devices/sessions.
+     *
      * @throws \Exception
      */
     public function completeDeferredPayment(
@@ -638,14 +629,16 @@ class PurchaseService
             }
 
             // Use provided session or fall back to charge's original session
-            if (!$posSession) {
+            if (! $posSession) {
                 $posSession = $charge->posSession;
             }
 
             // Validate POS session exists, is open, and belongs to the same store
-            if (!$posSession) {
+            if (! $posSession) {
                 throw new \Exception('POS session not found');
             }
+
+            $posSession->load('posDevice');
 
             if ($posSession->status !== 'open') {
                 throw new \Exception('POS session is not open');
@@ -666,7 +659,7 @@ class PurchaseService
             if ($paymentMethod->provider === 'stripe') {
                 // Handle Stripe payment
                 $paymentIntentId = $paymentData['payment_intent_id'] ?? null;
-                if (!$paymentIntentId) {
+                if (! $paymentIntentId) {
                     throw new \Exception('Payment intent ID is required for Stripe payments');
                 }
 
@@ -682,11 +675,11 @@ class PurchaseService
                 }
 
                 $stripeChargeId = $paymentIntent->latest_charge ?? null;
-                if (!$stripeChargeId && isset($paymentIntent->charges->data[0])) {
+                if (! $stripeChargeId && isset($paymentIntent->charges->data[0])) {
                     $stripeChargeId = $paymentIntent->charges->data[0]->id;
                 }
 
-                if (!$stripeChargeId) {
+                if (! $stripeChargeId) {
                     throw new \Exception('Stripe charge ID not found');
                 }
 
@@ -700,7 +693,7 @@ class PurchaseService
                     // A charge with this payment_intent_id exists and it's not the deferred charge
                     // This is likely a webhook-created charge (webhook sets payment_intent_id but not pos_session_id)
                     // The deferred charge has proper POS context and metadata, so it should be the canonical record
-                    $isWebhookDuplicate = !$existingChargeByPaymentIntent->pos_session_id || 
+                    $isWebhookDuplicate = ! $existingChargeByPaymentIntent->pos_session_id ||
                                          ($existingChargeByPaymentIntent->created_at > $charge->created_at);
 
                     if ($isWebhookDuplicate) {
@@ -730,7 +723,7 @@ class PurchaseService
                 if ($existingChargeByChargeId && $existingChargeByChargeId->id !== $charge->id) {
                     // Another charge with this stripe_charge_id exists
                     // Check if it's a webhook-created duplicate
-                    $isWebhookDuplicate = !$existingChargeByChargeId->pos_session_id || 
+                    $isWebhookDuplicate = ! $existingChargeByChargeId->pos_session_id ||
                                          ($existingChargeByChargeId->created_at > $charge->created_at);
 
                     if ($isWebhookDuplicate) {
@@ -769,6 +762,11 @@ class PurchaseService
                 // Log card payment event (13017)
                 $this->logPaymentEvent($posSession, $charge, $paymentMethod, '13017');
             } elseif ($paymentMethod->isCash()) {
+                $device = $posSession->posDevice;
+                if ($device && $device->cash_drawer_enabled === false) {
+                    throw new \App\Exceptions\CashDrawerDisabledException;
+                }
+
                 // Handle cash payment
                 $charge->update([
                     'status' => 'succeeded',
@@ -789,7 +787,7 @@ class PurchaseService
                 // Handle other payment methods (e.g., Vipps, gift tokens, etc.)
                 // These are assumed to be confirmed automatically when completing the payment
                 $eventCode = $paymentMethod->saf_t_event_code ?? SafTCodeMapper::mapPaymentMethodToEventCode($paymentMethod->code, $paymentMethod->provider_method);
-                
+
                 $charge->update([
                     'status' => 'succeeded',
                     'payment_method' => $paymentMethod->code,
@@ -842,10 +840,6 @@ class PurchaseService
     /**
      * Enrich cart items with product snapshots at purchase time
      * This preserves historical product information even if products are later changed or deleted
-     *
-     * @param array $items
-     * @param string $stripeAccountId
-     * @return array
      */
     protected function enrichCartItemsWithProductSnapshots(array $items, string $stripeAccountId): array
     {
@@ -856,7 +850,7 @@ class PurchaseService
         // Collect all product IDs and variant IDs
         $productIds = [];
         $variantIds = [];
-        
+
         foreach ($items as $item) {
             if (isset($item['product_id'])) {
                 $productIds[] = (int) $item['product_id'];
@@ -881,7 +875,7 @@ class PurchaseService
         return array_map(function ($item) use ($products, $variants) {
             $productId = isset($item['product_id']) ? (int) $item['product_id'] : null;
             $variantId = isset($item['variant_id']) ? (int) $item['variant_id'] : null;
-            
+
             $product = $productId ? ($products[$productId] ?? null) : null;
             $variant = $variantId ? ($variants[$variantId] ?? null) : null;
 
@@ -890,7 +884,7 @@ class PurchaseService
             if ($variant && $variant->product) {
                 $productName = $variant->product->name;
                 if ($variant->variant_name !== 'Default') {
-                    $productName .= ' - ' . $variant->variant_name;
+                    $productName .= ' - '.$variant->variant_name;
                 }
             } elseif ($product) {
                 $productName = $product->name;
@@ -915,7 +909,7 @@ class PurchaseService
                             ]
                         );
                     }
-                } elseif ($product->images && is_array($product->images) && !empty($product->images)) {
+                } elseif ($product->images && is_array($product->images) && ! empty($product->images)) {
                     $productImageUrl = $product->images[0];
                 }
             }
@@ -958,7 +952,7 @@ class PurchaseService
                 'article_group_code' => $articleGroupCode,
                 'product_code' => $productCode,
             ]);
-            
+
             return $enrichedItem;
         }, $items);
     }
@@ -1027,7 +1021,7 @@ class PurchaseService
      */
     protected function getPaymentEventDescription(string $eventCode): string
     {
-        return match($eventCode) {
+        return match ($eventCode) {
             '13016' => 'Cash payment',
             '13017' => 'Card payment',
             '13018' => 'Mobile payment',
@@ -1043,7 +1037,7 @@ class PurchaseService
     {
         if ($this->stripeClient === null) {
             $secret = config('cashier.secret') ?? config('services.stripe.secret');
-            if (!$secret) {
+            if (! $secret) {
                 throw new \Exception('Stripe secret key is not configured');
             }
             $this->stripeClient = new StripeClient($secret);
@@ -1054,9 +1048,8 @@ class PurchaseService
 
     /**
      * Cancel a Stripe payment intent
-     * 
-     * @param string $paymentIntentId
-     * @param string $stripeAccountId Connected account ID
+     *
+     * @param  string  $stripeAccountId  Connected account ID
      * @return array ['cancelled' => bool, 'error' => string|null]
      */
     public function cancelPaymentIntent(string $paymentIntentId, string $stripeAccountId): array
@@ -1068,7 +1061,7 @@ class PurchaseService
                 [],
                 ['stripe_account' => $stripeAccountId]
             );
-            
+
             return [
                 'cancelled' => true,
                 'error' => null,
@@ -1089,7 +1082,7 @@ class PurchaseService
                 'stripe_account_id' => $stripeAccountId,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return [
                 'cancelled' => false,
                 'error' => $e->getMessage(),
@@ -1101,11 +1094,8 @@ class PurchaseService
     /**
      * Process a purchase with split payments (multiple payment methods)
      *
-     * @param PosSession $posSession
-     * @param array $payments Array of payment data: [['payment_method_code' => 'cash', 'amount' => 5000, 'metadata' => []], ...]
-     * @param array $cartData
-     * @param array $metadata
-     * @return array
+     * @param  array  $payments  Array of payment data: [['payment_method_code' => 'cash', 'amount' => 5000, 'metadata' => []], ...]
+     *
      * @throws \Exception
      */
     public function processSplitPurchase(
@@ -1129,6 +1119,9 @@ class PurchaseService
                 throw new \Exception('At least one payment is required');
             }
 
+            $device = $posSession->posDevice;
+            $hasCashDrawerDisabled = $device && $device->cash_drawer_enabled === false;
+
             $currency = $cartData['currency'] ?? 'nok';
             $charges = [];
             $paymentMethods = [];
@@ -1138,7 +1131,7 @@ class PurchaseService
                 $paymentMethodCode = $paymentData['payment_method_code'] ?? null;
                 $paymentAmount = $paymentData['amount'] ?? 0;
 
-                if (!$paymentMethodCode) {
+                if (! $paymentMethodCode) {
                     throw new \Exception('Payment method code is required for each payment');
                 }
 
@@ -1151,12 +1144,16 @@ class PurchaseService
                     ->where('code', $paymentMethodCode)
                     ->first();
 
-                if (!$paymentMethod) {
+                if (! $paymentMethod) {
                     throw new \Exception("Payment method not found: {$paymentMethodCode}");
                 }
 
-                if (!$paymentMethod->enabled) {
+                if (! $paymentMethod->enabled) {
                     throw new \Exception("Payment method is not enabled: {$paymentMethodCode}");
+                }
+
+                if ($paymentMethod->isCash() && $hasCashDrawerDisabled) {
+                    throw new \App\Exceptions\CashDrawerDisabledException;
                 }
 
                 // Process individual payment
@@ -1215,14 +1212,6 @@ class PurchaseService
 
     /**
      * Process a single payment (extracted from processCashPayment, processStripePayment, etc.)
-     *
-     * @param PosSession $posSession
-     * @param PaymentMethod $paymentMethod
-     * @param int $amount
-     * @param string $currency
-     * @param array $cartData
-     * @param array $metadata
-     * @return ConnectedCharge
      */
     protected function processPayment(
         PosSession $posSession,
@@ -1303,16 +1292,16 @@ class PurchaseService
 
     /**
      * Process a refund for a purchase
-     * 
+     *
      * Handles both Stripe refunds and cash refunds (manual process)
      * Generates return receipt and logs POS event (13013)
      * Updates POS session totals
-     * 
-     * @param ConnectedCharge $charge
-     * @param int|null $amount Amount to refund in minor units (øre). If null, refunds full amount.
-     * @param string|null $reason Optional reason for refund
-     * @param int|null $userId User ID performing the refund
+     *
+     * @param  int|null  $amount  Amount to refund in minor units (øre). If null, refunds full amount.
+     * @param  string|null  $reason  Optional reason for refund
+     * @param  int|null  $userId  User ID performing the refund
      * @return array ['charge' => ConnectedCharge, 'receipt' => Receipt, 'pos_event' => PosEvent]
+     *
      * @throws \Exception
      */
     public function processRefund(
@@ -1332,13 +1321,13 @@ class PurchaseService
                 throw new \Exception('Cannot refund a cancelled purchase');
             }
 
-            if ($charge->status === 'pending' || !$charge->paid) {
+            if ($charge->status === 'pending' || ! $charge->paid) {
                 throw new \Exception('Cannot refund a purchase that has not been paid');
             }
 
             // Determine refund amount
             $refundAmount = $amount ?? ($charge->amount - $charge->amount_refunded);
-            
+
             if ($refundAmount <= 0) {
                 throw new \Exception('Refund amount must be greater than zero');
             }
@@ -1359,11 +1348,11 @@ class PurchaseService
                 $posSession = $charge->posSession;
                 $originalPosSession = $charge->posSession;
             }
-            
-            if (!$posSession) {
+
+            if (! $posSession) {
                 throw new \Exception('POS session not found for charge');
             }
-            
+
             // Ensure current session is open (for compliance)
             if ($posSession->status !== 'open') {
                 throw new \Exception('Current POS session must be open for refunds. Closed sessions cannot be modified.');
@@ -1374,7 +1363,7 @@ class PurchaseService
                 ->where('code', $charge->payment_method)
                 ->first();
 
-            if (!$paymentMethod) {
+            if (! $paymentMethod) {
                 throw new \Exception('Payment method not found');
             }
 
@@ -1384,7 +1373,7 @@ class PurchaseService
             $refundProcessedAutomatically = false;
             $requiresManualProcessing = false;
             $manualProcessingMessage = null;
-            
+
             if ($charge->stripe_charge_id && $paymentMethod->provider === 'stripe') {
                 // Stripe payments can be refunded automatically
                 $refundResult = $this->processStripeRefund(
@@ -1393,15 +1382,15 @@ class PurchaseService
                     $refundAmount,
                     $reason
                 );
-                
+
                 $stripeRefundId = $refundResult['refund_id'];
                 $stripeRefundError = $refundResult['error'];
-                
-                if ($stripeRefundError && !$stripeRefundId) {
+
+                if ($stripeRefundError && ! $stripeRefundId) {
                     // Stripe refund failed - abort transaction
                     throw new \Exception("Stripe refund failed: {$stripeRefundError}");
                 }
-                
+
                 $refundProcessedAutomatically = true;
             } else {
                 // For non-Stripe payments (cash, Vipps, gift tokens, etc.), refund must be processed manually
@@ -1428,17 +1417,17 @@ class PurchaseService
                 'requires_manual_processing' => $requiresManualProcessing,
                 'manual_processing_message' => $manualProcessingMessage,
             ];
-            
+
             // Track refunded items if provided
-            if ($refundedItems !== null && !empty($refundedItems)) {
+            if ($refundedItems !== null && ! empty($refundedItems)) {
                 $refundData['items'] = $refundedItems;
-                
+
                 // Update item-level refund tracking in metadata
                 $itemRefunds = $metadata['item_refunds'] ?? [];
                 foreach ($refundedItems as $refundedItem) {
                     $itemId = $refundedItem['item_id'] ?? null;
                     if ($itemId) {
-                        if (!isset($itemRefunds[$itemId])) {
+                        if (! isset($itemRefunds[$itemId])) {
                             $itemRefunds[$itemId] = 0;
                         }
                         $itemRefunds[$itemId] += $refundedItem['quantity'] ?? 1;
@@ -1446,7 +1435,7 @@ class PurchaseService
                 }
                 $metadata['item_refunds'] = $itemRefunds;
             }
-            
+
             $refunds[] = $refundData;
             $metadata['refunds'] = $refunds;
             $metadata['last_refund_at'] = now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s');
@@ -1467,14 +1456,14 @@ class PurchaseService
 
             // Get original receipt (sales receipt for completed purchases, delivery receipt for deferred)
             $originalReceipt = $charge->receipt;
-            if (!$originalReceipt) {
+            if (! $originalReceipt) {
                 // Try to find any receipt for this charge
                 $originalReceipt = Receipt::where('charge_id', $charge->id)
                     ->orderByDesc('created_at')
                     ->first();
             }
 
-            if (!$originalReceipt) {
+            if (! $originalReceipt) {
                 throw new \Exception('Original receipt not found for charge');
             }
 
@@ -1491,7 +1480,7 @@ class PurchaseService
                 'related_charge_id' => $charge->id,
                 'event_code' => PosEvent::EVENT_RETURN_RECEIPT,
                 'event_type' => 'transaction',
-                'description' => "Return receipt for charge " . ($charge->stripe_charge_id ?? $charge->id),
+                'description' => 'Return receipt for charge '.($charge->stripe_charge_id ?? $charge->id),
                 'event_data' => [
                     'charge_id' => $charge->id,
                     'stripe_charge_id' => $charge->stripe_charge_id,
@@ -1544,11 +1533,10 @@ class PurchaseService
 
     /**
      * Process a Stripe refund
-     * 
-     * @param string $stripeChargeId
-     * @param string $stripeAccountId Connected account ID
-     * @param int $amount Amount to refund in minor units (øre)
-     * @param string|null $reason Optional reason for refund
+     *
+     * @param  string  $stripeAccountId  Connected account ID
+     * @param  int  $amount  Amount to refund in minor units (øre)
+     * @param  string|null  $reason  Optional reason for refund
      * @return array ['refund_id' => string|null, 'error' => string|null]
      */
     protected function processStripeRefund(
@@ -1559,12 +1547,12 @@ class PurchaseService
     ): array {
         try {
             $stripe = $this->getStripeClient();
-            
+
             $params = [
                 'charge' => $stripeChargeId,
                 'amount' => $amount,
             ];
-            
+
             if ($reason) {
                 $params['reason'] = 'requested_by_customer'; // Stripe reason
                 $params['metadata'] = [
@@ -1591,7 +1579,7 @@ class PurchaseService
                 'amount' => $amount,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return [
                 'refund_id' => null,
                 'error' => $e->getMessage(),
@@ -1604,7 +1592,7 @@ class PurchaseService
                 'amount' => $amount,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return [
                 'refund_id' => null,
                 'error' => $e->getMessage(),
@@ -1615,10 +1603,10 @@ class PurchaseService
 
     /**
      * Update POS session totals after refund
-     * 
+     *
      * For compliance: Only updates the current open session totals.
      * Closed sessions should not be modified per Kassasystemforskriften.
-     * 
+     *
      * Decrements total amount and expected cash (for cash payments) in the current session.
      */
     protected function updatePosSessionTotalsForRefund(
@@ -1635,6 +1623,7 @@ class PurchaseService
                 'charge_id' => $charge->id,
                 'refund_amount' => $refundAmount,
             ]);
+
             return;
         }
 
@@ -1652,4 +1641,3 @@ class PurchaseService
         $posSession->save();
     }
 }
-

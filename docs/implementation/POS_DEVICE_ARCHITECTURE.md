@@ -11,6 +11,7 @@ POS devices are now separated from Stripe Terminal locations to support multiple
 - Tracks device information from `device_info_plus`
 - Used for compliance (Kassasystemforskriften)
 - Belongs to a Store
+- **cash_drawer_enabled** (boolean, default true): When false, only non-cash transactions are allowed on this device; cash-drawer open/close are disabled and cash payment is rejected with 422.
 
 ### TerminalLocation (Stripe-Specific)
 - Represents a Stripe Terminal location

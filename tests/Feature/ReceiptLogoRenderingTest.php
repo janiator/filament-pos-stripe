@@ -131,6 +131,98 @@ class ReceiptLogoRenderingTest extends TestCase
         $this->assertStringNotContainsString('<image width="', $xml);
     }
 
+    public function test_large_uploaded_logo_is_scaled_to_reasonable_receipt_size(): void
+    {
+        if (! extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension required for logo scaling test');
+        }
+
+        Storage::fake('public');
+
+        $logoPath = 'store-logos/large-logo.png';
+        $img = imagecreatetruecolor(800, 600);
+        $this->assertNotFalse($img, 'Create 800x600 image');
+        imagefill($img, 0, 0, 0xFFFFFF);
+        ob_start();
+        imagepng($img);
+        $png = ob_get_clean();
+        imagedestroy($img);
+        $this->assertNotEmpty($png);
+        Storage::disk('public')->put($logoPath, $png);
+
+        $store = Store::factory()->create([
+            'logo_path' => $logoPath,
+            'stripe_account_id' => 'acct_test_'.uniqid(),
+        ]);
+
+        $receipt = $this->createReceiptForStore($store);
+        $receipt->load(['store', 'charge', 'posSession', 'user']);
+
+        $templateService = app(ReceiptTemplateService::class);
+        $xml = $templateService->renderReceipt($receipt);
+
+        $this->assertStringContainsString('<image width="', $xml);
+        $this->assertMatchesRegularExpression('/<image width="(\d+)" height="(\d+)"[^>]*>/', $xml, 'XML must contain image with width and height');
+        $this->assertSame(1, preg_match('/<image width="(\d+)" height="(\d+)"[^>]*>/', $xml, $m), 'Match image dimensions');
+        $width = (int) $m[1];
+        $height = (int) $m[2];
+        $maxHeight = (int) config('receipts.logo_max_height_dots', 200);
+        $receiptWidth = (int) config('receipts.receipt_width_dots', 576);
+        $this->assertLessThanOrEqual($receiptWidth, $width, 'Logo raster width must not exceed receipt width');
+        $this->assertLessThanOrEqual($maxHeight, $height, 'Logo height must be within configured max');
+    }
+
+    public function test_sales_receipt_xml_includes_transaction_id(): void
+    {
+        $store = Store::factory()->create([
+            'logo_path' => null,
+            'stripe_account_id' => 'acct_test_'.uniqid(),
+        ]);
+
+        $receipt = $this->createReceiptForStore($store);
+        $receipt->load(['store', 'charge', 'posSession', 'user']);
+
+        $templateService = app(ReceiptTemplateService::class);
+        $xml = $templateService->renderReceipt($receipt);
+
+        $this->assertStringContainsString('Transaksjons-ID:', $xml, 'Sales receipt must include transaction ID line');
+        $this->assertStringNotContainsString('Transaksjons-ID: N/A', $xml, 'Sales receipt must show actual transaction ID when charge exists');
+        $this->assertStringContainsString('SALGSKVITTERING', $xml);
+    }
+
+    public function test_receipt_logo_uses_store_specific_max_dimensions_when_set(): void
+    {
+        if (! extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension required for logo test');
+        }
+
+        Storage::fake('public');
+        $logoPath = 'store-logos/store-sized-logo.png';
+        $img = imagecreatetruecolor(800, 600);
+        $this->assertNotFalse($img);
+        imagefill($img, 0, 0, 0xFFFFFF);
+        ob_start();
+        imagepng($img);
+        Storage::disk('public')->put($logoPath, ob_get_clean());
+        imagedestroy($img);
+
+        $store = Store::factory()->create([
+            'logo_path' => $logoPath,
+            'stripe_account_id' => 'acct_test_'.uniqid(),
+            'receipt_logo_max_width_dots' => 288,
+            'receipt_logo_max_height_dots' => 100,
+        ]);
+
+        $receipt = $this->createReceiptForStore($store);
+        $receipt->load(['store', 'charge', 'posSession', 'user']);
+
+        $xml = app(ReceiptTemplateService::class)->renderReceipt($receipt);
+        $this->assertStringContainsString('<image width="', $xml);
+        $this->assertSame(1, preg_match('/<image width="(\d+)" height="(\d+)"[^>]*>/', $xml, $m));
+        $height = (int) $m[2];
+        $this->assertLessThanOrEqual(100, $height, 'Logo height must respect store receipt_logo_max_height_dots');
+    }
+
     /** Copy receipt must show same line items and transaction ID as original (not "Cash payment" or "N/A") */
     public function test_copy_receipt_xml_shows_original_items_and_transaction_id(): void
     {

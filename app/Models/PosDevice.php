@@ -31,6 +31,7 @@ class PosDevice extends Model
         'device_status',
         'last_seen_at',
         'device_metadata',
+        'cash_drawer_enabled',
         'default_printer_id',
         'last_connected_terminal_location_id',
         'last_connected_terminal_reader_id',
@@ -39,6 +40,7 @@ class PosDevice extends Model
     protected $casts = [
         'device_metadata' => 'array',
         'last_seen_at' => 'datetime',
+        'cash_drawer_enabled' => 'boolean',
     ];
 
     public function store(): BelongsTo
