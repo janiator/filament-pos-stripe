@@ -461,7 +461,7 @@ class ReceiptTemplateService
                 $priceOre = (int) $raw['unit_price'];
             }
             $discountOre = isset($raw['discount_amount']) ? (int) $raw['discount_amount'] : 0;
-            $lineTotalOre = $priceOre * $qty - $discountOre;
+            $lineTotalOre = $priceOre * $qty - $discountOre * $qty;
             if ($lineTotalOre <= 0) {
                 continue;
             }
