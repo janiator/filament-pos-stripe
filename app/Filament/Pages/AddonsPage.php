@@ -195,8 +195,8 @@ class AddonsPage extends Page
     {
         return match ($type) {
             AddonType::EventTickets => [
-                'url' => WebflowSiteResource::getUrl('index'),
-                'label' => 'Open Webflow CMS',
+                'url' => \App\Filament\Resources\EventTickets\EventTicketResource::getUrl('index'),
+                'label' => 'Open Event Tickets',
             ],
             AddonType::GiftCards => [
                 'url' => \App\Filament\Resources\GiftCards\GiftCardResource::getUrl('index'),

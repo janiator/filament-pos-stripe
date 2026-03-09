@@ -17,13 +17,13 @@ class WebflowSiteObserver
             return;
         }
 
-        $itemIds = $site->collections()->pluck('id')->toArray();
-        if (empty($itemIds)) {
+        $collectionIds = $site->collections()->pluck('id')->toArray();
+        if (empty($collectionIds)) {
             return;
         }
 
         $webflowItemIds = \Positiv\FilamentWebflow\Models\WebflowItem::query()
-            ->whereIn('webflow_collection_id', $itemIds)
+            ->whereIn('webflow_collection_id', $collectionIds)
             ->pluck('id')
             ->all();
 
