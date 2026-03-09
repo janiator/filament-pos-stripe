@@ -129,125 +129,133 @@ class EventTicketResource extends Resource
                             }
                         }
                     }),
-            ])->description('Select the Webflow CMS item for this event. Event details below will be filled from Webflow.'),
-            \Filament\Schemas\Components\Section::make('Event details')->schema([
-                \Filament\Forms\Components\TextInput::make('name')->required()->maxLength(255),
-                \Filament\Forms\Components\TextInput::make('slug')->maxLength(255),
-                \Filament\Forms\Components\Textarea::make('description')->rows(4),
-                \Filament\Forms\Components\TextInput::make('image_url')->url()->maxLength(65535),
-                \Filament\Forms\Components\DateTimePicker::make('event_date'),
-                \Filament\Forms\Components\TextInput::make('event_time')->maxLength(255),
-                \Filament\Forms\Components\TextInput::make('venue')->maxLength(255),
-            ])->columns(2),
-            \Filament\Schemas\Components\Section::make('Ticket 1')->schema([
-                \Filament\Forms\Components\TextInput::make('ticket_1_label')->default('Billett 1')->maxLength(255),
-                \Filament\Forms\Components\Select::make('ticket_1_payment_link_mode')
-                    ->label('Payment link')
-                    ->options([
-                        'existing' => 'Use existing payment link',
-                        'new' => 'Create new payment link',
-                    ])
-                    ->default('existing')
-                    ->live()
-                    ->dehydrated(false),
-                \Filament\Forms\Components\Select::make('ticket_1_payment_link_id')
-                    ->label('Existing payment link')
-                    ->options(fn () => static::paymentLinkOptionsForTenant())
-                    ->searchable()
-                    ->visible(fn (Get $get) => $get('ticket_1_payment_link_mode') === 'existing')
-                    ->afterStateUpdated(function (?string $state, Set $set): void {
-                        if (! $state) {
-                            return;
-                        }
-                        $link = ConnectedPaymentLink::where('stripe_payment_link_id', $state)->first();
-                        if ($link?->stripe_price_id) {
-                            $set('ticket_1_price_id', $link->stripe_price_id);
-                        }
-                    }),
-                \Filament\Forms\Components\TextInput::make('ticket_1_new_label')
-                    ->label('New payment link: label')
-                    ->maxLength(255)
-                    ->visible(fn (Get $get) => $get('ticket_1_payment_link_mode') === 'new')
-                    ->dehydrated(false),
-                \Filament\Forms\Components\TextInput::make('ticket_1_new_price_nok')
-                    ->label('New payment link: price (NOK)')
-                    ->numeric()
-                    ->minValue(0.01)
-                    ->step(0.01)
-                    ->visible(fn (Get $get) => $get('ticket_1_payment_link_mode') === 'new')
-                    ->dehydrated(false),
-                \Filament\Forms\Components\TextInput::make('ticket_1_available')
-                    ->label('Max to sell')
-                    ->numeric()
-                    ->minValue(0),
-                \Filament\Forms\Components\TextInput::make('ticket_1_sold')
-                    ->label('Amount sold')
-                    ->numeric()
-                    ->default(0)
-                    ->disabled()
-                    ->dehydrated(true),
-                \Filament\Forms\Components\Hidden::make('ticket_1_price_id'),
-            ])->columns(2),
-            \Filament\Schemas\Components\Section::make('Ticket 2')->schema([
-                \Filament\Forms\Components\Toggle::make('ticket_2_enabled')
-                    ->label('Enable ticket 2')
-                    ->default(true)
-                    ->live()
-                    ->dehydrated(false),
-                \Filament\Forms\Components\TextInput::make('ticket_2_label')->maxLength(255)
-                    ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled')),
-                \Filament\Forms\Components\Select::make('ticket_2_payment_link_mode')
-                    ->label('Payment link')
-                    ->options([
-                        'existing' => 'Use existing payment link',
-                        'new' => 'Create new payment link',
-                    ])
-                    ->default('existing')
-                    ->live()
-                    ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled'))
-                    ->dehydrated(false),
-                \Filament\Forms\Components\Select::make('ticket_2_payment_link_id')
-                    ->label('Existing payment link')
-                    ->options(fn () => static::paymentLinkOptionsForTenant())
-                    ->searchable()
-                    ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled') && $get('ticket_2_payment_link_mode') === 'existing')
-                    ->afterStateUpdated(function (?string $state, Set $set): void {
-                        if (! $state) {
-                            return;
-                        }
-                        $link = ConnectedPaymentLink::where('stripe_payment_link_id', $state)->first();
-                        if ($link?->stripe_price_id) {
-                            $set('ticket_2_price_id', $link->stripe_price_id);
-                        }
-                    }),
-                \Filament\Forms\Components\TextInput::make('ticket_2_new_label')
-                    ->label('New payment link: label')
-                    ->maxLength(255)
-                    ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled') && $get('ticket_2_payment_link_mode') === 'new')
-                    ->dehydrated(false),
-                \Filament\Forms\Components\TextInput::make('ticket_2_new_price_nok')
-                    ->label('New payment link: price (NOK)')
-                    ->numeric()
-                    ->minValue(0.01)
-                    ->step(0.01)
-                    ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled') && $get('ticket_2_payment_link_mode') === 'new')
-                    ->dehydrated(false),
-                \Filament\Forms\Components\TextInput::make('ticket_2_available')
-                    ->label('Max to sell')
-                    ->numeric()
-                    ->minValue(0)
-                    ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled')),
-                \Filament\Forms\Components\TextInput::make('ticket_2_sold')
-                    ->label('Amount sold')
-                    ->numeric()
-                    ->default(0)
-                    ->disabled()
-                    ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled'))
-                    ->dehydrated(true),
-                \Filament\Forms\Components\Hidden::make('ticket_2_price_id'),
-            ])->columns(2),
+            ])->description('Select the Webflow CMS item for this event. Event details and ticket options below are shown once linked.'),
+            \Filament\Schemas\Components\Section::make('Event details')
+                ->visible(fn (Get $get) => filled($get('webflow_item_id')))
+                ->schema([
+                    \Filament\Forms\Components\TextInput::make('name')->required()->maxLength(255),
+                    \Filament\Forms\Components\TextInput::make('slug')->maxLength(255),
+                    \Filament\Forms\Components\Textarea::make('description')->rows(4),
+                    \Filament\Forms\Components\TextInput::make('image_url')->url()->maxLength(65535),
+                    \Filament\Forms\Components\DateTimePicker::make('event_date'),
+                    \Filament\Forms\Components\TextInput::make('event_time')->maxLength(255),
+                    \Filament\Forms\Components\TextInput::make('venue')->maxLength(255),
+                ])->columns(2),
+            \Filament\Schemas\Components\Section::make('Ticket 1')
+                ->visible(fn (Get $get) => filled($get('webflow_item_id')))
+                ->schema([
+                    \Filament\Forms\Components\TextInput::make('ticket_1_label')->default('Billett 1')->maxLength(255),
+                    \Filament\Forms\Components\Select::make('ticket_1_payment_link_mode')
+                        ->label('Payment link')
+                        ->options([
+                            'existing' => 'Use existing payment link',
+                            'new' => 'Create new payment link',
+                        ])
+                        ->default('existing')
+                        ->live()
+                        ->dehydrated(false),
+                    \Filament\Forms\Components\Select::make('ticket_1_payment_link_id')
+                        ->label('Existing payment link')
+                        ->options(fn () => static::paymentLinkOptionsForTenant())
+                        ->searchable()
+                        ->visible(fn (Get $get) => $get('ticket_1_payment_link_mode') === 'existing')
+                        ->afterStateUpdated(function (?string $state, Set $set): void {
+                            if (! $state) {
+                                return;
+                            }
+                            $link = ConnectedPaymentLink::where('stripe_payment_link_id', $state)->first();
+                            if ($link?->stripe_price_id) {
+                                $set('ticket_1_price_id', $link->stripe_price_id);
+                            }
+                        }),
+                    \Filament\Forms\Components\TextInput::make('ticket_1_new_label')
+                        ->label('New payment link: label')
+                        ->maxLength(255)
+                        ->visible(fn (Get $get) => $get('ticket_1_payment_link_mode') === 'new')
+                        ->dehydrated(false),
+                    \Filament\Forms\Components\TextInput::make('ticket_1_new_price_nok')
+                        ->label('New payment link: price (NOK)')
+                        ->numeric()
+                        ->minValue(0.01)
+                        ->step(0.01)
+                        ->visible(fn (Get $get) => $get('ticket_1_payment_link_mode') === 'new')
+                        ->dehydrated(false),
+                    \Filament\Forms\Components\TextInput::make('ticket_1_available')
+                        ->label('Max to sell')
+                        ->numeric()
+                        ->minValue(0),
+                    \Filament\Forms\Components\TextInput::make('ticket_1_sold')
+                        ->label('Amount sold')
+                        ->numeric()
+                        ->default(0)
+                        ->disabled()
+                        ->dehydrated(true),
+                    \Filament\Forms\Components\Hidden::make('ticket_1_price_id'),
+                ])->columns(2),
+            \Filament\Schemas\Components\Section::make('Ticket 2')
+                ->visible(fn (Get $get) => filled($get('webflow_item_id')))
+                ->schema([
+                    \Filament\Forms\Components\Toggle::make('ticket_2_enabled')
+                        ->label('Enable ticket 2')
+                        ->default(true)
+                        ->live()
+                        ->dehydrated(false),
+                    \Filament\Forms\Components\TextInput::make('ticket_2_label')->maxLength(255)
+                        ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled')),
+                    \Filament\Forms\Components\Select::make('ticket_2_payment_link_mode')
+                        ->label('Payment link')
+                        ->options([
+                            'existing' => 'Use existing payment link',
+                            'new' => 'Create new payment link',
+                        ])
+                        ->default('existing')
+                        ->live()
+                        ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled'))
+                        ->dehydrated(false),
+                    \Filament\Forms\Components\Select::make('ticket_2_payment_link_id')
+                        ->label('Existing payment link')
+                        ->options(fn () => static::paymentLinkOptionsForTenant())
+                        ->searchable()
+                        ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled') && $get('ticket_2_payment_link_mode') === 'existing')
+                        ->afterStateUpdated(function (?string $state, Set $set): void {
+                            if (! $state) {
+                                return;
+                            }
+                            $link = ConnectedPaymentLink::where('stripe_payment_link_id', $state)->first();
+                            if ($link?->stripe_price_id) {
+                                $set('ticket_2_price_id', $link->stripe_price_id);
+                            }
+                        }),
+                    \Filament\Forms\Components\TextInput::make('ticket_2_new_label')
+                        ->label('New payment link: label')
+                        ->maxLength(255)
+                        ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled') && $get('ticket_2_payment_link_mode') === 'new')
+                        ->dehydrated(false),
+                    \Filament\Forms\Components\TextInput::make('ticket_2_new_price_nok')
+                        ->label('New payment link: price (NOK)')
+                        ->numeric()
+                        ->minValue(0.01)
+                        ->step(0.01)
+                        ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled') && $get('ticket_2_payment_link_mode') === 'new')
+                        ->dehydrated(false),
+                    \Filament\Forms\Components\TextInput::make('ticket_2_available')
+                        ->label('Max to sell')
+                        ->numeric()
+                        ->minValue(0)
+                        ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled')),
+                    \Filament\Forms\Components\TextInput::make('ticket_2_sold')
+                        ->label('Amount sold')
+                        ->numeric()
+                        ->default(0)
+                        ->disabled()
+                        ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled'))
+                        ->dehydrated(true),
+                    \Filament\Forms\Components\Hidden::make('ticket_2_price_id'),
+                ])->columns(2),
             \Filament\Forms\Components\Hidden::make('store_id')->default(fn () => Filament::getTenant()?->id),
-            \Filament\Forms\Components\Toggle::make('is_archived')->default(false),
+            \Filament\Forms\Components\Toggle::make('is_archived')
+                ->default(false)
+                ->visible(fn (Get $get) => filled($get('webflow_item_id'))),
         ]);
     }
 

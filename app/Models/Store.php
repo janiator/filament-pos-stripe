@@ -24,6 +24,8 @@ class Store extends Model implements StripeAccount
         'organisasjonsnummer',
         'address',
         'logo_path',
+        'receipt_logo_max_width_dots',
+        'receipt_logo_max_height_dots',
         'commission_type',
         'commission_rate',
         'stripe_account_id',

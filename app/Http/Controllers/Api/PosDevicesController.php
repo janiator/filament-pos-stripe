@@ -72,11 +72,13 @@ class PosDevicesController extends BaseApiController
             'android_id' => 'nullable|string|max:255',
             'serial_number' => 'nullable|string|max:255',
             'device_metadata' => 'nullable|array',
+            'cash_drawer_enabled' => 'nullable|boolean',
         ]);
 
         $validated['store_id'] = $store->id;
         $validated['device_status'] = 'active';
         $validated['last_seen_at'] = now();
+        $validated['cash_drawer_enabled'] = $validated['cash_drawer_enabled'] ?? true;
 
         $device = PosDevice::create($validated);
 
@@ -151,6 +153,7 @@ class PosDevicesController extends BaseApiController
             'serial_number' => 'nullable|string|max:255',
             'device_status' => 'sometimes|string|in:active,inactive,maintenance,offline',
             'device_metadata' => 'nullable|array',
+            'cash_drawer_enabled' => 'sometimes|boolean',
             'default_printer_id' => 'nullable|exists:receipt_printers,id',
             'last_connected_terminal_location_id' => 'nullable|exists:terminal_locations,id',
             'last_connected_terminal_reader_id' => 'nullable|exists:terminal_readers,id',
@@ -478,6 +481,12 @@ class PosDevicesController extends BaseApiController
             ->where('store_id', $store->id)
             ->firstOrFail();
 
+        if (! $device->cash_drawer_enabled) {
+            return response()->json([
+                'message' => 'Cash drawer is disabled for this device.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'pos_session_id' => 'nullable|exists:pos_sessions,id',
             'related_charge_id' => 'nullable|exists:connected_charges,id',
@@ -553,6 +562,12 @@ class PosDevicesController extends BaseApiController
         $device = PosDevice::where('id', $id)
             ->where('store_id', $store->id)
             ->firstOrFail();
+
+        if (! $device->cash_drawer_enabled) {
+            return response()->json([
+                'message' => 'Cash drawer is disabled for this device.',
+            ], 403);
+        }
 
         $validated = $request->validate([
             'pos_session_id' => 'nullable|exists:pos_sessions,id',
@@ -640,6 +655,7 @@ class PosDevicesController extends BaseApiController
             'device_status' => $device->device_status,
             'last_seen_at' => $this->formatDateTimeOslo($device->last_seen_at),
             'device_metadata' => $device->device_metadata,
+            'cash_drawer_enabled' => (bool) $device->cash_drawer_enabled,
             'terminal_location_id' => $device->terminalLocations->first()?->id,
             'terminal_locations_count' => $device->terminalLocations->count(),
             'terminal_locations' => $device->terminalLocations->map(function ($location) {

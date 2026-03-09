@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\CashDrawerDisabledException;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
@@ -784,8 +785,19 @@ class PurchasesController extends BaseApiController
 
         $paymentMethods = $query->ordered()->get();
 
+        // When pos_device_id is provided and device has cash drawer disabled, exclude cash methods
+        $posDeviceId = $request->integer('pos_device_id', 0);
+        if ($posDeviceId > 0) {
+            $device = \App\Models\PosDevice::where('id', $posDeviceId)
+                ->where('store_id', $store->id)
+                ->first();
+            if ($device && $device->cash_drawer_enabled === false) {
+                $paymentMethods = $paymentMethods->reject(fn (PaymentMethod $pm) => $pm->isCash());
+            }
+        }
+
         return response()->json([
-            'data' => $paymentMethods,
+            'data' => $paymentMethods->values(),
         ]);
     }
 
@@ -860,8 +872,8 @@ class PurchasesController extends BaseApiController
 
         $validated = $validator->validated();
 
-        // Get POS session
-        $posSession = PosSession::findOrFail($validated['pos_session_id']);
+        // Get POS session (with posDevice for cash-drawer-enabled check)
+        $posSession = PosSession::with('posDevice')->findOrFail($validated['pos_session_id']);
 
         // Verify user has access to this session's store
         $user = $request->user();
@@ -924,7 +936,7 @@ class PurchasesController extends BaseApiController
         }
 
         try {
-            // Process purchase
+            // Process purchase (posSession has posDevice loaded for cash-drawer check)
             $result = $this->purchaseService->processPurchase(
                 $posSession,
                 $paymentMethod,
@@ -956,6 +968,11 @@ class PurchasesController extends BaseApiController
                     ],
                 ],
             ], 201);
+        } catch (CashDrawerDisabledException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1059,8 +1076,8 @@ class PurchasesController extends BaseApiController
         $posSession = null;
 
         if (isset($validated['pos_session_id'])) {
-            // Use explicitly provided session
-            $posSession = PosSession::find($validated['pos_session_id']);
+            // Use explicitly provided session (with posDevice for cash-drawer check)
+            $posSession = PosSession::with('posDevice')->find($validated['pos_session_id']);
 
             if (! $posSession) {
                 return response()->json([
@@ -1086,7 +1103,8 @@ class PurchasesController extends BaseApiController
             }
         } elseif (isset($validated['pos_device_id'])) {
             // Auto-detect current active session for the device (compliance: ensures proper tracking)
-            $posSession = PosSession::where('store_id', $charge->store->id)
+            $posSession = PosSession::with('posDevice')
+                ->where('store_id', $charge->store->id)
                 ->where('pos_device_id', $validated['pos_device_id'])
                 ->where('status', 'open')
                 ->first();
@@ -1133,6 +1151,11 @@ class PurchasesController extends BaseApiController
                     ],
                 ],
             ], 200);
+        } catch (CashDrawerDisabledException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1216,8 +1239,8 @@ class PurchasesController extends BaseApiController
 
         $validated = $validator->validated();
 
-        // Get POS session
-        $posSession = PosSession::findOrFail($validated['pos_session_id']);
+        // Get POS session (with posDevice for cash-drawer-enabled check)
+        $posSession = PosSession::with('posDevice')->findOrFail($validated['pos_session_id']);
 
         // Verify user has access to this session's store
         $user = $request->user();
@@ -1313,6 +1336,11 @@ class PurchasesController extends BaseApiController
                     ],
                 ],
             ], 201);
+        } catch (CashDrawerDisabledException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

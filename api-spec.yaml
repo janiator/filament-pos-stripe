@@ -523,6 +523,10 @@ paths:
                   nullable: true
                   description: Additional device metadata (battery, storage, etc.)
                   additionalProperties: true
+                cash_drawer_enabled:
+                  type: boolean
+                  nullable: true
+                  description: When false, only non-cash transactions are allowed on this device. Defaults to true if omitted.
       responses:
         '201':
           description: POS device registered successfully
@@ -638,6 +642,9 @@ paths:
                   type: object
                   nullable: true
                   additionalProperties: true
+                cash_drawer_enabled:
+                  type: boolean
+                  description: When false, only non-cash transactions are allowed on this device
                 last_connected_terminal_location_id:
                   type: integer
                   nullable: true
@@ -694,6 +701,9 @@ paths:
                   type: object
                   nullable: true
                   additionalProperties: true
+                cash_drawer_enabled:
+                  type: boolean
+                  description: When false, only non-cash transactions are allowed on this device
                 last_connected_terminal_location_id:
                   type: integer
                   nullable: true
@@ -2615,8 +2625,25 @@ paths:
       tags:
         - Purchases
       summary: Get available payment methods
-      description: Get list of enabled payment methods for the current store
+      description: |
+        Get list of enabled payment methods for the current store.
+        When pos_device_id is provided and that device has cash drawer disabled (cash_drawer_enabled false),
+        cash payment methods are excluded from the response.
       operationId: getPaymentMethods
+      parameters:
+        - name: pos_device_id
+          in: query
+          required: false
+          description: When provided and the device has cash drawer disabled, cash methods are excluded from the response
+          schema:
+            type: integer
+        - name: pos_only
+          in: query
+          required: false
+          description: If true (default), only POS-suitable payment methods are returned
+          schema:
+            type: boolean
+            default: true
       responses:
         '200':
           description: List of payment methods
@@ -5208,6 +5235,10 @@ components:
           nullable: true
           description: Additional device metadata
           additionalProperties: true
+        cash_drawer_enabled:
+          type: boolean
+          default: true
+          description: When false, only non-cash transactions are allowed on this device (cash drawer disabled)
         terminal_location_id:
           type: integer
           nullable: true

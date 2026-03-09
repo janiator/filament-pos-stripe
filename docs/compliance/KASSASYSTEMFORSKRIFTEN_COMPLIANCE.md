@@ -43,6 +43,10 @@ This document maps the official Norwegian cash register regulation ([Forskrift o
   - Drawer open with sale (normal operation)
   - Drawer open without sale (nullinnslag) - **REQUIRED**
 
+**Devices without cash drawer (cash_drawer_enabled = false):**
+- A POS device may be configured with no cash drawer (e.g. mobile POS, card-only kiosk). This is compliant with § 2-2: there is no drawer to open, so no opening event to log.
+- For such devices: only non-cash payments are allowed; cash-drawer open/close API calls return 403; purchase and complete-deferred endpoints return 422 if cash is used. Session-level cash withdrawal/deposit remain available for accounting.
+
 ---
 
 ### § 2-3. Printer (Skrivar)

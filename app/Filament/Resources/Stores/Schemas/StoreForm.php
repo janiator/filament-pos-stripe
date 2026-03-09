@@ -69,6 +69,24 @@ class StoreForm
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
                             ->helperText('Upload a logo for this store. The logo will be displayed on receipts. Max 5MB. JPEG, PNG, WebP, and GIF are supported.')
                             ->columnSpanFull(),
+
+                        TextInput::make('receipt_logo_max_width_dots')
+                            ->label('Receipt logo max width (dots)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(576)
+                            ->nullable()
+                            ->placeholder('Default: 384')
+                            ->helperText('Optional. Max width of the logo on receipts in printer dots (80mm receipt = 576). Leave empty for system default.'),
+
+                        TextInput::make('receipt_logo_max_height_dots')
+                            ->label('Receipt logo max height (dots)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(400)
+                            ->nullable()
+                            ->placeholder('Default: 200')
+                            ->helperText('Optional. Max height of the logo on receipts in printer dots. Leave empty for system default.'),
                     ]),
 
                 Section::make('Commission Configuration')
