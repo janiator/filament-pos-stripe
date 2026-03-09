@@ -454,14 +454,14 @@ class ReceiptTemplateService
         $byRate = [];
 
         foreach ($rawItems as $raw) {
-            $qty = isset($raw['quantity']) && (int) $raw['quantity'] > 0 ? (int) $raw['quantity'] : 1;
+            $qty = isset($raw['quantity']) && (float) $raw['quantity'] > 0 ? (float) $raw['quantity'] : 1.0;
             // Charge metadata may use price_amount (øre) or unit_price (øre per unit)
             $priceOre = isset($raw['price_amount']) ? (int) $raw['price_amount'] : 0;
             if ($priceOre === 0 && isset($raw['unit_price'])) {
                 $priceOre = (int) $raw['unit_price'];
             }
             $discountOre = isset($raw['discount_amount']) ? (int) $raw['discount_amount'] : 0;
-            $lineTotalOre = $priceOre * $qty - $discountOre;
+            $lineTotalOre = $priceOre * $qty - $discountOre * $qty;
             if ($lineTotalOre <= 0) {
                 continue;
             }
