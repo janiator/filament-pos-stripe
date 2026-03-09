@@ -6,9 +6,8 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -49,7 +48,7 @@ class PosPurchasesTable
                     ->label('Payment Method')
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state ? ucfirst(str_replace('_', ' ', $state)) : '-')
-                    ->color(fn ($state) => match($state) {
+                    ->color(fn ($state) => match ($state) {
                         'cash' => 'success',
                         'card_present' => 'info',
                         default => 'gray',
@@ -62,12 +61,13 @@ class PosPurchasesTable
                         if ($record->stripe_charge_id) {
                             return $record->stripe_charge_id;
                         }
-                        return 'Cash #' . $record->id;
+
+                        return 'Cash #'.$record->id;
                     })
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query->where(function ($q) use ($search) {
                             $q->where('stripe_charge_id', 'like', "%{$search}%")
-                              ->orWhere('id', 'like', "%{$search}%");
+                                ->orWhere('id', 'like', "%{$search}%");
                         });
                     })
                     ->copyable()
@@ -103,6 +103,7 @@ class PosPurchasesTable
                         if (is_string($metadata)) {
                             $metadata = json_decode($metadata, true) ?? [];
                         }
+
                         return is_array($metadata) ? ($metadata['note'] ?? null) : null;
                     })
                     ->wrap()
@@ -112,6 +113,7 @@ class PosPurchasesTable
                         if (is_string($metadata)) {
                             $metadata = json_decode($metadata, true) ?? [];
                         }
+
                         return is_array($metadata) ? ($metadata['note'] ?? null) : null;
                     })
                     ->placeholder('-')
@@ -163,7 +165,7 @@ class PosPurchasesTable
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
-                            $data['pos_session_id'],
+                            $data['pos_session_id'] ?? null,
                             fn (Builder $query, $sessionId): Builder => $query->where('pos_session_id', $sessionId),
                         );
                     }),
@@ -178,11 +180,11 @@ class PosPurchasesTable
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
                             ->when(
-                                $data['created_from'],
+                                $data['created_from'] ?? null,
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
-                                $data['created_until'],
+                                $data['created_until'] ?? null,
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
