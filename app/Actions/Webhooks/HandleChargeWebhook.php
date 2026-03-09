@@ -3,6 +3,7 @@
 namespace App\Actions\Webhooks;
 
 use App\Models\ConnectedCharge;
+use App\Models\ConnectedPaymentLink;
 use App\Models\EventTicket;
 use App\Models\Store;
 use Stripe\Charge;
@@ -168,6 +169,11 @@ class HandleChargeWebhook
             }
 
             $eventTicket->incrementSoldForPaymentLink($paymentLinkId, $quantity);
+
+            $paymentLink = ConnectedPaymentLink::where('stripe_payment_link_id', $paymentLinkId)->first();
+            if ($paymentLink) {
+                $paymentLink->increment('quantity_sold', $quantity);
+            }
 
             // Mark as processed to ensure idempotency on webhook retries
             $chargeRecord->update(['event_ticket_processed' => true]);
