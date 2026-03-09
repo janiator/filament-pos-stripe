@@ -55,5 +55,8 @@ class AppServiceProvider extends ServiceProvider
             \Spatie\MediaLibrary\MediaCollections\Events\CollectionHasBeenClearedEvent::class,
             \App\Listeners\SyncProductOnMediaDeleted::class
         );
+
+        // When a Webflow site is deleted, remove EventTickets that referenced its items
+        \Positiv\FilamentWebflow\Models\WebflowSite::observe(\App\Observers\WebflowSiteObserver::class);
     }
 }
