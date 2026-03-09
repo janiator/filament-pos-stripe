@@ -1029,10 +1029,10 @@ class ReceiptTemplateService
 
         $receiptWidthDots = (int) (ceil($receiptWidthDots / 8) * 8);
         if ($widthDots < $receiptWidthDots && config('receipts.logo_center_on_receipt', true)) {
-            $leftPaddingDots = (int) (($receiptWidthDots - $widthDots) / 2);
-            $leftPaddingBytes = $leftPaddingDots / 8;
+            $leftPaddingDots = (int) (floor(($receiptWidthDots - $widthDots) / 2 / 8) * 8);
+            $leftPaddingBytes = (int) ($leftPaddingDots / 8);
             $rightPaddingDots = $receiptWidthDots - $leftPaddingDots - $widthDots;
-            $rightPaddingBytes = $rightPaddingDots / 8;
+            $rightPaddingBytes = (int) ($rightPaddingDots / 8);
             $logoBytesPerRow = $bytesPerRow;
             $outBytesPerRow = $receiptWidthDots / 8;
             $outRaster = '';
