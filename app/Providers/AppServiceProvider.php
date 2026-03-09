@@ -23,6 +23,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        config([
+            'filament-webflow.item_edit_page' => \App\Filament\Pages\WebflowItemEditPage::class,
+        ]);
+
         Nightwatch::rejectQueries(function (Query $query) {
             return str_contains($query->sql, 'into "jobs"');
         });

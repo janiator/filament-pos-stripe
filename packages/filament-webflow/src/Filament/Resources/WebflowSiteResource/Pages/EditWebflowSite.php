@@ -20,7 +20,7 @@ class EditWebflowSite extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         // Do not overwrite api_token with empty when editing
-        if (array_key_exists('api_token') && (empty($data['api_token']) || $data['api_token'] === '••••••••')) {
+        if (array_key_exists('api_token', $data) && (empty($data['api_token']) || $data['api_token'] === '••••••••')) {
             unset($data['api_token']);
         }
 
