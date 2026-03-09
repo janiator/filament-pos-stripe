@@ -601,8 +601,8 @@ class PurchasesController extends BaseApiController
 
                 // Get refund status for this item
                 $itemId = $item['id'] ?? null;
-                $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
-                $quantityRefunded = $itemId ? ($itemRefunds[$itemId] ?? 0) : 0;
+                $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+                $quantityRefunded = $itemId ? (float) ($itemRefunds[$itemId] ?? 0) : 0.0;
                 $isFullyRefunded = $quantityRefunded >= $quantity;
                 $isPartiallyRefunded = $quantityRefunded > 0 && $quantityRefunded < $quantity;
 
@@ -716,8 +716,8 @@ class PurchasesController extends BaseApiController
 
             // Get refund status for this item
             $itemId = $item['id'] ?? null;
-            $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
-            $quantityRefunded = $itemId ? ($itemRefunds[$itemId] ?? 0) : 0;
+            $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+            $quantityRefunded = $itemId ? (float) ($itemRefunds[$itemId] ?? 0) : 0.0;
             $isFullyRefunded = $quantityRefunded >= $quantity;
             $isPartiallyRefunded = $quantityRefunded > 0 && $quantityRefunded < $quantity;
 

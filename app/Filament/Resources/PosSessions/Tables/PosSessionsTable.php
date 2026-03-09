@@ -1336,7 +1336,7 @@ class PosSessionsTable
 
                 // Count all discounts as manual for now
                 if ($discountAmount > 0) {
-                    $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
+                    $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
                     $manualDiscountCount++;
                     $manualDiscountAmount += $discountAmount * $quantity;
                 }
