@@ -48,9 +48,9 @@ class StoreController extends BaseApiController
 
         // Super admins can see all stores
         if ($user->hasRole('super_admin')) {
-            $stores = Store::all();
+            $stores = Store::with('settings')->get();
         } else {
-            $stores = $user->stores;
+            $stores = $user->stores->load('settings');
         }
 
         return response()->json([
@@ -63,6 +63,7 @@ class StoreController extends BaseApiController
                     'stripe_account_id' => $store->stripe_account_id,
                     'commission_type' => $store->commission_type,
                     'commission_rate' => $store->commission_rate,
+                    'customers_enabled' => (bool) ($store->settings?->customers_enabled ?? true),
                 ];
             }),
         ]);
@@ -176,6 +177,7 @@ class StoreController extends BaseApiController
             'commission_type' => $store->commission_type,
             'commission_rate' => $store->commission_rate,
             'visible_article_group_codes' => $this->getVisibleArticleGroupCodesForStore($store),
+            'customers_enabled' => (bool) ($store->settings?->customers_enabled ?? true),
         ];
     }
 }

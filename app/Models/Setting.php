@@ -28,6 +28,7 @@ class Setting extends Model
         'tax_included',
         'tips_enabled',
         'gift_card_expiration_days',
+        'customers_enabled',
         // Additional settings stored as JSON
         'additional_settings',
     ];
@@ -40,6 +41,7 @@ class Setting extends Model
         'tax_included' => 'boolean',
         'tips_enabled' => 'boolean',
         'gift_card_expiration_days' => 'integer',
+        'customers_enabled' => 'boolean',
         'additional_settings' => 'array',
     ];
 
@@ -78,6 +80,7 @@ class Setting extends Model
                 'locale' => config('app.locale', 'nb'),
                 'tax_included' => false,
                 'tips_enabled' => true,
+                'customers_enabled' => true,
             ]
         );
     }

@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Stores\Pages;
 
-use App\Actions\Stores\SyncStoreToStripe;
 use App\Filament\Resources\Stores\Schemas\OnboardStoreWizard;
 use App\Filament\Resources\Stores\StoreResource;
 use App\Models\Setting;
@@ -37,7 +36,7 @@ class OnboardStore extends Page implements HasForms
     {
         // Only allow super admins
         $user = auth()->user();
-        if (!$user || !$this->isSuperAdmin($user)) {
+        if (! $user || ! $this->isSuperAdmin($user)) {
             abort(403, 'Only super admins can onboard new stores.');
         }
 
@@ -92,6 +91,7 @@ class OnboardStore extends Page implements HasForms
                 'default_vat_rate' => $data['default_vat_rate'] ?? 25.00,
                 'tax_included' => $data['tax_included'] ?? false,
                 'tips_enabled' => $data['tips_enabled'] ?? true,
+                'customers_enabled' => $data['customers_enabled'] ?? true,
                 'auto_print_receipts' => config('pos.auto_print_receipts', false),
                 'cash_drawer_auto_open' => config('pos.cash_drawer.auto_open', true),
                 'cash_drawer_open_duration_ms' => config('pos.cash_drawer.open_duration_ms', 250),
@@ -101,13 +101,13 @@ class OnboardStore extends Page implements HasForms
 
             // Attach users to store
             $userIds = $data['user_ids'] ?? [];
-            if (!empty($userIds)) {
+            if (! empty($userIds)) {
                 $store->users()->attach($userIds);
-                
+
                 // Set the first user's current store if they don't have one
                 foreach ($userIds as $userId) {
                     $user = User::find($userId);
-                    if ($user && !$user->current_store_id) {
+                    if ($user && ! $user->current_store_id) {
                         $user->current_store_id = $store->id;
                         $user->save();
                     }
@@ -142,7 +142,7 @@ class OnboardStore extends Page implements HasForms
     {
         $secret = config('cashier.secret') ?? config('services.stripe.secret');
 
-        if (!$secret) {
+        if (! $secret) {
             throw new \Exception('Stripe secret key is not configured.');
         }
 
@@ -168,7 +168,7 @@ class OnboardStore extends Page implements HasForms
     {
         $secret = config('cashier.secret') ?? config('services.stripe.secret');
 
-        if (!$secret) {
+        if (! $secret) {
             throw new \Exception('Stripe secret key is not configured.');
         }
 
@@ -197,6 +197,7 @@ class OnboardStore extends Page implements HasForms
             if ($tenant) {
                 return $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists();
             }
+
             return $user->hasRole('super_admin');
         } catch (\Throwable $e) {
             return $user->hasRole('super_admin');
@@ -261,7 +262,3 @@ class OnboardStore extends Page implements HasForms
         return false;
     }
 }
-
-
-
-

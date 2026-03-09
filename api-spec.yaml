@@ -4959,6 +4959,10 @@ components:
               name:
                 type: string
                 example: "Varesalg"
+        customers_enabled:
+          type: boolean
+          description: Whether customer-related features are enabled in POS for this store (e.g. linking customers to purchases). When false, frontend should hide/disable customer features.
+          example: true
 
     Customer:
       type: object

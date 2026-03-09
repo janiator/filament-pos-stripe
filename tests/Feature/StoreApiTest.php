@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ArticleGroupCode;
+use App\Models\Setting;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -53,4 +54,60 @@ test('get current store excludes article group codes with show_in_pos false', fu
     $codes = $response->json('store.visible_article_group_codes');
     $codes = collect($codes)->pluck('code')->all();
     expect($codes)->not->toContain('04004');
+});
+
+test('get current store returns customers_enabled from settings', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    Setting::create([
+        'store_id' => $store->id,
+        'customers_enabled' => true,
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->getJson('/api/stores/current');
+
+    $response->assertOk();
+    $response->assertJsonPath('store.customers_enabled', true);
+});
+
+test('get current store returns customers_enabled false when disabled in settings', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    Setting::create([
+        'store_id' => $store->id,
+        'customers_enabled' => false,
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->getJson('/api/stores/current');
+
+    $response->assertOk();
+    $response->assertJsonPath('store.customers_enabled', false);
+});
+
+test('list stores includes customers_enabled for each store', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+
+    Setting::create([
+        'store_id' => $store->id,
+        'customers_enabled' => false,
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->getJson('/api/stores');
+
+    $response->assertOk();
+    $response->assertJsonPath('stores.0.customers_enabled', false);
 });
