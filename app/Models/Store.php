@@ -30,10 +30,13 @@ class Store extends Model implements StripeAccount
         'commission_rate',
         'stripe_account_id',
         'default_terminal_location_id',
+        'merano_base_url',
+        'merano_pos_api_token',
     ];
 
     protected $casts = [
         'commission_rate' => 'integer',
+        'merano_pos_api_token' => 'encrypted',
     ];
 
     protected static function booted(): void

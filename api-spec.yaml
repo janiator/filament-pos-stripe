@@ -48,6 +48,8 @@ tags:
     description: POS event logging (audit trail)
   - name: POS Transactions
     description: POS transaction operations (void, correction)
+  - name: Merano
+    description: Merano booking proxy operations for POS devices
   - name: Receipts
     description: Receipt generation and management
   - name: Receipt Printers
@@ -527,6 +529,10 @@ paths:
                   type: boolean
                   nullable: true
                   description: When false, only non-cash transactions are allowed on this device. Defaults to true if omitted.
+                booking_enabled:
+                  type: boolean
+                  nullable: true
+                  description: When true, booking actions may be enabled for this device. Defaults to false if omitted.
       responses:
         '201':
           description: POS device registered successfully
@@ -645,6 +651,9 @@ paths:
                 cash_drawer_enabled:
                   type: boolean
                   description: When false, only non-cash transactions are allowed on this device
+                booking_enabled:
+                  type: boolean
+                  description: When true, booking actions may be enabled for this device
                 last_connected_terminal_location_id:
                   type: integer
                   nullable: true
@@ -704,6 +713,9 @@ paths:
                 cash_drawer_enabled:
                   type: boolean
                   description: When false, only non-cash transactions are allowed on this device
+                booking_enabled:
+                  type: boolean
+                  description: When true, booking actions may be enabled for this device
                 last_connected_terminal_location_id:
                   type: integer
                   nullable: true
@@ -956,6 +968,236 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /merano/v1/events:
+    get:
+      tags:
+        - Merano
+      summary: List Merano events
+      description: Proxy the store's configured Merano event list through POSitiv.
+      operationId: listMeranoEvents
+      parameters:
+        - name: pos_device_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Optional POS device ID used to enforce per-device booking access.
+      responses:
+        '200':
+          description: Merano events response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Booking is not enabled for this device
+        '503':
+          description: Merano booking is disabled or not configured for this store
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /merano/v1/events/{event}/availability:
+    post:
+      tags:
+        - Merano
+      summary: Check Merano seat availability
+      description: Proxy Merano seat availability checks through POSitiv.
+      operationId: checkMeranoAvailability
+      parameters:
+        - name: event
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - seats
+              properties:
+                pos_device_id:
+                  type: integer
+                  nullable: true
+                seats:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Merano availability response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Booking is not enabled for this device
+        '503':
+          description: Merano booking is disabled or not configured for this store
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /merano/v1/bookings:
+    post:
+      tags:
+        - Merano
+      summary: Create Merano booking
+      description: Create a pending Merano booking through the POSitiv proxy.
+      operationId: createMeranoBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - event_id
+                - seats
+                - name
+                - email
+                - payment_type
+              properties:
+                pos_device_id:
+                  type: integer
+                  nullable: true
+                event_id:
+                  type: integer
+                seats:
+                  type: array
+                  items:
+                    type: string
+                customer_id:
+                  type: string
+                  nullable: true
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                  nullable: true
+                payment_type:
+                  type: string
+                  enum: [pos]
+      responses:
+        '200':
+          description: Merano booking response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Merano booking created
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Booking is not enabled for this device
+        '503':
+          description: Merano booking is disabled or not configured for this store
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /merano/v1/bookings/{booking}/release:
+    post:
+      tags:
+        - Merano
+      summary: Release Merano booking
+      description: Release a pending Merano booking through POSitiv.
+      operationId: releaseMeranoBooking
+      parameters:
+        - name: booking
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pos_device_id:
+                  type: integer
+                  nullable: true
+                pos_session_id:
+                  type: integer
+                  nullable: true
+      responses:
+        '200':
+          description: Merano release response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Booking is not enabled for this device
+        '503':
+          description: Merano booking is disabled or not configured for this store
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /merano/v1/bookings/{booking}/confirm-pos-payment:
+    post:
+      tags:
+        - Merano
+      summary: Confirm Merano POS payment
+      description: Confirm a pending Merano booking after a successful POS payment.
+      operationId: confirmMeranoPosPayment
+      parameters:
+        - name: booking
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount_paid_ore
+                - pos_charge_id
+                - currency
+              properties:
+                pos_device_id:
+                  type: integer
+                  nullable: true
+                pos_session_id:
+                  type: integer
+                  nullable: true
+                amount_paid_ore:
+                  type: integer
+                pos_charge_id:
+                  type: string
+                currency:
+                  type: string
+      responses:
+        '200':
+          description: Merano confirmation response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Booking is not enabled for this device
+        '503':
+          description: Merano booking is disabled or not configured for this store
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /pos-sessions:
     get:
       tags:
@@ -991,6 +1233,13 @@ paths:
           schema:
             type: integer
             default: 20
+        - name: include_session_charges
+          in: query
+          description: When true, include full session_charges list in each session. Default false to reduce payload size.
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: List of POS sessions
@@ -1015,7 +1264,7 @@ paths:
       tags:
         - POS Sessions
       summary: Get current open session
-      description: Get the current open session for a POS device
+      description: Get the current open session for a POS device. session_charges only present when include_session_charges=true.
       operationId: getCurrentPosSession
       parameters:
         - name: pos_device_id
@@ -1024,13 +1273,20 @@ paths:
           description: POS device ID
           schema:
             type: integer
+        - name: include_session_charges
+          in: query
+          description: When true, include full session_charges list. Default false to reduce payload size.
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
-          description: Current session information
+          description: Current session information (session_charges only present when include_session_charges=true)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PosSessionWithCharges'
+                $ref: '#/components/schemas/PosSession'
         '404':
           description: Store not found or no open session
         '401':
@@ -1043,6 +1299,14 @@ paths:
       summary: Open POS session
       description: Open a new POS session. Automatically logs event 13020 (Session opened)
       operationId: openPosSession
+      parameters:
+        - name: include_session_charges
+          in: query
+          description: When true, include full session_charges list in the returned session (e.g. on 409 conflict). Default false.
+          required: false
+          schema:
+            type: boolean
+            default: false
       requestBody:
         required: true
         content:
@@ -1119,7 +1383,7 @@ paths:
       tags:
         - POS Sessions
       summary: Get POS session
-      description: Get a specific POS session with all details including charges
+      description: Get a specific POS session. Use include_session_charges=true to include the full session_charges list (default false).
       operationId: getPosSession
       parameters:
         - name: id
@@ -1127,16 +1391,23 @@ paths:
           required: true
           schema:
             type: integer
+        - name: include_session_charges
+          in: query
+          description: When true, include full session_charges list. Default false to reduce payload size.
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
-          description: Session information
+          description: Session information (session_charges only present when include_session_charges=true)
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   session:
-                    $ref: '#/components/schemas/PosSessionWithCharges'
+                    $ref: '#/components/schemas/PosSession'
         '404':
           description: Session not found
         '401':
@@ -1155,6 +1426,13 @@ paths:
           required: true
           schema:
             type: integer
+        - name: include_session_charges
+          in: query
+          description: When true, include full session_charges list in the returned session. Default false.
+          required: false
+          schema:
+            type: boolean
+            default: false
       requestBody:
         required: false
         content:
@@ -1248,6 +1526,13 @@ paths:
           required: true
           schema:
             type: integer
+        - name: include_session_charges
+          in: query
+          description: When true, include full session_charges list in the returned session. Default false.
+          required: false
+          schema:
+            type: boolean
+            default: false
       requestBody:
         required: false
         content:
@@ -2165,6 +2450,129 @@ paths:
                     $ref: '#/components/schemas/Receipt'
         '404':
           description: Receipt not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipts/print-freeticket:
+    post:
+      tags:
+        - Receipts
+      summary: Render free ticket XML
+      description: Render Epson ePOS XML for free-ticket printing from the configured template.
+      operationId: printFreeTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - printer_id
+                - code
+                - amount
+              properties:
+                printer_id:
+                  type: integer
+                date:
+                  type: string
+                  nullable: true
+                place:
+                  type: string
+                  nullable: true
+                code:
+                  type: string
+                amount:
+                  type: integer
+                discount:
+                  type: string
+                  nullable: true
+                applies_to:
+                  type: string
+                  nullable: true
+                max_tickets:
+                  type: integer
+                  nullable: true
+      responses:
+        '200':
+          description: Epson ePOS XML
+          content:
+            text/xml:
+              schema:
+                type: string
+        '422':
+          description: Validation or template error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipts/print-ticket:
+    post:
+      tags:
+        - Receipts
+      summary: Render booking ticket XML
+      description: Render Epson ePOS XML for Merano booking ticket printing.
+      operationId: printBookingTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - printer_id
+                - order_number
+                - date
+                - place
+                - tickets
+              properties:
+                printer_id:
+                  type: integer
+                order_number:
+                  type: string
+                date:
+                  type: string
+                place:
+                  type: string
+                heading:
+                  type: string
+                  nullable: true
+                amount_paid:
+                  type: number
+                  nullable: true
+                tickets:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - category
+                      - seat
+                    properties:
+                      category:
+                        type: string
+                      section:
+                        type: string
+                        nullable: true
+                      row:
+                        type: string
+                        nullable: true
+                      seat:
+                        type: string
+                      entrance:
+                        type: string
+                        nullable: true
+                      ticket_price:
+                        type: number
+                        nullable: true
+      responses:
+        '200':
+          description: Epson ePOS XML
+          content:
+            text/xml:
+              schema:
+                type: string
+        '403':
+          description: Merano booking add-on is not enabled for this store
+        '422':
+          description: Validation or template error
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -5243,6 +5651,16 @@ components:
           type: boolean
           default: true
           description: When false, only non-cash transactions are allowed on this device (cash drawer disabled)
+        booking_enabled:
+          type: boolean
+          default: false
+          description: When true, booking actions may be enabled for this device if the store has the Merano Booking add-on active
+        available_actions:
+          type: array
+          description: Action keys the frontend should use for capability gating on the active device
+          items:
+            type: string
+            enum: [cash_drawer, booking]
         terminal_location_id:
           type: integer
           nullable: true

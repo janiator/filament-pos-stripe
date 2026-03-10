@@ -12,6 +12,8 @@ POS devices are now separated from Stripe Terminal locations to support multiple
 - Used for compliance (Kassasystemforskriften)
 - Belongs to a Store
 - **cash_drawer_enabled** (boolean, default true): When false, only non-cash transactions are allowed on this device; cash-drawer open/close are disabled and cash payment is rejected with 422.
+- **booking_enabled** (boolean, default false): When true, the device may use Merano booking actions, but only if the store also has the `MeranoBooking` add-on active.
+- **available_actions** (API field): Array of action keys that the frontend should trust for UI gating, currently `cash_drawer` and `booking`.
 
 ### TerminalLocation (Stripe-Specific)
 - Represents a Stripe Terminal location
@@ -52,6 +54,10 @@ Store
 - `GET /api/pos-devices/{id}` - Get specific POS device
 - `PUT/PATCH /api/pos-devices/{id}` - Update POS device
 - `POST /api/pos-devices/{id}/heartbeat` - Update device heartbeat
+
+`booking` is only included in `available_actions` when:
+- the store has the `MeranoBooking` add-on active, and
+- the device has `booking_enabled = true`.
 
 ### Terminal Locations (Stripe-Specific)
 - `GET /api/terminals/locations` - List Stripe Terminal locations

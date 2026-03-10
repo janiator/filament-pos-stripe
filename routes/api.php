@@ -57,6 +57,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pos-devices/{id}/cash-drawer/open', [\App\Http\Controllers\Api\PosDevicesController::class, 'openCashDrawer'])->name('api.pos-devices.cash-drawer.open');
     Route::post('/pos-devices/{id}/cash-drawer/close', [\App\Http\Controllers\Api\PosDevicesController::class, 'closeCashDrawer'])->name('api.pos-devices.cash-drawer.close');
 
+    // Merano booking proxy endpoints
+    Route::get('/merano/v1/events', [\App\Http\Controllers\Api\MeranoProxyController::class, 'events'])->name('api.merano.events');
+    Route::post('/merano/v1/events/{event}/availability', [\App\Http\Controllers\Api\MeranoProxyController::class, 'availability'])->name('api.merano.events.availability');
+    Route::post('/merano/v1/bookings', [\App\Http\Controllers\Api\MeranoProxyController::class, 'createBooking'])->name('api.merano.bookings.create');
+    Route::post('/merano/v1/bookings/{booking}/release', [\App\Http\Controllers\Api\MeranoProxyController::class, 'release'])->name('api.merano.bookings.release');
+    Route::post('/merano/v1/bookings/{booking}/confirm-pos-payment', [\App\Http\Controllers\Api\MeranoProxyController::class, 'confirmPosPayment'])->name('api.merano.bookings.confirm-pos-payment');
+
     // POS Session endpoints (Kassasystemforskriften compliance)
     Route::get('/pos-sessions', [\App\Http\Controllers\Api\PosSessionsController::class, 'index'])->name('api.pos-sessions.index');
     Route::get('/pos-sessions/current', [\App\Http\Controllers\Api\PosSessionsController::class, 'current'])->name('api.pos-sessions.current');
@@ -121,6 +128,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/receipts/{id}/xml', [\App\Http\Controllers\Api\ReceiptsController::class, 'xml'])->name('api.receipts.xml');
     Route::post('/receipts/{id}/mark-printed', [\App\Http\Controllers\Api\ReceiptsController::class, 'markPrinted'])->name('api.receipts.mark-printed');
     Route::post('/receipts/{id}/reprint', [\App\Http\Controllers\Api\ReceiptsController::class, 'reprint'])->name('api.receipts.reprint');
+    Route::post('/receipts/print-freeticket', [\App\Http\Controllers\Api\TicketPrintController::class, 'printFreeTicket'])->name('api.receipts.print-freeticket');
+    Route::post('/receipts/print-ticket', [\App\Http\Controllers\Api\TicketPrintController::class, 'printTicket'])->name('api.receipts.print-ticket');
 
     // Product Declaration endpoints
     Route::get('/product-declaration', [\App\Http\Controllers\Api\ProductDeclarationController::class, 'show'])->name('api.product-declaration.show');

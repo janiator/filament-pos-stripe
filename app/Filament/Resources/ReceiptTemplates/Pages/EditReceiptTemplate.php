@@ -57,6 +57,8 @@ class EditReceiptTemplate extends EditRecord
                 'provisional' => 'provisional-receipt.xml',
                 'training' => 'training-receipt.xml',
                 'delivery' => 'delivery-receipt.xml',
+                'freeticket' => 'freeticket_template.xml',
+                'ticket' => 'ticket_template.xml',
             ];
 
             $templateType = $data['template_type'] ?? null;
@@ -91,6 +93,8 @@ class EditReceiptTemplate extends EditRecord
             'provisional' => 'provisional-receipt.xml',
             'training' => 'training-receipt.xml',
             'delivery' => 'delivery-receipt.xml',
+            'freeticket' => 'freeticket_template.xml',
+            'ticket' => 'ticket_template.xml',
         ];
 
         $filename = $templateFiles[$record->template_type] ?? null;

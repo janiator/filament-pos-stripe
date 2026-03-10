@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Stores\Schemas;
 
+use App\Enums\AddonType;
+use App\Models\Addon;
+use App\Services\MeranoConnectionService;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\TextInput;
@@ -11,6 +14,11 @@ use Filament\Schemas\Schema;
 
 class StoreForm
 {
+    public static function supportsMeranoConfiguration(): bool
+    {
+        return app(MeranoConnectionService::class)->supportsStoreConfiguration();
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -125,6 +133,33 @@ class StoreForm
                     ])
                     ->collapsible()
                     ->collapsed(),
+
+                Section::make('Merano Integration')
+                    ->schema([
+                        TextInput::make('merano_base_url')
+                            ->label('Merano Base URL')
+                            ->url()
+                            ->nullable()
+                            ->placeholder('https://merano.example.com')
+                            ->helperText('Merano API base URL without a trailing slash. Only used when the Merano Booking add-on is active.'),
+
+                        TextInput::make('merano_pos_api_token')
+                            ->label('Merano POS API Token')
+                            ->password()
+                            ->revealable()
+                            ->nullable()
+                            ->afterStateHydrated(function ($component): void {
+                                $component->state('');
+                            })
+                            ->dehydrated(fn (?string $state): bool => filled($state))
+                            ->helperText('POS_API_TOKEN from Merano. Stored encrypted. Leave blank to keep the current token.'),
+                    ])
+                    ->columns(2)
+                    ->collapsible()
+                    ->collapsed()
+                    ->visible(fn ($record) => $record
+                        && self::supportsMeranoConfiguration()
+                        && Addon::storeHasActiveAddon($record->id, AddonType::MeranoBooking)),
             ]);
     }
 }

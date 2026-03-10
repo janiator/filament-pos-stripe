@@ -32,6 +32,7 @@ class PosDevice extends Model
         'last_seen_at',
         'device_metadata',
         'cash_drawer_enabled',
+        'booking_enabled',
         'default_printer_id',
         'last_connected_terminal_location_id',
         'last_connected_terminal_reader_id',
@@ -41,6 +42,7 @@ class PosDevice extends Model
         'device_metadata' => 'array',
         'last_seen_at' => 'datetime',
         'cash_drawer_enabled' => 'boolean',
+        'booking_enabled' => 'boolean',
     ];
 
     public function store(): BelongsTo

@@ -25,6 +25,10 @@ class ReceiptTemplatePreviewWidget extends Widget
             return '<p class="text-red-600 dark:text-red-400">Template not found.</p>';
         }
 
+        if (in_array($template->template_type, ['freeticket', 'ticket'], true)) {
+            return '<p class="text-gray-500 dark:text-gray-400">Preview is not available for ticket templates until placeholder values are provided. Use the print endpoints to render final XML.</p>';
+        }
+
         return app(ReceiptTemplateService::class)->renderTemplatePreviewAsHtml(
             $template->content,
             $template->template_type

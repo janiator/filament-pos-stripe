@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
+<!-- PRINTERID: <printerid> -->
+<!-- START LOOP -->
+<align mode="center"/>
+<text lang="en"/>
+<text width="2" height="2" em="true"><heading></text>
+<feed line="1"/>
+<text><place></text>
+<feed/>
+<text><dateTime></text>
+<feed line="1"/>
+<text>Ordre: <orderNumber></text>
+<feed/>
+<text>Kategori: <category></text>
+<feed/>
+<text>Seksjon: <section></text>
+<feed/>
+<text>Rad: <row></text>
+<feed/>
+<text>Sete: <seat></text>
+<feed/>
+<text>Inngang: <entrance></text>
+<!-- TRIBUNE-START -->
+<feed line="1"/>
+<text>Folg skilting til tribuneinngangen.</text>
+<!-- TRIBUNE-END -->
+<!-- LOSJE-START -->
+<feed line="1"/>
+<text>Losjebillett. Folg skilting til losjeinngangen.</text>
+<!-- LOSJE-END -->
+<feed line="1"/>
+<text>Pris: <ticketPrice> NOK</text>
+<feed line="3"/>
+<cut type="feed"/>
+<!-- END LOOP -->
+</epos-print></s:Body></s:Envelope>

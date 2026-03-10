@@ -22,12 +22,14 @@ class PosDeviceFactory extends Factory
     {
         return [
             'store_id' => Store::factory(),
-            'device_name' => fake()->word() . ' POS Device',
+            'device_name' => fake()->word().' POS Device',
             'device_identifier' => fake()->uuid(),
             'platform' => fake()->randomElement(['ios', 'android', 'web', 'desktop']),
             'device_model' => fake()->word(),
             'device_status' => fake()->randomElement(['active', 'inactive']),
             'device_metadata' => [],
+            'cash_drawer_enabled' => true,
+            'booking_enabled' => false,
             'last_seen_at' => now(),
         ];
     }

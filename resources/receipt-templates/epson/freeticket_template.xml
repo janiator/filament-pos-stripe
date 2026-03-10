@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
+<!-- PRINTERID: <printerid> -->
+<!-- FREETICKET-START -->
+<align mode="center"/>
+<text lang="en"/>
+<text width="2" height="2" em="true">GRATISBILLETT</text>
+<feed line="1"/>
+<text>Kode: <code></text>
+<feed/>
+<text>Sted: <place></text>
+<!-- EXPIRESAT-START -->
+<feed/>
+<text>Gyldig til: <date></text>
+<!-- EXPIRESAT-END -->
+<!-- DISCOUNTLINE-START -->
+<feed/>
+<text>Rabatt: <discount></text>
+<!-- DISCOUNTLINE-END -->
+<!-- MAXTICKETS-START -->
+<feed/>
+<text>Maks billetter: <maxTickets></text>
+<!-- MAXTICKETS-END -->
+<!-- APPLIESTO-START -->
+<feed/>
+<text>Gjelder for: <appliesTo></text>
+<!-- APPLIESTO-END -->
+<feed line="2"/>
+<text>Vis billetten ved inngang.</text>
+<feed line="3"/>
+<cut type="feed"/>
+<!-- FREETICKET-END -->
+</epos-print></s:Body></s:Envelope>

@@ -81,6 +81,7 @@ List all sessions for the current store.
 - `pos_device_id`: Filter by device
 - `page`: Page number, 0-based (default: 0). All list endpoints use 0-based pagination for FlutterFlow infinite scroll.
 - `per_page`: Items per page (default: 20)
+- `include_session_charges`: When `true`, include the full `session_charges` array in each session. Default `false` to reduce payload size.
 
 **Response:**
 ```json
@@ -107,15 +108,15 @@ Get the current open session for a device.
 
 **Query Parameters:**
 - `pos_device_id` (required): The POS device ID
+- `include_session_charges`: When `true`, include the full `session_charges` array. Default `false`.
 
-**Response:**
+**Response:** Session object. `session_charges` is only present when `include_session_charges=true`.
 ```json
 {
   "session": {
     "id": 1,
     "session_number": "000001",
     "status": "open",
-    "charges": [...],
     ...
   }
 }
@@ -193,7 +194,10 @@ Record a cash deposit (staff putting money into the drawer). Only allowed for op
 **Response:** `201 Created` with created event (id, event_code 13029, event_data, occurred_at). Withdrawals and deposits appear in X- and Z-reports (count, type, amount) and affect expected cash.
 
 #### `GET /api/pos-sessions/{id}`
-Get a specific session with all details.
+Get a specific session. Use `include_session_charges=true` to include the full charge list (default `false`).
+
+**Query Parameters:**
+- `include_session_charges`: When `true`, include the full `session_charges` array. Default `false`.
 
 **Response:**
 ```json
@@ -202,7 +206,6 @@ Get a specific session with all details.
     "id": 1,
     "session_number": "000001",
     "status": "closed",
-    "charges": [...],
     "cash_withdrawals": { "count": 0, "total_amount": 0 },
     "cash_deposits": { "count": 0, "total_amount": 0 },
     ...

@@ -65,6 +65,12 @@ class PosDeviceInfolist
                             ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
                             ->badge()
                             ->color(fn (bool $state): string => $state ? 'success' : 'warning'),
+
+                        TextEntry::make('booking_enabled')
+                            ->label('Booking enabled')
+                            ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
+                            ->badge()
+                            ->color(fn (bool $state): string => $state ? 'success' : 'gray'),
                     ])
                     ->columns(2),
 

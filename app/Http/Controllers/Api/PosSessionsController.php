@@ -44,6 +44,11 @@ class PosSessionsController extends BaseApiController
             $query->where('pos_device_id', $request->get('pos_device_id'));
         }
 
+        $includeCharges = $this->includeSessionChargesFromRequest($request);
+        if ($includeCharges) {
+            $query->with('charges');
+        }
+
         $perPage = $request->get('per_page', 20);
         // FlutterFlow infinite scroll: page is zero-indexed (0 = first page)
         $page = max(1, (int) $request->get('page', 0) + 1);
@@ -51,8 +56,8 @@ class PosSessionsController extends BaseApiController
             ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
-            'sessions' => $sessions->getCollection()->map(function ($session) {
-                return $this->formatSessionResponse($session);
+            'sessions' => $sessions->getCollection()->map(function ($session) use ($includeCharges) {
+                return $this->formatSessionResponse($session, $includeCharges);
             }),
             'meta' => [
                 'current_page' => $sessions->currentPage() - 1,
@@ -80,10 +85,16 @@ class PosSessionsController extends BaseApiController
             'pos_device_id' => 'required|exists:pos_devices,id',
         ]);
 
+        $includeCharges = $this->includeSessionChargesFromRequest($request);
+        $with = ['posDevice', 'user'];
+        if ($includeCharges) {
+            $with[] = 'charges';
+        }
+
         $session = PosSession::where('store_id', $store->id)
             ->where('pos_device_id', $validated['pos_device_id'])
             ->where('status', 'open')
-            ->with(['posDevice', 'user', 'charges'])
+            ->with($with)
             ->first();
 
         if (! $session) {
@@ -93,7 +104,7 @@ class PosSessionsController extends BaseApiController
         }
 
         return response()->json(
-            $this->formatSessionResponse($session, true)
+            $this->formatSessionResponse($session, $includeCharges)
         );
     }
 
@@ -124,6 +135,8 @@ class PosSessionsController extends BaseApiController
             'opening_data' => 'nullable|array',
         ]);
 
+        $includeCharges = $this->includeSessionChargesFromRequest($request);
+
         // 3) Ensure this device doesn't already have an open session (any store)
         $existingSession = PosSession::where('pos_device_id', $validated['pos_device_id'])
             ->where('status', 'open')
@@ -133,13 +146,13 @@ class PosSessionsController extends BaseApiController
             if ($existingSession->store_id !== $store->id) {
                 return response()->json([
                     'message' => 'You need to close other open POS sessions on the current device before opening a new session.',
-                    'session' => $this->formatSessionResponse($existingSession),
+                    'session' => $this->formatSessionResponse($existingSession, $includeCharges),
                 ], 409);
             }
 
             return response()->json([
                 'message' => 'Device already has an open session',
-                'session' => $this->formatSessionResponse($existingSession),
+                'session' => $this->formatSessionResponse($existingSession, $includeCharges),
             ], 409);
         }
 
@@ -168,7 +181,8 @@ class PosSessionsController extends BaseApiController
         return response()->json([
             'message' => 'Session opened successfully',
             'session' => $this->formatSessionResponse(
-                $session->load(['posDevice', 'user'])
+                $session->load(['posDevice', 'user']),
+                $includeCharges
             ),
         ], 201);
     }
@@ -193,6 +207,8 @@ class PosSessionsController extends BaseApiController
             'opening_data' => 'nullable|array',
         ]);
 
+        $includeCharges = $this->includeSessionChargesFromRequest($request);
+
         // Check if device already has an open session (any store)
         $existingSession = PosSession::where('pos_device_id', $validated['pos_device_id'])
             ->where('status', 'open')
@@ -202,13 +218,13 @@ class PosSessionsController extends BaseApiController
             if ($existingSession->store_id !== $store->id) {
                 return response()->json([
                     'message' => 'You need to close other open POS sessions on the current device before opening a new session.',
-                    'session' => $this->formatSessionResponse($existingSession),
+                    'session' => $this->formatSessionResponse($existingSession, $includeCharges),
                 ], 409);
             }
 
             return response()->json([
                 'message' => 'Device already has an open session',
-                'session' => $this->formatSessionResponse($existingSession),
+                'session' => $this->formatSessionResponse($existingSession, $includeCharges),
             ], 409);
         }
 
@@ -235,7 +251,7 @@ class PosSessionsController extends BaseApiController
 
         return response()->json([
             'message' => 'Session opened successfully',
-            'session' => $this->formatSessionResponse($session->load(['posDevice', 'user'])),
+            'session' => $this->formatSessionResponse($session->load(['posDevice', 'user']), $includeCharges),
         ], 201);
     }
 
@@ -306,9 +322,15 @@ class PosSessionsController extends BaseApiController
             'occurred_at' => now(),
         ]);
 
+        $includeCharges = $this->includeSessionChargesFromRequest($request);
+        $sessionWith = ['posDevice', 'user'];
+        if ($includeCharges) {
+            $sessionWith[] = 'charges';
+        }
+
         return response()->json([
             'message' => 'Session closed successfully',
-            'session' => $this->formatSessionResponse($session->fresh(['posDevice', 'user', 'charges'])),
+            'session' => $this->formatSessionResponse($session->fresh($sessionWith), $includeCharges),
             'report' => $report,
         ]);
     }
@@ -326,13 +348,19 @@ class PosSessionsController extends BaseApiController
 
         $this->authorizeTenant($request, $store);
 
+        $includeCharges = $this->includeSessionChargesFromRequest($request);
+        $with = ['posDevice', 'user'];
+        if ($includeCharges) {
+            $with[] = 'charges';
+        }
+
         $session = PosSession::where('id', $id)
             ->where('store_id', $store->id)
-            ->with(['posDevice', 'user', 'charges'])
+            ->with($with)
             ->firstOrFail();
 
         return response()->json([
-            'session' => $this->formatSessionResponse($session, true),
+            'session' => $this->formatSessionResponse($session, $includeCharges),
         ]);
     }
 
@@ -515,9 +543,15 @@ class PosSessionsController extends BaseApiController
             'occurred_at' => now(),
         ]);
 
+        $includeCharges = $this->includeSessionChargesFromRequest($request);
+        $sessionWith = ['posDevice', 'user'];
+        if ($includeCharges) {
+            $sessionWith[] = 'charges';
+        }
+
         return response()->json([
             'message' => 'Z-report generated and session closed',
-            'session' => $this->formatSessionResponse($session->fresh(['posDevice', 'user', 'charges'])),
+            'session' => $this->formatSessionResponse($session->fresh($sessionWith), $includeCharges),
             'report' => $report,
         ]);
     }
@@ -771,6 +805,14 @@ class PosSessionsController extends BaseApiController
             'message' => 'Daily closing created successfully',
             'closing' => $this->formatClosingResponse($closing->load('closedByUser')),
         ], 201);
+    }
+
+    /**
+     * Whether to include session_charges in session responses (query param include_session_charges, default false).
+     */
+    protected function includeSessionChargesFromRequest(Request $request): bool
+    {
+        return filter_var($request->query('include_session_charges', false), FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

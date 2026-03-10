@@ -218,6 +218,7 @@ class AddonsPage extends Page
                 'url' => \App\Filament\Resources\PosSessions\PosSessionResource::getUrl('index'),
                 'label' => 'Open POS',
             ],
+            AddonType::MeranoBooking => null,
             AddonType::WebflowCms => null,
         };
     }

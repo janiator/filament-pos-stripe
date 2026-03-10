@@ -6,6 +6,7 @@ enum AddonType: string
 {
     case WebflowCms = 'webflow_cms';
     case EventTickets = 'event_tickets';
+    case MeranoBooking = 'merano_booking';
     case GiftCards = 'gift_cards';
     case PaymentLinks = 'payment_links';
     case Transfers = 'transfers';
@@ -17,6 +18,7 @@ enum AddonType: string
         return match ($this) {
             self::WebflowCms => 'Webflow CMS',
             self::EventTickets => 'Event Tickets',
+            self::MeranoBooking => 'Merano Booking',
             self::GiftCards => 'Gift Cards',
             self::PaymentLinks => 'Payment Links',
             self::Transfers => 'Transfers',
@@ -33,6 +35,7 @@ enum AddonType: string
         return match ($this) {
             self::WebflowCms => 'Link Webflow sites and manage CMS content from this store.',
             self::EventTickets => 'Sell event tickets with Webflow-driven content and Stripe payment links.',
+            self::MeranoBooking => 'Sell and confirm Merano event ticket bookings from POS devices.',
             self::GiftCards => 'Create and manage gift cards for this store.',
             self::PaymentLinks => 'Create and manage Stripe payment links for checkout.',
             self::Transfers => 'View and manage Stripe transfers and payouts.',

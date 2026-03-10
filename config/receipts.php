@@ -119,6 +119,14 @@ return [
             'prefix' => 'D',
             'label' => 'Utleveringskvittering',
         ],
+        'freeticket' => [
+            'prefix' => 'FT',
+            'label' => 'Gratisbillett',
+        ],
+        'ticket' => [
+            'prefix' => 'TKT',
+            'label' => 'Billett',
+        ],
         'correction' => [
             'prefix' => 'CORR',
             'label' => 'Korrigeringskvittering',

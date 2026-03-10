@@ -17,6 +17,8 @@ Templates are stored in: `resources/receipt-templates/epson/`
 5. **provisional-receipt.xml** - Provisional receipt with "Foreløpig kvittering – IKKJE KVITTERING FOR KJØP" marking
 6. **training-receipt.xml** - Training receipt with "Treningskvittering – IKKJE KVITTERING FOR KJØP" marking
 7. **delivery-receipt.xml** - Delivery receipt with "Utleveringskvittering – IKKJE KVITTERING FOR KJØP" marking
+8. **freeticket_template.xml** - Free ticket print template with marker-based placeholders
+9. **ticket_template.xml** - Booking ticket print template with loop markers and category-specific sections
 
 ## Template Variables
 
@@ -54,6 +56,20 @@ All templates support the following Mustache variables:
 
 ### Return Receipt Specific
 - `{{original_receipt_number}}` - Original receipt number (for returns/copies)
+
+## Ticket Template Placeholders
+
+The `freeticket` and `ticket` templates are not Mustache-based. They use simple placeholder tokens and comment markers so the POS app can keep the XML structure from the existing ticket scripts.
+
+### `freeticket_template.xml`
+- Loop markers: `<!-- FREETICKET-START -->` / `<!-- FREETICKET-END -->`
+- Optional blocks: `DISCOUNTLINE`, `EXPIRESAT`, `MAXTICKETS`, `APPLIESTO`
+- Placeholders: `<printerid>`, `<code>`, `<place>`, `<date>`, `<discount>`, `<maxTickets>`, `<appliesTo>`
+
+### `ticket_template.xml`
+- Loop markers: `<!-- START LOOP -->` / `<!-- END LOOP -->`
+- Category blocks: `TRIBUNE`, `LOSJE`
+- Placeholders: `<printerid>`, `<heading>`, `<category>`, `<section>`, `<row>`, `<seat>`, `<orderNumber>`, `<dateTime>`, `<place>`, `<entrance>`, `<ticketPrice>`
 
 ## Store logo on receipts
 
@@ -128,6 +144,18 @@ $xml = $templateService->renderReceipt($receipt);
    GET /api/receipts/{id}
    ```
    Returns receipt data with XML in `receipt_data.xml`.
+
+4. **Render Free Ticket XML**
+   ```
+   POST /api/receipts/print-freeticket
+   ```
+   Returns rendered Epson ePOS XML for free-ticket printing.
+
+5. **Render Booking Ticket XML**
+   ```
+   POST /api/receipts/print-ticket
+   ```
+   Returns rendered Epson ePOS XML for booking-ticket printing.
 
 ## Legal Compliance
 

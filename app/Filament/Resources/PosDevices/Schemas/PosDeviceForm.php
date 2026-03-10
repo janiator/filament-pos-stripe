@@ -85,6 +85,11 @@ class PosDeviceForm
                             ->label('Cash drawer enabled')
                             ->default(true)
                             ->helperText('When off, only non-cash transactions are allowed on this device'),
+
+                        Toggle::make('booking_enabled')
+                            ->label('Booking enabled')
+                            ->default(false)
+                            ->helperText('When on, this device can sell Merano event tickets if the store has the Merano Booking add-on enabled.'),
                     ])
                     ->columns(2),
 
