@@ -837,11 +837,15 @@ class ReceiptTemplateService
         $storeLogoHeight = null;
         if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
             $logoMtime = Storage::disk('public')->lastModified($store->logo_path);
-            $cacheKey = 'epos_logo_raster:'.md5($store->logo_path.':'.$logoMtime);
-            $raster = Cache::remember($cacheKey, now()->addDays(7), function () use ($store) {
+            $maxWidth = (int) ($store->receipt_logo_max_width_dots ?? config('receipts.logo_max_width_dots', 384));
+            $maxHeight = (int) ($store->receipt_logo_max_height_dots ?? config('receipts.logo_max_height_dots', 200));
+            $receiptWidth = (int) config('receipts.receipt_width_dots', 576);
+            $centerLogo = config('receipts.logo_center_on_receipt', true);
+            $cacheKey = 'epos_logo_raster:'.md5($store->logo_path.':'.$logoMtime.':'.$maxWidth.':'.$maxHeight.':'.$receiptWidth.':'.($centerLogo ? '1' : '0'));
+            $raster = Cache::remember($cacheKey, now()->addDays(7), function () use ($store, $maxWidth, $maxHeight, $receiptWidth) {
                 $logoBlob = Storage::disk('public')->get($store->logo_path);
 
-                return $this->convertImageToEposRaster($logoBlob, 576);
+                return $this->convertImageToEposRaster($logoBlob, $maxWidth, $receiptWidth, $maxHeight);
             });
             if ($raster !== null) {
                 $storeLogoBase64 = $raster['base64'];
@@ -885,6 +889,41 @@ class ReceiptTemplateService
             'customer_email' => $customerEmail,
             'estimated_pickup_date' => $estimatedPickupDate,
         ];
+    }
+
+    /**
+     * Return ePOS XML fragment for the store logo: base64 image element when store has a logo, otherwise logo key fallback.
+     * Used by ticket and other templates that need a single logo block (same as receipt header).
+     */
+    public function getStoreLogoEposXmlFragment(Store $store): string
+    {
+        $storeLogoBase64 = null;
+        $storeLogoWidth = null;
+        $storeLogoHeight = null;
+        if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
+            $logoMtime = Storage::disk('public')->lastModified($store->logo_path);
+            $maxWidth = (int) ($store->receipt_logo_max_width_dots ?? config('receipts.logo_max_width_dots', 384));
+            $maxHeight = (int) ($store->receipt_logo_max_height_dots ?? config('receipts.logo_max_height_dots', 200));
+            $receiptWidth = (int) config('receipts.receipt_width_dots', 576);
+            $centerLogo = config('receipts.logo_center_on_receipt', true);
+            $cacheKey = 'epos_logo_raster:'.md5($store->logo_path.':'.$logoMtime.':'.$maxWidth.':'.$maxHeight.':'.$receiptWidth.':'.($centerLogo ? '1' : '0'));
+            $raster = Cache::remember($cacheKey, now()->addDays(7), function () use ($store, $maxWidth, $maxHeight, $receiptWidth) {
+                $logoBlob = Storage::disk('public')->get($store->logo_path);
+
+                return $this->convertImageToEposRaster($logoBlob, $maxWidth, $receiptWidth, $maxHeight);
+            });
+            if ($raster !== null) {
+                $storeLogoBase64 = $raster['base64'];
+                $storeLogoWidth = $raster['width'];
+                $storeLogoHeight = $raster['height'];
+            }
+        }
+
+        if ($storeLogoBase64 !== null && $storeLogoWidth !== null && $storeLogoHeight !== null) {
+            return '<image width="'.$storeLogoWidth.'" height="'.$storeLogoHeight.'">'.$storeLogoBase64.'</image>';
+        }
+
+        return '<logo key1="34" key2="48"/>';
     }
 
     /**
@@ -934,12 +973,16 @@ class ReceiptTemplateService
     /**
      * Convert image binary to ePOS-Print raster (1-bit, base64).
      * See Epson ePOS-Print XML User's Manual: <image> expects base64Binary raster data.
+     * Image is scaled to fit within max width and config max height so large uploads stay a reasonable size.
+     * When narrower than receipt width, the logo is centered by padding the raster with white.
      *
      * @param  string  $imageData  Raw image bytes (JPEG, PNG, WebP, GIF)
-     * @param  int  $maxWidthDots  Max width in dots (e.g. 576 for 80mm at 203dpi)
+     * @param  int  $maxWidthDots  Max width in dots (e.g. 384 so logo does not span full receipt)
+     * @param  int  $receiptWidthDots  Receipt width in dots for centering (e.g. 576 for 80mm at 203dpi)
+     * @param  int|null  $maxHeightDots  Max height in dots; when null uses config receipts.logo_max_height_dots
      * @return array{base64: string, width: int, height: int}|null
      */
-    protected function convertImageToEposRaster(string $imageData, int $maxWidthDots = 576): ?array
+    protected function convertImageToEposRaster(string $imageData, int $maxWidthDots = 576, int $receiptWidthDots = 576, ?int $maxHeightDots = null): ?array
     {
         if (! extension_loaded('gd')) {
             return null;
@@ -970,13 +1013,19 @@ class ReceiptTemplateService
             return null;
         }
 
-        $widthDots = min($srcW, $maxWidthDots);
-        $widthDots = (int) (ceil($widthDots / 8) * 8);
-        $scale = $widthDots / $srcW;
+        $maxHeightDots = $maxHeightDots ?? (int) config('receipts.logo_max_height_dots', 200);
+        $scaleW = $maxWidthDots / $srcW;
+        $scaleH = $maxHeightDots / $srcH;
+        $scale = min(1.0, $scaleW, $scaleH);
+        $widthDots = (int) round($srcW * $scale);
         $heightDots = (int) round($srcH * $scale);
-        if ($heightDots <= 0) {
-            $heightDots = 1;
+        if ($widthDots <= 0 || $heightDots <= 0) {
+            imagedestroy($src);
+
+            return null;
         }
+        $widthDots = (int) (ceil($widthDots / 8) * 8);
+        $heightDots = max(1, $heightDots);
 
         $dst = imagecreatetruecolor($widthDots, $heightDots);
         if ($dst === false) {
@@ -1010,9 +1059,31 @@ class ReceiptTemplateService
         }
         imagedestroy($dst);
 
+        $outWidth = $widthDots;
+        $outRaster = $raster;
+
+        $receiptWidthDots = (int) (ceil($receiptWidthDots / 8) * 8);
+        if ($widthDots < $receiptWidthDots && config('receipts.logo_center_on_receipt', true)) {
+            $leftPaddingDots = (int) (floor(($receiptWidthDots - $widthDots) / 2 / 8) * 8);
+            $leftPaddingBytes = (int) ($leftPaddingDots / 8);
+            $rightPaddingDots = $receiptWidthDots - $leftPaddingDots - $widthDots;
+            $rightPaddingBytes = (int) ($rightPaddingDots / 8);
+            $logoBytesPerRow = $bytesPerRow;
+            $outBytesPerRow = $receiptWidthDots / 8;
+            $outRaster = '';
+            $rowOffset = 0;
+            for ($y = 0; $y < $heightDots; $y++) {
+                $outRaster .= str_repeat("\x00", $leftPaddingBytes);
+                $outRaster .= substr($raster, $rowOffset, $logoBytesPerRow);
+                $rowOffset += $logoBytesPerRow;
+                $outRaster .= str_repeat("\x00", $rightPaddingBytes);
+            }
+            $outWidth = $receiptWidthDots;
+        }
+
         return [
-            'base64' => base64_encode($raster),
-            'width' => $widthDots,
+            'base64' => base64_encode($outRaster),
+            'width' => $outWidth,
             'height' => $heightDots,
         ];
     }

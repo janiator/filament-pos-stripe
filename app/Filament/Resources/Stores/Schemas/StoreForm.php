@@ -2,8 +2,12 @@
 
 namespace App\Filament\Resources\Stores\Schemas;
 
+use App\Enums\AddonType;
+use App\Models\Addon;
+use App\Services\MeranoConnectionService;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -11,6 +15,11 @@ use Filament\Schemas\Schema;
 
 class StoreForm
 {
+    public static function supportsMeranoConfiguration(): bool
+    {
+        return app(MeranoConnectionService::class)->supportsStoreConfiguration();
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -69,6 +78,24 @@ class StoreForm
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
                             ->helperText('Upload a logo for this store. The logo will be displayed on receipts. Max 5MB. JPEG, PNG, WebP, and GIF are supported.')
                             ->columnSpanFull(),
+
+                        TextInput::make('receipt_logo_max_width_dots')
+                            ->label('Receipt logo max width (dots)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(576)
+                            ->nullable()
+                            ->placeholder('Default: 384')
+                            ->helperText('Optional. Max width of the logo on receipts in printer dots (80mm receipt = 576). Leave empty for system default.'),
+
+                        TextInput::make('receipt_logo_max_height_dots')
+                            ->label('Receipt logo max height (dots)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(400)
+                            ->nullable()
+                            ->placeholder('Default: 200')
+                            ->helperText('Optional. Max height of the logo on receipts in printer dots. Leave empty for system default.'),
                     ]),
 
                 Section::make('Commission Configuration')
@@ -107,6 +134,51 @@ class StoreForm
                     ])
                     ->collapsible()
                     ->collapsed(),
+
+                Section::make('Merano Integration')
+                    ->schema([
+                        TextInput::make('merano_base_url')
+                            ->label('Merano Base URL')
+                            ->url()
+                            ->nullable()
+                            ->placeholder('https://merano.example.com')
+                            ->helperText('Merano API base URL without a trailing slash. Only used when the Merano Booking add-on is active.'),
+
+                        TextInput::make('merano_pos_api_token')
+                            ->label('Merano POS API Token')
+                            ->password()
+                            ->revealable()
+                            ->nullable()
+                            ->afterStateHydrated(function ($component): void {
+                                $component->state('');
+                            })
+                            ->dehydrated(fn (?string $state): bool => filled($state))
+                            ->helperText('POS_API_TOKEN from Merano. Stored encrypted. Leave blank to keep the current token.'),
+
+                        Select::make('merano_ticket_connected_product_id')
+                            ->label('Merano ticket product')
+                            ->relationship(
+                                name: 'meranoTicketProduct',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: function ($query, $get, $record) {
+                                    if ($record && $record->stripe_account_id) {
+                                        return $query->where('stripe_account_id', $record->stripe_account_id);
+                                    }
+
+                                    return $query->whereRaw('1 = 0');
+                                }
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->nullable()
+                            ->helperText('Product used as the cart line when adding Merano bookings in the POS. Used by the ticket-product API and automatic add-to-cart.'),
+                    ])
+                    ->columns(2)
+                    ->collapsible()
+                    ->collapsed()
+                    ->visible(fn ($record) => $record
+                        && self::supportsMeranoConfiguration()
+                        && Addon::storeHasActiveAddon($record->id, AddonType::MeranoBooking)),
             ]);
     }
 }

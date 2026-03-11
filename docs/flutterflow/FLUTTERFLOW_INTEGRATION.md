@@ -109,8 +109,8 @@ Update Heartbeat (updateDeviceHeartbeat)
 - **vendor_identifier**: `identifierForVendor`
 
 ### Android
-- **device_identifier**: `androidId`
-- **device_name**: `device`
+- **device_identifier**: `androidId` (or serial / install-id fallbacks)
+- **device_name**: If no custom name is passed to `registerPosDevice`, the action builds a unique display name: `brand model (shortId)` (e.g. "Samsung SM-T500 (a1b2c3)"). Pass a non-empty third argument to use a custom name instead.
 - **device_model**: `model`
 - **device_brand**: `brand`
 - **device_manufacturer**: `manufacturer`

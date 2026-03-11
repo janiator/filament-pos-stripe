@@ -256,7 +256,7 @@ class PosPurchasesTable
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
-                            $data['pos_session_id'],
+                            $data['pos_session_id'] ?? null,
                             fn (Builder $query, $sessionId): Builder => $query->where('pos_session_id', $sessionId),
                         );
                     }),
@@ -272,11 +272,11 @@ class PosPurchasesTable
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
                             ->when(
-                                $data['created_from'],
+                                $data['created_from'] ?? null,
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
-                                $data['created_until'],
+                                $data['created_until'] ?? null,
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),

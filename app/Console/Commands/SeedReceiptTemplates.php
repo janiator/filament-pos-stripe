@@ -25,6 +25,7 @@ class SeedReceiptTemplates extends Command
     protected $description = 'Seed receipt templates from files to database';
 
     protected $templatePath;
+
     protected $templates = [
         'sales' => 'sales-receipt.xml',
         'return' => 'return-receipt.xml',
@@ -33,6 +34,8 @@ class SeedReceiptTemplates extends Command
         'provisional' => 'provisional-receipt.xml',
         'training' => 'training-receipt.xml',
         'delivery' => 'delivery-receipt.xml',
+        'freeticket' => 'freeticket_template.xml',
+        'ticket' => 'ticket_template.xml',
     ];
 
     /**
@@ -44,8 +47,9 @@ class SeedReceiptTemplates extends Command
         $storeId = $this->option('store') ? (int) $this->option('store') : null;
         $force = $this->option('force');
 
-        if (!File::isDirectory($this->templatePath)) {
+        if (! File::isDirectory($this->templatePath)) {
             $this->error("Template directory not found: {$this->templatePath}");
+
             return Command::FAILURE;
         }
 
@@ -53,7 +57,7 @@ class SeedReceiptTemplates extends Command
         if ($storeId) {
             $this->info("Store ID: {$storeId}");
         } else {
-            $this->info("Global templates (no store)");
+            $this->info('Global templates (no store)');
         }
 
         $seeded = 0;
@@ -61,11 +65,12 @@ class SeedReceiptTemplates extends Command
         $skipped = 0;
 
         foreach ($this->templates as $type => $filename) {
-            $filePath = $this->templatePath . '/' . $filename;
+            $filePath = $this->templatePath.'/'.$filename;
 
-            if (!File::exists($filePath)) {
+            if (! File::exists($filePath)) {
                 $this->warn("Template file not found: {$filename}");
                 $skipped++;
+
                 continue;
             }
 
@@ -75,7 +80,7 @@ class SeedReceiptTemplates extends Command
                 ->first();
 
             if ($existing) {
-                if ($force || !$existing->is_custom) {
+                if ($force || ! $existing->is_custom) {
                     // Only update if forced or if it's not a custom template
                     $existing->update([
                         'content' => $content,
@@ -105,7 +110,7 @@ class SeedReceiptTemplates extends Command
         }
 
         $this->newLine();
-        $this->info("Summary:");
+        $this->info('Summary:');
         $this->info("  Seeded: {$seeded}");
         $this->info("  Updated: {$updated}");
         $this->info("  Skipped: {$skipped}");

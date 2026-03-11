@@ -221,6 +221,16 @@ if (!response.jsonBody['success']) {
 }
 ```
 
+## Step 5: Merano Booking Flow
+
+Use the booking action only when the active POS device response includes `available_actions` containing `booking`.
+
+1. Open `docs/flutterflow/custom-widgets/merano_seatmap_order_web_view.dart` with the POSitiv wrapper URL `/booking/seatmap?tenant={store_slug}&provider=merano&action=book&storageKey=positiv_action_result&posDeviceId={id}` (or a public Merano seatmap URL that writes to the same `storageKey`).
+2. When the customer confirms seats, call `docs/flutterflow/custom-actions/add_merano_ticket_to_cart.dart` to create the pending booking through POSitiv (`POST /api/merano/v1/bookings`).
+3. Add the returned booking metadata to the cart line so the item stores `merano_booking_id` and `merano_booking_number`.
+4. After a successful POS payment, call `docs/flutterflow/custom-actions/confirm_merano_booking_after_payment.dart` once per cart item with Merano metadata so POSitiv can confirm the booking with Merano.
+5. If the customer cancels before payment, call `releaseMeranoTicketBooking()` from the add-to-cart draft to release the held seats.
+
 ### Common Error Scenarios
 
 1. **Payment amounts don't match:**

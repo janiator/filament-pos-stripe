@@ -11,6 +11,9 @@ POS devices are now separated from Stripe Terminal locations to support multiple
 - Tracks device information from `device_info_plus`
 - Used for compliance (Kassasystemforskriften)
 - Belongs to a Store
+- **cash_drawer_enabled** (boolean, default true): When false, only non-cash transactions are allowed on this device; cash-drawer open/close are disabled and cash payment is rejected with 422.
+- **booking_enabled** (boolean, default false): When true, the device may use Merano booking actions, but only if the store also has the `MeranoBooking` add-on active.
+- **available_actions** (API field): Array of action keys that the frontend should trust for UI gating, currently `cash_drawer` and `booking`.
 
 ### TerminalLocation (Stripe-Specific)
 - Represents a Stripe Terminal location
@@ -52,6 +55,10 @@ Store
 - `PUT/PATCH /api/pos-devices/{id}` - Update POS device
 - `POST /api/pos-devices/{id}/heartbeat` - Update device heartbeat
 
+`booking` is only included in `available_actions` when:
+- the store has the `MeranoBooking` add-on active, and
+- the device has `booking_enabled = true`.
+
 ### Terminal Locations (Stripe-Specific)
 - `GET /api/terminals/locations` - List Stripe Terminal locations
 - `GET /api/terminals/readers` - List Stripe Terminal readers
@@ -70,8 +77,8 @@ All fields match what's available from `device_info_plus` package:
 - `vendor_identifier`: `identifierForVendor`
 
 ### Android
-- `device_identifier`: `androidId`
-- `device_name`: `device`
+- `device_identifier`: `androidId` (or serial / install id fallbacks)
+- `device_name`: When no custom name is passed, a unique display name is built as `brand model (shortId)` (e.g. "Samsung SM-T500 (a1b2c3)") so each Android device is distinguishable; otherwise the custom name is used.
 - `device_model`: `model`
 - `device_brand`: `brand`
 - `device_manufacturer`: `manufacturer`

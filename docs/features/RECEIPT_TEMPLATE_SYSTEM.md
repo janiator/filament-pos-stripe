@@ -17,6 +17,8 @@ Templates are stored in: `resources/receipt-templates/epson/`
 5. **provisional-receipt.xml** - Provisional receipt with "Foreløpig kvittering – IKKJE KVITTERING FOR KJØP" marking
 6. **training-receipt.xml** - Training receipt with "Treningskvittering – IKKJE KVITTERING FOR KJØP" marking
 7. **delivery-receipt.xml** - Delivery receipt with "Utleveringskvittering – IKKJE KVITTERING FOR KJØP" marking
+8. **freeticket_template.xml** - Free ticket print template with marker-based placeholders
+9. **ticket_template.xml** - Booking ticket print template with loop markers and category-specific sections
 
 ## Template Variables
 
@@ -55,13 +57,27 @@ All templates support the following Mustache variables:
 ### Return Receipt Specific
 - `{{original_receipt_number}}` - Original receipt number (for returns/copies)
 
+## Ticket Template Placeholders
+
+The `freeticket` and `ticket` templates are not Mustache-based. They use simple placeholder tokens and comment markers so the POS app can keep the XML structure from the existing ticket scripts.
+
+### `freeticket_template.xml`
+- Loop markers: `<!-- FREETICKET-START -->` / `<!-- FREETICKET-END -->`
+- Optional blocks: `DISCOUNTLINE`, `EXPIRESAT`, `MAXTICKETS`, `APPLIESTO`
+- Placeholders: `<printerid>`, `<code>`, `<place>`, `<date>`, `<discount>`, `<maxTickets>`, `<appliesTo>`
+
+### `ticket_template.xml`
+- Loop markers: `<!-- START LOOP -->` / `<!-- END LOOP -->`
+- Category blocks: `TRIBUNE`, `LOSJE`
+- Placeholders: `<printerid>`, `<heading>`, `<category>`, `<section>`, `<row>`, `<seat>`, `<orderNumber>`, `<dateTime>`, `<place>`, `<entrance>`, `<ticketPrice>`
+
 ## Store logo on receipts
 
 All receipt types can show the store logo at the top of the receipt.
 
 - **Setup:** In the Filament admin panel, edit the Store and upload an image in the "Store Logo" field (Store Information section). The logo is stored on the `public` disk under `store-logos/`. Supported formats: JPEG, PNG, WebP, GIF (max 5MB).
-- **Rendering:** Per the [Epson ePOS-Print XML User's Manual](https://files.support.epson.com/pdf/pos/bulk/epos-print_xml_um_en_revk.pdf), the `<image>` element expects **base64-encoded raster data** (1-bit monochrome), not a URL. When a store has a logo (`logo_path` set and the file exists), the app converts the image to ePOS raster and passes `{{store_logo_base64}}`, `{{store_logo_width}}`, and `{{store_logo_height}}` (width/height in dots). If no logo is set or the file is missing or invalid, the template uses the default Epson `<logo>` block instead.
-- **Templates:** Each Epson XML template uses: `{{#store_logo_base64}}` / `<image width="{{store_logo_width}}" height="{{store_logo_height}}">{{store_logo_base64}}</image>` with a `{{^store_logo_base64}}` fallback to `<logo key1="34" key2="48"/>`. Do not remove this block if you customize templates.
+- **Rendering:** Per the [Epson ePOS-Print XML User's Manual](https://files.support.epson.com/pdf/pos/bulk/epos-print_xml_um_en_revk.pdf), the `<image>` element expects **base64-encoded raster data** (1-bit monochrome), not a URL. When a store has a logo (`logo_path` set and the file exists), the app converts the image to ePOS raster and passes `{{store_logo_base64}}`, `{{store_logo_width}}`, and `{{store_logo_height}}` (width/height in dots). Logos are scaled to fit within a maximum width and height (configurable via `receipts.logo_max_width_dots`, default 384 dots, and `receipts.logo_max_height_dots`, default 200 dots) so the logo stays a reasonable header size and does not span the full receipt width (576 dots). When the logo is narrower than the receipt width, it is centered (configurable via `receipts.logo_center_on_receipt`, default true). A store can override the default max width/height in Filament (Store → Store Information → Receipt logo max width/height dots); leave empty to use system defaults. If no logo is set or the file is missing or invalid, the template uses the default Epson `<logo>` block instead. Raster output is cached; clear cache or re-save the store logo to regenerate after changing these config values.
+- **Templates:** Each Epson XML template uses: `{{#store_logo_base64}}` / `<image width="{{store_logo_width}}" height="{{store_logo_height}}">{{store_logo_base64}}</image>` with a `{{^store_logo_base64}}` fallback to `<logo key1="34" key2="48"/>`. The image element is kept minimal (no `mode`/`color` attributes) for maximum compatibility with Epson printer firmware; the raster is 1-bit monochrome (white=0, black=1). Do not remove this block if you customize templates.
 
 ## Items Array
 
@@ -128,6 +144,18 @@ $xml = $templateService->renderReceipt($receipt);
    GET /api/receipts/{id}
    ```
    Returns receipt data with XML in `receipt_data.xml`.
+
+4. **Render Free Ticket XML**
+   ```
+   POST /api/receipts/print-freeticket
+   ```
+   Returns rendered Epson ePOS XML for free-ticket printing.
+
+5. **Render Booking Ticket XML**
+   ```
+   POST /api/receipts/print-ticket
+   ```
+   Returns rendered Epson ePOS XML for booking-ticket printing.
 
 ## Legal Compliance
 

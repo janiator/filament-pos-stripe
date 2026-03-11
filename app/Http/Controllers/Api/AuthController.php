@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -23,7 +22,7 @@ class AuthController extends Controller
 
         $user = \App\Models\User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
@@ -33,69 +32,72 @@ class AuthController extends Controller
         // $user->tokens()->delete();
 
         // Create a new token
-            // Set current store if not already set
-            if (!$user->current_store_id && $user->stores()->count() > 0) {
-                $firstStore = $user->stores()->first();
-                $user->setCurrentStore($firstStore);
+        // Set current store if not already set
+        if (! $user->current_store_id && $user->stores()->count() > 0) {
+            $firstStore = $user->stores()->first();
+            $user->setCurrentStore($firstStore);
+        }
+
+        $token = $user->createToken('mobile-app')->plainTextToken;
+        $currentStore = $user->currentStore();
+        $user->load('stores.settings');
+
+        // Log employee login event (13003) if store exists
+        if ($currentStore) {
+            // Get current session if exists (from request or find active session)
+            $posDeviceId = $request->input('pos_device_id');
+            $currentSession = null;
+
+            if ($posDeviceId) {
+                $currentSession = \App\Models\PosSession::where('store_id', $currentStore->id)
+                    ->where('pos_device_id', $posDeviceId)
+                    ->where('status', 'open')
+                    ->first();
             }
 
-            $token = $user->createToken('mobile-app')->plainTextToken;
-            $currentStore = $user->currentStore();
-
-            // Log employee login event (13003) if store exists
-            if ($currentStore) {
-                // Get current session if exists (from request or find active session)
-                $posDeviceId = $request->input('pos_device_id');
-                $currentSession = null;
-                
-                if ($posDeviceId) {
-                    $currentSession = \App\Models\PosSession::where('store_id', $currentStore->id)
-                        ->where('pos_device_id', $posDeviceId)
-                        ->where('status', 'open')
-                        ->first();
-                }
-
-                \App\Models\PosEvent::create([
-                    'store_id' => $currentStore->id,
-                    'pos_device_id' => $posDeviceId,
-                    'pos_session_id' => $currentSession?->id,
-                    'user_id' => $user->id,
-                    'event_code' => \App\Models\PosEvent::EVENT_EMPLOYEE_LOGIN,
-                    'event_type' => 'user',
-                    'description' => "Employee {$user->name} logged in",
-                    'event_data' => [
-                        'user_email' => $user->email,
-                        'device_id' => $posDeviceId,
-                    ],
-                    'occurred_at' => now(),
-                ]);
-            }
-
-            return response()->json([
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
+            \App\Models\PosEvent::create([
+                'store_id' => $currentStore->id,
+                'pos_device_id' => $posDeviceId,
+                'pos_session_id' => $currentSession?->id,
+                'user_id' => $user->id,
+                'event_code' => \App\Models\PosEvent::EVENT_EMPLOYEE_LOGIN,
+                'event_type' => 'user',
+                'description' => "Employee {$user->name} logged in",
+                'event_data' => [
+                    'user_email' => $user->email,
+                    'device_id' => $posDeviceId,
                 ],
-                'token' => $token,
-                'current_store' => $currentStore ? [
-                    'id' => $currentStore->id,
-                    'slug' => $currentStore->slug,
-                    'name' => $currentStore->name,
-                    'email' => $currentStore->email,
-                    'stripe_account_id' => $currentStore->stripe_account_id,
-                ] : null,
-                'stores' => $user->stores->map(function ($store) use ($currentStore) {
-                    return [
-                        'id' => $store->id,
-                        'slug' => $store->slug,
-                        'name' => $store->name,
-                        'email' => $store->email,
-                        'stripe_account_id' => $store->stripe_account_id,
-                        'is_current' => $currentStore && $currentStore->id === $store->id,
-                    ];
-                }),
+                'occurred_at' => now(),
             ]);
+        }
+
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+            'token' => $token,
+            'current_store' => $currentStore ? [
+                'id' => $currentStore->id,
+                'slug' => $currentStore->slug,
+                'name' => $currentStore->name,
+                'email' => $currentStore->email,
+                'stripe_account_id' => $currentStore->stripe_account_id,
+                'customers_enabled' => (bool) ($currentStore->settings?->customers_enabled ?? true),
+            ] : null,
+            'stores' => $user->stores->map(function ($store) use ($currentStore) {
+                return [
+                    'id' => $store->id,
+                    'slug' => $store->slug,
+                    'name' => $store->name,
+                    'email' => $store->email,
+                    'stripe_account_id' => $store->stripe_account_id,
+                    'is_current' => $currentStore && $currentStore->id === $store->id,
+                    'customers_enabled' => (bool) ($store->settings?->customers_enabled ?? true),
+                ];
+            }),
+        ]);
     }
 
     /**
@@ -105,6 +107,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $currentStore = $user->currentStore();
+        $user->load('stores.settings');
 
         return response()->json([
             'user' => [
@@ -118,6 +121,7 @@ class AuthController extends Controller
                 'name' => $currentStore->name,
                 'email' => $currentStore->email,
                 'stripe_account_id' => $currentStore->stripe_account_id,
+                'customers_enabled' => (bool) ($currentStore->settings?->customers_enabled ?? true),
             ] : null,
             'stores' => $user->stores->map(function ($store) use ($currentStore) {
                 return [
@@ -127,6 +131,7 @@ class AuthController extends Controller
                     'email' => $store->email,
                     'stripe_account_id' => $store->stripe_account_id,
                     'is_current' => $currentStore && $currentStore->id === $store->id,
+                    'customers_enabled' => (bool) ($store->settings?->customers_enabled ?? true),
                 ];
             }),
         ]);
@@ -145,7 +150,7 @@ class AuthController extends Controller
             // Get current session if exists (from request or find active session)
             $posDeviceId = $request->input('pos_device_id');
             $currentSession = null;
-            
+
             if ($posDeviceId) {
                 $currentSession = \App\Models\PosSession::where('store_id', $currentStore->id)
                     ->where('pos_device_id', $posDeviceId)

@@ -45,6 +45,16 @@ class StoreInfolist
                             ->copyable()
                             ->placeholder('Not configured'),
 
+                        TextEntry::make('receipt_logo_max_width_dots')
+                            ->label('Receipt logo max width (dots)')
+                            ->placeholder('Default')
+                            ->visible(fn (?int $state) => $state !== null),
+
+                        TextEntry::make('receipt_logo_max_height_dots')
+                            ->label('Receipt logo max height (dots)')
+                            ->placeholder('Default')
+                            ->visible(fn (?int $state) => $state !== null),
+
                         TextEntry::make('commission_type')
                             ->label('Commission Type')
                             ->badge()

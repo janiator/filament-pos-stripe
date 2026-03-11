@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ConnectedProducts\Pages;
 
 use App\Filament\Resources\ConnectedProducts\ConnectedProductResource;
+use App\Jobs\EnsureProductStripeIdJob;
 use App\Services\ProductZipImporter;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\FileUpload;
@@ -27,7 +28,7 @@ class ImportProductsZip extends Page implements HasForms
     protected string $view = 'filament.resources.connected-products.pages.import-products-zip';
 
     public ?array $data = [];
-    
+
     public ?array $previewData = null;
 
     public function mount(): void
@@ -85,8 +86,8 @@ class ImportProductsZip extends Page implements HasForms
                             // Import confirmation
                         ]),
                 ])
-                ->submitAction(
-                    new HtmlString(Blade::render(<<<'BLADE'
+                    ->submitAction(
+                        new HtmlString(Blade::render(<<<'BLADE'
                         <x-filament::button
                             wire:click="importProducts"
                             size="lg"
@@ -95,7 +96,7 @@ class ImportProductsZip extends Page implements HasForms
                             Import Products & Collections
                         </x-filament::button>
                     BLADE))
-                )
+                    ),
             ]);
     }
 
@@ -103,26 +104,27 @@ class ImportProductsZip extends Page implements HasForms
     {
         $data = $this->form->getState();
         $zipPath = $data['zip_file'] ?? null;
-        
-        if (!$zipPath) {
+
+        if (! $zipPath) {
             return;
         }
 
         $fullPath = Storage::disk('local')->path($zipPath);
-        
-        if (!file_exists($fullPath)) {
+
+        if (! file_exists($fullPath)) {
             Notification::make()
                 ->danger()
                 ->title('ZIP file not found')
                 ->body('The uploaded ZIP file could not be found.')
                 ->send();
+
             return;
         }
 
         try {
-            $importer = new ProductZipImporter();
+            $importer = new ProductZipImporter;
             $this->previewData = $importer->preview($fullPath);
-            
+
             // Store in session as backup
             session(['zip_import_preview' => $this->previewData]);
         } catch (\Exception $e) {
@@ -138,47 +140,50 @@ class ImportProductsZip extends Page implements HasForms
     public function importProducts(): void
     {
         $store = \Filament\Facades\Filament::getTenant();
-        
-        if (!$store || !$store->stripe_account_id) {
+
+        if (! $store || ! $store->stripe_account_id) {
             Notification::make()
                 ->danger()
                 ->title('Store not configured')
                 ->body('The current store does not have a Stripe account configured.')
                 ->send();
+
             return;
         }
-        
+
         $data = $this->form->getState();
         $zipPath = $data['zip_file'] ?? null;
         $update = $data['update_existing'] ?? false;
 
-        if (!$zipPath) {
+        if (! $zipPath) {
             Notification::make()
                 ->danger()
                 ->title('Missing required data')
                 ->body('Please upload a ZIP file.')
                 ->send();
+
             return;
         }
 
         $fullPath = Storage::disk('local')->path($zipPath);
-        
-        if (!file_exists($fullPath)) {
+
+        if (! file_exists($fullPath)) {
             Notification::make()
                 ->danger()
                 ->title('ZIP file not found')
                 ->body('The uploaded ZIP file could not be found.')
                 ->send();
+
             return;
         }
 
         try {
-            $importer = new ProductZipImporter();
+            $importer = new ProductZipImporter;
             $result = $importer->import($fullPath, $store, $update, false);
 
             $stats = $result['stats'];
             $message = sprintf(
-                "Import completed! Collections: %d created, %d updated, %d skipped. Products: %d created, %d updated, %d skipped.",
+                'Import completed! Collections: %d created, %d updated, %d skipped. Products: %d created, %d updated, %d skipped.',
                 $stats['collections']['imported'],
                 $stats['collections']['updated'],
                 $stats['collections']['skipped'],
@@ -187,13 +192,12 @@ class ImportProductsZip extends Page implements HasForms
                 $stats['products']['skipped']
             );
 
-            // Check if any products were imported without Stripe IDs
-            $productsWithoutStripe = \App\Models\ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
-                ->whereNull('stripe_product_id')
-                ->count();
-
-            if ($productsWithoutStripe > 0) {
-                $message .= "\n\nNote: {$productsWithoutStripe} product(s) were imported without Stripe IDs. Run 'php artisan stripe:sync-products' to create them in Stripe.";
+            $importedProductIds = $result['imported_product_ids'] ?? [];
+            if (! empty($importedProductIds)) {
+                foreach ($importedProductIds as $productId) {
+                    EnsureProductStripeIdJob::dispatch($productId);
+                }
+                $message .= "\n\nStripe sync has been queued for ".count($importedProductIds).' product(s). Products will be created or verified on the connected account when the queue runs.';
             }
 
             Notification::make()
@@ -216,7 +220,7 @@ class ImportProductsZip extends Page implements HasForms
             Notification::make()
                 ->danger()
                 ->title('Import failed')
-                ->body('Failed to import ZIP file: ' . $e->getMessage())
+                ->body('Failed to import ZIP file: '.$e->getMessage())
                 ->send();
         }
     }

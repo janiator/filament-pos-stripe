@@ -13,7 +13,7 @@ class CreateReceiptTemplate extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // If no content provided and template type is set, try to load from file
-        if (empty($data['content']) && !empty($data['template_type'])) {
+        if (empty($data['content']) && ! empty($data['template_type'])) {
             $templatePath = base_path('resources/receipt-templates/epson');
             $templateFiles = [
                 'sales' => 'sales-receipt.xml',
@@ -23,11 +23,13 @@ class CreateReceiptTemplate extends CreateRecord
                 'provisional' => 'provisional-receipt.xml',
                 'training' => 'training-receipt.xml',
                 'delivery' => 'delivery-receipt.xml',
+                'freeticket' => 'freeticket_template.xml',
+                'ticket' => 'ticket_template.xml',
             ];
 
             $filename = $templateFiles[$data['template_type']] ?? null;
             if ($filename) {
-                $filePath = $templatePath . '/' . $filename;
+                $filePath = $templatePath.'/'.$filename;
                 if (File::exists($filePath)) {
                     $data['content'] = File::get($filePath);
                     $data['version'] = '1.0';

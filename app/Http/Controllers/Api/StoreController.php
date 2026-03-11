@@ -48,9 +48,9 @@ class StoreController extends BaseApiController
 
         // Super admins can see all stores
         if ($user->hasRole('super_admin')) {
-            $stores = Store::all();
+            $stores = Store::with('settings')->get();
         } else {
-            $stores = $user->stores;
+            $stores = $user->stores->load('settings');
         }
 
         return response()->json([
@@ -63,6 +63,7 @@ class StoreController extends BaseApiController
                     'stripe_account_id' => $store->stripe_account_id,
                     'commission_type' => $store->commission_type,
                     'commission_rate' => $store->commission_rate,
+                    'customers_enabled' => (bool) ($store->settings?->customers_enabled ?? true),
                 ];
             }),
         ]);
@@ -163,6 +164,35 @@ class StoreController extends BaseApiController
     }
 
     /**
+     * Get the Merano ticket product for the current store (for POS add-to-cart).
+     * Returns the same product shape as GET /products/{id}. 404 if not configured.
+     */
+    public function meranoTicketProduct(Request $request): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+
+        if (! $store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $product = $store->meranoTicketProduct()->with(['vendor', 'quantityUnit'])->first();
+
+        if (! $product) {
+            return response()->json([
+                'message' => 'Merano ticket product not configured for this store',
+            ], 404);
+        }
+
+        $productsController = app(\App\Http\Controllers\Api\ProductsController::class);
+
+        return response()->json([
+            'product' => $productsController->transformProductForPos($product),
+        ]);
+    }
+
+    /**
      * Build store response payload with visible article group codes for POS.
      */
     private function storePayload(Store $store): array
@@ -176,6 +206,7 @@ class StoreController extends BaseApiController
             'commission_type' => $store->commission_type,
             'commission_rate' => $store->commission_rate,
             'visible_article_group_codes' => $this->getVisibleArticleGroupCodesForStore($store),
+            'customers_enabled' => (bool) ($store->settings?->customers_enabled ?? true),
         ];
     }
 }

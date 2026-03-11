@@ -34,7 +34,7 @@ class ImportEventTicketsFromWebflow extends Command
         if ($collectionId) {
             $collection = WebflowCollection::query()
                 ->where('webflow_collection_id', $collectionId)
-                ->whereHas('site.addon', fn ($q) => $q->where('store_id', $store->id))
+                ->whereHas('site', fn ($q) => $q->where('store_id', $store->id))
                 ->first();
             if (! $collection) {
                 $this->error('Webflow collection not found for this store: '.$collectionId);

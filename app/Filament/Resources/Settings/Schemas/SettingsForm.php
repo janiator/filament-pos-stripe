@@ -139,6 +139,12 @@ class SettingsForm
                             ->helperText('Allow tips to be added to transactions. When disabled, tips will be hidden from reports.')
                             ->default(true)
                             ->columnSpan(1),
+
+                        Toggle::make('customers_enabled')
+                            ->label('Enable Customers in POS')
+                            ->helperText('When disabled, customer-related features are hidden in the POS app (e.g. linking customers to purchases).')
+                            ->default(true)
+                            ->columnSpan(1),
                     ])
                     ->columns(2)
                     ->collapsible()

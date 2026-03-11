@@ -10,6 +10,8 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 Future<dynamic> registerPosDevice(
   String apiBaseUrl,
@@ -17,6 +19,20 @@ Future<dynamic> registerPosDevice(
   String? deviceName,
   String? deviceMetadataJson,
 ) async {
+  Future<String> getOrCreateLocalInstallId() async {
+    const storageKey = 'pos_device_install_id_v1';
+    final prefs = await SharedPreferences.getInstance();
+    final existing = (prefs.getString(storageKey) ?? '').trim();
+    if (existing.isNotEmpty) {
+      return existing;
+    }
+
+    final newId = const Uuid().v4();
+    await prefs.setString(storageKey, newId);
+
+    return newId;
+  }
+
   final Map result = {
     'success': false,
     'deviceId': '',
@@ -37,6 +53,7 @@ Future<dynamic> registerPosDevice(
     }
 
     final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    final localInstallId = await getOrCreateLocalInstallId();
     
     String platform = 'unknown';
     String deviceIdentifier = '';
@@ -47,6 +64,15 @@ Future<dynamic> registerPosDevice(
       platform = 'ios';
       final IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
       deviceIdentifier = iosInfo.identifierForVendor ?? '';
+      if (deviceIdentifier.isEmpty) {
+        if (!iosInfo.isPhysicalDevice) {
+          final machine = iosInfo.utsname.machine ?? 'unknown';
+          final name = iosInfo.name ?? 'iOS Simulator';
+          deviceIdentifier = 'ios-simulator-${machine}-${name}';
+        } else {
+          deviceIdentifier = 'ios-local-$localInstallId';
+        }
+      }
       // Use provided deviceName if given, otherwise use device's name from device_info_plus
       deviceNameValue = (deviceName != null && deviceName.isNotEmpty) ? deviceName : iosInfo.name;
       deviceData = {
@@ -55,11 +81,38 @@ Future<dynamic> registerPosDevice(
         'system_name': iosInfo.systemName,
         'system_version': iosInfo.systemVersion,
         'vendor_identifier': iosInfo.identifierForVendor,
+        'local_install_id': localInstallId,
       };
     } else if (Platform.isAndroid) {
       platform = 'android';
       final AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-      deviceIdentifier = androidInfo.id;
+      final androidData = androidInfo.data;
+      final androidIdFromData =
+          (androidData['androidId'] ?? androidData['android_id'] ?? '')
+              .toString()
+              .trim();
+      final serialFromData = (androidData['serialNumber'] ??
+              androidData['serial_number'] ??
+              '')
+          .toString()
+          .trim();
+      final buildId = (androidInfo.id).toString().trim();
+
+      if (androidIdFromData.isNotEmpty &&
+          androidIdFromData.toLowerCase() != 'unknown') {
+        deviceIdentifier = 'android-id-$androidIdFromData';
+      } else if (serialFromData.isNotEmpty &&
+          serialFromData.toLowerCase() != 'unknown') {
+        deviceIdentifier = 'android-serial-$serialFromData';
+      } else {
+        deviceIdentifier = buildId;
+      }
+      if (deviceIdentifier.toLowerCase() == 'unknown') {
+        deviceIdentifier = '';
+      }
+      if (deviceIdentifier.isEmpty) {
+        deviceIdentifier = 'android-local-$localInstallId';
+      }
       // Use provided deviceName if given, otherwise use device's name from device_info_plus
       deviceNameValue = (deviceName != null && deviceName.isNotEmpty) ? deviceName : androidInfo.device;
       deviceData = {
@@ -69,9 +122,10 @@ Future<dynamic> registerPosDevice(
         'device_product': androidInfo.product,
         'device_hardware': androidInfo.hardware,
         'system_version': androidInfo.version.release,
-        'android_id': androidInfo.id,
-        // Note: serialNumber is not available in all versions of device_info_plus
-        // 'serial_number': androidInfo.serialNumber, // Removed - not available
+        'android_id': androidIdFromData,
+        'build_id': buildId,
+        'serial_number': serialFromData,
+        'local_install_id': localInstallId,
       };
     } else {
       result['error'] = 'Unsupported platform';

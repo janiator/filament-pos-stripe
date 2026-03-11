@@ -26,7 +26,7 @@ class ReceiptTemplateForm
                                 ->preload()
                                 ->placeholder('Global (all stores)')
                                 ->nullable(),
-                            
+
                             Select::make('template_type')
                                 ->label('Template Type')
                                 ->options([
@@ -37,11 +37,13 @@ class ReceiptTemplateForm
                                     'provisional' => 'Provisional Receipt',
                                     'training' => 'Training Receipt',
                                     'delivery' => 'Delivery Receipt',
+                                    'freeticket' => 'Free Ticket',
+                                    'ticket' => 'Booking Ticket',
                                 ])
                                 ->required()
                                 ->disabled(fn ($record) => $record !== null)
                                 ->dehydrated(fn ($record) => $record === null),
-                            
+
                             Toggle::make('is_custom')
                                 ->label('Custom Template')
                                 ->helperText('Mark as custom to prevent overwriting when seeding from files')
@@ -50,7 +52,7 @@ class ReceiptTemplateForm
                                 ->dehydrated(true),
                         ]),
                     ]),
-                
+
                 Textarea::make('content')
                     ->label('Template Content (XML)')
                     ->required()
@@ -58,7 +60,7 @@ class ReceiptTemplateForm
                     ->extraAttributes([
                         'style' => 'font-family: monospace; font-size: 13px;',
                     ])
-                    ->helperText('Epson ePOS XML template with Mustache syntax for dynamic content')
+                    ->helperText('Epson ePOS XML template. Receipt templates use Mustache data, while ticket templates use marker and placeholder tokens.')
                     ->columnSpanFull(),
             ]);
     }

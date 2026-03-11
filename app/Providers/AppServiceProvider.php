@@ -23,6 +23,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        config([
+            'filament-webflow.item_edit_page' => \App\Filament\Pages\WebflowItemEditPage::class,
+        ]);
+
         Nightwatch::rejectQueries(function (Query $query) {
             return str_contains($query->sql, 'into "jobs"');
         });
@@ -54,5 +58,8 @@ class AppServiceProvider extends ServiceProvider
             \Spatie\MediaLibrary\MediaCollections\Events\CollectionHasBeenClearedEvent::class,
             \App\Listeners\SyncProductOnMediaDeleted::class
         );
+
+        // When a Webflow site is deleted, remove EventTickets that referenced its items
+        \Positiv\FilamentWebflow\Models\WebflowSite::observe(\App\Observers\WebflowSiteObserver::class);
     }
 }

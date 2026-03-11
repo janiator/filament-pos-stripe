@@ -5,6 +5,7 @@ namespace Positiv\FilamentWebflow\Filament\Pages;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Checkbox;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Schema;
@@ -155,7 +156,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
                     ->trueLabel('Draft')
                     ->falseLabel('Not draft'),
             ])
-            ->headerActions([
+            ->headerActions(array_filter([
                 Action::make('back')
                     ->label('Change collection')
                     ->url(static::getUrl())
@@ -181,32 +182,18 @@ class WebflowCollectionItemsPage extends Page implements HasTable
                     })
                     ->requiresConfirmation()
                     ->modalHeading('Pull items from Webflow?'),
-            ])
-            ->actions(array_filter([
+                $this->syncFromWebflowHeaderAction(),
+            ], fn ($a) => $a !== null))
+            ->actions([
                 Action::make('edit')
                     ->label('Edit')
                     ->icon('heroicon-o-pencil-square')
                     ->url($editPageUrl),
-                class_exists(\App\Models\EventTicket::class)
-                    ? Action::make('configureEventTicket')
-                        ->label(fn (WebflowItem $record): string => \App\Models\EventTicket::where('webflow_item_id', $record->id)->exists() ? 'Edit event ticket' : 'Configure event ticket')
-                        ->icon('heroicon-o-ticket')
-                        ->url(function (WebflowItem $record): string {
-                            $eventTicket = \App\Models\EventTicket::where('webflow_item_id', $record->id)->first();
-                            $resource = \App\Filament\Resources\EventTickets\EventTicketResource::class;
-                            $tenant = Filament::getTenant();
-                            if ($eventTicket) {
-                                return $resource::getUrl('edit', ['record' => $eventTicket], true, null, $tenant);
-                            }
-
-                            return $resource::getUrl('create', [], true, null, $tenant).'?webflow_item_id='.$record->id;
-                        })
-                    : null,
                 \Filament\Actions\Action::make('pushToWebflow')
                     ->label('Push to Webflow')
                     ->icon('heroicon-o-arrow-up-tray')
                     ->action(fn (WebflowItem $record) => PushWebflowItem::dispatch($record, false)),
-            ]))
+            ])
             ->bulkActions([
                 \Filament\Actions\BulkAction::make('pushSelected')
                     ->label('Push selected to Webflow')
@@ -214,6 +201,47 @@ class WebflowCollectionItemsPage extends Page implements HasTable
                     ->action(fn ($records) => $records->each(fn (WebflowItem $r) => PushWebflowItem::dispatch($r, false)))
                     ->deselectRecordsAfterCompletion(),
             ]);
+    }
+
+    protected function syncFromWebflowHeaderAction(): ?Action
+    {
+        if (! $this->collectionModel?->use_for_event_tickets) {
+            return null;
+        }
+        if (! class_exists(\App\Actions\EventTickets\ImportEventTicketsFromWebflowCollection::class)) {
+            return null;
+        }
+
+        return Action::make('syncFromWebflow')
+            ->label('Sync from Webflow')
+            ->icon('heroicon-o-arrow-path')
+            ->color('gray')
+            ->form([
+                Checkbox::make('pull_first')
+                    ->label('Pull from Webflow first (sync latest CMS items before importing)')
+                    ->default(false),
+            ])
+            ->action(function (array $data): void {
+                $tenant = Filament::getTenant();
+                if (! $tenant) {
+                    \Filament\Notifications\Notification::make()
+                        ->title('No store selected')
+                        ->body('Please select a store (tenant) first.')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $import = app(\App\Actions\EventTickets\ImportEventTicketsFromWebflowCollection::class);
+                $result = $import($tenant, $this->collectionModel, (bool) ($data['pull_first'] ?? false));
+
+                \Filament\Notifications\Notification::make()
+                    ->title('Sync complete')
+                    ->body("Created: {$result['created']}, Updated: {$result['updated']}.")
+                    ->success()
+                    ->send();
+            });
     }
 
     public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): string

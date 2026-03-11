@@ -15,8 +15,11 @@ use ZipArchive;
 class ProductZipImporter
 {
     protected array $collectionMapping = [];
+
     protected array $productMapping = [];
+
     protected ?string $tempDir = null;
+
     protected array $stats = [
         'collections' => ['imported' => 0, 'updated' => 0, 'skipped' => 0],
         'products' => ['imported' => 0, 'updated' => 0, 'skipped' => 0],
@@ -24,42 +27,45 @@ class ProductZipImporter
         'relations' => ['linked' => 0, 'skipped' => 0],
     ];
 
+    /** @var array<int, int> Product IDs that were created or updated (for queueing Stripe sync). */
+    protected array $importedProductIds = [];
+
     public function import(string $zipFilePath, Store $store, bool $update = false, bool $dryRun = false): array
     {
-        if (!file_exists($zipFilePath)) {
+        if (! file_exists($zipFilePath)) {
             throw new \Exception("File not found: {$zipFilePath}");
         }
 
-        if (!$store->stripe_account_id) {
-            throw new \Exception("Store does not have a Stripe account ID");
+        if (! $store->stripe_account_id) {
+            throw new \Exception('Store does not have a Stripe account ID');
         }
 
         // Extract zip file - use unique directory name
         // Use sys_get_temp_dir() for better cross-platform support, or storage temp
         $baseTempDir = storage_path('app/temp');
         File::ensureDirectoryExists($baseTempDir);
-        
+
         // Generate unique directory name
-        $this->tempDir = $baseTempDir . '/import-' . uniqid('', true) . '-' . bin2hex(random_bytes(4));
-        
+        $this->tempDir = $baseTempDir.'/import-'.uniqid('', true).'-'.bin2hex(random_bytes(4));
+
         // If directory somehow exists, keep generating until we get a unique one
         $maxAttempts = 10;
         $attempts = 0;
         while (is_dir($this->tempDir) && $attempts < $maxAttempts) {
-            $this->tempDir = $baseTempDir . '/import-' . uniqid('', true) . '-' . bin2hex(random_bytes(4));
+            $this->tempDir = $baseTempDir.'/import-'.uniqid('', true).'-'.bin2hex(random_bytes(4));
             $attempts++;
         }
-        
+
         if ($attempts >= $maxAttempts) {
             throw new \Exception("Failed to generate unique temporary directory after {$maxAttempts} attempts");
         }
-        
+
         // Use File::ensureDirectoryExists which handles existing directories gracefully
         File::ensureDirectoryExists($this->tempDir, 0755);
 
         try {
             // Extract zip file
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             if ($zip->open($zipFilePath) !== true) {
                 throw new \Exception("Failed to open zip file: {$zipFilePath}");
             }
@@ -68,21 +74,23 @@ class ProductZipImporter
             $zip->close();
 
             // Read manifest
-            $manifestPath = $this->tempDir . '/manifest.json';
-            if (!file_exists($manifestPath)) {
-                throw new \Exception("Manifest file not found in zip");
+            $manifestPath = $this->tempDir.'/manifest.json';
+            if (! file_exists($manifestPath)) {
+                throw new \Exception('Manifest file not found in zip');
             }
 
             $manifest = json_decode(file_get_contents($manifestPath), true);
-            if (!$manifest) {
-                throw new \Exception("Failed to parse manifest file");
+            if (! $manifest) {
+                throw new \Exception('Failed to parse manifest file');
             }
+
+            $includeStripeIds = $manifest['include_stripe_ids'] ?? false;
 
             // Import collections first
             $this->importCollections($manifest['collections'] ?? [], $store, $update, $dryRun);
 
-            // Import products
-            $this->importProducts($manifest['products'] ?? [], $store, $update, $dryRun);
+            // Import products (never use Stripe IDs from payload when export was cross-env)
+            $this->importProducts($manifest['products'] ?? [], $store, $update, $dryRun, $includeStripeIds);
 
             // Import product-collection relationships
             $this->importProductCollectionRelations($manifest['product_collection_relations'] ?? [], $dryRun);
@@ -94,20 +102,21 @@ class ProductZipImporter
                 'success' => true,
                 'stats' => $this->stats,
                 'export_date' => $manifest['export_date'] ?? null,
+                'imported_product_ids' => $this->importedProductIds,
             ];
         } catch (\Exception $e) {
             // Clean up temp directory on error
             if ($this->tempDir && File::exists($this->tempDir)) {
                 File::deleteDirectory($this->tempDir);
             }
-            
+
             throw $e;
         }
     }
 
     public function preview(string $zipFilePath): array
     {
-        if (!file_exists($zipFilePath)) {
+        if (! file_exists($zipFilePath)) {
             throw new \Exception("File not found: {$zipFilePath}");
         }
 
@@ -115,28 +124,28 @@ class ProductZipImporter
         // Use sys_get_temp_dir() for better cross-platform support, or storage temp
         $baseTempDir = storage_path('app/temp');
         File::ensureDirectoryExists($baseTempDir);
-        
+
         // Generate unique directory name
-        $this->tempDir = $baseTempDir . '/preview-' . uniqid('', true) . '-' . bin2hex(random_bytes(4));
-        
+        $this->tempDir = $baseTempDir.'/preview-'.uniqid('', true).'-'.bin2hex(random_bytes(4));
+
         // If directory somehow exists, keep generating until we get a unique one
         $maxAttempts = 10;
         $attempts = 0;
         while (is_dir($this->tempDir) && $attempts < $maxAttempts) {
-            $this->tempDir = $baseTempDir . '/preview-' . uniqid('', true) . '-' . bin2hex(random_bytes(4));
+            $this->tempDir = $baseTempDir.'/preview-'.uniqid('', true).'-'.bin2hex(random_bytes(4));
             $attempts++;
         }
-        
+
         if ($attempts >= $maxAttempts) {
             throw new \Exception("Failed to generate unique temporary directory after {$maxAttempts} attempts");
         }
-        
+
         // Use File::ensureDirectoryExists which handles existing directories gracefully
         File::ensureDirectoryExists($this->tempDir, 0755);
 
         try {
             // Extract zip file
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             if ($zip->open($zipFilePath) !== true) {
                 throw new \Exception("Failed to open zip file: {$zipFilePath}");
             }
@@ -145,14 +154,14 @@ class ProductZipImporter
             $zip->close();
 
             // Read manifest
-            $manifestPath = $this->tempDir . '/manifest.json';
-            if (!file_exists($manifestPath)) {
-                throw new \Exception("Manifest file not found in zip");
+            $manifestPath = $this->tempDir.'/manifest.json';
+            if (! file_exists($manifestPath)) {
+                throw new \Exception('Manifest file not found in zip');
             }
 
             $manifest = json_decode(file_get_contents($manifestPath), true);
-            if (!$manifest) {
-                throw new \Exception("Failed to parse manifest file");
+            if (! $manifest) {
+                throw new \Exception('Failed to parse manifest file');
             }
 
             // Clean up
@@ -171,7 +180,7 @@ class ProductZipImporter
             if ($this->tempDir && File::exists($this->tempDir)) {
                 File::deleteDirectory($this->tempDir);
             }
-            
+
             throw $e;
         }
     }
@@ -180,7 +189,7 @@ class ProductZipImporter
     {
         foreach ($collections as $collectionData) {
             $name = $collectionData['name'] ?? null;
-            if (!$name) {
+            if (! $name) {
                 continue;
             }
 
@@ -189,23 +198,25 @@ class ProductZipImporter
                 ->where('stripe_account_id', $store->stripe_account_id)
                 ->first();
 
-            if ($existing && !$update) {
+            if ($existing && ! $update) {
                 $this->collectionMapping[$collectionData['id']] = $existing->id;
                 $this->stats['collections']['skipped']++;
+
                 continue;
             }
 
             if ($dryRun) {
-                if (!$existing) {
+                if (! $existing) {
                     $this->collectionMapping[$collectionData['id']] = 'new-id';
                 } else {
                     $this->collectionMapping[$collectionData['id']] = $existing->id;
                 }
                 $this->stats['collections'][$existing ? 'updated' : 'imported']++;
+
                 continue;
             }
 
-            $collection = $existing ?? new Collection();
+            $collection = $existing ?? new Collection;
             $collection->store_id = $store->id;
             $collection->stripe_account_id = $store->stripe_account_id;
             $collection->name = $name;
@@ -225,7 +236,7 @@ class ProductZipImporter
             } elseif (isset($collectionData['image_url'])) {
                 // Image URL from export - check if it's a local storage URL that needs to be handled
                 $imageUrl = $collectionData['image_url'];
-                
+
                 // If it's a full storage URL from the source server, we can't use it directly
                 // Only keep external URLs (Stripe, CDN, etc.) or relative paths that will be copied
                 if (str_contains($imageUrl, '/storage/')) {
@@ -245,11 +256,11 @@ class ProductZipImporter
         }
     }
 
-    protected function importProducts(array $products, Store $store, bool $update, bool $dryRun): void
+    protected function importProducts(array $products, Store $store, bool $update, bool $dryRun, bool $includeStripeIds = false): void
     {
         foreach ($products as $productData) {
             $name = $productData['name'] ?? null;
-            if (!$name) {
+            if (! $name) {
                 continue;
             }
 
@@ -258,23 +269,25 @@ class ProductZipImporter
                 ->where('stripe_account_id', $store->stripe_account_id)
                 ->first();
 
-            if ($existing && !$update) {
+            if ($existing && ! $update) {
                 $this->productMapping[$productData['id']] = $existing->id;
                 $this->stats['products']['skipped']++;
+
                 continue;
             }
 
             if ($dryRun) {
-                if (!$existing) {
+                if (! $existing) {
                     $this->productMapping[$productData['id']] = 'new-id';
                 } else {
                     $this->productMapping[$productData['id']] = $existing->id;
                 }
                 $this->stats['products'][$existing ? 'updated' : 'imported']++;
+
                 continue;
             }
 
-            $product = $existing ?? new ConnectedProduct();
+            $product = $existing ?? new ConnectedProduct;
             $product->stripe_account_id = $store->stripe_account_id;
             $product->name = $name;
             $product->description = $productData['description'] ?? null;
@@ -294,7 +307,7 @@ class ProductZipImporter
             $product->product_code = $productData['product_code'] ?? null;
             $product->product_meta = $productData['product_meta'] ?? [];
             $product->images = $productData['images'] ?? [];
-            
+
             // Handle vendor_id - create vendor if it doesn't exist
             // Vendors are store-specific, so we need to find or create them in the target store
             if (isset($productData['vendor_id']) && $productData['vendor_id']) {
@@ -302,36 +315,36 @@ class ProductZipImporter
                 $vendor = Vendor::where('id', $productData['vendor_id'])
                     ->where('stripe_account_id', $store->stripe_account_id)
                     ->first();
-                
-                if (!$vendor) {
+
+                if (! $vendor) {
                     // Vendor doesn't exist - try to get vendor name from product data
                     // The export might include vendor relationship data
                     $vendorName = null;
-                    
+
                     // Check if vendor data is included in export (from relationship)
                     if (isset($productData['vendor']) && is_array($productData['vendor'])) {
                         $vendorName = $productData['vendor']['name'] ?? null;
                     }
-                    
+
                     // Fallback to vendor name from metadata or use generic name
-                    if (!$vendorName) {
-                        $vendorName = $productData['vendor_name'] ?? 
+                    if (! $vendorName) {
+                        $vendorName = $productData['vendor_name'] ??
                                       ($productData['product_meta']['vendor_name'] ?? null) ??
-                                      'Imported Vendor ' . $productData['vendor_id'];
+                                      'Imported Vendor '.$productData['vendor_id'];
                     }
-                    
+
                     // Check if a vendor with this name already exists
                     $vendor = Vendor::where('name', $vendorName)
                         ->where('stripe_account_id', $store->stripe_account_id)
                         ->first();
-                    
-                    if (!$vendor) {
+
+                    if (! $vendor) {
                         // Create new vendor with available data
-                        $vendor = new Vendor();
+                        $vendor = new Vendor;
                         $vendor->store_id = $store->id;
                         $vendor->stripe_account_id = $store->stripe_account_id;
                         $vendor->name = $vendorName;
-                        
+
                         // Set vendor details if available from export
                         if (isset($productData['vendor']) && is_array($productData['vendor'])) {
                             $vendor->description = $productData['vendor']['description'] ?? 'Imported vendor';
@@ -343,34 +356,37 @@ class ProductZipImporter
                             $vendor->description = 'Imported vendor';
                             $vendor->active = true;
                         }
-                        
+
                         $vendor->save();
                     }
                 }
-                
+
                 $product->vendor_id = $vendor->id;
             } else {
                 $product->vendor_id = null;
             }
 
-            // Only set Stripe IDs if they were included in export
-            // If not included (default behavior), stripe_product_id will be null
-            // Products can be synced to Stripe after import using: php artisan stripe:sync-products
-            if (isset($productData['stripe_product_id']) && $productData['stripe_product_id']) {
-                $product->stripe_product_id = $productData['stripe_product_id'];
-            }
-            if (isset($productData['default_price']) && $productData['default_price']) {
-                $product->default_price = $productData['default_price'];
+            // Only set Stripe IDs when export explicitly included them (same env). Cross-env imports must not use them.
+            if ($includeStripeIds) {
+                if (! empty($productData['stripe_product_id'])) {
+                    $product->stripe_product_id = $productData['stripe_product_id'];
+                }
+                if (! empty($productData['default_price'])) {
+                    $product->default_price = $productData['default_price'];
+                }
+            } else {
+                $product->stripe_product_id = null;
+                $product->default_price = null;
             }
 
-            // Save product (stripe_product_id may be null - will be created during sync)
             $product->save();
+            $this->importedProductIds[] = $product->id;
 
             // Import product images
             if (isset($productData['media_files']) && is_array($productData['media_files'])) {
                 foreach ($productData['media_files'] as $mediaFile) {
                     if (isset($mediaFile['path'])) {
-                        $sourcePath = $this->tempDir . '/media/' . $mediaFile['path'];
+                        $sourcePath = $this->tempDir.'/media/'.$mediaFile['path'];
                         if (file_exists($sourcePath)) {
                             try {
                                 $product->addMedia($sourcePath)
@@ -385,9 +401,8 @@ class ProductZipImporter
                 }
             }
 
-            // Import variants
             if (isset($productData['variants']) && is_array($productData['variants'])) {
-                $this->importVariants($product, $productData['variants'], $store, $update, $dryRun);
+                $this->importVariants($product, $productData['variants'], $store, $update, $dryRun, $includeStripeIds);
             }
 
             $this->productMapping[$productData['id']] = $product->id;
@@ -395,11 +410,12 @@ class ProductZipImporter
         }
     }
 
-    protected function importVariants(ConnectedProduct $product, array $variants, Store $store, bool $update, bool $dryRun): void
+    protected function importVariants(ConnectedProduct $product, array $variants, Store $store, bool $update, bool $dryRun, bool $includeStripeIds = false): void
     {
         foreach ($variants as $variantData) {
             if ($dryRun) {
                 $this->stats['variants']['imported']++;
+
                 continue;
             }
 
@@ -411,7 +427,7 @@ class ProductZipImporter
                     ->first();
             }
 
-            $variant = $existing ?? new ProductVariant();
+            $variant = $existing ?? new ProductVariant;
             $variant->connected_product_id = $product->id;
             $variant->stripe_account_id = $store->stripe_account_id;
             $variant->sku = $variantData['sku'] ?? null;
@@ -435,12 +451,16 @@ class ProductZipImporter
             $variant->no_price_in_pos = $variantData['no_price_in_pos'] ?? false;
             $variant->metadata = $variantData['metadata'] ?? [];
 
-            // Only set Stripe IDs if they were included in export
-            if (isset($variantData['stripe_product_id']) && $variantData['stripe_product_id']) {
-                $variant->stripe_product_id = $variantData['stripe_product_id'];
-            }
-            if (isset($variantData['stripe_price_id']) && $variantData['stripe_price_id']) {
-                $variant->stripe_price_id = $variantData['stripe_price_id'];
+            if ($includeStripeIds) {
+                if (! empty($variantData['stripe_product_id'])) {
+                    $variant->stripe_product_id = $variantData['stripe_product_id'];
+                }
+                if (! empty($variantData['stripe_price_id'])) {
+                    $variant->stripe_price_id = $variantData['stripe_price_id'];
+                }
+            } else {
+                $variant->stripe_product_id = null;
+                $variant->stripe_price_id = null;
             }
 
             // Handle variant image
@@ -449,7 +469,7 @@ class ProductZipImporter
                 if ($imagePath) {
                     $variant->image_url = $imagePath;
                 }
-            } elseif (isset($variantData['image_url']) && !str_contains($variantData['image_url'], '/storage/')) {
+            } elseif (isset($variantData['image_url']) && ! str_contains($variantData['image_url'], '/storage/')) {
                 // External URL - keep as is
                 $variant->image_url = $variantData['image_url'];
             }
@@ -465,7 +485,7 @@ class ProductZipImporter
             $productName = $relation['product_name'] ?? null;
             $collectionName = $relation['collection_name'] ?? null;
 
-            if (!$productName || !$collectionName) {
+            if (! $productName || ! $collectionName) {
                 continue;
             }
 
@@ -473,18 +493,20 @@ class ProductZipImporter
             $product = ConnectedProduct::where('name', $productName)->first();
             $collection = Collection::where('name', $collectionName)->first();
 
-            if (!$product || !$collection) {
+            if (! $product || ! $collection) {
                 $this->stats['relations']['skipped']++;
+
                 continue;
             }
 
             if ($dryRun) {
                 $this->stats['relations']['linked']++;
+
                 continue;
             }
 
             // Check if relation already exists
-            if (!$product->collections()->where('collections.id', $collection->id)->exists()) {
+            if (! $product->collections()->where('collections.id', $collection->id)->exists()) {
                 $product->collections()->attach($collection->id, [
                     'sort_order' => $relation['sort_order'] ?? 0,
                 ]);
@@ -497,17 +519,17 @@ class ProductZipImporter
 
     protected function copyCollectionImage(string $imagePath, string $collectionHandle): ?string
     {
-        if (!$this->tempDir) {
+        if (! $this->tempDir) {
             return null;
         }
-        $sourcePath = $this->tempDir . '/media/' . $imagePath;
-        if (!file_exists($sourcePath)) {
+        $sourcePath = $this->tempDir.'/media/'.$imagePath;
+        if (! file_exists($sourcePath)) {
             return null;
         }
 
         $fileName = basename($imagePath);
-        $destPath = 'collections/' . $collectionHandle . '-' . $fileName;
-        $fullDestPath = storage_path('app/public/' . $destPath);
+        $destPath = 'collections/'.$collectionHandle.'-'.$fileName;
+        $fullDestPath = storage_path('app/public/'.$destPath);
 
         File::ensureDirectoryExists(dirname($fullDestPath), 0755);
         File::copy($sourcePath, $fullDestPath);
@@ -518,18 +540,18 @@ class ProductZipImporter
 
     protected function copyVariantImage(string $imagePath, int $productId, ?string $sku): ?string
     {
-        if (!$this->tempDir) {
+        if (! $this->tempDir) {
             return null;
         }
-        $sourcePath = $this->tempDir . '/media/' . $imagePath;
-        if (!file_exists($sourcePath)) {
+        $sourcePath = $this->tempDir.'/media/'.$imagePath;
+        if (! file_exists($sourcePath)) {
             return null;
         }
 
         $fileName = basename($imagePath);
         $prefix = $sku ? Str::slug($sku) : "product-{$productId}";
-        $destPath = 'variants/' . $prefix . '-' . $fileName;
-        $fullDestPath = storage_path('app/public/' . $destPath);
+        $destPath = 'variants/'.$prefix.'-'.$fileName;
+        $fullDestPath = storage_path('app/public/'.$destPath);
 
         File::ensureDirectoryExists(dirname($fullDestPath), 0755);
         File::copy($sourcePath, $fullDestPath);

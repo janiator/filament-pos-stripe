@@ -10,6 +10,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Positiv\FilamentWebflow\Services\WebflowApiClient;
+use Positiv\FilamentWebflow\Support\EventTicketFieldMapping;
 
 class PushTicketCountsToWebflow implements ShouldQueue
 {
@@ -56,14 +57,15 @@ class PushTicketCountsToWebflow implements ShouldQueue
         $client = WebflowApiClient::forToken($site->api_token);
         $collectionId = $collection->webflow_collection_id;
 
-        // Map EventTicket fields to Webflow CMS field slugs (Halvorsen Arrangementers collection)
+        $slug = fn (string $logicalKey): ?string => EventTicketFieldMapping::resolveSlug($collection, $logicalKey);
         $updates = array_filter([
-            'billett-1-tilgjengelig' => $this->eventTicket->ticket_1_available,
-            'billett-1-solgte' => $this->eventTicket->ticket_1_sold,
-            'billett-2-tilgjengelig' => $this->eventTicket->ticket_2_available,
-            'billett-2-solgte' => $this->eventTicket->ticket_2_sold,
-            'utsolgt' => $this->eventTicket->is_sold_out,
+            $slug('ticket_1_available') => $this->eventTicket->ticket_1_available,
+            $slug('ticket_1_sold') => $this->eventTicket->ticket_1_sold,
+            $slug('ticket_2_available') => $this->eventTicket->ticket_2_available,
+            $slug('ticket_2_sold') => $this->eventTicket->ticket_2_sold,
+            $slug('is_sold_out') => $this->eventTicket->is_sold_out,
         ], fn ($v) => $v !== null);
+        $updates = array_filter($updates, fn ($_, $key) => $key !== null, ARRAY_FILTER_USE_BOTH);
 
         $existing = $item->field_data ?? [];
         $fieldData = array_merge($existing, $updates);

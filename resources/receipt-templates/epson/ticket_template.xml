@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
+        <feed line="2"/>
+        <!-- START LOOP -->
+        <!-- TRIBUNE-START -->
+        <text lang="en"/>
+        <text smooth="true"/>
+        <text linespc="30"/>
+        <text align="center"/>
+        <text font="font_b"/>
+        <text width="2" height="2"/>
+        <text reverse="false" ul="false" em="true" color="color_1"/>
+        <text><heading></text>
+        <feed line="3"/>
+        <text><place>, <dateTime>&#10;</text>
+        <feed line="1"/>
+        <text align="center"/>
+        <text reverse="false" ul="false" em="false" color="color_1"/>
+        <text width="2" height="2"/>
+        <text>---&#10;</text>
+        <feed line="1"/>
+        <text reverse="false" ul="false" em="true" color="color_1"/>
+        <text width="3" height="3"/>
+        <text><category> <section></text>
+        <feed line="3"/>
+        <text width="2" height="2"/>
+        <text reverse="false" ul="false" em="false" color="color_1"/>
+        <text>Oppgang </text>
+        <text reverse="false" ul="false" em="true" color="color_1"/>
+        <text width="3" height="3"/>
+        <text linespc="30"/>
+        <text><entrance></text>
+        <feed line="3"/>
+        <text width="2" height="2"/>
+        <text reverse="false" ul="false" em="false" color="color_1"/>
+        <text>Rad </text>
+        <text width="3" height="3"/>
+        <text reverse="false" ul="false" em="true" color="color_1"/>
+        <text><row> </text>
+        <text width="2" height="2"/>
+        <text reverse="false" ul="false" em="false" color="color_1"/>
+        <text>Sete </text>
+        <text width="3" height="3"/>
+        <text reverse="false" ul="false" em="true" color="color_1"/>
+        <text><seat></text>
+        <feed line="3"/>
+        <symbol type="qrcode_model_2" level="default" width="5" height="5" size="0"><confirmationUrl></symbol>
+        <feed line="1"/>
+        <text width="2" height="2"/>
+        <text>Mer informasjon på merano.no</text>
+        <feed line="2"/>
+        <text width="1" height="1"/>
+        <text reverse="false" ul="false" em="false" color="color_1"/>
+        <text font="font_a"/>
+        <text>Bestillingsnr: <orderNumber>&#10;</text>
+        <text>Billettpris: <ticketPrice> kr&#10;</text>
+        <feed line="1"/>
+        <cut type="feed"/>
+        <!-- TRIBUNE-END -->
+        <!-- LOSJE-START -->
+        <text lang="en"/>
+        <text smooth="true"/>
+        <text linespc="30"/>
+        <text align="center"/>
+        <text font="font_b"/>
+        <text width="2" height="2"/>
+        <text reverse="false" ul="false" em="true" color="color_1"/>
+        <text><heading></text>
+        <feed line="3"/>
+        <text><place>, <dateTime>&#10;</text>
+        <feed line="1"/>
+        <text align="center"/>
+        <text reverse="false" ul="false" em="false" color="color_1"/>
+        <text width="2" height="2"/>
+        <text>---&#10;</text>
+        <feed line="1"/>
+        <text reverse="false" ul="false" em="true" color="color_1"/>
+        <text width="3" height="3"/>
+        <text><category> <entrance></text>
+        <feed line="3"/>
+        <text width="2" height="2"/>
+        <text reverse="false" ul="false" em="false" color="color_1"/>
+        <text>Losje </text>
+        <text width="3" height="3"/>
+        <text reverse="false" ul="false" em="true" color="color_1"/>
+        <text><section> </text>
+        <text width="2" height="2"/>
+        <text reverse="false" ul="false" em="false" color="color_1"/>
+        <text>Sete </text>
+        <text width="3" height="3"/>
+        <text reverse="false" ul="false" em="true" color="color_1"/>
+        <text><seat></text>
+        <feed line="3"/>
+        <symbol type="qrcode_model_2" level="default" width="5" height="5" size="0"><confirmationUrl></symbol>
+        <feed line="1"/>
+        <text width="2" height="2"/>
+        <text>Mer informasjon på merano.no</text>
+        <feed line="2"/>
+        <text width="1" height="1"/>
+        <text reverse="false" ul="false" em="false" color="color_1"/>
+        <text font="font_a"/>
+        <text>Bestillingsnr: <orderNumber>&#10;</text>
+        <text>Billettpris: <ticketPrice> kr&#10;</text>
+        <feed line="1"/>
+        <cut type="feed"/>
+        <!-- LOSJE-END -->
+        <!-- END LOOP -->
+</epos-print></s:Body></s:Envelope>

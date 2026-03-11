@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\PosDevices\Schemas;
 
-use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\KeyValueEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
@@ -35,7 +35,7 @@ class PosDeviceInfolist
                         TextEntry::make('lastConnectedTerminalReader.label')
                             ->label('Last Connected Terminal')
                             ->formatStateUsing(fn ($state, $record) => $record->lastConnectedTerminalLocation?->display_name
-                                ? "{$record->lastConnectedTerminalLocation->display_name} / " . ($state ?? $record->lastConnectedTerminalReader?->label ?? '—')
+                                ? "{$record->lastConnectedTerminalLocation->display_name} / ".($state ?? $record->lastConnectedTerminalReader?->label ?? '—')
                                 : ($state ?? $record->lastConnectedTerminalReader?->label ?? '—'))
                             ->placeholder('—'),
 
@@ -59,6 +59,18 @@ class PosDeviceInfolist
                                 'offline' => 'danger',
                                 default => 'gray',
                             }),
+
+                        TextEntry::make('cash_drawer_enabled')
+                            ->label('Cash drawer enabled')
+                            ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
+                            ->badge()
+                            ->color(fn (bool $state): string => $state ? 'success' : 'warning'),
+
+                        TextEntry::make('booking_enabled')
+                            ->label('Booking enabled')
+                            ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
+                            ->badge()
+                            ->color(fn (bool $state): string => $state ? 'success' : 'gray'),
                     ])
                     ->columns(2),
 
@@ -125,7 +137,7 @@ class PosDeviceInfolist
                             ->label('Metadata'),
                     ])
                     ->collapsible()
-                    ->visible(fn ($record) => !empty($record->device_metadata)),
+                    ->visible(fn ($record) => ! empty($record->device_metadata)),
 
                 Section::make('Store')
                     ->schema([
@@ -140,4 +152,3 @@ class PosDeviceInfolist
             ]);
     }
 }
-

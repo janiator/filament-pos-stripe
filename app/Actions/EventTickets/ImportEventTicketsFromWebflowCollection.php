@@ -19,9 +19,17 @@ class ImportEventTicketsFromWebflowCollection
     {
         if ($collection === null) {
             $collection = WebflowCollection::query()
+                ->where('use_for_event_tickets', true)
                 ->where('is_active', true)
                 ->whereHas('site', fn ($q) => $q->where('store_id', $store->id))
                 ->first();
+
+            if ($collection === null) {
+                $collection = WebflowCollection::query()
+                    ->where('is_active', true)
+                    ->whereHas('site', fn ($q) => $q->where('store_id', $store->id))
+                    ->first();
+            }
         }
 
         if (! $collection) {

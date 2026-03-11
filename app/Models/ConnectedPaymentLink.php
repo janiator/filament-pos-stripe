@@ -24,6 +24,8 @@ class ConnectedPaymentLink extends Model
         'after_completion_redirect_url',
         'line_items',
         'metadata',
+        'quantity_max',
+        'quantity_sold',
     ];
 
     protected $casts = [
@@ -56,7 +58,7 @@ class ConnectedPaymentLink extends Model
         $this->save();
 
         // Sync deactivation to Stripe
-        $action = new \App\Actions\ConnectedPaymentLinks\UpdateConnectedPaymentLinkInStripe();
+        $action = new \App\Actions\ConnectedPaymentLinks\UpdateConnectedPaymentLinkInStripe;
         $action($this, false);
 
         // Return true to indicate "deletion" succeeded (even though we just deactivated)

@@ -18,6 +18,7 @@ class WebflowCollection extends Model
         'schema',
         'field_mapping',
         'is_active',
+        'use_for_event_tickets',
         'last_synced_at',
     ];
 
@@ -25,6 +26,7 @@ class WebflowCollection extends Model
         'schema' => 'array',
         'field_mapping' => 'array',
         'is_active' => 'boolean',
+        'use_for_event_tickets' => 'boolean',
         'last_synced_at' => 'datetime',
     ];
 

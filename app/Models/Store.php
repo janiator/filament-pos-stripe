@@ -24,14 +24,20 @@ class Store extends Model implements StripeAccount
         'organisasjonsnummer',
         'address',
         'logo_path',
+        'receipt_logo_max_width_dots',
+        'receipt_logo_max_height_dots',
         'commission_type',
         'commission_rate',
         'stripe_account_id',
         'default_terminal_location_id',
+        'merano_base_url',
+        'merano_pos_api_token',
+        'merano_ticket_connected_product_id',
     ];
 
     protected $casts = [
         'commission_rate' => 'integer',
+        'merano_pos_api_token' => 'encrypted',
     ];
 
     protected static function booted(): void
@@ -163,6 +169,14 @@ class Store extends Model implements StripeAccount
     public function connectedProducts()
     {
         return $this->hasMany(\App\Models\ConnectedProduct::class, 'stripe_account_id', 'stripe_account_id');
+    }
+
+    /**
+     * Get the product used as the Merano ticket cart line (set in Filament).
+     */
+    public function meranoTicketProduct(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\ConnectedProduct::class, 'merano_ticket_connected_product_id');
     }
 
     /**
