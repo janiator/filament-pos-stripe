@@ -39,6 +39,14 @@ php artisan products:export --output=/path/to/export.zip
 
 **Note:** By default, Stripe IDs are excluded from the export since they are server-specific. If you need to preserve Stripe IDs (e.g., for backup purposes), use the `--include-stripe-ids` flag.
 
+### Bulk Export (Filament)
+
+From the **Products** list in the Filament admin (per store), you can select one or more products and use the **Export as ZIP** bulk action. This creates a zip file containing only the selected products, their variants, linked collections, and media. The file format is the same as the full export, so you can import it via the **Import ZIP** page or `products:import` in another store or database.
+
+- Select the products you want to transfer, then choose **Export as ZIP** from the bulk actions menu.
+- A success notification appears with a **Download ZIP** button; the download link is valid for 10 minutes.
+- Use **Import ZIP** (or `products:import`) on the target store to import the file.
+
 ### Import: `products:import`
 
 Imports products, collections, variants, and media files from a zip archive.

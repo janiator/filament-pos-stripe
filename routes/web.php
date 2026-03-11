@@ -105,6 +105,10 @@ Route::middleware(['auth', 'web'])->group(function () {
         ->name('reports.x-report.embed');
     Route::get('/app/store/{tenant}/pos-sessions/{sessionId}/z-report/embed', [\App\Http\Controllers\ReportController::class, 'embedZReport'])
         ->name('reports.z-report.embed');
+
+    // Product export ZIP download (one-time token from bulk action)
+    Route::get('/app/store/{tenant}/products/export-download/{token}', \App\Http\Controllers\ProductExportDownloadController::class)
+        ->name('products.export-download');
 });
 
 // Dummy login route to prevent "Route [login] not defined" errors

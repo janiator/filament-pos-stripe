@@ -6,6 +6,7 @@ use App\Actions\ConnectedProducts\ResolveProductVatRate;
 use App\Models\ArticleGroupCode;
 use App\Models\ConnectedProduct;
 use App\Models\Vendor;
+use App\Services\ProductZipExporter;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -27,6 +28,8 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Shreejan\ActionableColumn\Tables\Columns\ActionableColumn;
 
 class ConnectedProductsTable
@@ -1145,6 +1148,56 @@ class ConnectedProductsTable
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Vendor assigned successfully'),
+
+                    BulkAction::make('exportAsZip')
+                        ->label('Export as ZIP')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('gray')
+                        ->action(function (Collection $records): void {
+                            $tenant = \Filament\Facades\Filament::getTenant();
+                            if (! $tenant || ! $tenant->slug) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Store required')
+                                    ->body('Export is only available in a store context.')
+                                    ->send();
+
+                                return;
+                            }
+
+                            try {
+                                $exporter = app(ProductZipExporter::class);
+                                $zipPath = $exporter->export($records, false);
+
+                                $token = Str::random(64);
+                                Cache::put('product-export-download:'.$token, $zipPath, now()->addMinutes(10));
+
+                                $downloadUrl = route('products.export-download', [
+                                    'tenant' => $tenant->slug,
+                                    'token' => $token,
+                                ]);
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Export ready')
+                                    ->body('Your product export ZIP is ready. Use the button below to download it. You can import this file in another store via Import ZIP.')
+                                    ->actions([
+                                        Action::make('download')
+                                            ->label('Download ZIP')
+                                            ->url($downloadUrl)
+                                            ->openUrlInNewTab(),
+                                    ])
+                                    ->send();
+                            } catch (\Throwable $e) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Export failed')
+                                    ->body($e->getMessage())
+                                    ->send();
+                            }
+                        })
+                        ->deselectRecordsAfterCompletion(),
+
                     DeleteBulkAction::make(),
                 ]),
             ]);
