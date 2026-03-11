@@ -112,7 +112,8 @@ class ArticleGroupCodesTable
                                 ->title('Visible in POS')
                                 ->body("{$records->count()} article group code(s) are now visible in POS.")
                                 ->send();
-                        }),
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     BulkAction::make('hideInPos')
                         ->label('Hide in POS')
                         ->icon('heroicon-o-eye-slash')
@@ -124,7 +125,8 @@ class ArticleGroupCodesTable
                                 ->title('Hidden in POS')
                                 ->body("{$records->count()} article group code(s) are now hidden from POS.")
                                 ->send();
-                        }),
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     DeleteBulkAction::make(),
                 ]),
             ])
