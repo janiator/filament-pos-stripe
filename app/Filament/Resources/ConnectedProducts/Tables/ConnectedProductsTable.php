@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\ConnectedProducts\Tables;
 
+use App\Actions\ConnectedProducts\CreateConnectedProductInStripe;
 use App\Actions\ConnectedProducts\ResolveProductVatRate;
+use App\Actions\ConnectedProducts\UpdateConnectedProductToStripe;
 use App\Models\ArticleGroupCode;
 use App\Models\ConnectedProduct;
 use App\Models\Vendor;
@@ -1195,6 +1197,79 @@ class ConnectedProductsTable
                                     ->body($e->getMessage())
                                     ->send();
                             }
+                        })
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('syncToStripe')
+                        ->label('Create/Update in Stripe')
+                        ->icon('heroicon-o-cloud-arrow-up')
+                        ->color('success')
+                        ->modalHeading('Create or update products in Stripe')
+                        ->modalDescription('Products without a Stripe ID will be created in Stripe. Products that already exist in Stripe will be updated. Requires a store (stripe_account_id).')
+                        ->modalSubmitActionLabel('Sync to Stripe')
+                        ->action(function (Collection $records): void {
+                            $createAction = new CreateConnectedProductInStripe;
+                            $updateAction = new UpdateConnectedProductToStripe;
+                            $created = 0;
+                            $updated = 0;
+                            $skipped = 0;
+                            $errors = [];
+
+                            foreach ($records as $product) {
+                                if (! $product->stripe_account_id) {
+                                    $skipped++;
+                                    $errors[] = "{$product->name} (ID {$product->id}): no store assigned.";
+
+                                    continue;
+                                }
+
+                                try {
+                                    if (! $product->stripe_product_id) {
+                                        $stripeProductId = $createAction($product);
+                                        if ($stripeProductId) {
+                                            $product->stripe_product_id = $stripeProductId;
+                                            $product->saveQuietly();
+                                            $created++;
+                                            $updateAction($product);
+                                        } else {
+                                            $skipped++;
+                                            $errors[] = "{$product->name}: create in Stripe failed.";
+                                        }
+                                    } else {
+                                        $updateAction($product);
+                                        $updated++;
+                                    }
+                                } catch (\Throwable $e) {
+                                    $skipped++;
+                                    $errors[] = "{$product->name}: ".$e->getMessage();
+                                    report($e);
+                                }
+                            }
+
+                            $parts = array_filter([
+                                $created > 0 ? "{$created} created" : null,
+                                $updated > 0 ? "{$updated} updated" : null,
+                                $skipped > 0 ? "{$skipped} skipped" : null,
+                            ]);
+                            $body = implode(', ', $parts).'.';
+                            if (! empty($errors)) {
+                                $body .= ' '.implode(' ', array_slice($errors, 0, 5));
+                                if (count($errors) > 5) {
+                                    $body .= ' … and '.(count($errors) - 5).' more.';
+                                }
+                            }
+
+                            $notification = Notification::make()
+                                ->title('Stripe sync completed')
+                                ->body($body);
+                            if ($created > 0 || $updated > 0) {
+                                $notification->success();
+                            } elseif ($skipped > 0) {
+                                $notification->warning();
+                            } else {
+                                $notification->danger();
+                            }
+                            $notification->send();
                         })
                         ->deselectRecordsAfterCompletion(),
 
