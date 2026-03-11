@@ -13,12 +13,6 @@ class ProductExportDownloadController extends Controller
      */
     public function __invoke(Request $request, string $tenant, string $token): StreamedResponse
     {
-        $path = Cache::pull('product-export-download:'.$token);
-
-        if (! $path || ! is_string($path) || ! is_file($path)) {
-            abort(404, 'Export file not found or link expired.');
-        }
-
         $store = \App\Models\Store::where('slug', $tenant)->first();
         if (! $store) {
             abort(404, 'Store not found.');
@@ -32,6 +26,12 @@ class ProductExportDownloadController extends Controller
         $hasStoreAccess = $user->stores()->where('stores.id', $store->id)->exists();
         if (! $isSuperAdmin && ! $hasStoreAccess) {
             abort(403, 'You do not have access to this store.');
+        }
+
+        $path = Cache::pull('product-export-download:'.$token);
+
+        if (! $path || ! is_string($path) || ! is_file($path)) {
+            abort(404, 'Export file not found or link expired.');
         }
 
         $filename = 'products-export-'.date('Y-m-d-His').'.zip';

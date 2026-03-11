@@ -33,6 +33,12 @@ class TicketPrintController extends BaseApiController
             return $printer;
         }
 
+        if ($printer === null) {
+            return response()->json([
+                'message' => 'A valid printer_id is required for free ticket printing.',
+            ], 422);
+        }
+
         try {
             $xml = $this->ticketPrintService->renderFreeTicket($store->id, $printer, $request->validated());
         } catch (RuntimeException $exception) {
