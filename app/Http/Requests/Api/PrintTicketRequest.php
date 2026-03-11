@@ -14,11 +14,12 @@ class PrintTicketRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'printer_id' => ['required', 'integer'],
+            'printer_id' => ['required', 'integer', 'min:1'],
             'order_number' => ['required', 'string', 'max:255'],
             'date' => ['required', 'string', 'max:255'],
             'place' => ['required', 'string', 'max:255'],
             'heading' => ['nullable', 'string', 'max:255'],
+            'confirmation_url' => ['nullable', 'string', 'max:2048'],
             'amount_paid' => ['nullable', 'numeric', 'min:0'],
             'tickets' => ['required', 'array', 'min:1'],
             'tickets.*.category' => ['required', 'string', 'max:255'],

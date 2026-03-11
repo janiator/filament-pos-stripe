@@ -32,6 +32,7 @@ class Store extends Model implements StripeAccount
         'default_terminal_location_id',
         'merano_base_url',
         'merano_pos_api_token',
+        'merano_ticket_connected_product_id',
     ];
 
     protected $casts = [
@@ -168,6 +169,14 @@ class Store extends Model implements StripeAccount
     public function connectedProducts()
     {
         return $this->hasMany(\App\Models\ConnectedProduct::class, 'stripe_account_id', 'stripe_account_id');
+    }
+
+    /**
+     * Get the product used as the Merano ticket cart line (set in Filament).
+     */
+    public function meranoTicketProduct(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\ConnectedProduct::class, 'merano_ticket_connected_product_id');
     }
 
     /**

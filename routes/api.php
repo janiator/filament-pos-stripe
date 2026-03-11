@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/stores', [StoreController::class, 'index'])->name('api.stores.index');
     // Current store routes must come before {slug} route to avoid conflicts
     Route::get('/stores/current', [StoreController::class, 'current'])->name('api.stores.current');
+    Route::get('/stores/current/merano-ticket-product', [StoreController::class, 'meranoTicketProduct'])->name('api.stores.current.merano-ticket-product');
     Route::put('/stores/current', [StoreController::class, 'updateCurrent'])->name('api.stores.current.update');
     Route::patch('/stores/current', [StoreController::class, 'updateCurrent'])->name('api.stores.current.patch');
     Route::get('/stores/{slug}', [StoreController::class, 'show'])->name('api.stores.show');
@@ -59,6 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Merano booking proxy endpoints
     Route::get('/merano/v1/events', [\App\Http\Controllers\Api\MeranoProxyController::class, 'events'])->name('api.merano.events');
+    Route::get('/merano/v1/bookings/by-number/{booking_number}', [\App\Http\Controllers\Api\MeranoProxyController::class, 'bookingByNumber'])->name('api.merano.bookings.by-number');
     Route::post('/merano/v1/events/{event}/availability', [\App\Http\Controllers\Api\MeranoProxyController::class, 'availability'])->name('api.merano.events.availability');
     Route::post('/merano/v1/bookings', [\App\Http\Controllers\Api\MeranoProxyController::class, 'createBooking'])->name('api.merano.bookings.create');
     Route::post('/merano/v1/bookings/{booking}/release', [\App\Http\Controllers\Api\MeranoProxyController::class, 'release'])->name('api.merano.bookings.release');
@@ -123,6 +125,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Receipt endpoints
     Route::get('/receipts', [\App\Http\Controllers\Api\ReceiptsController::class, 'index'])->name('api.receipts.index');
+    Route::get('/receipts/ticket-xml', [\App\Http\Controllers\Api\TicketPrintController::class, 'ticketXmlByReference'])->name('api.receipts.ticket-xml');
     Route::post('/receipts/generate', [\App\Http\Controllers\Api\ReceiptsController::class, 'generate'])->name('api.receipts.generate');
     Route::get('/receipts/{id}', [\App\Http\Controllers\Api\ReceiptsController::class, 'show'])->name('api.receipts.show');
     Route::get('/receipts/{id}/xml', [\App\Http\Controllers\Api\ReceiptsController::class, 'xml'])->name('api.receipts.xml');

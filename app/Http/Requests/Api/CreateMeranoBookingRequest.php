@@ -17,6 +17,7 @@ class CreateMeranoBookingRequest extends FormRequest
             'event_id' => ['required', 'integer'],
             'seats' => ['required', 'array', 'min:1'],
             'seats.*' => ['required', 'string', 'max:255'],
+            'hold_token' => ['nullable', 'string', 'max:255'],
             'customer_id' => ['nullable', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],

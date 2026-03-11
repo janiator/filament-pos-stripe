@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ArticleGroupCode;
+use App\Models\ConnectedProduct;
 use App\Models\Setting;
 use App\Models\Store;
 use App\Models\User;
@@ -110,4 +111,39 @@ test('list stores includes customers_enabled for each store', function () {
 
     $response->assertOk();
     $response->assertJsonPath('stores.0.customers_enabled', false);
+});
+
+test('get merano ticket product returns 404 when not configured', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_merano']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->getJson('/api/stores/current/merano-ticket-product');
+
+    $response->assertNotFound();
+    $response->assertJsonPath('message', 'Merano ticket product not configured for this store');
+});
+
+test('get merano ticket product returns product when configured', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_merano']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Merano Ticket',
+    ]);
+    $store->update(['merano_ticket_connected_product_id' => $product->id]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->getJson('/api/stores/current/merano-ticket-product');
+
+    $response->assertOk();
+    $response->assertJsonPath('product.id', $product->id);
+    $response->assertJsonPath('product.name', 'Merano Ticket');
 });

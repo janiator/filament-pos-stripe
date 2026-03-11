@@ -892,6 +892,41 @@ class ReceiptTemplateService
     }
 
     /**
+     * Return ePOS XML fragment for the store logo: base64 image element when store has a logo, otherwise logo key fallback.
+     * Used by ticket and other templates that need a single logo block (same as receipt header).
+     */
+    public function getStoreLogoEposXmlFragment(Store $store): string
+    {
+        $storeLogoBase64 = null;
+        $storeLogoWidth = null;
+        $storeLogoHeight = null;
+        if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
+            $logoMtime = Storage::disk('public')->lastModified($store->logo_path);
+            $maxWidth = (int) ($store->receipt_logo_max_width_dots ?? config('receipts.logo_max_width_dots', 384));
+            $maxHeight = (int) ($store->receipt_logo_max_height_dots ?? config('receipts.logo_max_height_dots', 200));
+            $receiptWidth = (int) config('receipts.receipt_width_dots', 576);
+            $centerLogo = config('receipts.logo_center_on_receipt', true);
+            $cacheKey = 'epos_logo_raster:'.md5($store->logo_path.':'.$logoMtime.':'.$maxWidth.':'.$maxHeight.':'.$receiptWidth.':'.($centerLogo ? '1' : '0'));
+            $raster = Cache::remember($cacheKey, now()->addDays(7), function () use ($store, $maxWidth, $maxHeight, $receiptWidth) {
+                $logoBlob = Storage::disk('public')->get($store->logo_path);
+
+                return $this->convertImageToEposRaster($logoBlob, $maxWidth, $receiptWidth, $maxHeight);
+            });
+            if ($raster !== null) {
+                $storeLogoBase64 = $raster['base64'];
+                $storeLogoWidth = $raster['width'];
+                $storeLogoHeight = $raster['height'];
+            }
+        }
+
+        if ($storeLogoBase64 !== null && $storeLogoWidth !== null && $storeLogoHeight !== null) {
+            return '<image width="'.$storeLogoWidth.'" height="'.$storeLogoHeight.'">'.$storeLogoBase64.'</image>';
+        }
+
+        return '<logo key1="34" key2="48"/>';
+    }
+
+    /**
      * Flatten image onto white background so transparent pixels become white (not black).
      * Prevents transparent PNG/WebP logos from rendering as a black box on thermal receipts.
      * GD alpha: 0 = opaque, 127 = fully transparent.

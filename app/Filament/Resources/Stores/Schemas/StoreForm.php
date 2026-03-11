@@ -7,6 +7,7 @@ use App\Models\Addon;
 use App\Services\MeranoConnectionService;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -153,6 +154,24 @@ class StoreForm
                             })
                             ->dehydrated(fn (?string $state): bool => filled($state))
                             ->helperText('POS_API_TOKEN from Merano. Stored encrypted. Leave blank to keep the current token.'),
+
+                        Select::make('merano_ticket_connected_product_id')
+                            ->label('Merano ticket product')
+                            ->relationship(
+                                name: 'meranoTicketProduct',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: function ($query, $get, $record) {
+                                    if ($record && $record->stripe_account_id) {
+                                        return $query->where('stripe_account_id', $record->stripe_account_id);
+                                    }
+
+                                    return $query->whereRaw('1 = 0');
+                                }
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->nullable()
+                            ->helperText('Product used as the cart line when adding Merano bookings in the POS. Used by the ticket-product API and automatic add-to-cart.'),
                     ])
                     ->columns(2)
                     ->collapsible()

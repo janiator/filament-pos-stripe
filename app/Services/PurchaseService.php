@@ -383,21 +383,25 @@ class PurchaseService
                 ], $metadata),
             ]);
         } else {
-            // Update existing charge with cart data
+            // Update existing charge with cart data and request metadata (e.g. purchase_contains_tickets, purchase_ticket_reference)
             $charge->update([
                 'pos_session_id' => $posSession->id,
-                'metadata' => array_merge($charge->metadata ?? [], [
-                    'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
-                    'discounts' => $cartData['discounts'] ?? [],
-                    'customer_id' => $cartData['customer_id'] ?? null,
-                    'customer_name' => $cartData['customer_name'] ?? null,
-                    'tip_amount' => $cartData['tip_amount'] ?? 0,
-                    'subtotal' => $cartData['subtotal'] ?? 0,
-                    'total_discounts' => $cartData['total_discounts'] ?? 0,
-                    'total_tax' => $cartData['total_tax'] ?? 0,
-                    'total' => $amount,
-                    'note' => $cartData['note'] ?? null,
-                ]),
+                'metadata' => array_merge(
+                    $charge->metadata ?? [],
+                    [
+                        'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
+                        'discounts' => $cartData['discounts'] ?? [],
+                        'customer_id' => $cartData['customer_id'] ?? null,
+                        'customer_name' => $cartData['customer_name'] ?? null,
+                        'tip_amount' => $cartData['tip_amount'] ?? 0,
+                        'subtotal' => $cartData['subtotal'] ?? 0,
+                        'total_discounts' => $cartData['total_discounts'] ?? 0,
+                        'total_tax' => $cartData['total_tax'] ?? 0,
+                        'total' => $amount,
+                        'note' => $cartData['note'] ?? null,
+                    ],
+                    $metadata
+                ),
             ]);
         }
 

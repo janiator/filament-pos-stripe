@@ -2,7 +2,6 @@
 <!-- PRINTERID: <printerid> -->
 <!-- FREETICKET-START -->
 <align mode="center"/>
-<text lang="en"/>
 <text width="2" height="2" em="true">GRATISBILLETT</text>
 <feed line="1"/>
 <text>Kode: <code></text>

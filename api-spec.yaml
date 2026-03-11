@@ -360,6 +360,43 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /stores/current/merano-ticket-product:
+    get:
+      tags:
+        - Stores
+        - Merano
+      summary: Get Merano ticket product
+      description: >
+        Get the product configured in Filament as the Merano ticket product for the current store.
+        Used by the POS when adding Merano bookings to the cart (e.g. showProviderActionModal with
+        ticketProduct, or addMeranoBookingResultToCart). Returns the same product shape as GET /products/{id}.
+        Tenant is determined by X-Tenant header or the authenticated user's current store.
+      operationId: getMeranoTicketProduct
+      responses:
+        '200':
+          description: Merano ticket product (same shape as GET /products/{id})
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  product:
+                    $ref: '#/components/schemas/Product'
+        '404':
+          description: Store not found or Merano ticket product not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                default:
+                  value:
+                    message: Merano ticket product not configured for this store
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /stores/{slug}:
     get:
       tags:
@@ -2508,8 +2545,8 @@ paths:
     post:
       tags:
         - Receipts
-      summary: Render booking ticket XML
-      description: Render Epson ePOS XML for Merano booking ticket printing.
+      summary: Render booking ticket XML (full payload)
+      description: Renders Epson ePOS XML for Merano booking ticket printing. Client sends full ticket data (order_number, date, place, tickets, printer_id). Used by the POS custom action that has the booking result in memory.
       operationId: printBookingTicket
       requestBody:
         required: true
@@ -2573,6 +2610,41 @@ paths:
           description: Merano booking add-on is not enabled for this store
         '422':
           description: Validation or template error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /receipts/ticket-xml:
+    get:
+      tags:
+        - Receipts
+      summary: Get ticket XML by booking reference
+      description: Returns Epson ePOS ticket XML for a Merano booking by booking reference only. Backend looks up the booking via Merano. Use from a FlutterFlow API request (e.g. reprint from order view using purchase_ticket_reference).
+      operationId: getTicketXmlByReference
+      parameters:
+        - name: booking_reference
+          in: query
+          required: true
+          schema:
+            type: string
+            example: BK-123
+          description: Merano booking number
+      responses:
+        '200':
+          description: Epson ePOS XML
+          content:
+            text/xml:
+              schema:
+                type: string
+        '403':
+          description: Merano booking add-on is not enabled for this store
+        '404':
+          description: Booking not found or not eligible for ticket print
+        '422':
+          description: Validation or invalid ticket data
+        '503':
+          description: Merano is not configured for this store
+        '502':
+          description: Unable to reach Merano
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -5917,12 +5989,18 @@ components:
         purchase_metadata:
           type: object
           nullable: true
-          description: Additional metadata (cashier_name, device_id, payment_intent_id, etc.)
+          description: |
+            Additional metadata stored with the purchase (cashier_name, device_id, payment_intent_id, etc.).
+            When the cart contained Merano ticket bookings, the POS adds:
+            - purchase_contains_tickets (boolean) - true if the purchase included at least one Merano booking
+            - purchase_ticket_reference (string) - Merano booking number(s), comma-separated if multiple; use for "Print tickets" on the order view
           additionalProperties: true
           example:
             cashier_name: "John Doe"
             device_id: 1
             payment_intent_id: "pi_xxx"
+            purchase_contains_tickets: true
+            purchase_ticket_reference: "BK-2025-001234"
         outcome:
           type: object
           nullable: true

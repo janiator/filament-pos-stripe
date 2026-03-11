@@ -115,6 +115,24 @@ class MeranoProxyController extends BaseApiController
         return $this->forwardRequest($store, 'post', "/api/pos/v1/bookings/{$booking}/confirm-pos-payment", $payload);
     }
 
+    /**
+     * Get booking ticket payload by booking number (for ticket XML rendering).
+     * Proxies to Merano GET /api/pos/v1/bookings/by-number/{booking_number}.
+     */
+    public function bookingByNumber(Request $request, string $booking_number): JsonResponse|HttpResponse
+    {
+        $store = $this->getAuthorizedStore($request);
+        if ($store instanceof JsonResponse) {
+            return $store;
+        }
+
+        if ($response = $this->ensureMeranoEnabledForStore($store)) {
+            return $response;
+        }
+
+        return $this->forwardRequest($store, 'get', '/api/pos/v1/bookings/by-number/'.urlencode($booking_number));
+    }
+
     private function getAuthorizedStore(Request $request): Store|JsonResponse
     {
         $store = $this->getTenantStore($request);
