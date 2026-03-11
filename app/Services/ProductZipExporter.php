@@ -51,11 +51,9 @@ class ProductZipExporter
 
             $manifest = [
                 'export_date' => now()->toIso8601String(),
-                'store' => [
-                    'id' => $store->id,
-                    'name' => $store->name,
-                    'slug' => $store->slug,
-                ],
+                'store' => $includeStripeIds
+                    ? ['id' => $store->id, 'name' => $store->name, 'slug' => $store->slug]
+                    : ['name' => $store->name, 'slug' => $store->slug],
                 'collections' => $collectionsData,
                 'products' => $productsData,
                 'product_collection_relations' => $productCollectionRelations,

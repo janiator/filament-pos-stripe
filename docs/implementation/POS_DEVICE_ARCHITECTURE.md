@@ -77,8 +77,8 @@ All fields match what's available from `device_info_plus` package:
 - `vendor_identifier`: `identifierForVendor`
 
 ### Android
-- `device_identifier`: `androidId`
-- `device_name`: `device`
+- `device_identifier`: `androidId` (or serial / install id fallbacks)
+- `device_name`: When no custom name is passed, a unique display name is built as `brand model (shortId)` (e.g. "Samsung SM-T500 (a1b2c3)") so each Android device is distinguishable; otherwise the custom name is used.
 - `device_model`: `model`
 - `device_brand`: `brand`
 - `device_manufacturer`: `manufacturer`

@@ -119,20 +119,21 @@ php artisan products:import storage/app/products-export.zip --store=production-s
 
 ## Important Notes
 
-1. **Stripe IDs**: By default, Stripe IDs are excluded from exports since they are server-specific. Products and variants will need to be synced to Stripe after import, which will create new Stripe IDs.
+1. **Stripe IDs and env-specific data**: Exports **never** include Stripe product/price IDs or store IDs by default (use `--include-stripe-ids` on the export command only for same-environment backup). The import ignores any Stripe IDs in the zip when the manifest has `include_stripe_ids: false`, so cross-env transfers are safe.
 
-2. **Store Matching**: The import process matches products and collections by name. Make sure your store names are consistent or use the `--store` option to specify the target store.
+2. **Stripe sync after import**: When you import via the Filament **Import ZIP** page, jobs are queued automatically to verify each product on the connected Stripe account and create or recreate it if missing. Ensure a queue worker is running (`php artisan queue:work` or Horizon). You can also run manually:
+   - `php artisan products:ensure-stripe-ids {store?}` — queue a check for all products (in the given store or all stores) that lack a Stripe ID or default price; each job verifies the product exists on the connected account and recreates it if not.
+   - `php artisan products:ensure-stripe-ids {store?} --verify-all` — same but also verify products that already have a Stripe ID (recreate if deleted on Stripe).
+   - `php artisan products:ensure-stripe-ids {store?} --sync` — run the checks synchronously instead of queueing.
+   - `php artisan stripe:sync-products-to-stripe {store?}` — create all products/variants without Stripe IDs in Stripe (no existence check).
 
-3. **Media Files**: All media files are copied to the `storage/app/public` directory. Make sure the storage link is set up (`php artisan storage:link`).
+3. **Store Matching**: The import process matches products and collections by name. Use the `--store` option to specify the target store.
 
-4. **Existing Data**: By default, existing products and collections are skipped. Use `--update` to update existing records instead.
+4. **Media Files**: All media files are copied to the `storage/app/public` directory. Make sure the storage link is set up (`php artisan storage:link`).
 
-5. **Vendor IDs**: Vendor IDs are preserved if they exist in both environments. If a vendor doesn't exist in the target environment, the `vendor_id` will be set to null.
+5. **Existing Data**: By default, existing products and collections are skipped. Use `--update` to update existing records instead.
 
-6. **Stripe Sync**: After importing, you may want to sync products to Stripe to create Stripe products and prices:
-   ```bash
-   php artisan stripe:sync-products
-   ```
+6. **Vendor IDs**: Vendors are matched or created by name in the target store; vendor IDs from the export are not used when transferring between environments.
 
 ## Troubleshooting
 
@@ -150,8 +151,8 @@ php artisan products:import storage/app/products-export.zip --store=production-s
 - Verify the manifest.json contains the product-collection relations
 
 ### Stripe sync issues after import
-- Products imported without Stripe IDs will need to be synced to Stripe
-- Use the Filament admin panel or sync commands to create Stripe products
+- Ensure a queue worker is running so `EnsureProductStripeIdJob` runs after import.
+- To run checks manually: `php artisan products:ensure-stripe-ids --sync` or `php artisan stripe:sync-products-to-stripe`.
 
 ## File Structure
 
@@ -169,12 +170,11 @@ products-export-YYYY-MM-DD-HHMMSS.zip
         └── variant-{id}-image.jpg
 ```
 
-The manifest.json structure:
+The manifest.json structure (when `include_stripe_ids` is false, `store.id` is omitted):
 ```json
 {
   "export_date": "2024-01-15T12:34:56Z",
   "store": {
-    "id": 1,
     "name": "Test Store",
     "slug": "test-store"
   },

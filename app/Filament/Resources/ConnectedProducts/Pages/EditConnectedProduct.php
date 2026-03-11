@@ -46,7 +46,7 @@ class EditConnectedProduct extends EditRecord
         }
 
         // If no_price_in_pos is enabled and price is empty, ensure it stays null
-        if (!empty($data['no_price_in_pos']) && (empty($data['price']) || $data['price'] === '')) {
+        if (! empty($data['no_price_in_pos']) && (empty($data['price']) || $data['price'] === '')) {
             $data['price'] = null;
             $data['default_price'] = null; // Also clear default_price to prevent restoration
         }
@@ -56,15 +56,23 @@ class EditConnectedProduct extends EditRecord
 
     protected function afterSave(): void
     {
-        $product = $this->record;
+        $product = $this->record->refresh();
+
+        // When all product images are removed in Filament, only Spatie media is cleared;
+        // the product.images column (JSON URLs) is not part of the form, so it stays stale.
+        // Clear it here so the API returns no image immediately instead of waiting for the sync job.
+        if (! $product->hasMedia('images') && ! empty($product->images)) {
+            $product->images = [];
+            $product->saveQuietly();
+        }
 
         // Sync price if product has a price
         // Prices are always created in Stripe regardless of no_price_in_pos setting
-        if (!$product->isVariable() 
-            && $product->price 
-            && $product->stripe_product_id 
+        if (! $product->isVariable()
+            && $product->price
+            && $product->stripe_product_id
             && $product->stripe_account_id) {
-            $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice();
+            $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice;
             $syncPriceAction($product);
         }
     }
@@ -86,40 +94,40 @@ class EditConnectedProduct extends EditRecord
                 ->modalDescription(function () {
                     $product = $this->record;
                     $hasBeenUsed = $product->hasBeenUsedInPurchases();
-                    
+
                     if ($hasBeenUsed) {
                         return 'This product has been used in purchases and cannot be deleted. It will be archived instead (set to inactive).';
                     }
-                    
+
                     return 'Are you sure you want to delete this product? This will also delete all associated variants. This action cannot be undone.';
                 })
                 ->action(function () {
                     $product = $this->record;
                     $hasBeenUsed = $product->hasBeenUsedInPurchases();
-                    
+
                     if ($hasBeenUsed) {
                         // Archive instead of delete
                         $this->archiveProduct($product);
-                        
+
                         Notification::make()
                             ->warning()
                             ->title('Product Archived')
                             ->body('This product has been used in purchases and cannot be deleted. It has been archived instead (set to inactive).')
                             ->send();
-                        
+
                         // Redirect to prevent actual deletion
                         $this->redirect($this->getResource()::getUrl('index'));
                     } else {
                         // Product hasn't been used, proceed with deletion
                         // The model's deleting event will handle variant deletion/archiving
                         $product->delete();
-                        
+
                         Notification::make()
                             ->success()
                             ->title('Product Deleted')
                             ->body('The product and its variants have been deleted successfully.')
                             ->send();
-                        
+
                         $this->redirect($this->getResource()::getUrl('index'));
                     }
                 }),
@@ -132,12 +140,12 @@ class EditConnectedProduct extends EditRecord
         $variants = $product->variants()->get();
         foreach ($variants as $variant) {
             $variantHasBeenUsed = $variant->hasBeenUsedInPurchases();
-            
+
             if ($variantHasBeenUsed) {
                 // Archive variant instead of deleting
                 $variant->active = false;
                 $variant->saveQuietly();
-                
+
                 // Archive variant product in Stripe
                 if ($variant->stripe_product_id && $variant->stripe_account_id) {
                     $secret = config('cashier.secret') ?? config('services.stripe.secret');
@@ -163,13 +171,13 @@ class EditConnectedProduct extends EditRecord
                 $variant->delete();
             }
         }
-        
+
         // Archive product in Stripe
         if ($product->stripe_product_id && $product->stripe_account_id) {
-            $deleteAction = new \App\Actions\ConnectedProducts\DeleteConnectedProductFromStripe();
+            $deleteAction = new \App\Actions\ConnectedProducts\DeleteConnectedProductFromStripe;
             $deleteAction($product);
         }
-        
+
         // Archive product locally
         $product->active = false;
         $product->saveQuietly();
@@ -178,19 +186,20 @@ class EditConnectedProduct extends EditRecord
     public function generateSkus(): void
     {
         $product = $this->record;
-        
+
         // Get variants without SKU for this product
         $variants = \App\Models\ProductVariant::where('connected_product_id', $product->id)
             ->where('stripe_account_id', $product->stripe_account_id)
             ->whereNull('sku')
             ->get();
-        
+
         if ($variants->isEmpty()) {
             Notification::make()
                 ->info()
                 ->title('No variants need SKUs')
                 ->body('All variants already have SKUs assigned.')
                 ->send();
+
             return;
         }
 
@@ -203,8 +212,8 @@ class EditConnectedProduct extends EditRecord
                 $variant->option2_value ?? '',
                 $variant->option3_value ?? '',
             ];
-            $baseSku = 'PROD-' . $product->id . '-' . substr(md5(implode('-', array_filter($skuParts))), 0, 8);
-            
+            $baseSku = 'PROD-'.$product->id.'-'.substr(md5(implode('-', array_filter($skuParts))), 0, 8);
+
             // Ensure uniqueness by checking if SKU already exists
             $sku = $baseSku;
             $counter = 1;
@@ -212,10 +221,10 @@ class EditConnectedProduct extends EditRecord
                 ->where('sku', $sku)
                 ->where('id', '!=', $variant->id)
                 ->exists()) {
-                $sku = $baseSku . '-' . $counter;
+                $sku = $baseSku.'-'.$counter;
                 $counter++;
             }
-            
+
             $variant->sku = $sku;
             $variant->saveQuietly();
             $generated++;
