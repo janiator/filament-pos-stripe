@@ -806,6 +806,7 @@ class PurchasesController extends BaseApiController
                 ? $pm->minimum_amount_kroner * 100
                 : null;
             unset($arr['minimum_amount_kroner']);
+            unset($arr['pos_devices']);
 
             return $arr;
         });
