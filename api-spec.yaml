@@ -480,8 +480,10 @@ paths:
       description: |
         Register a new POS device using device information from device_info_plus.
         The same physical device can be registered on multiple stores (tenants).
-        device_identifier is unique per store, so a device already registered on Store A
-        can be registered again when the user logs in on Store B.
+        device_name is unique per store and is used as the device identity for matching
+        (e.g. "POS 4", "POS 6"); the client should match existing devices by device_name
+        and PATCH to update, or POST to create. device_identifier from Android is not
+        guaranteed unique and must not be used as the sole match key.
       operationId: registerPosDevice
       requestBody:
         required: true
@@ -496,11 +498,11 @@ paths:
               properties:
                 device_identifier:
                   type: string
-                  description: "Device identifier unique per store (iOS: identifierForVendor, Android: androidId). Same device can be registered on multiple stores."
+                  description: "Device identifier from the device (iOS: identifierForVendor, Android: may not be unique). Stored for reference; matching uses device_name."
                   example: ABC123-DEF456-GHI789
                 device_name:
                   type: string
-                  description: "Human-readable device name (iOS: name, Android: device)"
+                  description: "Human-readable device name, unique per store (e.g. POS 4, POS 6). Used as the device identity for registration matching."
                   example: Jan's iPad
                 platform:
                   type: string
@@ -653,6 +655,10 @@ paths:
               properties:
                 device_name:
                   type: string
+                device_identifier:
+                  type: string
+                  nullable: true
+                  description: "Update the stored device identifier"
                 device_model:
                   type: string
                   nullable: true
@@ -754,6 +760,9 @@ paths:
               properties:
                 device_name:
                   type: string
+                device_identifier:
+                  type: string
+                  description: "Update the stored device identifier (e.g. when re-registering)"
                 device_status:
                   type: string
                   enum: [active, inactive, maintenance, offline]
@@ -5686,10 +5695,11 @@ components:
           example: 1
         device_identifier:
           type: string
-          description: "Device identifier unique per store (iOS: identifierForVendor, Android: androidId). Same device can be registered on multiple stores."
+          description: "Device identifier from the device (Android may not be unique). Device identity per store is device_name."
           example: ABC123-DEF456-GHI789
         device_name:
           type: string
+          description: "Human-readable name, unique per store; used for registration matching."
           example: Jan's iPad
         platform:
           type: string

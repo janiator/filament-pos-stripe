@@ -180,13 +180,17 @@ Future<dynamic> registerPosDevice(
     bool isNewDevice = true;
     String deviceId = '';
     
+    // Match by device_name first (unique per store). Android device_identifier is not
+    // guaranteed unique, so using it caused different devices (e.g. POS 4, POS 6) to
+    // overwrite the same record when they shared the same identifier.
     if (checkResponse.statusCode == 200) {
       final devicesData = json.decode(checkResponse.body);
       final devices = devicesData['devices'] as List?;
-      
+      final nameToMatch = deviceNameValue.isEmpty ? 'Unknown Device' : deviceNameValue;
+
       if (devices != null) {
         for (var device in devices) {
-          if (device['device_identifier'] == deviceIdentifier) {
+          if (device['device_name'] == nameToMatch) {
             isNewDevice = false;
             deviceId = device['id'].toString();
             break;
@@ -206,12 +210,13 @@ Future<dynamic> registerPosDevice(
     } else {
       final Map updateBody = {
         'device_name': deviceNameValue,
+        'device_identifier': deviceIdentifier,
         ...deviceData,
       };
       if (deviceMetadata.isNotEmpty) {
         updateBody['device_metadata'] = deviceMetadata;
       }
-      
+
       response = await http.patch(
         Uri.parse('$apiBaseUrl/pos-devices/$deviceId'),
         headers: headers,
