@@ -15,9 +15,12 @@ The token is created by:
 The controller:
 
 1. Finds the store by slug (`{store}` in the URL).
-2. Resolves the terminal location (optional body `location_id`, or the store’s single location).
+2. Resolves the terminal location from the request body:
+   - **`location_id`** (integer) — use this terminal location.
+   - **`pos_device_id`** (integer) — use the terminal location **assigned to this POS device** (from the Pos devices resource in Filament). If the device has no location assigned, falls back to the store default or single location.
+   - If neither is sent — uses the store’s default terminal location or the store’s single location.
 3. Calls `$storeModel->createConnectionToken(['location' => $location->stripe_location_id], true)` (Stripe Connect).
-4. Returns JSON with `secret` (connection token) and `location` (Stripe location ID, e.g. `tml_xxx`) so the client can update app state.
+4. Returns JSON with `secret`, `location` (Stripe location ID, e.g. `tml_xxx`), `location_id` (internal ID for saving last_connected), and optionally `preferred_reader_id` (when `pos_device_id` was used and the device has a last-connected reader, for auto-connect).
 
 So the **backend** creates the token; the **connector** calls this endpoint when it needs a token.
 
@@ -30,7 +33,7 @@ So the **backend** creates the token; the **connector** calls this endpoint when
 When opening the terminal modal with **stripeTerminalSelectorModal**, pass `apiBaseUrl`, `authToken`, `storeSlug`, and optionally:
 
 - **deviceIdentifier** — Your POS device identifier (from device registration). The app will call `GET /terminals/locations?device_identifier=...`. The API returns `last_connected` (location and reader) for this device so the modal can auto-select the last-used location and try to auto-connect to the last-used reader.
-- **posDeviceId** — Your POS device id (from registration/GET pos-devices). After a reader is connected, the app will call `PATCH /pos-devices/{posDeviceId}` with `last_connected_terminal_location_id` and `last_connected_terminal_reader_id` so the next time you open the modal the same device can auto-reconnect.
+- **posDeviceId** — Your POS device id (from registration/GET pos-devices). The connector sends this to the connection-token endpoint so the backend uses the **terminal location assigned to this device** (not the store default). After a reader is connected, the app will call `PATCH /pos-devices/{posDeviceId}` with `last_connected_terminal_location_id` and `last_connected_terminal_reader_id` so the next time you open the modal the same device can auto-reconnect.
 
 Flow: 1) Modal fetches terminal locations (with `device_identifier` if provided). 2) If the store has one location, it is auto-selected; if multiple, the user picks one (last-used is pre-selected when `last_connected` is present). 3) The connector is shown (optionally with the selected location’s Stripe location ID as **locationId**). It passes a **token provider** to the Stripe Terminal singleton that **fetches a new token from the API every time the SDK requests one** (init and connect each use a token, so "already been redeemed" is avoided). 4) The connector uses **only the location from the token response** for Stripe SDK discovery. 5) After a successful connect, the app saves the last-connected terminal to the POS device when `posDeviceId` is provided.
 

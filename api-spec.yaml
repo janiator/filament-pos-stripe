@@ -5220,7 +5220,10 @@ paths:
       tags:
         - Terminals
       summary: Create terminal connection token
-      description: Create a connection token for Stripe Terminal
+      description: |
+        Create a connection token for Stripe Terminal.
+        Location can be specified by location_id, or by pos_device_id (uses the terminal location
+        assigned to that POS device). If neither is provided, uses the store default or single location.
       operationId: createTerminalConnectionToken
       parameters:
         - name: store
@@ -5239,7 +5242,11 @@ paths:
               properties:
                 location_id:
                   type: integer
-                  description: Terminal location ID (optional if store has only one location)
+                  description: Terminal location ID (optional if pos_device_id or store default/single location is used)
+                  example: 1
+                pos_device_id:
+                  type: integer
+                  description: POS device ID; use the terminal location assigned to this device (from Pos devices resource)
                   example: 1
       responses:
         '200':
@@ -5257,8 +5264,16 @@ paths:
                     type: string
                     description: Stripe location ID (tml_xxx) used for this token; client can set app state for discovery
                     example: tml_1234567890
+                  location_id:
+                    type: integer
+                    description: Internal terminal location ID used for this token (e.g. for saving last_connected)
+                    example: 1
+                  preferred_reader_id:
+                    type: string
+                    description: When pos_device_id was used and the device has a last-connected reader, Stripe reader ID for auto-connect
+                    example: tmr_1234567890
         '404':
-          description: Store or location not found
+          description: Store, location, or POS device not found
           content:
             application/json:
               schema:
