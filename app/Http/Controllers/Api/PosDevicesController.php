@@ -40,7 +40,84 @@ class PosDevicesController extends BaseApiController
     }
 
     /**
-     * Register a new POS device
+     * Register or update a POS device by device_name (idempotent).
+     * Uses device_name as the identity per store so Android devices with the same
+     * non-unique device_identifier but different names (e.g. POS 4, POS 6) stay separate.
+     */
+    public function register(Request $request): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+
+        if (! $store) {
+            return response()->json([
+                'message' => 'Store not found',
+            ], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $validated = $request->validate([
+            'device_identifier' => 'required|string|max:255',
+            'device_name' => 'required|string|max:255',
+            'platform' => 'required|string|in:ios,android',
+            'device_model' => 'nullable|string|max:255',
+            'device_brand' => 'nullable|string|max:255',
+            'device_manufacturer' => 'nullable|string|max:255',
+            'device_product' => 'nullable|string|max:255',
+            'device_hardware' => 'nullable|string|max:255',
+            'machine_identifier' => 'nullable|string|max:255',
+            'system_name' => 'nullable|string|max:255',
+            'system_version' => 'nullable|string|max:255',
+            'vendor_identifier' => 'nullable|string|max:255',
+            'android_id' => 'nullable|string|max:255',
+            'serial_number' => 'nullable|string|max:255',
+            'device_metadata' => 'nullable|array',
+            'cash_drawer_enabled' => 'nullable|boolean',
+            'has_integrated_drawer' => 'nullable|boolean',
+            'booking_enabled' => 'nullable|boolean',
+            'auto_print_receipt' => 'nullable|boolean',
+        ]);
+
+        $deviceName = $validated['device_name'];
+        $device = PosDevice::where('store_id', $store->id)
+            ->where('device_name', $deviceName)
+            ->first();
+
+        $validated['store_id'] = $store->id;
+        $validated['device_status'] = 'active';
+        $validated['last_seen_at'] = now();
+        $validated['cash_drawer_enabled'] = $validated['cash_drawer_enabled'] ?? true;
+        $validated['has_integrated_drawer'] = $validated['has_integrated_drawer'] ?? false;
+        $validated['booking_enabled'] = $validated['booking_enabled'] ?? false;
+        $validated['auto_print_receipt'] = $validated['auto_print_receipt'] ?? true;
+
+        if ($device) {
+            $device->update($validated);
+
+            return response()->json([
+                'message' => 'POS device updated successfully',
+                'device' => $this->formatDeviceResponse($device->load(['terminalLocations', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])),
+                'is_new_device' => false,
+            ], 200);
+        }
+
+        $device = PosDevice::create($validated);
+
+        if ($store->default_terminal_location_id) {
+            TerminalLocation::where('id', $store->default_terminal_location_id)
+                ->where('store_id', $store->id)
+                ->update(['pos_device_id' => $device->id]);
+        }
+
+        return response()->json([
+            'message' => 'POS device registered successfully',
+            'device' => $this->formatDeviceResponse($device->load(['terminalLocations', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])),
+            'is_new_device' => true,
+        ], 201);
+    }
+
+    /**
+     * Register a new POS device (fails if device_name already exists in store)
      */
     public function store(Request $request): JsonResponse
     {

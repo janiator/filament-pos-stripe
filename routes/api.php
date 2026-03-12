@@ -48,6 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // POS Device endpoints (vendor-agnostic)
     Route::get('/pos-devices', [\App\Http\Controllers\Api\PosDevicesController::class, 'index'])->name('api.pos-devices.index');
+    Route::post('/pos-devices/register', [\App\Http\Controllers\Api\PosDevicesController::class, 'register'])->name('api.pos-devices.register');
     Route::post('/pos-devices', [\App\Http\Controllers\Api\PosDevicesController::class, 'store'])->name('api.pos-devices.store');
     Route::get('/pos-devices/{id}', [\App\Http\Controllers\Api\PosDevicesController::class, 'show'])->name('api.pos-devices.show');
     Route::put('/pos-devices/{id}', [\App\Http\Controllers\Api\PosDevicesController::class, 'update'])->name('api.pos-devices.update');

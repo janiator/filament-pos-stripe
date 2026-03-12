@@ -172,64 +172,22 @@ Future<dynamic> registerPosDevice(
       headers['Host'] = 'pos-stripe.test';
     }
     
-    final checkResponse = await http.get(
-      Uri.parse('$apiBaseUrl/pos-devices'),
+    // Use idempotent register endpoint: server keys by device_name so same name
+    // updates one record, different names create separate records (fixes Android
+    // tablets with same device_identifier but different names replacing each other).
+    final response = await http.post(
+      Uri.parse('$apiBaseUrl/pos-devices/register'),
       headers: headers,
+      body: json.encode(requestBody),
     );
-    
-    bool isNewDevice = true;
-    String deviceId = '';
-    
-    // Match by device_name first (unique per store). Android device_identifier is not
-    // guaranteed unique, so using it caused different devices (e.g. POS 4, POS 6) to
-    // overwrite the same record when they shared the same identifier.
-    if (checkResponse.statusCode == 200) {
-      final devicesData = json.decode(checkResponse.body);
-      final devices = devicesData['devices'] as List?;
-      final nameToMatch = deviceNameValue.isEmpty ? 'Unknown Device' : deviceNameValue;
 
-      if (devices != null) {
-        for (var device in devices) {
-          if (device['device_name'] == nameToMatch) {
-            isNewDevice = false;
-            deviceId = device['id'].toString();
-            break;
-          }
-        }
-      }
-    }
-    
-    http.Response response;
-    
-    if (isNewDevice) {
-      response = await http.post(
-        Uri.parse('$apiBaseUrl/pos-devices'),
-        headers: headers,
-        body: json.encode(requestBody),
-      );
-    } else {
-      final Map updateBody = {
-        'device_name': deviceNameValue,
-        'device_identifier': deviceIdentifier,
-        ...deviceData,
-      };
-      if (deviceMetadata.isNotEmpty) {
-        updateBody['device_metadata'] = deviceMetadata;
-      }
-
-      response = await http.patch(
-        Uri.parse('$apiBaseUrl/pos-devices/$deviceId'),
-        headers: headers,
-        body: json.encode(updateBody),
-      );
-    }
-    
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final responseData = json.decode(response.body);
       final device = responseData['device'] ?? responseData;
-      
+      final isNewDevice = responseData['is_new_device'] == true;
+
       result['success'] = true;
-      result['deviceId'] = device['id']?.toString() ?? deviceId;
+      result['deviceId'] = device['id']?.toString() ?? '';
       result['deviceIdentifier'] = deviceIdentifier;
       result['isNewDevice'] = isNewDevice;
       return result;

@@ -123,7 +123,8 @@ Update Heartbeat (updateDeviceHeartbeat)
 ## API Endpoints
 
 ### Register/Update Device
-- **POST** `/api/pos-devices` - Register new device
+- **POST** `/api/pos-devices/register` - Register or update device (idempotent by device_name). Prefer this so each device name gets one record even when device_identifier is not unique (e.g. Android).
+- **POST** `/api/pos-devices` - Register new device (fails if device_name already exists in store)
 - **PATCH** `/api/pos-devices/{id}` - Update existing device
 - **GET** `/api/pos-devices` - List all devices for current store
 - **GET** `/api/pos-devices/{id}` - Get specific device

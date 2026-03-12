@@ -602,6 +602,124 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /pos-devices/register:
+    post:
+      tags:
+        - POS Devices
+      summary: Register or update POS device (idempotent by device_name)
+      description: |
+        Register or update a POS device. The server uses device_name as the identity
+        per store: if a device with that name exists, it is updated (200); otherwise
+        a new device is created (201). Use this endpoint so Android tablets with the
+        same non-unique device_identifier but different names (e.g. POS 4, POS 6)
+        register as separate devices. Request body same as POST /pos-devices.
+      operationId: registerOrUpdatePosDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - device_identifier
+                - device_name
+                - platform
+              properties:
+                device_identifier:
+                  type: string
+                device_name:
+                  type: string
+                  description: "Identity per store; same name updates existing device."
+                platform:
+                  type: string
+                  enum: [ios, android]
+                device_model:
+                  type: string
+                  nullable: true
+                device_brand:
+                  type: string
+                  nullable: true
+                device_manufacturer:
+                  type: string
+                  nullable: true
+                device_product:
+                  type: string
+                  nullable: true
+                device_hardware:
+                  type: string
+                  nullable: true
+                machine_identifier:
+                  type: string
+                  nullable: true
+                system_name:
+                  type: string
+                  nullable: true
+                system_version:
+                  type: string
+                  nullable: true
+                vendor_identifier:
+                  type: string
+                  nullable: true
+                android_id:
+                  type: string
+                  nullable: true
+                serial_number:
+                  type: string
+                  nullable: true
+                device_metadata:
+                  type: object
+                  nullable: true
+                  additionalProperties: true
+                cash_drawer_enabled:
+                  type: boolean
+                  nullable: true
+                has_integrated_drawer:
+                  type: boolean
+                  nullable: true
+                booking_enabled:
+                  type: boolean
+                  nullable: true
+                auto_print_receipt:
+                  type: boolean
+                  nullable: true
+      responses:
+        '200':
+          description: Existing device updated (same device_name in store)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: POS device updated successfully
+                  device:
+                    $ref: '#/components/schemas/PosDevice'
+                  is_new_device:
+                    type: boolean
+                    example: false
+        '201':
+          description: New device registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: POS device registered successfully
+                  device:
+                    $ref: '#/components/schemas/PosDevice'
+                  is_new_device:
+                    type: boolean
+                    example: true
+        '404':
+          description: Store not found
+        '422':
+          description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /pos-devices/{id}:
     get:
       tags:

@@ -103,6 +103,55 @@ it('rejects duplicate device_name in same store', function (): void {
     $response->assertJsonValidationErrors(['device_name']);
 });
 
+it('register endpoint creates new device then updates same device by device_name', function (): void {
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+    Sanctum::actingAs($user, ['*']);
+
+    $payload = [
+        'device_identifier' => 'BP2A.250605.031.A3',
+        'device_name' => 'POS 4',
+        'platform' => 'android',
+    ];
+
+    $first = $this->postJson('/api/pos-devices/register', $payload);
+    $first->assertStatus(201);
+    $first->assertJsonPath('is_new_device', true);
+    $deviceId = $first->json('device.id');
+
+    $second = $this->postJson('/api/pos-devices/register', array_merge($payload, ['device_identifier' => 'updated-id']));
+    $second->assertStatus(200);
+    $second->assertJsonPath('is_new_device', false);
+    $second->assertJsonPath('device.id', $deviceId);
+    $second->assertJsonPath('device.device_identifier', 'updated-id');
+});
+
+it('register endpoint creates separate devices for same identifier different names', function (): void {
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+    Sanctum::actingAs($user, ['*']);
+
+    $first = $this->postJson('/api/pos-devices/register', [
+        'device_identifier' => 'BP2A.250605.031.A3',
+        'device_name' => 'POS 4',
+        'platform' => 'android',
+    ]);
+    $first->assertStatus(201);
+    $second = $this->postJson('/api/pos-devices/register', [
+        'device_identifier' => 'BP2A.250605.031.A3',
+        'device_name' => 'POS 6',
+        'platform' => 'android',
+    ]);
+    $second->assertStatus(201);
+    expect($first->json('device.id'))->not->toBe($second->json('device.id'));
+    expect($first->json('device.device_name'))->toBe('POS 4');
+    expect($second->json('device.device_name'))->toBe('POS 6');
+});
+
 it('allows same device_identifier for different device_names in same store', function (): void {
     $user = User::factory()->create();
     $store = Store::factory()->create();
