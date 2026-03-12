@@ -17,8 +17,8 @@ POS devices are now separated from Stripe Terminal locations to support multiple
 
 ### TerminalLocation (Stripe-Specific)
 - Represents a Stripe Terminal location
-- Can optionally be linked to a PosDevice via `pos_device_id`
-- **Each POS device has at most one terminal location** (enforced by unique constraint)
+- Can be selected by many POS devices
+- POS device selection is stored on `pos_devices.terminal_location_id`
 - Used for Stripe Terminal API operations
 - Belongs to a Store
 
@@ -36,12 +36,13 @@ POS devices are now separated from Stripe Terminal locations to support multiple
 
 ```
 Store
+  ├── TerminalLocation (Front Counter)
+  │   ├── TerminalReader (Reader A)
+  │   └── TerminalReader (Reader B)
   ├── PosDevice (POS Device 1 - "Kasse 1")
-  │   └── TerminalLocation (Stripe Terminal Location)
-  │       └── TerminalReader (Payment Terminal)
+  │   └── terminal_location_id -> Front Counter
   ├── PosDevice (POS Device 2 - "Kasse 2")
-  │   └── TerminalLocation (Stripe Terminal Location)
-  │       └── TerminalReader (Payment Terminal)
+  │   └── terminal_location_id -> Front Counter
   └── PosDevice (POS Device 3 - "Mobil POS")
       └── (No Stripe Terminal - can use other vendors)
 ```
@@ -109,7 +110,7 @@ This architecture allows for:
 
 - Existing TerminalLocations remain unchanged
 - New `pos_devices` table created
-- `terminal_locations` table has optional `pos_device_id` foreign key (unique when set: one location per device)
+- `pos_devices` table has optional `terminal_location_id` foreign key
 - Stores have optional `default_terminal_location_id`; new POS devices receive this location on registration when set
-- Can gradually link existing TerminalLocations to PosDevices
+- Multiple POS devices can share the same TerminalLocation
 

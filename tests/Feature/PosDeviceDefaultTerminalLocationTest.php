@@ -37,10 +37,53 @@ it('assigns store default terminal location to newly registered POS device', fun
     $deviceId = $response->json('device.id');
     expect($deviceId)->not->toBeNull();
 
-    $device = PosDevice::with('terminalLocations')->find($deviceId);
-    expect($device->terminalLocations)->toHaveCount(1);
-    expect($device->terminalLocations->first()->id)->toBe($location->id);
+    $device = PosDevice::with('terminalLocation')->find($deviceId);
+    expect($device->terminalLocation?->id)->toBe($location->id);
     expect($response->json('device.terminal_location_id'))->toBe($location->id);
+});
+
+it('allows multiple POS devices to share the same terminal location', function (): void {
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $location = TerminalLocation::create([
+        'store_id' => $store->id,
+        'display_name' => 'Shared counter',
+        'line1' => 'Street 1',
+        'city' => 'Oslo',
+        'postal_code' => '0123',
+        'country' => 'NO',
+    ]);
+    $store->update(['default_terminal_location_id' => $location->id]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $first = $this->postJson('/api/pos-devices', [
+        'device_identifier' => 'device-a-'.uniqid(),
+        'device_name' => 'POS A',
+        'platform' => 'ios',
+    ]);
+
+    $second = $this->postJson('/api/pos-devices', [
+        'device_identifier' => 'device-b-'.uniqid(),
+        'device_name' => 'POS B',
+        'platform' => 'ios',
+    ]);
+
+    $first->assertStatus(201);
+    $second->assertStatus(201);
+    $firstDeviceId = $first->json('device.id');
+    $secondDeviceId = $second->json('device.id');
+
+    $firstDevice = PosDevice::find($firstDeviceId);
+    $secondDevice = PosDevice::find($secondDeviceId);
+
+    expect($firstDevice?->terminal_location_id)->toBe($location->id);
+    expect($secondDevice?->terminal_location_id)->toBe($location->id);
+    expect($first->json('device.terminal_location_id'))->toBe($location->id);
+    expect($second->json('device.terminal_location_id'))->toBe($location->id);
 });
 
 it('registers POS device without terminal location when store has no default', function (): void {
@@ -59,8 +102,8 @@ it('registers POS device without terminal location when store has no default', f
 
     $response->assertStatus(201);
     $deviceId = $response->json('device.id');
-    $device = PosDevice::with('terminalLocations')->find($deviceId);
-    expect($device->terminalLocations)->toHaveCount(0);
+    $device = PosDevice::with('terminalLocation')->find($deviceId);
+    expect($device->terminalLocation)->toBeNull();
     expect($response->json('device.terminal_location_id'))->toBeNull();
 });
 

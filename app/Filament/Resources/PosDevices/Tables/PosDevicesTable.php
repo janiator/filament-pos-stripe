@@ -2,11 +2,9 @@
 
 namespace App\Filament\Resources\PosDevices\Tables;
 
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Columns\ColorColumn;
-use Filament\Tables\Table;
 use Filament\Support\Enums\FontWeight;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 
 class PosDevicesTable
 {
@@ -15,14 +13,14 @@ class PosDevicesTable
         return $table
             ->modifyQueryUsing(fn ($query) => $query
                 ->withCount(['posSessions' => fn ($query) => $query->where('status', 'open')])
-                ->with(['lastConnectedTerminalLocation', 'lastConnectedTerminalReader']))
+                ->with(['terminalLocation', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader']))
             ->columns([
                 TextColumn::make('device_name')
                     ->label('Device Name')
                     ->searchable()
                     ->sortable()
                     ->weight(FontWeight::Bold),
-                
+
                 TextColumn::make('platform')
                     ->label('Platform')
                     ->badge()
@@ -33,7 +31,7 @@ class PosDevicesTable
                     })
                     ->formatStateUsing(fn (string $state): string => strtoupper($state))
                     ->sortable(),
-                
+
                 TextColumn::make('device_status')
                     ->label('Status')
                     ->badge()
@@ -45,18 +43,18 @@ class PosDevicesTable
                         default => 'gray',
                     })
                     ->sortable(),
-                
+
                 TextColumn::make('device_model')
                     ->label('Model')
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
-                
+
                 TextColumn::make('system_version')
                     ->label('OS Version')
                     ->sortable()
                     ->toggleable(),
-                
+
                 TextColumn::make('last_seen_at')
                     ->label('Last Seen')
                     ->dateTime()
@@ -64,41 +62,41 @@ class PosDevicesTable
                     ->since()
                     ->color(fn ($state) => $state && $state->isBefore(now()->subHours(24)) ? 'danger' : null)
                     ->icon(fn ($state) => $state && $state->isBefore(now()->subHours(24)) ? 'heroicon-o-exclamation-triangle' : null),
-                
-                TextColumn::make('terminalLocations_count')
-                    ->label('Terminal Locations')
-                    ->counts('terminalLocations')
-                    ->badge()
-                    ->color('info')
-                    ->sortable(),
+
+                TextColumn::make('terminalLocation.display_name')
+                    ->label('Terminal Location')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(),
 
                 TextColumn::make('lastConnectedTerminalReader.label')
                     ->label('Last Terminal')
                     ->formatStateUsing(function ($record) {
                         $loc = $record->lastConnectedTerminalLocation?->display_name;
                         $reader = $record->lastConnectedTerminalReader?->label;
-                        if (!$loc && !$reader) {
+                        if (! $loc && ! $reader) {
                             return '—';
                         }
+
                         return $reader
                             ? ($loc ? "{$loc} / {$reader}" : $reader)
                             : ($loc ?? '—');
                     })
                     ->placeholder('—')
                     ->toggleable(),
-                
+
                 TextColumn::make('pos_sessions_count')
                     ->label('Open Sessions')
                     ->badge()
                     ->color(fn ($state): string => $state > 0 ? 'success' : 'gray')
                     ->sortable(),
-                
+
                 TextColumn::make('device_identifier')
                     ->label('Device ID')
                     ->copyable()
                     ->copyMessage('Device ID copied!')
                     ->toggleable(isToggledHiddenByDefault: true),
-                
+
                 TextColumn::make('created_at')
                     ->label('Registered')
                     ->dateTime()
@@ -111,7 +109,7 @@ class PosDevicesTable
                         'ios' => 'iOS',
                         'android' => 'Android',
                     ]),
-                
+
                 \Filament\Tables\Filters\SelectFilter::make('device_status')
                     ->options([
                         'active' => 'Active',
@@ -119,7 +117,7 @@ class PosDevicesTable
                         'maintenance' => 'Maintenance',
                         'offline' => 'Offline',
                     ]),
-                
+
                 \Filament\Tables\Filters\Filter::make('last_seen_at')
                     ->form([
                         \Filament\Forms\Components\DatePicker::make('last_seen_from')
@@ -151,4 +149,3 @@ class PosDevicesTable
             ->defaultSort('last_seen_at', 'desc');
     }
 }
-

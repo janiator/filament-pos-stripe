@@ -43,7 +43,7 @@ class StoreTerminalConnectionTokenController extends Controller
         } elseif ($posDeviceId) {
             $posDevice = PosDevice::where('store_id', $storeModel->id)
                 ->where('id', $posDeviceId)
-                ->with(['terminalLocations', 'lastConnectedTerminalReader'])
+                ->with(['terminalLocation', 'lastConnectedTerminalReader'])
                 ->first();
 
             if (! $posDevice) {
@@ -52,7 +52,7 @@ class StoreTerminalConnectionTokenController extends Controller
                 ], 404);
             }
 
-            $location = $posDevice->terminalLocations->first();
+            $location = $posDevice->terminalLocation;
         }
 
         if (! $location) {

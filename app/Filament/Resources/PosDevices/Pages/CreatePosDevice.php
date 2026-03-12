@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\PosDevices\Pages;
 
 use App\Filament\Resources\PosDevices\PosDeviceResource;
-use App\Models\TerminalLocation;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreatePosDevice extends CreateRecord
@@ -19,17 +18,5 @@ class CreatePosDevice extends CreateRecord
         }
 
         return $data;
-    }
-
-    protected function afterCreate(): void
-    {
-        $locationId = $this->form->getState()['terminal_location_id'] ?? null;
-        if (! $locationId) {
-            return;
-        }
-        $posDevice = $this->record;
-        TerminalLocation::where('id', (int) $locationId)
-            ->where('store_id', $posDevice->store_id)
-            ->update(['pos_device_id' => $posDevice->id]);
     }
 }

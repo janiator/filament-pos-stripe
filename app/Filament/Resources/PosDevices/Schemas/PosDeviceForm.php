@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\PosDevices\Schemas;
 
-use App\Models\TerminalLocation;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
@@ -10,6 +9,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class PosDeviceForm
 {
@@ -92,25 +92,19 @@ class PosDeviceForm
 
                         Select::make('terminal_location_id')
                             ->label('Terminal Location')
-                            ->helperText('Stripe Terminal location for this device. Each device can have only one location.')
-                            ->options(function (Select $component): array {
-                                $record = $component->getRecord();
-                                $storeId = $record?->store_id ?? \Filament\Facades\Filament::getTenant()?->getKey();
-                                if (! $storeId) {
-                                    return [];
-                                }
-                                $query = TerminalLocation::where('store_id', $storeId);
-                                if ($record) {
-                                    $query->where(function ($q) use ($record): void {
-                                        $q->whereNull('pos_device_id')
-                                            ->orWhere('pos_device_id', $record->id);
-                                    });
-                                } else {
-                                    $query->whereNull('pos_device_id');
-                                }
+                            ->helperText('Stripe Terminal location for this device.')
+                            ->relationship(
+                                'terminalLocation',
+                                'display_name',
+                                modifyQueryUsing: function (Builder $query): Builder {
+                                    $tenant = \Filament\Facades\Filament::getTenant();
+                                    if (! $tenant) {
+                                        return $query;
+                                    }
 
-                                return $query->pluck('display_name', 'id')->all();
-                            })
+                                    return $query->where('store_id', $tenant->id);
+                                }
+                            )
                             ->searchable()
                             ->preload()
                             ->nullable(),

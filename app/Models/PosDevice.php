@@ -37,6 +37,7 @@ class PosDevice extends Model
         'booking_enabled',
         'auto_print_receipt',
         'default_printer_id',
+        'terminal_location_id',
         'last_connected_terminal_location_id',
         'last_connected_terminal_reader_id',
     ];
@@ -63,12 +64,9 @@ class PosDevice extends Model
         return $this->belongsToMany(PaymentMethod::class, 'payment_method_pos_device');
     }
 
-    /**
-     * Get Stripe Terminal locations associated with this POS device
-     */
-    public function terminalLocations(): HasMany
+    public function terminalLocation(): BelongsTo
     {
-        return $this->hasMany(TerminalLocation::class);
+        return $this->belongsTo(TerminalLocation::class, 'terminal_location_id');
     }
 
     /**

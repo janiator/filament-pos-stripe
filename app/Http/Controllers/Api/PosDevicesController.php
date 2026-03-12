@@ -28,7 +28,7 @@ class PosDevicesController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         $devices = PosDevice::where('store_id', $store->id)
-            ->with(['terminalLocations.terminalReaders', 'receiptPrinters', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])
+            ->with(['terminalLocation.terminalReaders', 'receiptPrinters', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])
             ->orderBy('device_name')
             ->get();
 
@@ -134,7 +134,7 @@ class PosDevicesController extends BaseApiController
 
             return response()->json([
                 'message' => 'POS device updated successfully',
-                'device' => $this->formatDeviceResponse($device->load(['terminalLocations', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])),
+                'device' => $this->formatDeviceResponse($device->load(['terminalLocation.terminalReaders', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])),
                 'is_new_device' => false,
             ], 200);
         }
@@ -142,14 +142,18 @@ class PosDevicesController extends BaseApiController
         $device = PosDevice::create($validated);
 
         if ($store->default_terminal_location_id) {
-            TerminalLocation::where('id', $store->default_terminal_location_id)
+            $defaultTerminalLocation = TerminalLocation::where('id', $store->default_terminal_location_id)
                 ->where('store_id', $store->id)
-                ->update(['pos_device_id' => $device->id]);
+                ->first();
+
+            if ($defaultTerminalLocation) {
+                $device->update(['terminal_location_id' => $defaultTerminalLocation->id]);
+            }
         }
 
         return response()->json([
             'message' => 'POS device registered successfully',
-            'device' => $this->formatDeviceResponse($device->load(['terminalLocations', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])),
+            'device' => $this->formatDeviceResponse($device->load(['terminalLocation.terminalReaders', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])),
             'is_new_device' => true,
         ], 201);
     }
@@ -207,14 +211,18 @@ class PosDevicesController extends BaseApiController
         $device = PosDevice::create($validated);
 
         if ($store->default_terminal_location_id) {
-            TerminalLocation::where('id', $store->default_terminal_location_id)
+            $defaultTerminalLocation = TerminalLocation::where('id', $store->default_terminal_location_id)
                 ->where('store_id', $store->id)
-                ->update(['pos_device_id' => $device->id]);
+                ->first();
+
+            if ($defaultTerminalLocation) {
+                $device->update(['terminal_location_id' => $defaultTerminalLocation->id]);
+            }
         }
 
         return response()->json([
             'message' => 'POS device registered successfully',
-            'device' => $this->formatDeviceResponse($device->load('terminalLocations')),
+            'device' => $this->formatDeviceResponse($device->load('terminalLocation.terminalReaders')),
         ], 201);
     }
 
@@ -235,7 +243,7 @@ class PosDevicesController extends BaseApiController
 
         $device = PosDevice::where('id', $id)
             ->where('store_id', $store->id)
-            ->with(['terminalLocations.terminalReaders', 'receiptPrinters', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])
+            ->with(['terminalLocation.terminalReaders', 'receiptPrinters', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])
             ->firstOrFail();
 
         return response()->json([
@@ -283,6 +291,7 @@ class PosDevicesController extends BaseApiController
             'booking_enabled' => 'sometimes|boolean',
             'auto_print_receipt' => 'sometimes|boolean',
             'default_printer_id' => 'nullable|exists:receipt_printers,id',
+            'terminal_location_id' => 'nullable|exists:terminal_locations,id',
             'last_connected_terminal_location_id' => 'nullable|exists:terminal_locations,id',
             'last_connected_terminal_reader_id' => 'nullable|exists:terminal_readers,id',
         ]);
@@ -311,6 +320,16 @@ class PosDevicesController extends BaseApiController
                 ], 422);
             }
         }
+        if (array_key_exists('terminal_location_id', $validated) && $validated['terminal_location_id']) {
+            $loc = \App\Models\TerminalLocation::where('id', $validated['terminal_location_id'])
+                ->where('store_id', $store->id)
+                ->first();
+            if (! $loc) {
+                return response()->json([
+                    'message' => 'Terminal location not found or does not belong to this store',
+                ], 422);
+            }
+        }
         if (array_key_exists('last_connected_terminal_reader_id', $validated) && $validated['last_connected_terminal_reader_id']) {
             $reader = \App\Models\TerminalReader::where('id', $validated['last_connected_terminal_reader_id'])
                 ->where('store_id', $store->id)
@@ -324,7 +343,7 @@ class PosDevicesController extends BaseApiController
 
         $validated['last_seen_at'] = now();
         $device->update($validated);
-        $device->load(['lastConnectedTerminalLocation', 'lastConnectedTerminalReader']);
+        $device->load(['terminalLocation.terminalReaders', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader']);
 
         return response()->json([
             'message' => 'POS device updated successfully',
@@ -759,6 +778,8 @@ class PosDevicesController extends BaseApiController
 
     protected function formatDeviceResponse(PosDevice $device): array
     {
+        $terminalLocation = $device->terminalLocation;
+
         $bookingAvailable = Addon::storeHasActiveAddon($device->store_id, AddonType::MeranoBooking)
             && (bool) $device->booking_enabled;
 
@@ -802,16 +823,14 @@ class PosDevicesController extends BaseApiController
             'booking_enabled' => (bool) $device->booking_enabled,
             'auto_print_receipt' => (bool) $device->auto_print_receipt,
             'available_actions' => $availableActions,
-            'terminal_location_id' => $device->terminalLocations->first()?->id,
-            'terminal_locations_count' => $device->terminalLocations->count(),
-            'terminal_locations' => $device->terminalLocations->map(function ($location) {
-                return [
-                    'id' => $location->id,
-                    'display_name' => $location->display_name,
-                    'stripe_location_id' => $location->stripe_location_id,
-                    'readers_count' => $location->terminalReaders->count(),
-                ];
-            }),
+            'terminal_location_id' => $terminalLocation?->id,
+            'terminal_locations_count' => $terminalLocation ? 1 : 0,
+            'terminal_locations' => $terminalLocation ? [[
+                'id' => $terminalLocation->id,
+                'display_name' => $terminalLocation->display_name,
+                'stripe_location_id' => $terminalLocation->stripe_location_id,
+                'readers_count' => $terminalLocation->terminalReaders->count(),
+            ]] : [],
             'receipt_printers_count' => $device->receiptPrinters->count(),
             'default_printer_id' => $device->default_printer_id,
             'last_connected' => $this->formatLastConnectedTerminal($device),
