@@ -78,7 +78,6 @@ class PosDeviceResource extends Resource
             \App\Filament\Resources\PosDevices\RelationManagers\PosSessionsRelationManager::class,
             \App\Filament\Resources\PosDevices\RelationManagers\PosEventsRelationManager::class,
             \App\Filament\Resources\PosDevices\RelationManagers\ReceiptsRelationManager::class,
-            \App\Filament\Resources\PosDevices\RelationManagers\TerminalLocationsRelationManager::class,
             \App\Filament\Resources\PosDevices\RelationManagers\ReceiptPrintersRelationManager::class,
         ];
     }
