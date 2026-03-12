@@ -56,13 +56,13 @@ class PosDeviceForm
                             ->relationship(
                                 'defaultPrinter',
                                 'name',
-                                modifyQueryUsing: function ($query) {
+                                modifyQueryUsing: function (Builder $query): Builder {
                                     $tenant = \Filament\Facades\Filament::getTenant();
-                                    if ($tenant) {
-                                        $query->where('store_id', $tenant->id);
+                                    if (! $tenant) {
+                                        return $query->whereRaw('1 = 0');
                                     }
 
-                                    return $query;
+                                    return $query->where('store_id', $tenant->id);
                                 }
                             )
                             ->searchable()
@@ -99,7 +99,7 @@ class PosDeviceForm
                                 modifyQueryUsing: function (Builder $query): Builder {
                                     $tenant = \Filament\Facades\Filament::getTenant();
                                     if (! $tenant) {
-                                        return $query;
+                                        return $query->whereRaw('1 = 0');
                                     }
 
                                     return $query->where('store_id', $tenant->id);
