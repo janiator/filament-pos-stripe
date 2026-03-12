@@ -49,7 +49,25 @@ Payment methods have been optimized for POS usability by:
    - Terminal automatically supports mobile wallets when customer taps phone/watch
    - No separate mobile payment method needed
 
-### 3. API Endpoint Updates
+### 3. Device restriction (pos_device_ids)
+
+**Relationship:** PaymentMethod ↔ PosDevice (many-to-many, pivot `payment_method_pos_device`)
+
+- **Empty (no devices selected):** The payment method is available on **all** POS devices for the store.
+- **One or more devices selected:** The payment method is only available on those devices. Other devices will not see it in GET `/api/purchases/payment-methods?pos_device_id=X` and cannot use it for purchases.
+- The API returns `pos_device_ids` (array of device IDs) for each payment method so the Flutter app can show "All devices" or device names when needed.
+
+### 4. Minimum amount
+
+**Filament:** `minimum_amount_kroner` (nullable integer) — configured in whole kroner (e.g. 50 for 50 kr).
+
+**API:** `minimum_amount_ore` (nullable integer) — returned in øre (e.g. 5000 for 50 kr). Null means no minimum.
+
+- When set, the payment method can only be used for payments of at least that amount.
+- Cart total is in øre; the API rejects the purchase with 422 if total is below the minimum.
+- The Flutter POS can compare cart total (øre) with `minimum_amount_ore` to hide or disable the method when below minimum.
+
+### 5. API Endpoint Updates
 
 **GET `/api/purchases/payment-methods`**
 

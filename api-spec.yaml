@@ -566,10 +566,18 @@ paths:
                   type: boolean
                   nullable: true
                   description: When false, only non-cash transactions are allowed on this device. Defaults to true if omitted.
+                has_integrated_drawer:
+                  type: boolean
+                  nullable: true
+                  description: When true, this device has a built-in cash drawer (e.g. Stripe Terminal S700). Defaults to false if omitted.
                 booking_enabled:
                   type: boolean
                   nullable: true
                   description: When true, booking actions may be enabled for this device. Defaults to false if omitted.
+                auto_print_receipt:
+                  type: boolean
+                  nullable: true
+                  description: When true, receipts are auto-printed after purchase. Defaults to true if omitted.
       responses:
         '201':
           description: POS device registered successfully
@@ -688,9 +696,15 @@ paths:
                 cash_drawer_enabled:
                   type: boolean
                   description: When false, only non-cash transactions are allowed on this device
+                has_integrated_drawer:
+                  type: boolean
+                  description: When true, this device has a built-in cash drawer (e.g. Stripe Terminal S700)
                 booking_enabled:
                   type: boolean
                   description: When true, booking actions may be enabled for this device
+                auto_print_receipt:
+                  type: boolean
+                  description: When true, receipts are auto-printed after purchase
                 last_connected_terminal_location_id:
                   type: integer
                   nullable: true
@@ -750,9 +764,15 @@ paths:
                 cash_drawer_enabled:
                   type: boolean
                   description: When false, only non-cash transactions are allowed on this device
+                has_integrated_drawer:
+                  type: boolean
+                  description: When true, this device has a built-in cash drawer (e.g. Stripe Terminal S700)
                 booking_enabled:
                   type: boolean
                   description: When true, booking actions may be enabled for this device
+                auto_print_receipt:
+                  type: boolean
+                  description: When true, receipts are auto-printed after purchase
                 last_connected_terminal_location_id:
                   type: integer
                   nullable: true
@@ -5200,7 +5220,10 @@ paths:
       tags:
         - Terminals
       summary: Create terminal connection token
-      description: Create a connection token for Stripe Terminal
+      description: |
+        Create a connection token for Stripe Terminal.
+        Location can be specified by location_id, or by pos_device_id (uses the terminal location
+        assigned to that POS device). If neither is provided, uses the store default or single location.
       operationId: createTerminalConnectionToken
       parameters:
         - name: store
@@ -5219,7 +5242,11 @@ paths:
               properties:
                 location_id:
                   type: integer
-                  description: Terminal location ID (optional if store has only one location)
+                  description: Terminal location ID (optional if pos_device_id or store default/single location is used)
+                  example: 1
+                pos_device_id:
+                  type: integer
+                  description: POS device ID; use the terminal location assigned to this device (from Pos devices resource)
                   example: 1
       responses:
         '200':
@@ -5237,8 +5264,16 @@ paths:
                     type: string
                     description: Stripe location ID (tml_xxx) used for this token; client can set app state for discovery
                     example: tml_1234567890
+                  location_id:
+                    type: integer
+                    description: Internal terminal location ID used for this token (e.g. for saving last_connected)
+                    example: 1
+                  preferred_reader_id:
+                    type: string
+                    description: When pos_device_id was used and the device has a last-connected reader, Stripe reader ID for auto-connect
+                    example: tmr_1234567890
         '404':
-          description: Store or location not found
+          description: Store, location, or POS device not found
           content:
             application/json:
               schema:
@@ -5723,10 +5758,18 @@ components:
           type: boolean
           default: true
           description: When false, only non-cash transactions are allowed on this device (cash drawer disabled)
+        has_integrated_drawer:
+          type: boolean
+          default: false
+          description: When true, this device has a built-in cash drawer (e.g. Stripe Terminal S700)
         booking_enabled:
           type: boolean
           default: false
           description: When true, booking actions may be enabled for this device if the store has the Merano Booking add-on active
+        auto_print_receipt:
+          type: boolean
+          default: true
+          description: When true, receipts are auto-printed after purchase; when false, printing is optional in the frontend
         available_actions:
           type: array
           description: Action keys the frontend should use for capability gating on the active device
@@ -6978,6 +7021,17 @@ components:
         sort_order:
           type: integer
           example: 0
+        minimum_amount_ore:
+          type: integer
+          nullable: true
+          description: Minimum payment amount in øre (e.g. 5000 for 50 kr). Null means no minimum.
+          example: 5000
+        pos_device_ids:
+          type: array
+          items:
+            type: integer
+          description: When non-empty, this payment method is only available on these POS device IDs. When empty, available on all devices.
+          example: [1, 2]
         background_color:
           type: string
           nullable: true
@@ -7432,8 +7486,8 @@ components:
           example: 2000
         total:
           type: integer
-          description: Total amount in minor units
-          minimum: 1
+          description: Total amount in minor units (0 allowed for e.g. freeticket orders)
+          minimum: 0
           example: 11000
         currency:
           type: string
@@ -7518,8 +7572,8 @@ components:
                 example: cash
               amount:
                 type: integer
-                description: Payment amount in minor units (øre)
-                minimum: 1
+                description: Payment amount in minor units (øre). 0 allowed for freeticket/zero-total orders.
+                minimum: 0
                 example: 5000
               metadata:
                 type: object

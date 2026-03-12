@@ -357,6 +357,18 @@ test('device response includes cash_drawer_enabled', function () {
     $response->assertJsonPath('device.cash_drawer_enabled', false);
 });
 
+test('device response includes has_integrated_drawer', function () {
+    $device = PosDevice::factory()->create([
+        'store_id' => $this->store->id,
+        'has_integrated_drawer' => true,
+    ]);
+
+    $response = $this->getJson("/api/pos-devices/{$device->id}");
+
+    $response->assertStatus(200);
+    $response->assertJsonPath('device.has_integrated_drawer', true);
+});
+
 test('CashDrawerService does not create event when device has cash drawer disabled', function () {
     $device = PosDevice::factory()->create([
         'store_id' => $this->store->id,

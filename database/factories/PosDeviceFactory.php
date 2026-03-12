@@ -29,7 +29,9 @@ class PosDeviceFactory extends Factory
             'device_status' => fake()->randomElement(['active', 'inactive']),
             'device_metadata' => [],
             'cash_drawer_enabled' => true,
+            'has_integrated_drawer' => false,
             'booking_enabled' => false,
+            'auto_print_receipt' => true,
             'last_seen_at' => now(),
         ];
     }

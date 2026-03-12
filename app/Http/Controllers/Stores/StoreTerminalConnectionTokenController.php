@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Stores;
 
+use App\Models\PosDevice;
 use App\Models\Store;
 use App\Models\TerminalLocation;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +25,10 @@ class StoreTerminalConnectionTokenController extends Controller
         // TODO: Authorize the caller
 
         $locationId = $request->input('location_id');
+        $posDeviceId = $request->input('pos_device_id');
+
+        $location = null;
+        $posDevice = null;
 
         if ($locationId) {
             $location = TerminalLocation::where('id', $locationId)
@@ -35,7 +40,22 @@ class StoreTerminalConnectionTokenController extends Controller
                     'message' => 'Terminal location not found for this store.',
                 ], 404);
             }
-        } else {
+        } elseif ($posDeviceId) {
+            $posDevice = PosDevice::where('store_id', $storeModel->id)
+                ->where('id', $posDeviceId)
+                ->with(['terminalLocations', 'lastConnectedTerminalReader'])
+                ->first();
+
+            if (! $posDevice) {
+                return response()->json([
+                    'message' => 'POS device not found for this store.',
+                ], 404);
+            }
+
+            $location = $posDevice->terminalLocations->first();
+        }
+
+        if (! $location) {
             // Try the store's default terminal location first
             if ($storeModel->default_terminal_location_id) {
                 $location = TerminalLocation::where('id', $storeModel->default_terminal_location_id)
@@ -55,7 +75,7 @@ class StoreTerminalConnectionTokenController extends Controller
 
                 if ($locations->count() > 1) {
                     return response()->json([
-                        'message' => 'Multiple terminal locations exist. Please set a default terminal location or provide a location_id.',
+                        'message' => 'Multiple terminal locations exist. Please set a default terminal location or provide a location_id or pos_device_id.',
                     ], 422);
                 }
 
@@ -67,10 +87,16 @@ class StoreTerminalConnectionTokenController extends Controller
             'location' => $location->stripe_location_id,
         ], true); // true = connected account
 
-        // Return secret and location so the client can update app state (e.g. after token refresh)
-        return response()->json([
+        $payload = [
             'secret' => $connectionToken->secret,
             'location' => $location->stripe_location_id,
-        ], 200);
+            'location_id' => $location->id,
+        ];
+
+        if ($posDevice && $posDevice->lastConnectedTerminalReader) {
+            $payload['preferred_reader_id'] = $posDevice->lastConnectedTerminalReader->stripe_reader_id;
+        }
+
+        return response()->json($payload, 200);
     }
 }

@@ -75,14 +75,18 @@ class PosDevicesController extends BaseApiController
             'serial_number' => 'nullable|string|max:255',
             'device_metadata' => 'nullable|array',
             'cash_drawer_enabled' => 'nullable|boolean',
+            'has_integrated_drawer' => 'nullable|boolean',
             'booking_enabled' => 'nullable|boolean',
+            'auto_print_receipt' => 'nullable|boolean',
         ]);
 
         $validated['store_id'] = $store->id;
         $validated['device_status'] = 'active';
         $validated['last_seen_at'] = now();
         $validated['cash_drawer_enabled'] = $validated['cash_drawer_enabled'] ?? true;
+        $validated['has_integrated_drawer'] = $validated['has_integrated_drawer'] ?? false;
         $validated['booking_enabled'] = $validated['booking_enabled'] ?? false;
+        $validated['auto_print_receipt'] = $validated['auto_print_receipt'] ?? true;
 
         $device = PosDevice::create($validated);
 
@@ -158,7 +162,9 @@ class PosDevicesController extends BaseApiController
             'device_status' => 'sometimes|string|in:active,inactive,maintenance,offline',
             'device_metadata' => 'nullable|array',
             'cash_drawer_enabled' => 'sometimes|boolean',
+            'has_integrated_drawer' => 'sometimes|boolean',
             'booking_enabled' => 'sometimes|boolean',
+            'auto_print_receipt' => 'sometimes|boolean',
             'default_printer_id' => 'nullable|exists:receipt_printers,id',
             'last_connected_terminal_location_id' => 'nullable|exists:terminal_locations,id',
             'last_connected_terminal_reader_id' => 'nullable|exists:terminal_readers,id',
@@ -674,7 +680,9 @@ class PosDevicesController extends BaseApiController
             'last_seen_at' => $this->formatDateTimeOslo($device->last_seen_at),
             'device_metadata' => $device->device_metadata,
             'cash_drawer_enabled' => (bool) $device->cash_drawer_enabled,
+            'has_integrated_drawer' => (bool) $device->has_integrated_drawer,
             'booking_enabled' => (bool) $device->booking_enabled,
+            'auto_print_receipt' => (bool) $device->auto_print_receipt,
             'available_actions' => $availableActions,
             'terminal_location_id' => $device->terminalLocations->first()?->id,
             'terminal_locations_count' => $device->terminalLocations->count(),

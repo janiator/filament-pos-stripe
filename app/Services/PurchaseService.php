@@ -1139,8 +1139,8 @@ class PurchaseService
                     throw new \Exception('Payment method code is required for each payment');
                 }
 
-                if ($paymentAmount <= 0) {
-                    throw new \Exception('Payment amount must be positive');
+                if ($paymentAmount < 0) {
+                    throw new \Exception('Payment amount cannot be negative');
                 }
 
                 // Get payment method

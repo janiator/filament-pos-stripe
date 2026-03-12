@@ -9,6 +9,9 @@ class CreatePaymentMethod extends CreateRecord
 {
     protected static string $resource = PaymentMethodResource::class;
 
+    /** @var array<int> */
+    protected array $posDeviceIdsToSync = [];
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // Auto-set store_id from tenant if not provided
@@ -20,16 +23,24 @@ class CreatePaymentMethod extends CreateRecord
         }
 
         // Auto-fill SAF-T codes based on payment method code and provider_method if not provided
-        if (!empty($data['code']) && empty($data['saf_t_payment_code'])) {
+        if (! empty($data['code']) && empty($data['saf_t_payment_code'])) {
             $providerMethod = $data['provider_method'] ?? null;
             $data['saf_t_payment_code'] = \App\Services\SafTCodeMapper::mapPaymentMethodToCode($data['code'], $providerMethod);
         }
 
-        if (!empty($data['code']) && empty($data['saf_t_event_code'])) {
+        if (! empty($data['code']) && empty($data['saf_t_event_code'])) {
             $providerMethod = $data['provider_method'] ?? null;
             $data['saf_t_event_code'] = \App\Services\SafTCodeMapper::mapPaymentMethodToEventCode($data['code'], $providerMethod);
         }
 
+        $this->posDeviceIdsToSync = $data['posDevices'] ?? [];
+        unset($data['posDevices']);
+
         return $data;
+    }
+
+    protected function afterCreate(): void
+    {
+        $this->record->posDevices()->sync($this->posDeviceIdsToSync ?? []);
     }
 }

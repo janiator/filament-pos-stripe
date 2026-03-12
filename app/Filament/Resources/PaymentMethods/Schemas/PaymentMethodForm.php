@@ -28,6 +28,7 @@ class PaymentMethodForm
                     ->visible(function () {
                         try {
                             $tenant = \Filament\Facades\Filament::getTenant();
+
                             return $tenant && $tenant->slug === 'visivo-admin';
                         } catch (\Throwable $e) {
                             return false;
@@ -47,14 +48,14 @@ class PaymentMethodForm
                         ignoreRecord: true,
                         modifyRuleUsing: function ($rule, $get, $record) {
                             // Get store_id from form data, record, or tenant
-                            $storeId = $get('store_id') 
-                                ?? $record?->store_id 
+                            $storeId = $get('store_id')
+                                ?? $record?->store_id
                                 ?? \Filament\Facades\Filament::getTenant()?->id;
-                            
+
                             if ($storeId) {
                                 return $rule->where('store_id', $storeId);
                             }
-                            
+
                             return $rule;
                         }
                     )
@@ -95,6 +96,7 @@ class PaymentMethodForm
                                 'link' => 'Link (Stripe)',
                             ];
                         }
+
                         return [];
                     })
                     ->visible(fn ($get) => $get('provider') === 'stripe')
@@ -118,11 +120,37 @@ class PaymentMethodForm
                     ->label('POS Suitable')
                     ->default(true)
                     ->helperText('Enable if this payment method is suitable for physical POS. Disable for online-only methods (e.g., online card payments).'),
+                Select::make('posDevices')
+                    ->label('Available on devices')
+                    ->relationship(
+                        name: 'posDevices',
+                        titleAttribute: 'device_name',
+                        modifyQueryUsing: function ($query, $get, $record) {
+                            $storeId = $get('store_id') ?? $record?->store_id ?? \Filament\Facades\Filament::getTenant()?->id;
+                            if ($storeId) {
+                                $query->where('store_id', $storeId);
+                            }
+                            // Select only columns needed for options; avoids PostgreSQL DISTINCT on json column (device_metadata)
+                            $query->select('pos_devices.id', 'pos_devices.device_name', 'pos_devices.store_id');
+                        }
+                    )
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->helperText('Leave empty to make this payment method available on all devices. Select specific devices to restrict availability.')
+                    ->columnSpanFull(),
                 TextInput::make('sort_order')
                     ->label('Sort Order')
                     ->numeric()
                     ->default(0)
                     ->helperText('Lower numbers appear first in the payment method list'),
+                TextInput::make('minimum_amount_kroner')
+                    ->label('Minimum amount (kr)')
+                    ->numeric()
+                    ->minValue(0)
+                    ->integer()
+                    ->nullable()
+                    ->helperText('Minimum payment in whole kroner (e.g. 50 for 50 kr). Leave empty for no minimum.'),
                 Select::make('saf_t_payment_code')
                     ->label('SAF-T Payment Code')
                     ->options(\App\Services\SafTCodeMapper::getPaymentCodes())
@@ -159,28 +187,30 @@ class PaymentMethodForm
                             ->dehydrateStateUsing(function ($state) {
                                 // Convert rgba() to #RRGGBBAA (CSS format with alpha at end)
                                 if (preg_match('/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/', $state, $matches)) {
-                                    $r = (int)$matches[1];
-                                    $g = (int)$matches[2];
-                                    $b = (int)$matches[3];
-                                    $a = isset($matches[4]) ? (float)$matches[4] : 1.0;
+                                    $r = (int) $matches[1];
+                                    $g = (int) $matches[2];
+                                    $b = (int) $matches[3];
+                                    $a = isset($matches[4]) ? (float) $matches[4] : 1.0;
                                     // Convert alpha to hex and ensure uppercase for consistency
                                     $aHex = strtoupper(str_pad(dechex(round($a * 255)), 2, '0', STR_PAD_LEFT));
+
                                     // Store as #RRGGBBAA (CSS format - alpha at end)
                                     return sprintf('#%02X%02X%02X%s', $r, $g, $b, $aHex);
                                 }
                                 // If already in #RRGGBBAA format (CSS), normalize to uppercase
                                 if (preg_match('/^#([0-9A-Fa-f]{8})$/', $state, $matches)) {
-                                    return '#' . strtoupper($matches[1]);
+                                    return '#'.strtoupper($matches[1]);
                                 }
                                 // If #RRGGBB (no alpha), keep as is
                                 if (preg_match('/^#([0-9A-Fa-f]{6})$/', $state, $matches)) {
-                                    return '#' . strtoupper($matches[1]);
+                                    return '#'.strtoupper($matches[1]);
                                 }
                                 // If #AARRGGBB format (old format), convert to #RRGGBBAA
                                 if (preg_match('/^#([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/', $state, $matches)) {
                                     // Old format: AARRGGBB -> New format: RRGGBBAA
                                     return sprintf('#%s%s%s%s', strtoupper($matches[2]), strtoupper($matches[3]), strtoupper($matches[4]), strtoupper($matches[1]));
                                 }
+
                                 return $state;
                             })
                             ->formatStateUsing(function ($state) {
@@ -193,6 +223,7 @@ class PaymentMethodForm
                                     $g = hexdec($matches[2]);
                                     $b = hexdec($matches[3]);
                                     $a = round(hexdec($matches[4]) / 255, 2);
+
                                     return sprintf('rgba(%d, %d, %d, %s)', $r, $g, $b, $a);
                                 }
                                 // If #RRGGBB (no alpha), convert to rgba with alpha 1.0
@@ -200,12 +231,14 @@ class PaymentMethodForm
                                     $r = hexdec(substr($matches[1], 0, 2));
                                     $g = hexdec(substr($matches[1], 2, 2));
                                     $b = hexdec(substr($matches[1], 4, 2));
+
                                     return sprintf('rgba(%d, %d, %d, 1.0)', $r, $g, $b);
                                 }
                                 // If already rgba, return as is
                                 if (preg_match('/^rgba?\(/', $state)) {
                                     return $state;
                                 }
+
                                 return $state;
                             }),
                         ColorPicker::make('icon_color')
@@ -220,9 +253,10 @@ class PaymentMethodForm
                             ->dehydrateStateUsing(function ($state) {
                                 // Convert rgba() to #RRGGBB (no alpha for icon color)
                                 if (preg_match('/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/', $state, $matches)) {
-                                    $r = (int)$matches[1];
-                                    $g = (int)$matches[2];
-                                    $b = (int)$matches[3];
+                                    $r = (int) $matches[1];
+                                    $g = (int) $matches[2];
+                                    $b = (int) $matches[3];
+
                                     return sprintf('#%02X%02X%02X', $r, $g, $b);
                                 }
                                 // If already in #RRGGBB or #AARRGGBB format, return #RRGGBB
@@ -232,6 +266,7 @@ class PaymentMethodForm
                                 if (preg_match('/^#([0-9A-Fa-f]{6})$/', $state)) {
                                     return $state;
                                 }
+
                                 return $state;
                             })
                             ->formatStateUsing(function ($state) {
@@ -240,17 +275,20 @@ class PaymentMethodForm
                                     $r = hexdec($matches[1]);
                                     $g = hexdec($matches[2]);
                                     $b = hexdec($matches[3]);
+
                                     return sprintf('rgba(%d, %d, %d, 1.0)', $r, $g, $b);
                                 }
                                 if (preg_match('/^#([0-9A-Fa-f]{6})$/', $state, $matches)) {
                                     $r = hexdec(substr($matches[1], 0, 2));
                                     $g = hexdec(substr($matches[1], 2, 2));
                                     $b = hexdec(substr($matches[1], 4, 2));
+
                                     return sprintf('rgba(%d, %d, %d, 1.0)', $r, $g, $b);
                                 }
                                 if (preg_match('/^rgba?\(/', $state)) {
                                     return $state;
                                 }
+
                                 return $state;
                             }),
                     ]),

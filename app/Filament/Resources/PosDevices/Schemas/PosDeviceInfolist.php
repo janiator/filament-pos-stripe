@@ -66,8 +66,20 @@ class PosDeviceInfolist
                             ->badge()
                             ->color(fn (bool $state): string => $state ? 'success' : 'warning'),
 
+                        TextEntry::make('has_integrated_drawer')
+                            ->label('Has integrated drawer')
+                            ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
+                            ->badge()
+                            ->color(fn (bool $state): string => $state ? 'success' : 'gray'),
+
                         TextEntry::make('booking_enabled')
                             ->label('Booking enabled')
+                            ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
+                            ->badge()
+                            ->color(fn (bool $state): string => $state ? 'success' : 'gray'),
+
+                        TextEntry::make('auto_print_receipt')
+                            ->label('Auto-print receipt')
                             ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
                             ->badge()
                             ->color(fn (bool $state): string => $state ? 'success' : 'gray'),

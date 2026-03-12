@@ -98,14 +98,26 @@ Future<dynamic> registerPosDevice(
           .trim();
       final buildId = (androidInfo.id).toString().trim();
 
+      // Use provided deviceName if given, otherwise use device's name from device_info_plus
+      deviceNameValue = (deviceName != null && deviceName.isNotEmpty) ? deviceName : androidInfo.device;
+      final nameForId = deviceNameValue.toString().trim();
+
+      // Use only truly per-device identifiers. Build.ID is the same for all devices
+      // with the same OS build, so two identical tablets would register as one.
       if (androidIdFromData.isNotEmpty &&
           androidIdFromData.toLowerCase() != 'unknown') {
         deviceIdentifier = 'android-id-$androidIdFromData';
       } else if (serialFromData.isNotEmpty &&
           serialFromData.toLowerCase() != 'unknown') {
         deviceIdentifier = 'android-serial-$serialFromData';
+      } else if (nameForId.isNotEmpty) {
+        // Use device name first when unique (e.g. "POS 4" vs "POS 5") so devices register separately.
+        final sanitized = nameForId.replaceAll(RegExp(r'[^a-zA-Z0-9\-_]'), '').toLowerCase();
+        deviceIdentifier = sanitized.isNotEmpty
+            ? 'android-name-$sanitized'
+            : 'android-local-$localInstallId';
       } else {
-        deviceIdentifier = buildId;
+        deviceIdentifier = 'android-local-$localInstallId';
       }
       if (deviceIdentifier.toLowerCase() == 'unknown') {
         deviceIdentifier = '';
@@ -113,8 +125,6 @@ Future<dynamic> registerPosDevice(
       if (deviceIdentifier.isEmpty) {
         deviceIdentifier = 'android-local-$localInstallId';
       }
-      // Use provided deviceName if given, otherwise use device's name from device_info_plus
-      deviceNameValue = (deviceName != null && deviceName.isNotEmpty) ? deviceName : androidInfo.device;
       deviceData = {
         'device_model': androidInfo.model,
         'device_brand': androidInfo.brand,

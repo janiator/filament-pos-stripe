@@ -776,18 +776,21 @@ class PurchasesController extends BaseApiController
         // Can be overridden with ?pos_only=false query parameter
         $posOnly = $request->boolean('pos_only', true);
 
+        $posDeviceId = $request->integer('pos_device_id', 0);
+        $posDeviceId = $posDeviceId > 0 ? $posDeviceId : null;
+
         $query = PaymentMethod::where('store_id', $store->id)
-            ->enabled();
+            ->enabled()
+            ->availableOnDevice($posDeviceId);
 
         if ($posOnly) {
             $query->posSuitable();
         }
 
-        $paymentMethods = $query->ordered()->get();
+        $paymentMethods = $query->ordered()->get()->load('posDevices');
 
         // When pos_device_id is provided and device has cash drawer disabled, exclude cash methods
-        $posDeviceId = $request->integer('pos_device_id', 0);
-        if ($posDeviceId > 0) {
+        if ($posDeviceId !== null) {
             $device = \App\Models\PosDevice::where('id', $posDeviceId)
                 ->where('store_id', $store->id)
                 ->first();
@@ -796,8 +799,20 @@ class PurchasesController extends BaseApiController
             }
         }
 
+        $data = $paymentMethods->values()->map(function (PaymentMethod $pm) {
+            $arr = $pm->toArray();
+            $arr['pos_device_ids'] = $pm->posDevices->pluck('id')->values()->all();
+            $arr['minimum_amount_ore'] = $pm->minimum_amount_kroner !== null
+                ? $pm->minimum_amount_kroner * 100
+                : null;
+            unset($arr['minimum_amount_kroner']);
+            unset($arr['pos_devices']);
+
+            return $arr;
+        });
+
         return response()->json([
-            'data' => $paymentMethods->values(),
+            'data' => $data,
         ]);
     }
 
@@ -825,7 +840,7 @@ class PurchasesController extends BaseApiController
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
             'cart.items.*.tax_rate' => ['nullable', 'numeric', 'min:0', 'max:1'],
             'cart.items.*.tax_inclusive' => ['nullable', 'boolean'],
-            'cart.total' => ['required', 'integer', 'min:1'],
+            'cart.total' => ['required', 'integer', 'min:0'],
             'cart.subtotal' => ['nullable', 'integer', 'min:0'],
             'cart.total_tax' => ['nullable', 'integer', 'min:0'],
             'cart.total_discounts' => ['nullable', 'integer', 'min:0'],
@@ -921,6 +936,23 @@ class PurchasesController extends BaseApiController
             return response()->json([
                 'success' => false,
                 'message' => 'Payment method is not enabled',
+            ], 422);
+        }
+
+        if (! $paymentMethod->meetsMinimumAmount($validated['cart']['total'])) {
+            $minKr = $paymentMethod->minimum_amount_kroner;
+
+            return response()->json([
+                'success' => false,
+                'message' => "Minimum amount for this payment method is {$minKr} kr.",
+            ], 422);
+        }
+
+        $sessionDeviceId = $posSession->pos_device_id;
+        if (! $paymentMethod->isAvailableOnDevice($sessionDeviceId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This payment method is not available on this device.',
             ], 422);
         }
 
@@ -1058,6 +1090,23 @@ class PurchasesController extends BaseApiController
             ], 422);
         }
 
+        if (! $paymentMethod->meetsMinimumAmount($charge->amount)) {
+            $minKr = $paymentMethod->minimum_amount_kroner;
+
+            return response()->json([
+                'success' => false,
+                'message' => "Minimum amount for this payment method is {$minKr} kr.",
+            ], 422);
+        }
+
+        $chargeSession = $charge->posSession;
+        if ($chargeSession && ! $paymentMethod->isAvailableOnDevice($chargeSession->pos_device_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This payment method is not available on the device for this session.',
+            ], 422);
+        }
+
         // For Stripe payments, require payment_intent_id in metadata
         if ($paymentMethod->provider === 'stripe') {
             $paymentIntentId = $validated['metadata']['payment_intent_id'] ?? null;
@@ -1173,7 +1222,7 @@ class PurchasesController extends BaseApiController
             'pos_session_id' => ['required', 'integer', 'exists:pos_sessions,id'],
             'payments' => ['required', 'array', 'min:1'],
             'payments.*.payment_method_code' => ['required', 'string'],
-            'payments.*.amount' => ['required', 'integer', 'min:1'],
+            'payments.*.amount' => ['required', 'integer', 'min:0'],
             'payments.*.metadata' => ['nullable', 'array'],
             'cart' => ['required', 'array'],
             'cart.items' => ['required', 'array', 'min:1'],
@@ -1183,7 +1232,7 @@ class PurchasesController extends BaseApiController
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
             'cart.items.*.tax_rate' => ['nullable', 'numeric', 'min:0', 'max:1'],
             'cart.items.*.tax_inclusive' => ['nullable', 'boolean'],
-            'cart.total' => ['required', 'integer', 'min:1'],
+            'cart.total' => ['required', 'integer', 'min:0'],
             'cart.subtotal' => ['nullable', 'integer', 'min:0'],
             'cart.total_tax' => ['nullable', 'integer', 'min:0'],
             'cart.total_discounts' => ['nullable', 'integer', 'min:0'],
@@ -1287,6 +1336,23 @@ class PurchasesController extends BaseApiController
                 return response()->json([
                     'success' => false,
                     'message' => "Payment method is not enabled: {$paymentData['payment_method_code']}",
+                ], 422);
+            }
+
+            if (! $paymentMethod->meetsMinimumAmount($paymentData['amount'])) {
+                $minKr = $paymentMethod->minimum_amount_kroner;
+
+                return response()->json([
+                    'success' => false,
+                    'message' => "Minimum amount for {$paymentMethod->name} is {$minKr} kr (payment at index {$index}).",
+                ], 422);
+            }
+
+            $sessionDeviceId = $posSession->pos_device_id;
+            if (! $paymentMethod->isAvailableOnDevice($sessionDeviceId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Payment method {$paymentMethod->name} is not available on this device (payment at index {$index}).",
                 ], 422);
             }
 
