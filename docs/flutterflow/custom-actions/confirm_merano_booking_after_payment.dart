@@ -56,9 +56,10 @@ Future<void> confirmMeranoBookingAfterPayment({
     throw Exception('A valid booking ID is required.');
   }
 
-  if (amountPaidOre <= 0) {
-    throw Exception('amountPaidOre must be greater than zero.');
+  if (amountPaidOre < 0) {
+    throw Exception('amountPaidOre cannot be negative.');
   }
+  // amountPaidOre may be 0 for freeticket/zero-total orders.
 
   final response = await http.post(
     Uri.parse(
@@ -84,14 +85,20 @@ Future<void> confirmMeranoBookingAfterPayment({
 /*
 Suggested FlutterFlow usage after complete purchase:
 
+Use the actual amount paid for each booking line (in øre). For freeticket orders this is 0.
+For discounted lines use the line total after discount (e.g. unit_price * quantity - discount, or
+the amount from the purchase response for that line), not the pre-discount total.
+
 for (final item in FFAppState().cart.cartItems) {
   final metadata = item.cartItemMetadata;
   final bookingId = metadata?['merano_booking_id'];
 
   if (bookingId != null) {
+    // Amount actually paid for this line in øre (0 for freeticket)
+    final amountPaidOre = item.cartItemUnitPrice * item.cartItemQuantity - (item.cartItemDiscountAmount ?? 0);
     await confirmMeranoBookingAfterPayment(
       bookingId: int.parse(bookingId.toString()),
-      amountPaidOre: item.cartItemUnitPrice * item.cartItemQuantity,
+      amountPaidOre: amountPaidOre >= 0 ? amountPaidOre : 0,
       posChargeId: completedChargeId,
       posSessionId: currentPosSessionId,
       posDeviceId: currentPosDeviceId,

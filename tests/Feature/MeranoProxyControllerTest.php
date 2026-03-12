@@ -213,3 +213,44 @@ test('merano proxy can derive the booking device from the pos session id', funct
     $response->assertOk();
     $response->assertJsonPath('booking_id', 123);
 });
+
+test('confirm-pos-payment accepts amount_paid_ore 0 for freeticket orders', function () {
+    Addon::factory()->for($this->store)->create([
+        'type' => AddonType::MeranoBooking,
+        'is_active' => true,
+    ]);
+
+    $this->store->update([
+        'merano_base_url' => 'https://merano.example.com',
+        'merano_pos_api_token' => 'merano-token',
+    ]);
+
+    $device = PosDevice::factory()->create([
+        'store_id' => $this->store->id,
+        'booking_enabled' => true,
+    ]);
+
+    $session = PosSession::factory()->create([
+        'store_id' => $this->store->id,
+        'pos_device_id' => $device->id,
+        'user_id' => $this->user->id,
+        'status' => 'open',
+    ]);
+
+    Http::fake([
+        'https://merano.example.com/api/pos/v1/bookings/123/confirm-pos-payment' => Http::response([
+            'booking_id' => 123,
+            'status' => 'succeeded',
+        ], 200),
+    ]);
+
+    $response = $this->postJson('/api/merano/v1/bookings/123/confirm-pos-payment', [
+        'pos_session_id' => $session->id,
+        'amount_paid_ore' => 0,
+        'pos_charge_id' => 'ch_freeticket',
+        'currency' => 'NOK',
+    ]);
+
+    $response->assertOk();
+    $response->assertJsonPath('booking_id', 123);
+});

@@ -1308,85 +1308,55 @@ class PosSessionsTable
             }
 
             // Check item-level discounts
-            // For now, all discounts are treated as manual
+            // Receipt/charge metadata from the purchases API always stores amounts in øre.
             $items = $receiptData['items'] ?? [];
             foreach ($items as $item) {
-                // Handle discount_amount in different formats:
-                // - Integer (øre): direct use
-                // - String/number (formatted): try to parse
-                // - May be stored as 0 or null if no discount
                 $discountAmount = 0;
                 if (isset($item['discount_amount'])) {
                     $discountValue = $item['discount_amount'];
-                    // If it's a string, it might be formatted (e.g., "50,00" or "50.00")
                     if (is_string($discountValue)) {
-                        // Remove formatting and convert to øre
+                        // Formatted string (e.g. "50,00" or "50.00") = kroner, convert to øre
                         $discountValue = str_replace([',', ' '], ['.', ''], $discountValue);
                         $discountAmount = (int) round((float) $discountValue * 100);
                     } elseif (is_numeric($discountValue)) {
-                        // If it's already a number, check if it's in øre or kroner
-                        // If less than 1000, assume it's already in øre, otherwise might be in kroner
+                        // Numeric from API/charge metadata is always øre
                         $discountAmount = (int) $discountValue;
-                        if ($discountAmount > 1000 && $discountAmount < 100000) {
-                            // Likely in kroner (e.g., 50.00), convert to øre
-                            $discountAmount = (int) round($discountAmount * 100);
-                        }
                     }
                 }
 
-                // Count all discounts as manual for now
                 if ($discountAmount > 0) {
                     $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
                     $manualDiscountCount++;
-                    $manualDiscountAmount += $discountAmount * $quantity;
+                    $manualDiscountAmount += (int) round($discountAmount * $quantity);
                 }
             }
 
-            // Check cart-level discounts
-            // For now, all discounts are treated as manual
+            // Check cart-level discounts (amounts from API are in øre)
             $discounts = $receiptData['discounts'] ?? [];
             foreach ($discounts as $discount) {
-                // Handle discount amount in different formats
                 $discountAmount = 0;
                 if (isset($discount['amount'])) {
                     $discountValue = $discount['amount'];
-                    // If it's a string, it might be formatted
                     if (is_string($discountValue)) {
                         $discountValue = str_replace([',', ' '], ['.', ''], $discountValue);
                         $discountAmount = (int) round((float) $discountValue * 100);
                     } elseif (is_numeric($discountValue)) {
                         $discountAmount = (int) $discountValue;
-                        // If it's a large number, might be in kroner
-                        if ($discountAmount > 1000 && $discountAmount < 100000) {
-                            $discountAmount = (int) round($discountAmount * 100);
-                        }
                     }
                 }
 
-                // Count all discounts as manual for now
                 if ($discountAmount > 0) {
                     $manualDiscountCount++;
                     $manualDiscountAmount += $discountAmount;
                 }
             }
 
-            // Also check total_discounts as a fallback if individual discounts aren't found
-            // This handles cases where discounts exist but aren't broken down per item
+            // Fallback: total_discounts from receipt/charge metadata is always in øre
             if ($manualDiscountAmount === 0 && isset($receiptData['total_discounts'])) {
                 $totalDiscounts = $receiptData['total_discounts'];
                 if (is_numeric($totalDiscounts) && $totalDiscounts > 0) {
-                    // Convert from kroner to øre if needed
-                    $totalDiscountsOre = (int) $totalDiscounts;
-                    if ($totalDiscountsOre < 1000) {
-                        // Likely already in øre
-                        $manualDiscountAmount = $totalDiscountsOre;
-                    } else {
-                        // Likely in kroner, convert to øre
-                        $manualDiscountAmount = (int) round($totalDiscountsOre * 100);
-                    }
-                    if ($manualDiscountAmount > 0) {
-                        $manualDiscountCount = 1; // At least one discount
-                    }
+                    $manualDiscountAmount = (int) $totalDiscounts;
+                    $manualDiscountCount = 1;
                 }
             }
         }
