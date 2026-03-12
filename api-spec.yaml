@@ -1236,6 +1236,8 @@ paths:
                   nullable: true
                 amount_paid_ore:
                   type: integer
+                  minimum: 0
+                  description: Amount paid in øre. 0 for freeticket/zero-total orders.
                 pos_charge_id:
                   type: string
                 currency:

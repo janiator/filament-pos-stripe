@@ -33,8 +33,11 @@ This document describes the implementation of manual discount tracking and line 
 
 **Display:**
 - Shown in X and Z reports (modal and PDF views)
-- Displays count and total amount
+- Displays count and total amount (amount is shown in NOK: `amount / 100`)
 - Only appears if manual discounts exist
+
+**Source of truth:**
+- Receipt and charge metadata from the purchases API always store amounts in **øre** (e.g. `total_discounts`, item `discount_amount`, cart `discounts[].amount`). The report logic uses these values as-is; no conversion from kroner is applied, so the X/Z report shows the correct discount in NOK.
 
 ---
 

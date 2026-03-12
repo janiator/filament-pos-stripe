@@ -1,8 +1,10 @@
 <?php
 
+use App\Models\ConnectedCharge;
 use App\Models\PosDevice;
 use App\Models\PosEvent;
 use App\Models\PosSession;
+use App\Models\Receipt;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -186,4 +188,40 @@ it('includes cash_withdrawals and cash_deposits in X-report when present', funct
     expect($report['cash_withdrawals']['total_amount'])->toBe(2000);
     expect($report['cash_deposits']['count'])->toBe(1);
     expect($report['cash_deposits']['total_amount'])->toBe(1000);
+});
+
+it('stores manual_discounts in X-report in øre when total_discounts comes from charge metadata', function () {
+    $session = PosSession::factory()->create([
+        'store_id' => $this->store->id,
+        'pos_device_id' => $this->device->id,
+        'user_id' => $this->user->id,
+        'status' => 'open',
+    ]);
+
+    $charge = ConnectedCharge::factory()->create([
+        'stripe_account_id' => $this->store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'amount' => 0,
+        'status' => 'succeeded',
+        'paid' => true,
+        'metadata' => [
+            'total_discounts' => 148500,
+            'items' => [],
+        ],
+    ]);
+
+    Receipt::factory()->create([
+        'store_id' => $this->store->id,
+        'pos_session_id' => $session->id,
+        'charge_id' => $charge->id,
+        'receipt_type' => 'sales',
+        'receipt_data' => [],
+    ]);
+
+    $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
+    $report = \App\Filament\Resources\PosSessions\Tables\PosSessionsTable::generateXReport($session);
+
+    expect($report)->toHaveKey('manual_discounts');
+    expect($report['manual_discounts']['count'])->toBe(1);
+    expect($report['manual_discounts']['amount'])->toBe(148500);
 });
