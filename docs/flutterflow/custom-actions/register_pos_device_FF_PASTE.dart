@@ -48,7 +48,6 @@ Future<dynamic> registerPosDevice(
   };
 
   try {
-    // Parse deviceMetadata from JSON string (or use empty map if null/empty)
     Map deviceMetadata = {};
     if (deviceMetadataJson != null && deviceMetadataJson.isNotEmpty) {
       try {
@@ -70,10 +69,8 @@ Future<dynamic> registerPosDevice(
       platform = 'ios';
       final IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
 
-      // Get identifier - may be null on simulator
       deviceIdentifier = iosInfo.identifierForVendor ?? '';
 
-      // Fallback when iOS vendor id is unavailable.
       if (deviceIdentifier.isEmpty) {
         if (!iosInfo.isPhysicalDevice) {
           final machine = iosInfo.utsname.machine ?? 'unknown';
@@ -84,7 +81,6 @@ Future<dynamic> registerPosDevice(
         }
       }
 
-      // Use provided deviceName if given, otherwise use device's name
       deviceNameValue = (deviceName != null && deviceName.isNotEmpty)
           ? deviceName
           : (iosInfo.name ?? 'iOS Device');
@@ -128,7 +124,6 @@ Future<dynamic> registerPosDevice(
         deviceIdentifier = '';
       }
 
-      // Emulator fallback - create a stable identifier
       if (!androidInfo.isPhysicalDevice) {
         if (deviceIdentifier.isEmpty || deviceIdentifier == 'unknown') {
           final model = androidInfo.model ?? 'unknown';
@@ -170,7 +165,6 @@ Future<dynamic> registerPosDevice(
       return result;
     }
 
-    // Final guard – if we still don't have any identifier, bail
     if (deviceIdentifier.isEmpty) {
       result['error'] = 'Could not determine device identifier';
       return result;
@@ -188,14 +182,12 @@ Future<dynamic> registerPosDevice(
       requestBody['device_metadata'] = deviceMetadata;
     }
 
-    // Build headers
     final headers = {
       'Authorization': 'Bearer $authToken',
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
 
-    // Normalize API base URL
     String baseUrl = apiBaseUrl.trim();
 
     if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
@@ -213,8 +205,6 @@ Future<dynamic> registerPosDevice(
       baseUrl = baseUrl.substring(0, baseUrl.length - 5) + '/api';
     }
 
-    // Single idempotent register endpoint: server keys by device_name so each
-    // tablet gets its own record (no GET/match by device_identifier).
     final registerUrl = '$baseUrl/pos-devices/register';
 
     try {

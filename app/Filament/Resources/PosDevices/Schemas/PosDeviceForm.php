@@ -27,19 +27,7 @@ class PosDeviceForm
                             ->label('Device Identifier')
                             ->required()
                             ->maxLength(255)
-                            ->unique(
-                                ignoreRecord: true,
-                                modifyRuleUsing: function ($rule) {
-                                    $tenant = \Filament\Facades\Filament::getTenant();
-                                    if ($tenant) {
-                                        $rule->where('store_id', $tenant->id);
-                                    }
-
-                                    return $rule;
-                                }
-                            )
-                            ->disabled(fn ($record) => $record !== null)
-                            ->helperText('Unique per store. Same device can be registered on multiple stores (iOS: identifierForVendor, Android: androidId)'),
+                            ->helperText('From the device (Android may repeat across devices). Identity per store is device name.'),
 
                         Select::make('platform')
                             ->label('Platform')
