@@ -109,8 +109,8 @@ Update Heartbeat (updateDeviceHeartbeat)
 - **vendor_identifier**: `identifierForVendor`
 
 ### Android
-- **device_identifier**: Must be **unique per physical device**. Use `androidId` first, then `serialNumber` if androidId is empty/unknown. If both are missing, use **device name** when present (e.g. `android-name-pos4`, `android-name-pos5`) so named devices like "POS 4" and "POS 5" register separately; otherwise use an install-scoped UUID (`android-local-<uuid>`). **Do not use Build.ID** (`androidInfo.id`): it is identical for all devices with the same OS build.
-- **device_name**: If no custom name is passed to `registerPosDevice`, the action builds a unique display name: `brand model (shortId)` (e.g. "Samsung SM-T500 (a1b2c3)"). Pass a non-empty third argument to use a custom name instead.
+- **device_identifier**: Sent to the API but **not used for matching**; Android often returns a non-unique value (e.g. same across devices). The backend uses **device_name** as the unique key per store. The custom action still sends device_identifier for storage; matching existing devices is by `device_name` (e.g. "POS 4", "POS 6") so each named device updates its own record.
+- **device_name**: **Must be unique per store** and is used to match existing devices. Pass a non-empty custom name to `registerPosDevice` (e.g. "POS 4", "POS 6") so each device has a distinct name; otherwise the action uses the device's reported name.
 - **device_model**: `model`
 - **device_brand**: `brand`
 - **device_manufacturer**: `manufacturer`

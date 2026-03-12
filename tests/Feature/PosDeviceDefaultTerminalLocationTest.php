@@ -81,6 +81,52 @@ it('returns auto_print_receipt on device and defaults to true when registering',
     $response->assertJsonPath('device.auto_print_receipt', true);
 });
 
+it('rejects duplicate device_name in same store', function (): void {
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+    Sanctum::actingAs($user, ['*']);
+
+    $this->postJson('/api/pos-devices', [
+        'device_identifier' => 'id-a',
+        'device_name' => 'POS 4',
+        'platform' => 'android',
+    ])->assertStatus(201);
+
+    $response = $this->postJson('/api/pos-devices', [
+        'device_identifier' => 'id-b',
+        'device_name' => 'POS 4',
+        'platform' => 'android',
+    ]);
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors(['device_name']);
+});
+
+it('allows same device_identifier for different device_names in same store', function (): void {
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+    Sanctum::actingAs($user, ['*']);
+
+    $first = $this->postJson('/api/pos-devices', [
+        'device_identifier' => 'BP2A.250605.031.A3',
+        'device_name' => 'POS 4',
+        'platform' => 'android',
+    ]);
+    $first->assertStatus(201);
+    $second = $this->postJson('/api/pos-devices', [
+        'device_identifier' => 'BP2A.250605.031.A3',
+        'device_name' => 'POS 6',
+        'platform' => 'android',
+    ]);
+    $second->assertStatus(201);
+    expect($first->json('device.id'))->not->toBe($second->json('device.id'));
+    expect($first->json('device.device_name'))->toBe('POS 4');
+    expect($second->json('device.device_name'))->toBe('POS 6');
+});
+
 it('allows updating auto_print_receipt via PATCH and returns it on GET', function (): void {
     $user = User::factory()->create();
     $store = Store::factory()->create();

@@ -55,12 +55,13 @@ class PosDevicesController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         $validated = $request->validate([
-            'device_identifier' => [
+            'device_identifier' => 'required|string|max:255',
+            'device_name' => [
                 'required',
                 'string',
-                Rule::unique('pos_devices', 'device_identifier')->where('store_id', $store->id),
+                'max:255',
+                Rule::unique('pos_devices', 'device_name')->where('store_id', $store->id),
             ],
-            'device_name' => 'required|string|max:255',
             'platform' => 'required|string|in:ios,android',
             'device_model' => 'nullable|string|max:255',
             'device_brand' => 'nullable|string|max:255',
@@ -148,6 +149,7 @@ class PosDevicesController extends BaseApiController
 
         $validated = $request->validate([
             'device_name' => 'sometimes|string|max:255',
+            'device_identifier' => 'sometimes|string|max:255',
             'device_model' => 'nullable|string|max:255',
             'device_brand' => 'nullable|string|max:255',
             'device_manufacturer' => 'nullable|string|max:255',
@@ -205,6 +207,7 @@ class PosDevicesController extends BaseApiController
             }
         }
 
+        $validated['last_seen_at'] = now();
         $device->update($validated);
         $device->load(['lastConnectedTerminalLocation', 'lastConnectedTerminalReader']);
 
