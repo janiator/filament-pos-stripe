@@ -76,12 +76,30 @@ class PosDevicesController extends BaseApiController
             'has_integrated_drawer' => 'nullable|boolean',
             'booking_enabled' => 'nullable|boolean',
             'auto_print_receipt' => 'nullable|boolean',
+            // FlutterFlow Dart sends these; store in device_metadata (no DB columns)
+            'build_id' => 'nullable|string|max:255',
+            'local_install_id' => 'nullable|string|max:255',
+            'is_physical_device' => 'nullable|boolean',
         ]);
 
         $deviceName = $validated['device_name'];
         $device = PosDevice::where('store_id', $store->id)
             ->where('device_name', $deviceName)
             ->first();
+
+        // Merge extra client fields into device_metadata so we don't lose them
+        $extra = array_filter([
+            'build_id' => $validated['build_id'] ?? null,
+            'local_install_id' => $validated['local_install_id'] ?? null,
+            'is_physical_device' => $validated['is_physical_device'] ?? null,
+        ], fn ($v) => $v !== null);
+        unset($validated['build_id'], $validated['local_install_id'], $validated['is_physical_device']);
+        if (! empty($extra)) {
+            $validated['device_metadata'] = array_merge(
+                is_array($validated['device_metadata'] ?? null) ? $validated['device_metadata'] : [],
+                $extra
+            );
+        }
 
         $validated['store_id'] = $store->id;
         $validated['device_status'] = 'active';
@@ -92,7 +110,27 @@ class PosDevicesController extends BaseApiController
         $validated['auto_print_receipt'] = $validated['auto_print_receipt'] ?? true;
 
         if ($device) {
-            $device->update($validated);
+            // On update, only refresh device-info and heartbeat fields so we don't overwrite
+            // admin-configured values in Filament (booking_enabled, auto_print_receipt, etc.).
+            $updatePayload = [
+                'device_identifier' => $validated['device_identifier'],
+                'platform' => $validated['platform'],
+                'device_model' => $validated['device_model'] ?? null,
+                'device_brand' => $validated['device_brand'] ?? null,
+                'device_manufacturer' => $validated['device_manufacturer'] ?? null,
+                'device_product' => $validated['device_product'] ?? null,
+                'device_hardware' => $validated['device_hardware'] ?? null,
+                'machine_identifier' => $validated['machine_identifier'] ?? null,
+                'system_name' => $validated['system_name'] ?? null,
+                'system_version' => $validated['system_version'] ?? null,
+                'vendor_identifier' => $validated['vendor_identifier'] ?? null,
+                'android_id' => $validated['android_id'] ?? null,
+                'serial_number' => $validated['serial_number'] ?? null,
+                'device_metadata' => $validated['device_metadata'] ?? null,
+                'device_status' => $validated['device_status'],
+                'last_seen_at' => $validated['last_seen_at'],
+            ];
+            $device->update($updatePayload);
 
             return response()->json([
                 'message' => 'POS device updated successfully',

@@ -86,19 +86,21 @@ Future<void> confirmMeranoBookingAfterPayment({
 Suggested FlutterFlow usage after complete purchase:
 
 Use the actual amount paid for each booking line (in øre). For freeticket orders this is 0.
-For discounted lines use the line total after discount (e.g. unit_price * quantity - discount, or
-the amount from the purchase response for that line), not the pre-discount total.
+cartItemDiscountAmount is per unit; total line discount = (cartItemDiscountAmount ?? 0) * quantity.
 
 for (final item in FFAppState().cart.cartItems) {
   final metadata = item.cartItemMetadata;
   final bookingId = metadata?['merano_booking_id'];
 
   if (bookingId != null) {
-    // Amount actually paid for this line in øre (0 for freeticket)
-    final amountPaidOre = item.cartItemUnitPrice * item.cartItemQuantity - (item.cartItemDiscountAmount ?? 0);
+    // Amount actually paid for this line in øre (after per-unit discount)
+    final unitPrice = item.cartItemUnitPrice;
+    final qty = item.cartItemQuantity;
+    final discountPerUnit = item.cartItemDiscountAmount ?? 0;
+    final amountPaidOre = ((unitPrice - discountPerUnit) * qty).round().clamp(0, (unitPrice * qty).round());
     await confirmMeranoBookingAfterPayment(
       bookingId: int.parse(bookingId.toString()),
-      amountPaidOre: amountPaidOre >= 0 ? amountPaidOre : 0,
+      amountPaidOre: amountPaidOre,
       posChargeId: completedChargeId,
       posSessionId: currentPosSessionId,
       posDeviceId: currentPosDeviceId,
