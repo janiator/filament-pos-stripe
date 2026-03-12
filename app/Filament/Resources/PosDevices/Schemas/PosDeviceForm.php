@@ -86,10 +86,20 @@ class PosDeviceForm
                             ->default(true)
                             ->helperText('When off, only non-cash transactions are allowed on this device'),
 
+                        Toggle::make('has_integrated_drawer')
+                            ->label('Has integrated drawer')
+                            ->default(false)
+                            ->helperText('When on, this device has a built-in cash drawer (e.g. Stripe Terminal S700)'),
+
                         Toggle::make('booking_enabled')
                             ->label('Booking enabled')
                             ->default(false)
                             ->helperText('When on, this device can sell Merano event tickets if the store has the Merano Booking add-on enabled.'),
+
+                        Toggle::make('auto_print_receipt')
+                            ->label('Auto-print receipt')
+                            ->default(true)
+                            ->helperText('When on, receipts are auto-printed after purchase; when off, printing is optional in the POS app.'),
                     ])
                     ->columns(2),
 

@@ -1210,6 +1210,7 @@ class ConnectedProductsTable
                         ->action(function (Collection $records): void {
                             $createAction = new CreateConnectedProductInStripe;
                             $updateAction = new UpdateConnectedProductToStripe;
+                            $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice;
                             $created = 0;
                             $updated = 0;
                             $skipped = 0;
@@ -1231,12 +1232,14 @@ class ConnectedProductsTable
                                             $product->saveQuietly();
                                             $created++;
                                             $updateAction($product);
+                                            $syncPriceAction($product);
                                         } else {
                                             $skipped++;
                                             $errors[] = "{$product->name}: create in Stripe failed.";
                                         }
                                     } else {
                                         $updateAction($product);
+                                        $syncPriceAction($product);
                                         $updated++;
                                     }
                                 } catch (\Throwable $e) {

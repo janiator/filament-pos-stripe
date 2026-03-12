@@ -63,3 +63,42 @@ it('registers POS device without terminal location when store has no default', f
     expect($device->terminalLocations)->toHaveCount(0);
     expect($response->json('device.terminal_location_id'))->toBeNull();
 });
+
+it('returns auto_print_receipt on device and defaults to true when registering', function (): void {
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->postJson('/api/pos-devices', [
+        'device_identifier' => 'unique-device-id-'.uniqid(),
+        'device_name' => 'New iPad',
+        'platform' => 'ios',
+    ]);
+
+    $response->assertStatus(201);
+    $response->assertJsonPath('device.auto_print_receipt', true);
+});
+
+it('allows updating auto_print_receipt via PATCH and returns it on GET', function (): void {
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+    $device = PosDevice::factory()->create(['store_id' => $store->id]);
+    Sanctum::actingAs($user, ['*']);
+
+    $getResponse = $this->getJson("/api/pos-devices/{$device->id}");
+    $getResponse->assertOk();
+    $getResponse->assertJsonPath('device.auto_print_receipt', true);
+
+    $patchResponse = $this->patchJson("/api/pos-devices/{$device->id}", [
+        'auto_print_receipt' => false,
+    ]);
+    $patchResponse->assertOk();
+    $patchResponse->assertJsonPath('device.auto_print_receipt', false);
+
+    $getAgain = $this->getJson("/api/pos-devices/{$device->id}");
+    $getAgain->assertJsonPath('device.auto_print_receipt', false);
+});

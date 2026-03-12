@@ -566,10 +566,18 @@ paths:
                   type: boolean
                   nullable: true
                   description: When false, only non-cash transactions are allowed on this device. Defaults to true if omitted.
+                has_integrated_drawer:
+                  type: boolean
+                  nullable: true
+                  description: When true, this device has a built-in cash drawer (e.g. Stripe Terminal S700). Defaults to false if omitted.
                 booking_enabled:
                   type: boolean
                   nullable: true
                   description: When true, booking actions may be enabled for this device. Defaults to false if omitted.
+                auto_print_receipt:
+                  type: boolean
+                  nullable: true
+                  description: When true, receipts are auto-printed after purchase. Defaults to true if omitted.
       responses:
         '201':
           description: POS device registered successfully
@@ -688,9 +696,15 @@ paths:
                 cash_drawer_enabled:
                   type: boolean
                   description: When false, only non-cash transactions are allowed on this device
+                has_integrated_drawer:
+                  type: boolean
+                  description: When true, this device has a built-in cash drawer (e.g. Stripe Terminal S700)
                 booking_enabled:
                   type: boolean
                   description: When true, booking actions may be enabled for this device
+                auto_print_receipt:
+                  type: boolean
+                  description: When true, receipts are auto-printed after purchase
                 last_connected_terminal_location_id:
                   type: integer
                   nullable: true
@@ -750,9 +764,15 @@ paths:
                 cash_drawer_enabled:
                   type: boolean
                   description: When false, only non-cash transactions are allowed on this device
+                has_integrated_drawer:
+                  type: boolean
+                  description: When true, this device has a built-in cash drawer (e.g. Stripe Terminal S700)
                 booking_enabled:
                   type: boolean
                   description: When true, booking actions may be enabled for this device
+                auto_print_receipt:
+                  type: boolean
+                  description: When true, receipts are auto-printed after purchase
                 last_connected_terminal_location_id:
                   type: integer
                   nullable: true
@@ -5723,10 +5743,18 @@ components:
           type: boolean
           default: true
           description: When false, only non-cash transactions are allowed on this device (cash drawer disabled)
+        has_integrated_drawer:
+          type: boolean
+          default: false
+          description: When true, this device has a built-in cash drawer (e.g. Stripe Terminal S700)
         booking_enabled:
           type: boolean
           default: false
           description: When true, booking actions may be enabled for this device if the store has the Merano Booking add-on active
+        auto_print_receipt:
+          type: boolean
+          default: true
+          description: When true, receipts are auto-printed after purchase; when false, printing is optional in the frontend
         available_actions:
           type: array
           description: Action keys the frontend should use for capability gating on the active device
@@ -6978,6 +7006,17 @@ components:
         sort_order:
           type: integer
           example: 0
+        minimum_amount_ore:
+          type: integer
+          nullable: true
+          description: Minimum payment amount in øre (e.g. 5000 for 50 kr). Null means no minimum.
+          example: 5000
+        pos_device_ids:
+          type: array
+          items:
+            type: integer
+          description: When non-empty, this payment method is only available on these POS device IDs. When empty, available on all devices.
+          example: [1, 2]
         background_color:
           type: string
           nullable: true

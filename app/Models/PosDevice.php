@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
@@ -32,7 +33,9 @@ class PosDevice extends Model
         'last_seen_at',
         'device_metadata',
         'cash_drawer_enabled',
+        'has_integrated_drawer',
         'booking_enabled',
+        'auto_print_receipt',
         'default_printer_id',
         'last_connected_terminal_location_id',
         'last_connected_terminal_reader_id',
@@ -42,12 +45,22 @@ class PosDevice extends Model
         'device_metadata' => 'array',
         'last_seen_at' => 'datetime',
         'cash_drawer_enabled' => 'boolean',
+        'has_integrated_drawer' => 'boolean',
         'booking_enabled' => 'boolean',
+        'auto_print_receipt' => 'boolean',
     ];
 
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    /**
+     * Payment methods restricted to this device (when method has device restrictions).
+     */
+    public function paymentMethods(): BelongsToMany
+    {
+        return $this->belongsToMany(PaymentMethod::class, 'payment_method_pos_device');
     }
 
     /**
