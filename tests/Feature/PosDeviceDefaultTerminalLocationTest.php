@@ -240,3 +240,47 @@ it('allows updating auto_print_receipt via PATCH and returns it on GET', functio
     $getAgain = $this->getJson("/api/pos-devices/{$device->id}");
     $getAgain->assertJsonPath('device.auto_print_receipt', false);
 });
+
+it('keeps existing device_name when PATCH requests a duplicate name in same store', function (): void {
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+    Sanctum::actingAs($user, ['*']);
+
+    $existingNameDevice = PosDevice::factory()->create([
+        'store_id' => $store->id,
+        'device_name' => 'iPad',
+    ]);
+
+    $deviceToUpdate = PosDevice::factory()->create([
+        'store_id' => $store->id,
+        'device_name' => 'iPad Legacy',
+        'system_version' => '17.0',
+    ]);
+
+    $response = $this->patchJson("/api/pos-devices/{$deviceToUpdate->id}", [
+        'device_name' => 'iPad',
+        'system_version' => '17.1',
+    ]);
+
+    $response->assertOk();
+    $response->assertJsonPath(
+        'message',
+        'POS device updated successfully (device_name kept unchanged due to duplicate in store)'
+    );
+    $response->assertJsonPath(
+        'warning',
+        'Requested device_name is already used by another device in this store and was ignored.'
+    );
+    $response->assertJsonPath('device.id', $deviceToUpdate->id);
+    $response->assertJsonPath('device.device_name', 'iPad Legacy');
+    $response->assertJsonPath('device.system_info.version', '17.1');
+
+    $deviceToUpdate->refresh();
+    $existingNameDevice->refresh();
+
+    expect($deviceToUpdate->device_name)->toBe('iPad Legacy');
+    expect($deviceToUpdate->system_version)->toBe('17.1');
+    expect($existingNameDevice->device_name)->toBe('iPad');
+});

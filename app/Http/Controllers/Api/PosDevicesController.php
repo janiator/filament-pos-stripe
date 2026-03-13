@@ -296,6 +296,19 @@ class PosDevicesController extends BaseApiController
             'last_connected_terminal_reader_id' => 'nullable|exists:terminal_readers,id',
         ]);
 
+        $deviceNameConflictIgnored = false;
+        if (array_key_exists('device_name', $validated)) {
+            $nameAlreadyInUse = PosDevice::where('store_id', $store->id)
+                ->where('device_name', $validated['device_name'])
+                ->where('id', '!=', $device->id)
+                ->exists();
+
+            if ($nameAlreadyInUse) {
+                unset($validated['device_name']);
+                $deviceNameConflictIgnored = true;
+            }
+        }
+
         // Validate that the printer belongs to the same store
         if (isset($validated['default_printer_id'])) {
             $printer = \App\Models\ReceiptPrinter::where('id', $validated['default_printer_id'])
@@ -346,8 +359,13 @@ class PosDevicesController extends BaseApiController
         $device->load(['terminalLocation.terminalReaders', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader']);
 
         return response()->json([
-            'message' => 'POS device updated successfully',
+            'message' => $deviceNameConflictIgnored
+                ? 'POS device updated successfully (device_name kept unchanged due to duplicate in store)'
+                : 'POS device updated successfully',
             'device' => $this->formatDeviceResponse($device),
+            'warning' => $deviceNameConflictIgnored
+                ? 'Requested device_name is already used by another device in this store and was ignored.'
+                : null,
         ]);
     }
 
