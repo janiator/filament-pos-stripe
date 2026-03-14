@@ -745,6 +745,8 @@ class PurchasesController extends BaseApiController
             return [];
         }
 
+        $arrayItems = array_filter($items, fn ($item) => is_array($item));
+
         return array_values(array_map(function (array $item): array {
             $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
             $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
@@ -755,7 +757,7 @@ class PurchasesController extends BaseApiController
                 'unit_price_ore' => $unitPrice,
                 'line_total_ore' => (int) round($unitPrice * $quantity),
             ];
-        }, $items));
+        }, $arrayItems));
     }
 
     /**
