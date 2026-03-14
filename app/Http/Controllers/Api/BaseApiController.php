@@ -16,12 +16,11 @@ abstract class BaseApiController extends BaseController
     /**
      * Handle a failed validation attempt.
      *
-     * @param  \Illuminate\Contracts\Validation\Validator  $validator
      * @return void
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator, Request $request = null)
+    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator, ?Request $request = null)
     {
         // Always throw ValidationException for API routes - Laravel will return JSON
         throw new ValidationException($validator);
@@ -32,9 +31,14 @@ abstract class BaseApiController extends BaseController
      */
     protected function getTenant(Request $request): ?Store
     {
+        // Store resolved by ReportsTokenAuth middleware (service-to-service token)
+        if ($store = $request->attributes->get('reports_token_store')) {
+            return $store;
+        }
+
         // Get tenant from route parameter or user's current store
         $tenantSlug = $request->route('tenant') ?? $request->header('X-Tenant');
-        
+
         if ($tenantSlug) {
             return Store::where('slug', $tenantSlug)->first();
         }
@@ -56,13 +60,18 @@ abstract class BaseApiController extends BaseController
     }
 
     /**
-     * Ensure the user has access to the tenant
+     * Ensure the user has access to the tenant.
+     * Skipped when authenticated via a per-store reports token (no user context).
      */
     protected function authorizeTenant(Request $request, Store $tenant): void
     {
+        if ($request->attributes->has('reports_token_store')) {
+            return;
+        }
+
         $user = $request->user();
-        
-        if (!$user || !$user->stores->contains($tenant)) {
+
+        if (! $user || ! $user->stores->contains($tenant)) {
             abort(403, 'You do not have access to this tenant.');
         }
     }
@@ -71,13 +80,13 @@ abstract class BaseApiController extends BaseController
      * Format a date/time in Oslo timezone for Flutter-compatible API responses
      * Returns ISO 8601 format with Oslo timezone offset (e.g., "2025-12-05T13:50:14.000+01:00")
      * Flutter's DateTime.parse() can handle timezone offsets.
-     * 
-     * @param \Illuminate\Support\Carbon|\DateTime|string|null $dateTime
+     *
+     * @param  \Illuminate\Support\Carbon|\DateTime|string|null  $dateTime
      * @return string|null ISO 8601 formatted string in Oslo timezone
      */
     protected function formatDateTimeOslo($dateTime): ?string
     {
-        if (!$dateTime) {
+        if (! $dateTime) {
             return null;
         }
 
@@ -91,23 +100,23 @@ abstract class BaseApiController extends BaseController
             }
         }
         // Convert to Carbon if not already
-        elseif (!$dateTime instanceof \Carbon\Carbon) {
+        elseif (! $dateTime instanceof \Carbon\Carbon) {
             $dateTime = \Carbon\Carbon::instance($dateTime);
         }
 
         // Convert to Oslo timezone
         $oslo = $dateTime->copy()->setTimezone('Europe/Oslo');
-        
+
         // Format as ISO 8601 with milliseconds and timezone offset for Flutter compatibility
         // Format: "2025-12-05T13:50:14.000+01:00" (or +02:00 during DST)
         // Extract milliseconds from microseconds
         $microseconds = $oslo->micro;
         $milliseconds = str_pad((string) floor($microseconds / 1000), 3, '0', STR_PAD_LEFT);
-        
+
         // Get timezone offset in format +HH:MM or -HH:MM
         $offset = $oslo->format('P'); // P format gives +01:00 or +02:00
-        
+
         // Format: YYYY-MM-DDTHH:mm:ss.sss+HH:MM
-        return $oslo->format('Y-m-d\TH:i:s') . '.' . $milliseconds . $offset;
+        return $oslo->format('Y-m-d\TH:i:s').'.'.$milliseconds.$offset;
     }
 }

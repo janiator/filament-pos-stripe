@@ -149,7 +149,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/receipt-printers/{id}/test-connection', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'testConnection'])->name('api.receipt-printers.test-connection');
     Route::post('/receipt-printers/{id}/test-print', [\App\Http\Controllers\Api\ReceiptPrintersController::class, 'testPrint'])->name('api.receipt-printers.test-print');
 
-    // Purchase endpoints
+    // Purchase endpoints (kiosk-sales moved to ReportsTokenAuth group below)
     Route::get('/purchases/payment-methods', [\App\Http\Controllers\Api\PurchasesController::class, 'getPaymentMethods'])->name('api.purchases.payment-methods');
     Route::get('/purchases', [\App\Http\Controllers\Api\PurchasesController::class, 'index'])->name('api.purchases.index');
     Route::get('/purchases/{id}', [\App\Http\Controllers\Api\PurchasesController::class, 'show'])->name('api.purchases.show');
@@ -174,6 +174,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::apiResource('subscriptions', \App\Http\Controllers\Api\SubscriptionsController::class);
     // Route::apiResource('charges', \App\Http\Controllers\Api\ChargesController::class);
     // etc.
+});
+
+// Reports endpoints: accepts per-store reports token (Merano) or falls back to Sanctum (Flutter app)
+Route::middleware(\App\Http\Middleware\ReportsTokenAuth::class)->group(function () {
+    Route::get('/reports/kiosk-sales', [\App\Http\Controllers\Api\PurchasesController::class, 'kioskSalesReport'])->name('api.reports.kiosk-sales');
 });
 
 // Legacy endpoint (kept for backward compatibility)
