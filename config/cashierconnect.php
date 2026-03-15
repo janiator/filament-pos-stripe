@@ -43,8 +43,12 @@ return [
         'price.updated',
         'price.deleted',
 
-        // Charge events
+        // Charge events (captured/refunded/failed so DB stays in sync with Stripe)
         'charge.succeeded',
+        'charge.captured',
+        'charge.failed',
+        'charge.refunded',
+        'charge.refund.updated',
 
         // Payment method events
         'payment_method.attached',
@@ -62,4 +66,3 @@ return [
         'transfer.reversed',
     ],
 ];
-

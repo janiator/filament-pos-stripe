@@ -49,8 +49,6 @@ const CONTROLLER_HANDLED_EVENTS = [
     'transfer.created',
     'transfer.updated',
     'transfer.reversed',
-    'transfer.paid',
-    'transfer.failed',
 ];
 
 /**
@@ -75,6 +73,10 @@ const EXPECTED_REGISTERED_EVENTS = [
     'price.updated',
     'price.deleted',
     'charge.succeeded',
+    'charge.captured',
+    'charge.failed',
+    'charge.refunded',
+    'charge.refund.updated',
     'payment_method.attached',
     'payment_method.detached',
     'payment_method.updated',

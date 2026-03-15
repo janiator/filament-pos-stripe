@@ -407,8 +407,6 @@ class StripeConnectWebhookController extends Controller
                 case 'transfer.created':
                 case 'transfer.updated':
                 case 'transfer.reversed':
-                case 'transfer.paid':
-                case 'transfer.failed':
                     /** @var Transfer $transfer */
                     $transfer = $event->data->object;
                     if (!$accountId) {
