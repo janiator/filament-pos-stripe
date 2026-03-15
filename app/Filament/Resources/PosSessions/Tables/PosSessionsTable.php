@@ -1002,8 +1002,13 @@ class PosSessionsTable
             return $lineItems;
         }
 
-        $indices = array_keys($lineItems);
-        $lastIndex = end($indices);
+        $lastPositiveIndex = null;
+        foreach ($lineItems as $index => $lineItem) {
+            if ($lineItem['net_before_cart_discount'] > 0) {
+                $lastPositiveIndex = $index;
+            }
+        }
+
         $allocated = 0;
 
         foreach ($lineItems as $index => &$lineItem) {
@@ -1015,7 +1020,7 @@ class PosSessionsTable
                 continue;
             }
 
-            if ($index === $lastIndex) {
+            if ($index === $lastPositiveIndex) {
                 $cartShare = $remainingCartDiscount - $allocated;
             } else {
                 $cartShare = (int) floor(($remainingCartDiscount * $base) / $discountableBase);
