@@ -26,6 +26,63 @@ class TopProductsWidget extends ChartWidget
         return 'Top Products';
     }
 
+    /**
+     * Parse item amount to øre.
+     */
+    protected function parseAmountToOre(mixed $value): int
+    {
+        if (is_string($value)) {
+            $hasFormatting = str_contains($value, ',')
+                || str_contains($value, ' ')
+                || (str_contains($value, '.') && preg_match('/\.\d{2}$/', $value));
+
+            if ($hasFormatting) {
+                $cleaned = str_replace([' ', ','], ['', '.'], $value);
+                $cleaned = preg_replace('/[^\d.]/', '', $cleaned);
+                if ($cleaned === '' || $cleaned === null) {
+                    return 0;
+                }
+
+                return (int) round((float) $cleaned * 100);
+            }
+
+            return (int) round((float) $value);
+        }
+
+        if (is_numeric($value)) {
+            return (int) round((float) $value);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Resolve total cart discounts in øre.
+     *
+     * @param  array<string, mixed>  $metadata
+     */
+    protected function resolveTotalDiscountsOre(array $metadata): int
+    {
+        if (isset($metadata['total_discounts']) && is_numeric($metadata['total_discounts'])) {
+            return max(0, (int) $metadata['total_discounts']);
+        }
+
+        $discounts = $metadata['discounts'] ?? [];
+        if (! is_array($discounts)) {
+            return 0;
+        }
+
+        $sum = 0;
+        foreach ($discounts as $discount) {
+            if (! is_array($discount)) {
+                continue;
+            }
+            $sum += max(0, $this->parseAmountToOre($discount['amount'] ?? 0));
+        }
+
+        return $sum;
+    }
+
     protected function getData(): array
     {
         $store = Filament::getTenant();
@@ -55,14 +112,17 @@ class TopProductsWidget extends ChartWidget
         foreach ($charges as $charge) {
             $metadata = $charge->metadata ?? [];
             $items = $metadata['items'] ?? [];
+            $lineEntries = [];
+            $itemDiscountsTotalOre = 0;
+            $netBeforeCartDiscountTotalOre = 0;
 
-            $lineTotalsByIndex = [];
-            $lineTotalsSumOre = 0;
+            foreach ($items as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
 
-            foreach ($items as $index => $item) {
                 $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
                 $unitPriceOre = (int) ($item['unit_price'] ?? $item['price'] ?? 0);
-
                 $lineTotalOre = (int) round($unitPriceOre * $quantity);
 
                 if (isset($item['line_total_amount']) && is_numeric($item['line_total_amount'])) {
@@ -72,21 +132,65 @@ class TopProductsWidget extends ChartWidget
                 }
 
                 $lineTotalOre = max(0, $lineTotalOre);
-                $lineTotalsByIndex[$index] = $lineTotalOre;
-                $lineTotalsSumOre += $lineTotalOre;
+
+                $itemDiscountOre = 0;
+                if (isset($item['discount_total_amount']) && is_numeric($item['discount_total_amount'])) {
+                    $itemDiscountOre = max(0, (int) round((float) $item['discount_total_amount']));
+                } elseif (isset($item['discount_amount'])) {
+                    $discountPerUnitOre = $this->parseAmountToOre($item['discount_amount']);
+                    $itemDiscountOre = (int) round($discountPerUnitOre * $quantity);
+                }
+
+                $itemDiscountOre = min($itemDiscountOre, $lineTotalOre);
+                $lineNetBeforeCartDiscountOre = max(0, $lineTotalOre - $itemDiscountOre);
+
+                $lineEntries[] = [
+                    'item' => $item,
+                    'quantity' => $quantity,
+                    'line_net_ore' => $lineNetBeforeCartDiscountOre,
+                ];
+
+                $itemDiscountsTotalOre += $itemDiscountOre;
+                $netBeforeCartDiscountTotalOre += $lineNetBeforeCartDiscountOre;
             }
 
-            $chargeAmountOre = max(0, (int) $charge->amount - (int) ($charge->tip_amount ?? 0));
-            $allocationRatio = $lineTotalsSumOre > 0
-                ? min(1, $chargeAmountOre / $lineTotalsSumOre)
-                : 1;
+            $totalDiscountsOre = $this->resolveTotalDiscountsOre(is_array($metadata) ? $metadata : []);
+            $remainingCartDiscountOre = max(0, $totalDiscountsOre - $itemDiscountsTotalOre);
 
-            foreach ($items as $index => $item) {
+            if ($remainingCartDiscountOre > 0 && $netBeforeCartDiscountTotalOre > 0) {
+                $allocated = 0;
+                $lastIndex = count($lineEntries) - 1;
+
+                foreach ($lineEntries as $index => &$entry) {
+                    $base = $entry['line_net_ore'];
+                    if ($base <= 0) {
+                        continue;
+                    }
+
+                    if ($index === $lastIndex) {
+                        $cartShare = $remainingCartDiscountOre - $allocated;
+                    } else {
+                        $cartShare = (int) floor(($remainingCartDiscountOre * $base) / $netBeforeCartDiscountTotalOre);
+                        $allocated += $cartShare;
+                    }
+
+                    $entry['line_net_ore'] = max(0, $base - $cartShare);
+                }
+                unset($entry);
+            }
+
+            $lineNetTotalOre = array_sum(array_column($lineEntries, 'line_net_ore'));
+            $chargeAmountOre = max(0, (int) $charge->amount - (int) ($charge->tip_amount ?? 0));
+            $allocationRatio = $lineNetTotalOre > 0
+                ? min(1, $chargeAmountOre / $lineNetTotalOre)
+                : 1.0;
+
+            foreach ($lineEntries as $entry) {
+                $item = $entry['item'];
                 $productId = $item['product_id'] ?? $item['stripe_product_id'] ?? null;
                 $productName = $item['name'] ?? $item['product_name'] ?? 'Unknown Product';
-                $quantity = $item['quantity'] ?? 1;
-                $lineTotalOre = $lineTotalsByIndex[$index] ?? 0;
-                $paidLineTotalOre = $lineTotalOre * $allocationRatio;
+                $quantity = $entry['quantity'];
+                $paidLineTotalOre = $entry['line_net_ore'] * $allocationRatio;
 
                 if ($productId || $productName !== 'Unknown Product') {
                     $key = $productId ?: $productName;
