@@ -42,8 +42,16 @@ class PosPurchaseInfolist
                 $discountValue = $item['discount_amount'] ?? 0;
 
                 if (is_string($discountValue)) {
-                    $parsed = str_replace([',', ' '], ['.', ''], $discountValue);
-                    $discountOre = (int) round((float) $parsed * 100);
+                    $hasFormatting = str_contains($discountValue, ',')
+                        || str_contains($discountValue, ' ')
+                        || (str_contains($discountValue, '.') && preg_match('/\.\d{2}$/', $discountValue));
+
+                    if ($hasFormatting) {
+                        $parsed = str_replace([',', ' '], ['.', ''], $discountValue);
+                        $discountOre = (int) round((float) $parsed * 100);
+                    } else {
+                        $discountOre = (int) round((float) $discountValue);
+                    }
                 } else {
                     $discountOre = is_numeric($discountValue) ? (int) $discountValue : 0;
                 }

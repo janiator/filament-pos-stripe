@@ -158,8 +158,14 @@ class TopProductsWidget extends ChartWidget
             $remainingCartDiscountOre = max(0, $totalDiscountsOre - $itemDiscountsTotalOre);
 
             if ($remainingCartDiscountOre > 0 && $netBeforeCartDiscountTotalOre > 0) {
+                $lastPositiveIndex = null;
+                foreach ($lineEntries as $index => $entry) {
+                    if ($entry['line_net_ore'] > 0) {
+                        $lastPositiveIndex = $index;
+                    }
+                }
+
                 $allocated = 0;
-                $lastIndex = count($lineEntries) - 1;
 
                 foreach ($lineEntries as $index => &$entry) {
                     $base = $entry['line_net_ore'];
@@ -167,7 +173,7 @@ class TopProductsWidget extends ChartWidget
                         continue;
                     }
 
-                    if ($index === $lastIndex) {
+                    if ($index === $lastPositiveIndex) {
                         $cartShare = $remainingCartDiscountOre - $allocated;
                     } else {
                         $cartShare = (int) floor(($remainingCartDiscountOre * $base) / $netBeforeCartDiscountTotalOre);
