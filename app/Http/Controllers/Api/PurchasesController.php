@@ -745,19 +745,124 @@ class PurchasesController extends BaseApiController
             return [];
         }
 
-        $arrayItems = array_filter($items, fn ($item) => is_array($item));
+        $arrayItems = array_values(array_filter($items, fn ($item) => is_array($item)));
+        $totalDiscountsOre = $this->resolveTotalDiscountsOreFromMetadata(is_array($metadata) ? $metadata : []);
 
-        return array_values(array_map(function (array $item): array {
+        $lineItems = [];
+        $itemDiscountsTotalOre = 0;
+        $netBeforeCartDiscountTotalOre = 0;
+
+        foreach ($arrayItems as $item) {
             $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
             $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
+            $lineTotalOre = (int) round($unitPrice * $quantity);
 
-            return [
+            $itemDiscountOre = 0;
+            if (isset($item['discount_total_amount'])) {
+                $itemDiscountOre = max(0, $this->parseDiscountAmountToOre($item['discount_total_amount']));
+            } elseif (isset($item['discount_amount'])) {
+                $discountPerUnitOre = max(0, $this->parseDiscountAmountToOre($item['discount_amount']));
+                $itemDiscountOre = (int) round($discountPerUnitOre * $quantity);
+            }
+
+            $itemDiscountOre = min($itemDiscountOre, $lineTotalOre);
+            $lineNetBeforeCartDiscountOre = max(0, $lineTotalOre - $itemDiscountOre);
+
+            $lineItems[] = [
                 'product_name' => (string) ($item['product_name'] ?? $item['description'] ?? 'Ukjent produkt'),
                 'quantity' => $quantity,
                 'unit_price_ore' => $unitPrice,
-                'line_total_ore' => (int) round($unitPrice * $quantity),
+                'line_total_ore' => $lineNetBeforeCartDiscountOre,
             ];
-        }, $arrayItems));
+
+            $itemDiscountsTotalOre += $itemDiscountOre;
+            $netBeforeCartDiscountTotalOre += $lineNetBeforeCartDiscountOre;
+        }
+
+        $remainingCartDiscountOre = max(0, $totalDiscountsOre - $itemDiscountsTotalOre);
+        if ($remainingCartDiscountOre > 0 && $netBeforeCartDiscountTotalOre > 0) {
+            $lastPositiveIndex = null;
+            foreach ($lineItems as $index => $lineItem) {
+                if ((int) ($lineItem['line_total_ore'] ?? 0) > 0) {
+                    $lastPositiveIndex = $index;
+                }
+            }
+
+            $allocated = 0;
+
+            foreach ($lineItems as $index => &$lineItem) {
+                $base = (int) ($lineItem['line_total_ore'] ?? 0);
+                if ($base <= 0) {
+                    continue;
+                }
+
+                if ($index === $lastPositiveIndex) {
+                    $cartShare = $remainingCartDiscountOre - $allocated;
+                } else {
+                    $cartShare = (int) floor(($remainingCartDiscountOre * $base) / $netBeforeCartDiscountTotalOre);
+                    $allocated += $cartShare;
+                }
+
+                $lineItem['line_total_ore'] = max(0, $base - $cartShare);
+            }
+            unset($lineItem);
+        }
+
+        return $lineItems;
+    }
+
+    /**
+     * Parse discount amount value to øre.
+     */
+    protected function parseDiscountAmountToOre(mixed $value): int
+    {
+        if (is_string($value)) {
+            $hasFormatting = strpos($value, ',') !== false
+                || strpos($value, ' ') !== false
+                || (strpos($value, '.') !== false && preg_match('/\.\d{2}$/', $value));
+
+            if ($hasFormatting) {
+                $cleaned = str_replace([' ', ','], ['', '.'], $value);
+                $cleaned = preg_replace('/[^\d.]/', '', $cleaned);
+
+                return (int) round((float) $cleaned * 100);
+            }
+
+            return (int) round((float) $value);
+        }
+
+        if (is_numeric($value)) {
+            return (int) round((float) $value);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Resolve total discounts in øre from charge metadata.
+     *
+     * @param  array<string, mixed>  $metadata
+     */
+    protected function resolveTotalDiscountsOreFromMetadata(array $metadata): int
+    {
+        if (isset($metadata['total_discounts']) && is_numeric($metadata['total_discounts'])) {
+            return max(0, (int) $metadata['total_discounts']);
+        }
+
+        $discounts = $metadata['discounts'] ?? [];
+        if (! is_array($discounts)) {
+            return 0;
+        }
+
+        $sum = 0;
+        foreach ($discounts as $discount) {
+            if (! is_array($discount)) {
+                continue;
+            }
+            $sum += max(0, $this->parseDiscountAmountToOre($discount['amount'] ?? 0));
+        }
+
+        return $sum;
     }
 
     /**

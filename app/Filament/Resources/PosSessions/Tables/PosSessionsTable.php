@@ -937,6 +937,104 @@ class PosSessionsTable
         return 0;
     }
 
+    /**
+     * Parse total discounts from receipt/metadata payload (returns øre).
+     */
+    protected static function parseTotalDiscountsFromPayload(array $payload): int
+    {
+        if (isset($payload['total_discounts'])) {
+            return max(0, self::parsePriceFromReceiptItem($payload['total_discounts']));
+        }
+
+        $discounts = $payload['discounts'] ?? [];
+        if (! is_array($discounts)) {
+            return 0;
+        }
+
+        $sum = 0;
+        foreach ($discounts as $discount) {
+            if (! is_array($discount) || ! isset($discount['amount'])) {
+                continue;
+            }
+            $sum += max(0, self::parsePriceFromReceiptItem($discount['amount']));
+        }
+
+        return $sum;
+    }
+
+    /**
+     * Apply item-level and cart-level discounts to parsed line items.
+     *
+     * @param  array<int, array<string, mixed>>  $lineItems
+     * @return array<int, array<string, mixed>>
+     */
+    protected static function applyDiscountsToLineItems(array $lineItems, int $totalDiscountsOre): array
+    {
+        if (empty($lineItems)) {
+            return $lineItems;
+        }
+
+        $itemDiscounts = 0;
+        $discountableBase = 0;
+
+        foreach ($lineItems as &$lineItem) {
+            $gross = max(0, (int) ($lineItem['line_total'] ?? 0));
+            $itemDiscount = max(0, (int) ($lineItem['item_discount'] ?? 0));
+            $itemDiscount = min($itemDiscount, $gross);
+
+            $lineItem['line_total'] = $gross;
+            $lineItem['item_discount'] = $itemDiscount;
+            $lineItem['net_before_cart_discount'] = max(0, $gross - $itemDiscount);
+
+            $itemDiscounts += $itemDiscount;
+            $discountableBase += $lineItem['net_before_cart_discount'];
+        }
+        unset($lineItem);
+
+        $remainingCartDiscount = max(0, $totalDiscountsOre - $itemDiscounts);
+        if ($remainingCartDiscount <= 0 || $discountableBase <= 0) {
+            foreach ($lineItems as &$lineItem) {
+                $lineItem['line_total'] = $lineItem['net_before_cart_discount'];
+                unset($lineItem['net_before_cart_discount']);
+            }
+            unset($lineItem);
+
+            return $lineItems;
+        }
+
+        $lastPositiveIndex = null;
+        foreach ($lineItems as $index => $lineItem) {
+            if ($lineItem['net_before_cart_discount'] > 0) {
+                $lastPositiveIndex = $index;
+            }
+        }
+
+        $allocated = 0;
+
+        foreach ($lineItems as $index => &$lineItem) {
+            $base = $lineItem['net_before_cart_discount'];
+            if ($base <= 0) {
+                $lineItem['line_total'] = 0;
+                unset($lineItem['net_before_cart_discount']);
+
+                continue;
+            }
+
+            if ($index === $lastPositiveIndex) {
+                $cartShare = $remainingCartDiscount - $allocated;
+            } else {
+                $cartShare = (int) floor(($remainingCartDiscount * $base) / $discountableBase);
+                $allocated += $cartShare;
+            }
+
+            $lineItem['line_total'] = max(0, $base - $cartShare);
+            unset($lineItem['net_before_cart_discount']);
+        }
+        unset($lineItem);
+
+        return $lineItems;
+    }
+
     public static function calculateProductsSold(PosSession $session): \Illuminate\Support\Collection
     {
         $session->load(['receipts.charge', 'charges']);
@@ -1027,6 +1125,12 @@ class PosSessionsTable
         // Process receipts
         foreach ($salesReceipts as $receipt) {
             $items = $receipt->receipt_data['items'] ?? [];
+            $receiptData = is_array($receipt->receipt_data) ? $receipt->receipt_data : [];
+            $receiptTotalDiscounts = self::parseTotalDiscountsFromPayload($receiptData);
+            if ($receiptTotalDiscounts === 0 && $receipt->charge && is_array($receipt->charge->metadata)) {
+                $receiptTotalDiscounts = self::parseTotalDiscountsFromPayload($receipt->charge->metadata);
+            }
+            $lineItems = [];
 
             foreach ($items as $item) {
                 $productId = $item['product_id'] ?? null;
@@ -1052,6 +1156,14 @@ class PosSessionsTable
                     $lineTotal = (int) round($unitPrice * $quantity);
                 }
 
+                $itemDiscount = 0;
+                if (isset($item['discount_total_amount'])) {
+                    $itemDiscount = max(0, self::parsePriceFromReceiptItem($item['discount_total_amount']));
+                } elseif (isset($item['discount_amount'])) {
+                    $discountPerUnit = max(0, self::parsePriceFromReceiptItem($item['discount_amount']));
+                    $itemDiscount = (int) round($discountPerUnit * $quantity);
+                }
+
                 // Get product information
                 $product = null;
                 $productName = $item['name'] ?? $item['product_name'] ?? 'Ukjent produkt';
@@ -1073,20 +1185,36 @@ class PosSessionsTable
                     $productKey = 'name_'.md5($productName);
                 }
 
+                $lineItems[] = [
+                    'key' => $productKey,
+                    'name' => $productName,
+                    'product_id' => $productId,
+                    'variant_id' => $variantId,
+                    'quantity' => $quantity,
+                    'line_total' => $lineTotal,
+                    'item_discount' => $itemDiscount,
+                ];
+            }
+
+            $lineItems = self::applyDiscountsToLineItems($lineItems, $receiptTotalDiscounts);
+
+            foreach ($lineItems as $lineItem) {
+                $productKey = $lineItem['key'];
+
                 if (! $productsSold->has($productKey)) {
                     $productsSold->put($productKey, [
                         'key' => $productKey,
-                        'name' => $productName,
-                        'product_id' => $productId,
-                        'variant_id' => $variantId,
+                        'name' => $lineItem['name'],
+                        'product_id' => $lineItem['product_id'],
+                        'variant_id' => $lineItem['variant_id'],
                         'quantity' => 0.0,
                         'amount' => 0,
                     ]);
                 }
 
                 $current = $productsSold->get($productKey);
-                $current['quantity'] += $quantity;
-                $current['amount'] += $lineTotal;
+                $current['quantity'] += (float) $lineItem['quantity'];
+                $current['amount'] += (int) $lineItem['line_total'];
                 $productsSold->put($productKey, $current);
             }
         }
@@ -1094,6 +1222,9 @@ class PosSessionsTable
         // Process charges without receipts (fallback to charge metadata)
         foreach ($chargesWithoutReceipts as $charge) {
             $items = $charge->metadata['items'] ?? [];
+            $metadata = is_array($charge->metadata) ? $charge->metadata : [];
+            $metadataTotalDiscounts = self::parseTotalDiscountsFromPayload($metadata);
+            $lineItems = [];
 
             foreach ($items as $item) {
                 $productId = $item['product_id'] ?? null;
@@ -1110,6 +1241,14 @@ class PosSessionsTable
                     $lineTotal = (int) round($unitPrice * $quantity);
                 }
 
+                $itemDiscount = 0;
+                if (isset($item['discount_total_amount'])) {
+                    $itemDiscount = max(0, self::parsePriceFromReceiptItem($item['discount_total_amount']));
+                } elseif (isset($item['discount_amount'])) {
+                    $discountPerUnit = max(0, self::parsePriceFromReceiptItem($item['discount_amount']));
+                    $itemDiscount = (int) round($discountPerUnit * $quantity);
+                }
+
                 // Get product information
                 $product = null;
                 $productName = $item['name'] ?? $item['product_name'] ?? 'Ukjent produkt';
@@ -1131,20 +1270,36 @@ class PosSessionsTable
                     $productKey = 'name_'.md5($productName);
                 }
 
+                $lineItems[] = [
+                    'key' => $productKey,
+                    'name' => $productName,
+                    'product_id' => $productId,
+                    'variant_id' => $variantId,
+                    'quantity' => $quantity,
+                    'line_total' => $lineTotal,
+                    'item_discount' => $itemDiscount,
+                ];
+            }
+
+            $lineItems = self::applyDiscountsToLineItems($lineItems, $metadataTotalDiscounts);
+
+            foreach ($lineItems as $lineItem) {
+                $productKey = $lineItem['key'];
+
                 if (! $productsSold->has($productKey)) {
                     $productsSold->put($productKey, [
                         'key' => $productKey,
-                        'name' => $productName,
-                        'product_id' => $productId,
-                        'variant_id' => $variantId,
+                        'name' => $lineItem['name'],
+                        'product_id' => $lineItem['product_id'],
+                        'variant_id' => $lineItem['variant_id'],
                         'quantity' => 0.0,
                         'amount' => 0,
                     ]);
                 }
 
                 $current = $productsSold->get($productKey);
-                $current['quantity'] += $quantity;
-                $current['amount'] += $lineTotal;
+                $current['quantity'] += (float) $lineItem['quantity'];
+                $current['amount'] += (int) $lineItem['line_total'];
                 $productsSold->put($productKey, $current);
             }
         }
@@ -1201,6 +1356,12 @@ class PosSessionsTable
 
         foreach ($salesReceipts as $receipt) {
             $items = $receipt->receipt_data['items'] ?? [];
+            $receiptData = is_array($receipt->receipt_data) ? $receipt->receipt_data : [];
+            $receiptTotalDiscounts = self::parseTotalDiscountsFromPayload($receiptData);
+            if ($receiptTotalDiscounts === 0 && $receipt->charge && is_array($receipt->charge->metadata)) {
+                $receiptTotalDiscounts = self::parseTotalDiscountsFromPayload($receipt->charge->metadata);
+            }
+            $lineItems = [];
 
             foreach ($items as $item) {
                 $productId = $item['product_id'] ?? null;
@@ -1226,6 +1387,14 @@ class PosSessionsTable
                     $lineTotal = (int) round($unitPrice * $quantity);
                 }
 
+                $itemDiscount = 0;
+                if (isset($item['discount_total_amount'])) {
+                    $itemDiscount = max(0, self::parsePriceFromReceiptItem($item['discount_total_amount']));
+                } elseif (isset($item['discount_amount'])) {
+                    $discountPerUnit = max(0, self::parsePriceFromReceiptItem($item['discount_amount']));
+                    $itemDiscount = (int) round($discountPerUnit * $quantity);
+                }
+
                 // Get product to find its vendor
                 $product = null;
                 if ($variantId && isset($variants[$variantId])) {
@@ -1249,10 +1418,27 @@ class PosSessionsTable
                     $commissionPercent = $vendor->commission_percent;
                 }
 
+                $lineItems[] = [
+                    'vendor_id' => $vendorId,
+                    'vendor_name' => $vendorName,
+                    'quantity' => $quantity,
+                    'line_total' => $lineTotal,
+                    'item_discount' => $itemDiscount,
+                    'commission_percent' => $commissionPercent,
+                ];
+            }
+
+            $lineItems = self::applyDiscountsToLineItems($lineItems, $receiptTotalDiscounts);
+
+            foreach ($lineItems as $lineItem) {
+                $vendorId = $lineItem['vendor_id'];
+                $commissionPercent = $lineItem['commission_percent'];
+                $lineTotal = (int) $lineItem['line_total'];
+
                 if (! $vendorSales->has($vendorId)) {
                     $vendorSales->put($vendorId, [
                         'id' => $vendorId,
-                        'name' => $vendorName,
+                        'name' => $lineItem['vendor_name'],
                         'count' => 0,
                         'amount' => 0,
                         'commission_percent' => $commissionPercent,
@@ -1261,10 +1447,9 @@ class PosSessionsTable
                 }
 
                 $current = $vendorSales->get($vendorId);
-                $current['count'] += $quantity;
+                $current['count'] += (float) $lineItem['quantity'];
                 $current['amount'] += $lineTotal;
 
-                // Calculate commission if commission_percent is set
                 if ($commissionPercent !== null && $commissionPercent > 0) {
                     $commissionAmount = (int) round($lineTotal * ($commissionPercent / 100));
                     $current['commission_amount'] += $commissionAmount;

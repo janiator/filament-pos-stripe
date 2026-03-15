@@ -16,6 +16,68 @@ use Filament\Support\Icons\Heroicon;
 class PosPurchaseInfolist
 {
     /**
+     * Resolve total discounts for display in øre.
+     * Prefers explicit metadata value, then item-level discounts, then subtotal-total fallback.
+     */
+    public static function resolveTotalDiscountsOreForDisplay($record): int
+    {
+        $metadata = $record->metadata ?? [];
+
+        if (isset($metadata['total_discounts']) && is_numeric($metadata['total_discounts'])) {
+            $explicitDiscounts = (int) $metadata['total_discounts'];
+            if ($explicitDiscounts > 0) {
+                return $explicitDiscounts;
+            }
+        }
+
+        $itemLevelDiscounts = 0;
+        $items = $metadata['items'] ?? [];
+        if (is_array($items)) {
+            foreach ($items as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+                $discountValue = $item['discount_amount'] ?? 0;
+
+                if (is_string($discountValue)) {
+                    $hasFormatting = str_contains($discountValue, ',')
+                        || str_contains($discountValue, ' ')
+                        || (str_contains($discountValue, '.') && preg_match('/\.\d{2}$/', $discountValue));
+
+                    if ($hasFormatting) {
+                        $parsed = str_replace([',', ' '], ['.', ''], $discountValue);
+                        $discountOre = (int) round((float) $parsed * 100);
+                    } else {
+                        $discountOre = (int) round((float) $discountValue);
+                    }
+                } else {
+                    $discountOre = is_numeric($discountValue) ? (int) $discountValue : 0;
+                }
+
+                if ($discountOre > 0) {
+                    $itemLevelDiscounts += (int) round($discountOre * $quantity);
+                }
+            }
+        }
+
+        if ($itemLevelDiscounts > 0) {
+            return $itemLevelDiscounts;
+        }
+
+        $subtotalOre = isset($metadata['subtotal']) && is_numeric($metadata['subtotal']) ? (int) $metadata['subtotal'] : null;
+        $totalOre = isset($metadata['total']) && is_numeric($metadata['total']) ? (int) $metadata['total'] : (int) ($record->amount ?? 0);
+        $tipOre = isset($metadata['tip_amount']) && is_numeric($metadata['tip_amount']) ? (int) $metadata['tip_amount'] : 0;
+
+        if ($subtotalOre !== null) {
+            return max(0, $subtotalOre + $tipOre - $totalOre);
+        }
+
+        return 0;
+    }
+
+    /**
      * Get tax rate (0-1) for an article group code. Uses ArticleGroupCode model, defaults to 25%.
      */
     public static function getTaxRateForArticleGroupCode(?string $code): float
@@ -435,8 +497,7 @@ class PosPurchaseInfolist
                         TextEntry::make('discounts_display')
                             ->label('Discounts')
                             ->formatStateUsing(function ($state, $record) {
-                                $metadata = $record->metadata ?? [];
-                                $discounts = ($metadata['total_discounts'] ?? 0) / 100;
+                                $discounts = self::resolveTotalDiscountsOreForDisplay($record) / 100;
                                 if ($discounts <= 0) {
                                     return null;
                                 }
@@ -446,7 +507,7 @@ class PosPurchaseInfolist
                             ->badge()
                             ->color('success')
                             ->icon(Heroicon::OutlinedTag)
-                            ->visible(fn ($record) => ($record->metadata['total_discounts'] ?? 0) > 0),
+                            ->visible(fn ($record) => self::resolveTotalDiscountsOreForDisplay($record) > 0),
 
                         RepeatableEntry::make('tax_breakdown')
                             ->label('Tax')
