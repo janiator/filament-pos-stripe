@@ -322,6 +322,11 @@ class PurchaseService
         // Find or create charge from payment intent
         $charge = ConnectedCharge::where('stripe_payment_intent_id', $paymentIntentId)->first();
 
+        // Use actual charge.captured from Stripe when we have expanded charges; fallback to PI status
+        $stripeChargeCaptured = isset($paymentIntent->charges->data[0])
+            ? ($paymentIntent->charges->data[0]->captured ?? true)
+            : ($paymentIntent->status === 'succeeded');
+
         if (! $charge) {
             // Get the charge from payment intent (should be available after retry)
             if (! $stripeChargeId) {
@@ -365,7 +370,7 @@ class PurchaseService
                 'payment_code' => $paymentMethod->saf_t_payment_code ?? SafTCodeMapper::mapPaymentMethodToCode($paymentMethod->code),
                 'transaction_code' => SafTCodeMapper::mapTransactionToCodeForPayment($paymentMethod->code),
                 'description' => $paymentIntent->description ?? $metadata['description'] ?? 'Card payment',
-                'captured' => $paymentIntent->status === 'succeeded',
+                'captured' => $stripeChargeCaptured,
                 'refunded' => false,
                 'paid' => true,
                 'paid_at' => now(),
@@ -383,9 +388,11 @@ class PurchaseService
                 ], $metadata),
             ]);
         } else {
-            // Update existing charge with cart data and request metadata (e.g. purchase_contains_tickets, purchase_ticket_reference)
+            // Update existing charge with cart data, request metadata, and current Stripe captured status
+            // (fixes stale captured=false when webhook created the row before capture or charge.captured was not received)
             $charge->update([
                 'pos_session_id' => $posSession->id,
+                'captured' => $stripeChargeCaptured,
                 'metadata' => array_merge(
                     $charge->metadata ?? [],
                     [
