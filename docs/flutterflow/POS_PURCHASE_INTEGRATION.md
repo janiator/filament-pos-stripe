@@ -202,6 +202,48 @@ The purchase flow supports:
 }
 ```
 
+### 4. Kiosk Sales Reporting Feed (Merano sync)
+
+**Endpoint:** `GET /api/reports/kiosk-sales`
+
+This endpoint is intended for server-to-server reporting sync (for example Merano pulling kiosk sales every 15 minutes).
+
+**Query Parameters:**
+- `from_datetime` (required, ISO 8601) - Start of reporting window
+- `to_datetime` (required, ISO 8601) - End of reporting window
+- `updated_since` (optional, ISO 8601) - Incremental updates only
+- `cursor` (optional, integer, default `0`) - Exclusive purchase-id cursor
+- `limit` (optional, integer, default `200`, max `500`)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "purchase_id": 12345,
+      "sold_at": "2026-03-13T10:25:00.000+01:00",
+      "net_amount_ore": 25900,
+      "currency": "NOK",
+      "store_slug": "my-store",
+      "is_refund": false,
+      "updated_at": "2026-03-13T10:27:00.000+01:00"
+    }
+  ],
+  "meta": {
+    "cursor": 0,
+    "next_cursor": 12345,
+    "limit": 200,
+    "returned": 1,
+    "has_more": true
+  }
+}
+```
+
+**Important behavior:**
+- Returns **kiosk-only** purchases (ticket-linked purchases are excluded server-side).
+- `net_amount_ore` is `amount - amount_refunded`.
+- Use `next_cursor` for paging; stop when `has_more` is `false`.
+
 ## FlutterFlow Implementation Steps
 
 ### Step 1: Create Payment Method Selection UI

@@ -32,3 +32,4 @@ jobberiet-export.zip
 /.env.testing
 /.cursor/*
 .junie/*
+/.ai

@@ -105,3 +105,123 @@ test('get purchase returns purchase item quantities with decimals', function () 
     $response->assertOk();
     $response->assertJsonPath('purchase.purchase_items.0.purchase_item_quantity', 2.5);
 });
+
+test('kiosk sales report returns only kiosk purchases in date range', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_kiosk_report']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    $kioskCharge = ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'paid' => true,
+        'status' => 'succeeded',
+        'amount' => 50000,
+        'amount_refunded' => 0,
+        'paid_at' => '2026-03-13 09:30:00',
+        'metadata' => [
+            'items' => [
+                [
+                    'id' => 'item_kiosk_1',
+                    'name' => 'Kaffe',
+                    'quantity' => 2,
+                    'unit_price' => 25000,
+                ],
+            ],
+        ],
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'paid' => true,
+        'status' => 'succeeded',
+        'amount' => 30000,
+        'paid_at' => '2026-03-13 10:00:00',
+        'metadata' => [
+            'purchase_contains_tickets' => true,
+            'purchase_ticket_reference' => 'BK-2026-000123',
+        ],
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'paid' => true,
+        'status' => 'succeeded',
+        'amount' => 15000,
+        'paid_at' => '2026-03-12 23:30:00',
+        'metadata' => [],
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->getJson('/api/reports/kiosk-sales?from_datetime=2026-03-13T00:00:00Z&to_datetime=2026-03-13T23:59:59Z&limit=50');
+
+    $response->assertOk();
+    $response->assertJsonCount(1, 'data');
+    $response->assertJsonPath('data.0.purchase_id', $kioskCharge->id);
+    $response->assertJsonPath('data.0.net_amount_ore', 50000);
+    $response->assertJsonPath('data.0.is_refund', false);
+});
+
+test('kiosk sales report supports cursor and updated_since filters', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_kiosk_cursor']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    $olderKioskCharge = ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'paid' => true,
+        'status' => 'succeeded',
+        'amount' => 10000,
+        'paid_at' => '2026-03-13 08:00:00',
+        'updated_at' => '2026-03-13 08:10:00',
+        'metadata' => [],
+    ]);
+
+    $newerKioskCharge = ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'paid' => true,
+        'status' => 'succeeded',
+        'amount' => 20000,
+        'amount_refunded' => 5000,
+        'paid_at' => '2026-03-13 09:00:00',
+        'updated_at' => '2026-03-13 09:30:00',
+        'metadata' => [],
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->getJson(sprintf(
+        '/api/reports/kiosk-sales?from_datetime=2026-03-13T00:00:00Z&to_datetime=2026-03-13T23:59:59Z&cursor=%d&updated_since=2026-03-13T09:00:00Z&limit=50',
+        $olderKioskCharge->id
+    ));
+
+    $response->assertOk();
+    $response->assertJsonCount(1, 'data');
+    $response->assertJsonPath('data.0.purchase_id', $newerKioskCharge->id);
+    $response->assertJsonPath('data.0.net_amount_ore', 15000);
+    $response->assertJsonPath('data.0.is_refund', true);
+    $response->assertJsonPath('meta.cursor', $olderKioskCharge->id);
+});
