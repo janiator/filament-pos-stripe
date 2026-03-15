@@ -781,8 +781,14 @@ class PurchasesController extends BaseApiController
 
         $remainingCartDiscountOre = max(0, $totalDiscountsOre - $itemDiscountsTotalOre);
         if ($remainingCartDiscountOre > 0 && $netBeforeCartDiscountTotalOre > 0) {
+            $lastPositiveIndex = null;
+            foreach ($lineItems as $index => $lineItem) {
+                if ((int) ($lineItem['line_total_ore'] ?? 0) > 0) {
+                    $lastPositiveIndex = $index;
+                }
+            }
+
             $allocated = 0;
-            $lastIndex = count($lineItems) - 1;
 
             foreach ($lineItems as $index => &$lineItem) {
                 $base = (int) ($lineItem['line_total_ore'] ?? 0);
@@ -790,7 +796,7 @@ class PurchasesController extends BaseApiController
                     continue;
                 }
 
-                if ($index === $lastIndex) {
+                if ($index === $lastPositiveIndex) {
                     $cartShare = $remainingCartDiscountOre - $allocated;
                 } else {
                     $cartShare = (int) floor(($remainingCartDiscountOre * $base) / $netBeforeCartDiscountTotalOre);
