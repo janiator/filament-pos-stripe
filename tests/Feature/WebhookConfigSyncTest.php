@@ -49,8 +49,6 @@ const CONTROLLER_HANDLED_EVENTS = [
     'transfer.created',
     'transfer.updated',
     'transfer.reversed',
-    'transfer.paid',
-    'transfer.failed',
 ];
 
 /**
@@ -88,8 +86,6 @@ const EXPECTED_REGISTERED_EVENTS = [
     'transfer.created',
     'transfer.updated',
     'transfer.reversed',
-    'transfer.paid',
-    'transfer.failed',
 ];
 
 it('has every config event handled by the controller', function () {

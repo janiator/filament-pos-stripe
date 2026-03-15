@@ -60,11 +60,9 @@ return [
         'payment_link.created',
         'payment_link.updated',
 
-        // Transfer events (paid/failed so transfer status stays in sync)
+        // Transfer events
         'transfer.created',
         'transfer.updated',
         'transfer.reversed',
-        'transfer.paid',
-        'transfer.failed',
     ],
 ];
