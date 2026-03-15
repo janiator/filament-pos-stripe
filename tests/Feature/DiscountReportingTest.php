@@ -113,3 +113,44 @@ it('derives purchase discounts for filament infolist from subtotal minus total w
 
     expect(PosPurchaseInfolist::resolveTotalDiscountsOreForDisplay($record))->toBe(198000);
 });
+
+it('derives purchase discounts for filament infolist from cart discounts array when total_discounts is missing', function () {
+    $record = new class
+    {
+        public array $metadata = [
+            'items' => [
+                [
+                    'quantity' => 1,
+                    'unit_price' => 140000,
+                    'discount_amount' => 0,
+                ],
+            ],
+            'discounts' => [
+                [
+                    'type' => 'manual',
+                    'amount' => 140000,
+                ],
+            ],
+            'total' => 0,
+        ];
+
+        public int $amount = 0;
+    };
+
+    expect(PosPurchaseInfolist::resolveTotalDiscountsOreForDisplay($record))->toBe(140000);
+});
+
+it('derives purchase discounts for filament infolist when subtotal and total are formatted kroner strings', function () {
+    $record = new class
+    {
+        public array $metadata = [
+            'items' => [],
+            'subtotal' => '1 400,00',
+            'total' => '0,00',
+        ];
+
+        public int $amount = 0;
+    };
+
+    expect(PosPurchaseInfolist::resolveTotalDiscountsOreForDisplay($record))->toBe(140000);
+});

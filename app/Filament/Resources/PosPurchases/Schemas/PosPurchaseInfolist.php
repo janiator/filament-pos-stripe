@@ -16,6 +16,36 @@ use Filament\Support\Icons\Heroicon;
 class PosPurchaseInfolist
 {
     /**
+     * Parse mixed amount value to øre.
+     */
+    protected static function parseAmountToOre(mixed $value): int
+    {
+        if (is_string($value)) {
+            $hasFormatting = str_contains($value, ',')
+                || str_contains($value, ' ')
+                || (str_contains($value, '.') && preg_match('/\.\d{2}$/', $value));
+
+            if ($hasFormatting) {
+                $cleaned = str_replace([' ', ','], ['', '.'], $value);
+                $cleaned = preg_replace('/[^\d.]/', '', $cleaned);
+                if ($cleaned === '' || $cleaned === null) {
+                    return 0;
+                }
+
+                return (int) round((float) $cleaned * 100);
+            }
+
+            return (int) round((float) $value);
+        }
+
+        if (is_numeric($value)) {
+            return (int) round((float) $value);
+        }
+
+        return 0;
+    }
+
+    /**
      * Resolve total discounts for display in øre.
      * Prefers explicit metadata value, then item-level discounts, then subtotal-total fallback.
      */
@@ -23,8 +53,8 @@ class PosPurchaseInfolist
     {
         $metadata = $record->metadata ?? [];
 
-        if (isset($metadata['total_discounts']) && is_numeric($metadata['total_discounts'])) {
-            $explicitDiscounts = (int) $metadata['total_discounts'];
+        if (isset($metadata['total_discounts'])) {
+            $explicitDiscounts = self::parseAmountToOre($metadata['total_discounts']);
             if ($explicitDiscounts > 0) {
                 return $explicitDiscounts;
             }
@@ -39,22 +69,7 @@ class PosPurchaseInfolist
                 }
 
                 $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
-                $discountValue = $item['discount_amount'] ?? 0;
-
-                if (is_string($discountValue)) {
-                    $hasFormatting = str_contains($discountValue, ',')
-                        || str_contains($discountValue, ' ')
-                        || (str_contains($discountValue, '.') && preg_match('/\.\d{2}$/', $discountValue));
-
-                    if ($hasFormatting) {
-                        $parsed = str_replace([',', ' '], ['.', ''], $discountValue);
-                        $discountOre = (int) round((float) $parsed * 100);
-                    } else {
-                        $discountOre = (int) round((float) $discountValue);
-                    }
-                } else {
-                    $discountOre = is_numeric($discountValue) ? (int) $discountValue : 0;
-                }
+                $discountOre = self::parseAmountToOre($item['discount_amount'] ?? 0);
 
                 if ($discountOre > 0) {
                     $itemLevelDiscounts += (int) round($discountOre * $quantity);
@@ -62,13 +77,27 @@ class PosPurchaseInfolist
             }
         }
 
-        if ($itemLevelDiscounts > 0) {
-            return $itemLevelDiscounts;
+        $cartLevelDiscounts = 0;
+        $discounts = $metadata['discounts'] ?? [];
+        if (is_array($discounts)) {
+            foreach ($discounts as $discount) {
+                if (! is_array($discount)) {
+                    continue;
+                }
+                $cartLevelDiscounts += max(0, self::parseAmountToOre($discount['amount'] ?? 0));
+            }
         }
 
-        $subtotalOre = isset($metadata['subtotal']) && is_numeric($metadata['subtotal']) ? (int) $metadata['subtotal'] : null;
-        $totalOre = isset($metadata['total']) && is_numeric($metadata['total']) ? (int) $metadata['total'] : (int) ($record->amount ?? 0);
-        $tipOre = isset($metadata['tip_amount']) && is_numeric($metadata['tip_amount']) ? (int) $metadata['tip_amount'] : 0;
+        $calculatedDiscounts = $itemLevelDiscounts + $cartLevelDiscounts;
+        if ($calculatedDiscounts > 0) {
+            return $calculatedDiscounts;
+        }
+
+        $subtotalOre = isset($metadata['subtotal']) ? self::parseAmountToOre($metadata['subtotal']) : null;
+        $totalOre = isset($metadata['total'])
+            ? self::parseAmountToOre($metadata['total'])
+            : (int) ($record->amount ?? 0);
+        $tipOre = isset($metadata['tip_amount']) ? self::parseAmountToOre($metadata['tip_amount']) : 0;
 
         if ($subtotalOre !== null) {
             return max(0, $subtotalOre + $tipOre - $totalOre);
