@@ -172,6 +172,17 @@ class StoreForm
                             ->preload()
                             ->nullable()
                             ->helperText('Product used as the cart line when adding Merano bookings in the POS. Used by the ticket-product API and automatic add-to-cart.'),
+
+                        TextInput::make('reports_api_token')
+                            ->label('Merano Reports Token')
+                            ->password()
+                            ->revealable()
+                            ->nullable()
+                            ->afterStateHydrated(function ($component): void {
+                                $component->state('');
+                            })
+                            ->dehydrated(fn (?string $state): bool => filled($state))
+                            ->helperText('Token Merano uses to pull kiosk-sales reports from this store. Use "Generate Reports Token" in the header to create one.'),
                     ])
                     ->columns(2)
                     ->collapsible()

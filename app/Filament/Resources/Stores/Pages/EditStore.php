@@ -12,6 +12,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Support\Icons\Heroicon;
 
 class EditStore extends EditRecord
 {
@@ -42,6 +43,41 @@ class EditStore extends EditRecord
                     }
 
                     $notification->send();
+                }),
+            Action::make('generateReportsToken')
+                ->label('Generate Reports Token')
+                ->icon(Heroicon::OutlinedKey)
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Generate Reports API Token')
+                ->modalDescription('This will replace the current reports token. Copy the new token and configure it in Merano under Settings → POS Rapporter.')
+                ->visible(fn (): bool => StoreForm::supportsMeranoConfiguration()
+                    && Addon::storeHasActiveAddon($this->record->id, AddonType::MeranoBooking))
+                ->action(function (): void {
+                    $token = bin2hex(random_bytes(32));
+                    $this->record->update(['reports_api_token' => $token]);
+
+                    Notification::make()
+                        ->title('Reports token generated')
+                        ->body($token)
+                        ->success()
+                        ->duration(30000)
+                        ->send();
+                }),
+            Action::make('showReportsToken')
+                ->label('Show Reports Token')
+                ->icon(Heroicon::OutlinedEye)
+                ->color('gray')
+                ->visible(fn (): bool => StoreForm::supportsMeranoConfiguration()
+                    && Addon::storeHasActiveAddon($this->record->id, AddonType::MeranoBooking)
+                    && filled($this->record->reports_api_token))
+                ->action(function (): void {
+                    Notification::make()
+                        ->title('Current Reports Token')
+                        ->body($this->record->reports_api_token)
+                        ->success()
+                        ->duration(20000)
+                        ->send();
                 }),
             DeleteAction::make(),
         ];

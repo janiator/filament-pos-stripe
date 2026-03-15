@@ -9,6 +9,7 @@ use App\Models\PaymentMethod;
 use App\Models\PosSession;
 use App\Models\ProductVariant;
 use App\Services\PurchaseService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
@@ -230,6 +231,113 @@ class PurchasesController extends BaseApiController
                 'last_page' => $purchases->lastPage() - 1,
                 'per_page' => $purchases->perPage(),
                 'total' => $purchases->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * List kiosk-only sales for reporting integrations.
+     */
+    public function kioskSalesReport(Request $request): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+
+        if (! $store) {
+            return response()->json(['message' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $validator = Validator::make($request->all(), [
+            'from_datetime' => ['required', 'date'],
+            'to_datetime' => ['required', 'date', 'after_or_equal:from_datetime'],
+            'updated_since' => ['nullable', 'date'],
+            'cursor' => ['nullable', 'integer', 'min:0'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        $from = Carbon::parse($validated['from_datetime']);
+        $to = Carbon::parse($validated['to_datetime']);
+        $updatedSince = isset($validated['updated_since']) ? Carbon::parse($validated['updated_since']) : null;
+        $cursor = (int) ($validated['cursor'] ?? 0);
+        $limit = (int) ($validated['limit'] ?? 200);
+
+        $rows = collect();
+        $lastProcessedId = $cursor;
+        $batchSize = max($limit, 200);
+
+        while ($rows->count() < $limit) {
+            $charges = ConnectedCharge::query()
+                ->where('stripe_account_id', $store->stripe_account_id)
+                ->whereNotNull('pos_session_id')
+                ->where('paid', true)
+                ->whereBetween('paid_at', [$from, $to])
+                ->when($updatedSince, fn ($query) => $query->where('updated_at', '>=', $updatedSince))
+                ->where('id', '>', $lastProcessedId)
+                ->orderBy('id')
+                ->limit($batchSize)
+                ->get(['id', 'amount', 'amount_refunded', 'currency', 'status', 'paid_at', 'updated_at', 'metadata']);
+
+            if ($charges->isEmpty()) {
+                break;
+            }
+
+            foreach ($charges as $charge) {
+                $lastProcessedId = (int) $charge->id;
+
+                if (! $this->isKioskSale($charge)) {
+                    continue;
+                }
+
+                $rows->push([
+                    'purchase_id' => (int) $charge->id,
+                    'sold_at' => $this->formatDateTimeOslo($charge->paid_at),
+                    'net_amount_ore' => ((int) $charge->amount) - ((int) $charge->amount_refunded),
+                    'currency' => strtoupper((string) ($charge->currency ?: 'NOK')),
+                    'store_slug' => $store->slug,
+                    'is_refund' => ((int) $charge->amount_refunded) > 0
+                        || ((int) $charge->amount) < 0
+                        || $charge->status === 'refunded',
+                    'updated_at' => $this->formatDateTimeOslo($charge->updated_at),
+                    'items' => $this->extractKioskLineItems($charge),
+                ]);
+
+                if ($rows->count() >= $limit) {
+                    break;
+                }
+            }
+
+            if ($charges->count() < $batchSize) {
+                break;
+            }
+        }
+
+        $hasMore = ConnectedCharge::query()
+            ->where('stripe_account_id', $store->stripe_account_id)
+            ->whereNotNull('pos_session_id')
+            ->where('paid', true)
+            ->whereBetween('paid_at', [$from, $to])
+            ->when($updatedSince, fn ($query) => $query->where('updated_at', '>=', $updatedSince))
+            ->where('id', '>', $lastProcessedId)
+            ->exists();
+
+        return response()->json([
+            'data' => $rows->values(),
+            'meta' => [
+                'cursor' => $cursor,
+                'next_cursor' => $hasMore ? $lastProcessedId : null,
+                'limit' => $limit,
+                'returned' => $rows->count(),
+                'has_more' => $hasMore,
             ],
         ]);
     }
@@ -574,6 +682,82 @@ class PurchasesController extends BaseApiController
         }
 
         return $data;
+    }
+
+    /**
+     * Determine if a paid charge should be counted as kiosk sale.
+     */
+    protected function isKioskSale(ConnectedCharge $charge): bool
+    {
+        $metadata = $charge->metadata ?? [];
+
+        if (! is_array($metadata)) {
+            return true;
+        }
+
+        if (($metadata['purchase_contains_tickets'] ?? false) === true) {
+            return false;
+        }
+
+        if (! empty($metadata['purchase_ticket_reference'] ?? null)) {
+            return false;
+        }
+
+        $items = $metadata['items'] ?? [];
+        if (! is_array($items)) {
+            return true;
+        }
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $itemMetadata = $item['metadata'] ?? null;
+            if (! is_array($itemMetadata)) {
+                $itemMetadata = [];
+            }
+
+            if (
+                isset($item['merano_booking_id'])
+                || isset($item['merano_booking_number'])
+                || isset($itemMetadata['merano_booking_id'])
+                || isset($itemMetadata['merano_booking_number'])
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Extract lightweight line-item data from charge metadata for the kiosk-sales report.
+     *
+     * @return array<int, array{product_name: string, quantity: float, unit_price_ore: int, line_total_ore: int}>
+     */
+    protected function extractKioskLineItems(ConnectedCharge $charge): array
+    {
+        $metadata = $charge->metadata ?? [];
+        $items = is_array($metadata) ? ($metadata['items'] ?? []) : [];
+
+        if (empty($items) || ! is_array($items)) {
+            return [];
+        }
+
+        $arrayItems = array_filter($items, fn ($item) => is_array($item));
+
+        return array_values(array_map(function (array $item): array {
+            $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+            $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
+
+            return [
+                'product_name' => (string) ($item['product_name'] ?? $item['description'] ?? 'Ukjent produkt'),
+                'quantity' => $quantity,
+                'unit_price_ore' => $unitPrice,
+                'line_total_ore' => (int) round($unitPrice * $quantity),
+            ];
+        }, $arrayItems));
     }
 
     /**
