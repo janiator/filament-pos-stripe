@@ -6,7 +6,6 @@ use App\Filament\Widgets\Concerns\HasDashboardDateRange;
 use App\Models\ConnectedCharge;
 use Filament\Facades\Filament;
 use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Carbon;
 
 class TopProductsWidget extends ChartWidget
 {
@@ -14,7 +13,7 @@ class TopProductsWidget extends ChartWidget
 
     protected static ?int $sort = 7;
 
-    protected int | string | array $columnSpan = [
+    protected int|string|array $columnSpan = [
         'default' => 'full',
         'sm' => 'full',
         'md' => 'full',
@@ -24,14 +23,14 @@ class TopProductsWidget extends ChartWidget
 
     public function getHeading(): string
     {
-        return "Top Products";
+        return 'Top Products';
     }
 
     protected function getData(): array
     {
         $store = Filament::getTenant();
-        
-        if (!$store) {
+
+        if (! $store) {
             return [
                 'datasets' => [],
                 'labels' => [],
@@ -52,36 +51,57 @@ class TopProductsWidget extends ChartWidget
 
         // Aggregate products from charge metadata
         $productStats = [];
-        
+
         foreach ($charges as $charge) {
             $metadata = $charge->metadata ?? [];
             $items = $metadata['items'] ?? [];
-            
-            foreach ($items as $item) {
+
+            $lineTotalsByIndex = [];
+            $lineTotalsSumOre = 0;
+
+            foreach ($items as $index => $item) {
+                $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+                $unitPriceOre = (int) ($item['unit_price'] ?? $item['price'] ?? 0);
+
+                $lineTotalOre = (int) round($unitPriceOre * $quantity);
+
+                if (isset($item['line_total_amount']) && is_numeric($item['line_total_amount'])) {
+                    $lineTotalOre = (int) round((float) $item['line_total_amount']);
+                } elseif (isset($item['line_total']) && is_numeric($item['line_total'])) {
+                    $lineTotalOre = (int) round((float) $item['line_total']);
+                }
+
+                $lineTotalOre = max(0, $lineTotalOre);
+                $lineTotalsByIndex[$index] = $lineTotalOre;
+                $lineTotalsSumOre += $lineTotalOre;
+            }
+
+            $chargeAmountOre = max(0, (int) $charge->amount - (int) ($charge->tip_amount ?? 0));
+            $allocationRatio = $lineTotalsSumOre > 0
+                ? min(1, $chargeAmountOre / $lineTotalsSumOre)
+                : 1;
+
+            foreach ($items as $index => $item) {
                 $productId = $item['product_id'] ?? $item['stripe_product_id'] ?? null;
                 $productName = $item['name'] ?? $item['product_name'] ?? 'Unknown Product';
                 $quantity = $item['quantity'] ?? 1;
-                
-                // Prices in metadata are stored in øre (cents), convert to kroner
-                $unitPrice = $item['unit_price'] ?? $item['price'] ?? 0;
-                $price = $unitPrice / 100; // Convert from øre to kroner
-                
-                $lineTotal = $price * $quantity;
-                
+                $lineTotalOre = $lineTotalsByIndex[$index] ?? 0;
+                $paidLineTotalOre = $lineTotalOre * $allocationRatio;
+
                 if ($productId || $productName !== 'Unknown Product') {
                     $key = $productId ?: $productName;
-                    
-                    if (!isset($productStats[$key])) {
+
+                    if (! isset($productStats[$key])) {
                         $productStats[$key] = [
                             'name' => $productName,
                             'quantity' => 0,
-                            'revenue' => 0,
+                            'revenue_ore' => 0.0,
                             'transactions' => 0,
                         ];
                     }
-                    
+
                     $productStats[$key]['quantity'] += $quantity;
-                    $productStats[$key]['revenue'] += $lineTotal;
+                    $productStats[$key]['revenue_ore'] += $paidLineTotalOre;
                     $productStats[$key]['transactions'] += 1;
                 }
             }
@@ -89,9 +109,9 @@ class TopProductsWidget extends ChartWidget
 
         // Sort by revenue and take top 10
         usort($productStats, function ($a, $b) {
-            return $b['revenue'] <=> $a['revenue'];
+            return $b['revenue_ore'] <=> $a['revenue_ore'];
         });
-        
+
         $topProducts = array_slice($productStats, 0, 10);
 
         if (empty($topProducts)) {
@@ -102,9 +122,9 @@ class TopProductsWidget extends ChartWidget
         }
 
         // Prepare data for chart
-        $labels = array_map(fn($product) => $product['name'], $topProducts);
-        $revenues = array_map(fn($product) => round($product['revenue'], 2), $topProducts);
-        $quantities = array_map(fn($product) => $product['quantity'], $topProducts);
+        $labels = array_map(fn ($product) => $product['name'], $topProducts);
+        $revenues = array_map(fn ($product) => round($product['revenue_ore'] / 100, 2), $topProducts);
+        $quantities = array_map(fn ($product) => $product['quantity'], $topProducts);
 
         return [
             'datasets' => [
@@ -165,4 +185,3 @@ class TopProductsWidget extends ChartWidget
         ];
     }
 }
-
