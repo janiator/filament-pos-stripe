@@ -67,6 +67,81 @@ test('single purchase with cart total 0 (freeticket) is accepted when payment me
     $response->assertJsonPath('data.charge.amount', 0);
 });
 
+test('single purchase persists and returns cart and item discounts', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_discounts']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    PaymentMethod::create([
+        'store_id' => $store->id,
+        'name' => 'Cash',
+        'code' => 'cash',
+        'provider' => 'cash',
+        'enabled' => true,
+        'pos_suitable' => true,
+        'sort_order' => 0,
+        'minimum_amount_kroner' => null,
+        'saf_t_payment_code' => '10000',
+        'saf_t_event_code' => '13016',
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $createResponse = $this->postJson('/api/purchases', [
+        'pos_session_id' => $session->id,
+        'payment_method_code' => 'cash',
+        'cart' => [
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 10000,
+                    'discount_amount' => 1500,
+                    'discount_reason' => 'Manual item discount',
+                ],
+            ],
+            'discounts' => [
+                [
+                    'type' => 'verdi',
+                    'amount' => 500,
+                    'reason' => 'Loyalty',
+                ],
+            ],
+            'subtotal' => 10000,
+            'total_discounts' => 2000,
+            'total_tax' => 1600,
+            'total' => 8000,
+            'currency' => 'nok',
+        ],
+        'metadata' => [],
+    ]);
+
+    $createResponse->assertCreated();
+    $purchaseId = $createResponse->json('data.charge.id');
+
+    $showResponse = $this->getJson("/api/purchases/{$purchaseId}");
+
+    $showResponse->assertOk()
+        ->assertJsonPath('purchase.purchase_discounts.0.type', 'verdi')
+        ->assertJsonPath('purchase.purchase_discounts.0.amount', 500)
+        ->assertJsonPath('purchase.purchase_total_discounts', 2000)
+        ->assertJsonPath('purchase.purchase_items.0.purchase_item_discount_amount', 1500)
+        ->assertJsonPath('purchase.purchase_items.0.purchase_item_discount_reason', 'Manual item discount');
+});
+
 test('get purchase returns purchase item quantities with decimals', function () {
     $user = User::factory()->create();
     $store = Store::factory()->create(['stripe_account_id' => 'acct_test_decimal']);
