@@ -3300,8 +3300,9 @@ paths:
         - Purchases
       summary: List kiosk sales for reporting
       description: |
-        Returns kiosk-only POS sales rows for the current store, intended for Merano reporting sync.
-        Ticket-linked purchases are excluded server-side using purchase metadata.
+        Returns POS sales rows with kiosk revenue for the current store, intended for Merano reporting sync.
+        Mixed purchases (tickets + kiosk products) are included when kiosk line-item metadata exists.
+        Ticket-only purchases are excluded server-side using purchase metadata.
       operationId: listKioskSalesReport
       parameters:
         - name: from_datetime
@@ -7747,7 +7748,7 @@ components:
           example: "2026-03-13T10:25:00+01:00"
         net_amount_ore:
           type: integer
-          description: Net sale amount in øre (amount minus refunded amount)
+          description: Net kiosk amount in øre. For mixed purchases, this is calculated from kiosk line-item totals after proportional cart-discount allocation.
           example: 25900
         currency:
           type: string
