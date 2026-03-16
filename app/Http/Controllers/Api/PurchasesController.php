@@ -301,7 +301,7 @@ class PurchasesController extends BaseApiController
                     continue;
                 }
 
-                $netAmountOre = empty($lineItems)
+                $netAmountOre = $isKioskOnlyPurchase
                     ? (((int) $charge->amount) - ((int) $charge->amount_refunded))
                     : (int) collect($lineItems)->sum(fn (array $item): int => (int) ($item['line_total_ore'] ?? 0));
 
