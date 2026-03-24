@@ -8,6 +8,9 @@ use App\Http\Controllers\Webhooks\StripeConnectWebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+Route::post('/poweroffice/onboarding/callback', [\App\Http\Controllers\Api\PowerOffice\PowerOfficeOnboardingController::class, 'callback'])
+    ->name('api.poweroffice.onboarding.callback');
+
 // Public webhook endpoint (no authentication required)
 // Support both /api/stripe/connect/webhook and /connectWebhook (for Stripe CLI compatibility)
 Route::post('/stripe/connect/webhook', StripeConnectWebhookController::class)
@@ -105,6 +108,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/variants/{variant}/inventory/adjust', [\App\Http\Controllers\Api\InventoryController::class, 'adjustInventory'])->name('api.variants.inventory.adjust');
     Route::post('/variants/{variant}/inventory/set', [\App\Http\Controllers\Api\InventoryController::class, 'setInventory'])->name('api.variants.inventory.set');
     Route::post('/inventory/bulk-update', [\App\Http\Controllers\Api\InventoryController::class, 'bulkUpdate'])->name('api.inventory.bulk-update');
+
+    Route::post('/poweroffice/onboarding/init', [\App\Http\Controllers\Api\PowerOffice\PowerOfficeOnboardingController::class, 'init'])
+        ->name('api.poweroffice.onboarding.init');
+
+    Route::post('/poweroffice/sync/z-report/{posSession}', [\App\Http\Controllers\Api\PowerOffice\PowerOfficeSyncController::class, 'syncZReport'])
+        ->name('api.poweroffice.sync.z-report');
+
+    Route::post('/poweroffice/sync/retry/{syncRun}', [\App\Http\Controllers\Api\PowerOffice\PowerOfficeSyncController::class, 'retry'])
+        ->name('api.poweroffice.sync.retry');
 
     // SAF-T endpoints (Kassasystemforskriften compliance)
     Route::post('/saf-t/generate', [\App\Http\Controllers\Api\SafTController::class, 'generate'])->name('api.saf-t.generate');

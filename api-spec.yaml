@@ -16,6 +16,7 @@ info:
     - Receipt printer configuration and management
     - Product and inventory management
     - SAF-T file generation (Norwegian tax compliance)
+    - PowerOffice Go onboarding and Z-report sync (optional per-store add-on)
     - Terminal operations (connection tokens and payment intents)
 
     All endpoints (except login and webhooks) require Bearer token authentication.
@@ -64,6 +65,9 @@ tags:
     description: Inventory management operations
   - name: SAF-T
     description: SAF-T file generation (Norwegian tax compliance)
+  - name: PowerOffice
+    description: |
+      PowerOffice Go accounting integration (Z-report sync, onboarding). Server-side calls to PowerOffice Go API v2 use OAuth 2.0 client credentials (Bearer access token from the Token URL; see `POWEROFFICE_CLIENT_ID` + per-store client key + `POWEROFFICE_SUBSCRIPTION_KEY` in server env). Z-report ledger post defaults to `POST …/Vouchers/ManualJournals` (direct posting; Go UI “Direktepostere manuelle bilag”); use `…/JournalEntryVouchers/ManualJournals` via `POWEROFFICE_LEDGER_POST_PATH` for the journal-entry workflow. HTTP 403 often means wrong path vs privilege set, stale token after Go privilege changes, or missing voucher documentation privilege. Z-report payloads stored on closed POS sessions may include `by_payment_method_net` (per payment_method after refunds) for ledger routing; optional `stripe_fees_minor`, `payout_to_bank_minor`, and `gift_card_sales_minor` when present—positive values override backend defaults. When those keys are absent or zero, the server may fill fees and payouts from Stripe data synced in Filament (**Stripe gebyr og saldo** / **Stripe-utbetalinger**). Category-style splits use **product collection** IDs (not article groups).
   - name: Terminals
     description: Terminal locations and readers management (Stripe-specific)
   - name: Webhooks
@@ -111,11 +115,12 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
                 default:
+                  summary: Wrong email or password
                   value:
-                    message: The provided credentials are incorrect.
+                    message: E-postadressen eller passordet er feil.
                     errors:
                       email:
-                        - The provided credentials are incorrect.
+                        - E-postadressen eller passordet er feil.
 
   /auth/me:
     get:
@@ -4788,6 +4793,126 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /poweroffice/onboarding/init:
+    post:
+      tags:
+        - PowerOffice
+      summary: Start PowerOffice Go onboarding
+      description: |
+        Returns a URL where the store admin completes PowerOffice Go activation.
+        Requires the **PowerOffice Go** add-on to be enabled for the store.
+        The backend calls PowerOffice Go API v2 `POST …/Onboarding/Initiate` using `POWEROFFICE_CLIENT_ID` (Application Key) and `POWEROFFICE_SUBSCRIPTION_KEY` (Ocp-Apim-Subscription-Key); the response `TemporaryUrl` is returned as `onboarding_url`.
+      operationId: powerofficeOnboardingInit
+      responses:
+        '200':
+          description: Onboarding URL returned
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - onboarding_url
+                properties:
+                  onboarding_url:
+                    type: string
+                    format: uri
+        '403':
+          description: Add-on disabled or no access to store
+        '404':
+          description: Store not found
+        '422':
+          description: Init failed (e.g. missing POWEROFFICE_CLIENT_ID or POWEROFFICE_SUBSCRIPTION_KEY on server, or PowerOffice API error)
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /poweroffice/onboarding/callback:
+    post:
+      tags:
+        - PowerOffice
+      summary: PowerOffice onboarding server callback
+      description: |
+        Optional server-to-server hook if PowerOffice posts back here after user approval.
+        In v2, the browser is usually redirected to `POWEROFFICE_REDIRECT_URL` (or `/integrations/poweroffice/onboarding/redirect`) with `state` and `token` query parameters; that page finalizes onboarding via `POST …/Onboarding/Finalize`.
+        Optional header `X-PowerOffice-Callback-Secret` when `POWEROFFICE_CALLBACK_SECRET` is set.
+      operationId: powerofficeOnboardingCallback
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - state
+              properties:
+                state:
+                  type: string
+                token:
+                  type: string
+                onboardingToken:
+                  type: string
+      responses:
+        '200':
+          description: Credentials stored
+        '422':
+          description: Invalid state or token
+
+  /poweroffice/sync/z-report/{posSession}:
+    post:
+      tags:
+        - PowerOffice
+      summary: Queue Z-report sync to PowerOffice
+      description: Queues a job to post the session Z-report snapshot to PowerOffice (manual / force sync).
+      operationId: powerofficeSyncZReport
+      parameters:
+        - name: posSession
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  pos_session_id:
+                    type: integer
+        '403':
+          description: Add-on disabled, or PowerOffice sync is turned off for the store (`sync_enabled` in Filament)
+        '404':
+          description: Session not found
+        '422':
+          description: Session not closed
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /poweroffice/sync/retry/{syncRun}:
+    post:
+      tags:
+        - PowerOffice
+      summary: Retry a failed PowerOffice sync
+      operationId: powerofficeSyncRetry
+      parameters:
+        - name: syncRun
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Retry queued
+        '403':
+          description: Add-on disabled, or PowerOffice sync is turned off for the store
+        '404':
+          description: Sync run not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /saf-t/generate:
     post:
       tags:
@@ -7571,7 +7696,8 @@ components:
       properties:
         message:
           type: string
-          example: The given data was invalid.
+          description: Human-readable summary (same locale as API; typically mirrors the first error or a short rollup).
+          example: E-postadressen eller passordet er feil.
         errors:
           type: object
           additionalProperties:
@@ -7580,10 +7706,10 @@ components:
               type: string
           example:
             email:
-              - The email field is required.
-              - The email must be a valid email address.
+              - Email må fylles ut.
+              - Email må være en gyldig e-postadresse.
             password:
-              - The password field is required.
+              - Password må fylles ut.
 
     PurchaseCart:
       type: object

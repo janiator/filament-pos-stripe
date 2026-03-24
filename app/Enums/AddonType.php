@@ -12,6 +12,7 @@ enum AddonType: string
     case Transfers = 'transfers';
     case Workflows = 'workflows';
     case Pos = 'pos';
+    case PowerOfficeGo = 'power_office_go';
 
     public function label(): string
     {
@@ -24,6 +25,7 @@ enum AddonType: string
             self::Transfers => 'Transfers',
             self::Workflows => 'Workflows',
             self::Pos => 'POS',
+            self::PowerOfficeGo => 'PowerOffice Go',
         };
     }
 
@@ -41,6 +43,7 @@ enum AddonType: string
             self::Transfers => 'View and manage Stripe transfers and payouts.',
             self::Workflows => 'Automate actions with event- and schedule-triggered workflows.',
             self::Pos => 'Point of sale: sessions, devices, terminals, receipts, and payment methods.',
+            self::PowerOfficeGo => 'Sync Z-reports to PowerOffice Go accounting with configurable account mapping.',
         };
     }
 

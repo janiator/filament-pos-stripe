@@ -238,6 +238,14 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * PowerOffice Go accounting integration (optional add-on).
+     */
+    public function powerOfficeIntegration(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PowerOfficeIntegration::class);
+    }
+
+    /**
      * Get event tickets for this store.
      */
     public function eventTickets()
@@ -265,6 +273,16 @@ class Store extends Model implements StripeAccount
      * Get stores for syncing based on current tenant
      * Returns current store, or all stores if on admin store
      */
+    public function stripePayouts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StoreStripePayout::class);
+    }
+
+    public function stripeBalanceTransactions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StoreStripeBalanceTransaction::class);
+    }
+
     public static function getStoresForSync(): \Illuminate\Database\Eloquent\Collection
     {
         try {

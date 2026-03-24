@@ -4,8 +4,8 @@ namespace App\Filament\Resources\PosSessions\Pages;
 
 use App\Actions\PosSessions\RegenerateZReports;
 use App\Filament\Resources\PosSessions\PosSessionResource;
+use App\Models\Store;
 use Filament\Actions\Action;
-use Filament\Actions\CreateAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -13,7 +13,6 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
-use App\Models\Store;
 
 class ListPosSessions extends ListRecords
 {
@@ -22,7 +21,6 @@ class ListPosSessions extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
             Action::make('regenerateZReports')
                 ->label('Regenerate Z-Reports')
                 ->icon(Heroicon::OutlinedArrowPath)
@@ -33,11 +31,12 @@ class ListPosSessions extends ListRecords
                 ->visible(function () {
                     // Only show to super admins
                     $user = auth()->user();
-                    if (!$user) {
+                    if (! $user) {
                         return false;
                     }
-                    
+
                     $tenant = \Filament\Facades\Filament::getTenant();
+
                     return $tenant
                         ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
                         : $user->hasRole('super_admin');
@@ -49,12 +48,12 @@ class ListPosSessions extends ListRecords
                             // Scope to current store for non-super admins, or show all for super admins
                             $tenant = \Filament\Facades\Filament::getTenant();
                             $query = Store::query();
-                            
+
                             // If there's a tenant (current store), scope to it
                             if ($tenant) {
                                 $query->where('id', $tenant->id);
                             }
-                            
+
                             return $query->orderBy('name')
                                 ->pluck('name', 'id')
                                 ->toArray();
@@ -63,6 +62,7 @@ class ListPosSessions extends ListRecords
                         ->default(function () {
                             // Default to current store
                             $tenant = \Filament\Facades\Filament::getTenant();
+
                             return $tenant?->id;
                         })
                         ->disabled(function () {
@@ -96,18 +96,19 @@ class ListPosSessions extends ListRecords
                     // Ensure store_id is set to current store if not provided
                     $tenant = \Filament\Facades\Filament::getTenant();
                     $storeId = $data['store_id'] ?? $tenant?->id;
-                    
+
                     // If no store selected and no tenant, show error
-                    if (!$storeId) {
+                    if (! $storeId) {
                         Notification::make()
                             ->title('Store Required')
                             ->body('Please select a store or ensure you are viewing a store context.')
                             ->danger()
                             ->send();
+
                         return;
                     }
-                    
-                    $action = new RegenerateZReports();
+
+                    $action = new RegenerateZReports;
                     $options = [
                         'store_id' => $storeId,
                         'from_date' => $data['from_date'] ?? null,
@@ -121,19 +122,19 @@ class ListPosSessions extends ListRecords
 
                     $message = "Processed {$stats['processed']} of {$stats['total_sessions']} sessions.\n";
                     $message .= "Regenerated: {$stats['regenerated']}\n";
-                    
+
                     if ($stats['charges_found'] > 0 || $stats['receipts_found'] > 0 || $stats['events_found'] > 0) {
                         $message .= "Found: {$stats['charges_found']} charges, {$stats['receipts_found']} receipts, {$stats['events_found']} events\n";
                     }
 
-                    if (!empty($stats['errors'])) {
+                    if (! empty($stats['errors'])) {
                         $errorCount = count($stats['errors']);
                         $message .= "\nErrors: {$errorCount}";
                         if ($errorCount <= 5) {
-                            $message .= "\n" . implode("\n", $stats['errors']);
+                            $message .= "\n".implode("\n", $stats['errors']);
                         } else {
-                            $message .= "\n" . implode("\n", array_slice($stats['errors'], 0, 5));
-                            $message .= "\n... and " . ($errorCount - 5) . " more";
+                            $message .= "\n".implode("\n", array_slice($stats['errors'], 0, 5));
+                            $message .= "\n... and ".($errorCount - 5).' more';
                         }
 
                         Notification::make()
