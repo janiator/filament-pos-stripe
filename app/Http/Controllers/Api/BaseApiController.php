@@ -71,7 +71,15 @@ abstract class BaseApiController extends BaseController
 
         $user = $request->user();
 
-        if (! $user || ! $user->stores->contains($tenant)) {
+        if (! $user) {
+            abort(403, 'You do not have access to this tenant.');
+        }
+
+        if ($user->hasGlobalSuperAdminRole()) {
+            return;
+        }
+
+        if (! $user->stores->contains($tenant)) {
             abort(403, 'You do not have access to this tenant.');
         }
     }

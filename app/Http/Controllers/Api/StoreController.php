@@ -47,7 +47,7 @@ class StoreController extends BaseApiController
         $user = $request->user();
 
         // Super admins can see all stores
-        if ($user->hasRole('super_admin')) {
+        if ($user->hasGlobalSuperAdminRole()) {
             $stores = Store::with('settings')->get();
         } else {
             $stores = $user->stores->load('settings');
@@ -84,7 +84,7 @@ class StoreController extends BaseApiController
         }
 
         // Check if user has access to this store
-        if (! $user->hasRole('super_admin') && ! $user->stores->contains($store)) {
+        if (! $user->hasGlobalSuperAdminRole() && ! $user->stores->contains($store)) {
             return response()->json([
                 'message' => 'You do not have access to this store',
             ], 403);
@@ -144,7 +144,7 @@ class StoreController extends BaseApiController
         }
 
         // Verify user has access to this store
-        if (! $user->hasRole('super_admin') && ! $user->stores->contains($store)) {
+        if (! $user->hasGlobalSuperAdminRole() && ! $user->stores->contains($store)) {
             return response()->json([
                 'message' => 'You do not have access to this store',
             ], 403);

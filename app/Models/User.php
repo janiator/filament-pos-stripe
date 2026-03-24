@@ -142,22 +142,24 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     }
 
     /**
-     * Check if user is a super admin, bypassing tenant scoping
+     * Check whether the user has the global super admin role.
      */
-    protected function isSuperAdmin(): bool
+    public function isSuperAdmin(): bool
     {
-        try {
-            // Use withoutGlobalScopes to bypass tenant scoping for role checks
-            $tenant = \Filament\Facades\Filament::getTenant();
-            if ($tenant) {
-                return $this->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists();
-            }
+        return $this->hasGlobalSuperAdminRole();
+    }
 
-            return $this->hasRole('super_admin');
-        } catch (\Throwable $e) {
-            // Fallback to regular check if Filament facade is not available
-            return $this->hasRole('super_admin');
-        }
+    /**
+     * Resolve global super-admin status without tenant-scoped role queries.
+     */
+    public function hasGlobalSuperAdminRole(): bool
+    {
+        $superAdminRoleName = (string) config('filament-shield.super_admin.name', 'super_admin');
+
+        return $this->roles()
+            ->withoutGlobalScopes()
+            ->where('name', $superAdminRoleName)
+            ->exists();
     }
 
     public function getDefaultTenant(Panel $panel): ?Model
