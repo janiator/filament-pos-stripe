@@ -305,7 +305,10 @@ class ViewPosSession extends ViewRecord
 
         $this->record->loadMissing('store.powerOfficeIntegration');
         $integration = $this->record->store?->powerOfficeIntegration;
+        if (! $integration?->isConnected() || ! $integration->sync_enabled) {
+            return false;
+        }
 
-        return (bool) ($integration?->isConnected() && $integration->sync_enabled);
+        return app(PowerOfficeZReportSync::class)->isSessionEligibleForSync($this->record);
     }
 }

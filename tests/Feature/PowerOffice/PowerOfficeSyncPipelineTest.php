@@ -4,6 +4,7 @@ use App\Enums\AddonType;
 use App\Enums\PowerOfficeMappingBasis;
 use App\Enums\PowerOfficeSyncRunStatus;
 use App\Models\Addon;
+use App\Models\ConnectedCharge;
 use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\PowerOfficeAccountMapping;
@@ -203,6 +204,12 @@ it('dispatches sync job when a Z-report event is created and integration is read
     $session = PosSession::factory()->create([
         'store_id' => $store->id,
         'status' => 'closed',
+        'closing_data' => [
+            'z_report_data' => [
+                'transactions_count' => 1,
+                'net_amount' => 1000,
+            ],
+        ],
     ]);
 
     PosEvent::create([
@@ -215,6 +222,48 @@ it('dispatches sync job when a Z-report event is created and integration is read
         'event_data' => [],
         'occurred_at' => now(),
     ]);
+
+    \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SyncPowerOfficeZReportJob::class);
+});
+
+it('dispatches sync job automatically when a session is closed from POS flow', function () {
+    \Illuminate\Support\Facades\Queue::fake();
+
+    $store = Store::factory()->create();
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::PowerOfficeGo,
+        'is_active' => true,
+    ]);
+
+    PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'auto_sync_on_z_report' => true,
+        'sync_enabled' => true,
+    ]);
+
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'status' => 'open',
+        'closed_at' => null,
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'pos_session_id' => $session->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'status' => 'succeeded',
+        'payment_method' => 'cash',
+        'amount' => 1000,
+        'amount_refunded' => 0,
+        'tip_amount' => 0,
+    ]);
+
+    expect($session->close())->toBeTrue();
+
+    expect(PosEvent::query()
+        ->where('pos_session_id', $session->id)
+        ->where('event_code', PosEvent::EVENT_Z_REPORT)
+        ->exists())->toBeTrue();
 
     \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SyncPowerOfficeZReportJob::class);
 });
@@ -238,6 +287,53 @@ it('does not dispatch sync when sync_enabled is false', function () {
     $session = PosSession::factory()->create([
         'store_id' => $store->id,
         'status' => 'closed',
+        'closing_data' => [
+            'z_report_data' => [
+                'transactions_count' => 1,
+                'net_amount' => 1000,
+            ],
+        ],
+    ]);
+
+    PosEvent::create([
+        'store_id' => $store->id,
+        'pos_session_id' => $session->id,
+        'user_id' => \App\Models\User::factory()->create()->id,
+        'event_code' => PosEvent::EVENT_Z_REPORT,
+        'event_type' => 'report',
+        'description' => 'Z',
+        'event_data' => [],
+        'occurred_at' => now(),
+    ]);
+
+    \Illuminate\Support\Facades\Queue::assertNotPushed(\App\Jobs\SyncPowerOfficeZReportJob::class);
+});
+
+it('does not dispatch sync job when z-report is not eligible', function () {
+    \Illuminate\Support\Facades\Queue::fake();
+
+    $store = Store::factory()->create();
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::PowerOfficeGo,
+        'is_active' => true,
+    ]);
+
+    PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'auto_sync_on_z_report' => true,
+        'sync_enabled' => true,
+    ]);
+
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'status' => 'closed',
+        'closing_data' => [
+            'z_report_data' => [
+                'transactions_count' => 0,
+                'net_amount' => 0,
+            ],
+        ],
     ]);
 
     PosEvent::create([

@@ -6,7 +6,9 @@ use App\Enums\AddonType;
 use App\Jobs\SyncPowerOfficeZReportJob;
 use App\Models\Addon;
 use App\Models\PosEvent;
+use App\Models\PosSession;
 use App\Models\Store;
+use App\Services\PowerOffice\PowerOfficeZReportSync;
 
 class PosEventObserver
 {
@@ -34,6 +36,15 @@ class PosEventObserver
 
         $integration = $store->powerOfficeIntegration;
         if (! $integration || ! $integration->isConnected() || ! $integration->sync_enabled || ! $integration->auto_sync_on_z_report) {
+            return;
+        }
+
+        $session = PosSession::query()->find($event->pos_session_id);
+        if (! $session) {
+            return;
+        }
+
+        if (! app(PowerOfficeZReportSync::class)->isSessionEligibleForSync($session)) {
             return;
         }
 

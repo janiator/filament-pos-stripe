@@ -6,11 +6,14 @@ use App\Enums\AddonType;
 use App\Enums\PowerOfficeSyncRunStatus;
 use App\Exceptions\PowerOffice\MissingPowerOfficeMappingException;
 use App\Exceptions\PowerOffice\PowerOfficeUnresolvedGlAccountsException;
+use App\Filament\Resources\PosSessions\Tables\PosSessionsTable;
 use App\Models\Addon;
 use App\Models\PosSession;
 use App\Models\PowerOfficeIntegration;
 use App\Models\PowerOfficeSyncRun;
 use App\Services\ZReport\ZReportPdfGenerator;
+use Filament\Notifications\Notification;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Log;
 
 class PowerOfficeZReportSync
@@ -54,8 +57,40 @@ class PowerOfficeZReportSync
         }
 
         $zReport = $session->closing_data['z_report_data'] ?? null;
+        if (! is_array($zReport) && $session->status === 'closed') {
+            try {
+                // Build and persist snapshot on-demand for legacy/manual-close flows.
+                $zReport = PosSessionsTable::generateZReport($session);
+                $session->refresh();
+                $zReport = $session->closing_data['z_report_data'] ?? $zReport;
+            } catch (\Throwable $e) {
+                Log::warning('PowerOffice sync failed to build Z-report snapshot', [
+                    'pos_session_id' => $session->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
         if (! is_array($zReport)) {
             Log::warning('PowerOffice sync skipped: no Z-report snapshot on session', ['pos_session_id' => $session->id]);
+            $syncRun = PowerOfficeSyncRun::query()->firstOrCreate(
+                ['idempotency_key' => $this->idempotencyKey($store->getKey(), $session->id)],
+                [
+                    'power_office_integration_id' => $integration->getKey(),
+                    'store_id' => $store->getKey(),
+                    'pos_session_id' => $session->id,
+                    'status' => PowerOfficeSyncRunStatus::Pending,
+                ],
+            );
+            $this->failRun($syncRun, $integration, 'No Z-report snapshot found for session.');
+
+            return false;
+        }
+
+        if (! $this->isZReportEligibleForSync($zReport)) {
+            Log::info('PowerOffice sync skipped: Z-report not eligible for sync', [
+                'pos_session_id' => $session->id,
+                'reason' => 'zero_or_missing_transaction_value',
+            ]);
 
             return false;
         }
@@ -184,7 +219,7 @@ class PowerOfficeZReportSync
             try {
                 $pdfBinary = $this->zReportPdfGenerator->render($session);
                 $filename = $this->zReportPdfGenerator->suggestedFilename($session);
-                $docResponse = $this->apiClient->putVoucherDocumentation($integration, $voucherId, $pdfBinary, $filename);
+                $docResponse = $this->putVoucherDocumentationWithRetry($integration, $voucherId, $pdfBinary, $filename);
                 if (! $docResponse->successful()) {
                     $this->apiClient->logFailedResponse('voucher_documentation_put', $docResponse);
                     $responsePayload['documentation_upload'] = [
@@ -269,6 +304,8 @@ class PowerOfficeZReportSync
 
         $integration->last_error = $message;
         $integration->save();
+
+        $this->sendFailureNotificationToStoreUsers($syncRun, $message);
     }
 
     protected function resolveFinalJournalVoucherNo(
@@ -288,21 +325,27 @@ class PowerOfficeZReportSync
         $detailPath = '/'.trim($postPath, '/').'/'.rawurlencode($voucherId);
 
         try {
-            $detailResponse = $this->apiClient->get($integration, $detailPath);
-            if (! $detailResponse->successful()) {
-                $this->apiClient->logFailedResponse('manual_journal_get_detail', $detailResponse);
+            for ($attempt = 1; $attempt <= 6; $attempt++) {
+                $detailResponse = $this->apiClient->get($integration, $detailPath);
+                if ($detailResponse->successful()) {
+                    $detailJson = $detailResponse->json();
+                    if (is_array($detailJson)) {
+                        $resolvedVoucherNo = $detailJson['VoucherNo'] ?? $detailJson['voucherNo'] ?? null;
+                        if (is_numeric($resolvedVoucherNo) && (int) $resolvedVoucherNo > 0) {
+                            return (int) $resolvedVoucherNo;
+                        }
+                    }
 
-                return (is_numeric($fallbackVoucherNo) && $fallbackVoucherNo > 0) ? (int) $fallbackVoucherNo : null;
-            }
+                    break;
+                }
 
-            $detailJson = $detailResponse->json();
-            if (! is_array($detailJson)) {
-                return (is_numeric($fallbackVoucherNo) && $fallbackVoucherNo > 0) ? (int) $fallbackVoucherNo : null;
-            }
+                if ($detailResponse->status() !== 404 || $attempt === 6) {
+                    $this->apiClient->logFailedResponse('manual_journal_get_detail', $detailResponse);
+                    break;
+                }
 
-            $resolvedVoucherNo = $detailJson['VoucherNo'] ?? $detailJson['voucherNo'] ?? null;
-            if (is_numeric($resolvedVoucherNo) && (int) $resolvedVoucherNo > 0) {
-                return (int) $resolvedVoucherNo;
+                // PowerOffice may be eventually consistent for just-created vouchers.
+                usleep(1_000_000);
             }
         } catch (\Throwable $e) {
             Log::warning('PowerOffice manual journal detail lookup failed', [
@@ -312,5 +355,99 @@ class PowerOfficeZReportSync
         }
 
         return (is_numeric($fallbackVoucherNo) && $fallbackVoucherNo > 0) ? (int) $fallbackVoucherNo : null;
+    }
+
+    protected function putVoucherDocumentationWithRetry(
+        PowerOfficeIntegration $integration,
+        string $voucherId,
+        string $pdfBinary,
+        string $filename,
+    ): Response {
+        $lastResponse = null;
+        for ($attempt = 1; $attempt <= 6; $attempt++) {
+            $response = $this->apiClient->putVoucherDocumentation($integration, $voucherId, $pdfBinary, $filename);
+            if ($response->successful()) {
+                return $response;
+            }
+
+            $lastResponse = $response;
+            if ($response->status() !== 404 || $attempt === 6) {
+                return $response;
+            }
+
+            // Retry briefly for eventual consistency after posting voucher.
+            usleep(1_000_000);
+        }
+
+        return $lastResponse;
+    }
+
+    protected function sendFailureNotificationToStoreUsers(PowerOfficeSyncRun $syncRun, string $message): void
+    {
+        $store = $syncRun->store()->with('users')->first();
+        if (! $store) {
+            return;
+        }
+
+        $sessionNumber = null;
+        $session = PosSession::query()->find($syncRun->pos_session_id);
+        if ($session) {
+            $sessionNumber = $session->session_number;
+        }
+
+        foreach ($store->users as $user) {
+            Notification::make()
+                ->title('PowerOffice sync failed')
+                ->body($sessionNumber
+                    ? "Session {$sessionNumber}: {$message}"
+                    : $message)
+                ->danger()
+                ->sendToDatabase($user);
+        }
+    }
+
+    public function isSessionEligibleForSync(PosSession $session): bool
+    {
+        if ($session->status !== 'closed') {
+            return false;
+        }
+
+        $zReport = $session->closing_data['z_report_data'] ?? null;
+        if (! is_array($zReport)) {
+            return false;
+        }
+
+        return $this->isZReportEligibleForSync($zReport);
+    }
+
+    /**
+     * @param  array<string, mixed>  $zReport
+     */
+    protected function isZReportEligibleForSync(array $zReport): bool
+    {
+        $hasTransactionCount = array_key_exists('transactions_count', $zReport)
+            || array_key_exists('transaction_count', $zReport);
+        $transactionCount = (int) ($zReport['transactions_count'] ?? $zReport['transaction_count'] ?? 0);
+        if ($hasTransactionCount && $transactionCount <= 0) {
+            return false;
+        }
+
+        $valueFields = [
+            'net_amount',
+            'total_amount',
+            'net_cash_amount',
+            'net_card_amount',
+            'net_mobile_amount',
+            'net_other_amount',
+        ];
+
+        foreach ($valueFields as $field) {
+            $value = $zReport[$field] ?? null;
+            if (is_numeric($value) && (int) $value !== 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

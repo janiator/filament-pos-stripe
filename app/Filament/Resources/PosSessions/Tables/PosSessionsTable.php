@@ -60,7 +60,7 @@ class PosSessionsTable
                     ->label('PO Synced')
                     ->tooltip('PowerOffice sync status for closed sessions')
                     ->visible(fn (): bool => self::isPowerOfficeActivatedForTenant())
-                    ->getStateUsing(function (PosSession $record): ?bool {
+                    ->getStateUsing(function (PosSession $record): ?string {
                         if ($record->status !== 'closed') {
                             return null;
                         }
@@ -70,13 +70,35 @@ class PosSessionsTable
                             return null;
                         }
 
-                        return $record->latestPowerOfficeSyncRun?->status === PowerOfficeSyncRunStatus::Success;
+                        $sync = app(PowerOfficeZReportSync::class);
+                        if (! $sync->isSessionEligibleForSync($record)) {
+                            return 'ineligible';
+                        }
+
+                        $runStatus = $record->latestPowerOfficeSyncRun?->status;
+                        if ($runStatus === PowerOfficeSyncRunStatus::Success) {
+                            return 'success';
+                        }
+                        if ($runStatus === PowerOfficeSyncRunStatus::Failed) {
+                            return 'failed';
+                        }
+
+                        return 'not_synced';
                     })
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger')
+                    ->icon(fn (?string $state): ?string => match ($state) {
+                        'success' => 'heroicon-o-check-circle',
+                        'failed' => 'heroicon-o-x-circle',
+                        'ineligible' => 'heroicon-o-x-circle',
+                        'not_synced' => 'heroicon-o-minus-circle',
+                        default => null,
+                    })
+                    ->color(fn (?string $state): ?string => match ($state) {
+                        'success' => 'success',
+                        'failed' => 'danger',
+                        'ineligible' => 'gray',
+                        'not_synced' => 'warning',
+                        default => 'gray',
+                    })
                     ->toggleable(),
                 TextColumn::make('poweroffice_journal_no')
                     ->label('PO Journal #')
@@ -597,6 +619,12 @@ class PosSessionsTable
                                     continue;
                                 }
 
+                                if (! $sync->isSessionEligibleForSync($record)) {
+                                    $skipped++;
+
+                                    continue;
+                                }
+
                                 $ok = $sync->sync($record->id, true);
                                 $run = PowerOfficeSyncRun::query()
                                     ->where('pos_session_id', $record->id)
@@ -663,8 +691,11 @@ class PosSessionsTable
 
         $record->loadMissing('store.powerOfficeIntegration');
         $integration = $record->store?->powerOfficeIntegration;
+        if (! $integration?->isConnected() || ! $integration->sync_enabled) {
+            return false;
+        }
 
-        return (bool) ($integration?->isConnected() && $integration->sync_enabled);
+        return app(PowerOfficeZReportSync::class)->isSessionEligibleForSync($record);
     }
 
     /**
