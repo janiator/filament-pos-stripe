@@ -109,6 +109,11 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     public function currentStore(): ?Store
     {
         if ($this->current_store_id) {
+            // Super admins can access any store
+            if ($this->isSuperAdmin()) {
+                return Store::find($this->current_store_id);
+            }
+
             return $this->stores()->where('stores.id', $this->current_store_id)->first();
         }
 
@@ -121,8 +126,8 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
      */
     public function setCurrentStore(Store $store): bool
     {
-        // Verify user has access to this store
-        if (! $this->stores->contains($store)) {
+        // Super admins can set any store as current
+        if (! $this->isSuperAdmin() && ! $this->stores->contains($store)) {
             return false;
         }
 
