@@ -2,13 +2,11 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
-use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Hash;
@@ -53,12 +51,16 @@ class UserForm
 
                 Select::make('roles')
                     ->label('Roles')
-                    ->relationship('roles', 'name')
+                    ->relationship(
+                        'roles',
+                        'name',
+                        modifyQueryUsing: fn ($query) => $query->withoutGlobalScopes()->orderBy('name')
+                    )
                     ->multiple()
                     ->preload()
                     ->searchable()
                     ->helperText('Assign roles to the user. Super admins have access to all stores.'),
-                
+
                 Section::make('Active API Tokens')
                     ->schema([
                         View::make('filament.resources.users.components.api-tokens')
