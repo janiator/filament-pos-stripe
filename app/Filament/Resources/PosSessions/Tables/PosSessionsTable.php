@@ -2,23 +2,33 @@
 
 namespace App\Filament\Resources\PosSessions\Tables;
 
+use App\Enums\AddonType;
+use App\Enums\PowerOfficeSyncRunStatus;
 use App\Filament\Resources\PosSessions\PosSessionResource;
 use App\Mail\ZReportMail;
+use App\Models\Addon;
 use App\Models\PosEvent;
 use App\Models\PosSession;
+use App\Models\PowerOfficeSyncRun;
+use App\Services\PowerOffice\PowerOfficeZReportSync;
+use App\Services\PowerOffice\StripeSettlementTotalsForPosSession;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -27,11 +37,16 @@ class PosSessionsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
+                'store.powerOfficeIntegration',
+                'latestPowerOfficeSyncRun',
+            ]))
             ->columns([
                 TextColumn::make('session_number')
                     ->label('Session #')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
@@ -40,36 +55,117 @@ class PosSessionsTable
                         'closed' => 'gray',
                         default => 'gray',
                     })
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
+                IconColumn::make('poweroffice_synced')
+                    ->label('PO Synced')
+                    ->tooltip('PowerOffice sync status for closed sessions')
+                    ->visible(fn (): bool => self::isPowerOfficeActivatedForTenant())
+                    ->getStateUsing(function (PosSession $record): ?string {
+                        if ($record->status !== 'closed') {
+                            return null;
+                        }
+
+                        $integration = $record->store?->powerOfficeIntegration;
+                        if (! $integration?->isConnected()) {
+                            return null;
+                        }
+
+                        $sync = app(PowerOfficeZReportSync::class);
+                        if (! $sync->isSessionEligibleForSync($record)) {
+                            return 'ineligible';
+                        }
+
+                        $runStatus = $record->latestPowerOfficeSyncRun?->status;
+                        if ($runStatus === PowerOfficeSyncRunStatus::Success) {
+                            return 'success';
+                        }
+                        if ($runStatus === PowerOfficeSyncRunStatus::Failed) {
+                            return 'failed';
+                        }
+
+                        return 'not_synced';
+                    })
+                    ->icon(fn (?string $state): ?string => match ($state) {
+                        'success' => 'heroicon-o-check-circle',
+                        'failed' => 'heroicon-o-x-circle',
+                        'ineligible' => 'heroicon-o-x-circle',
+                        'not_synced' => 'heroicon-o-minus-circle',
+                        default => null,
+                    })
+                    ->color(fn (?string $state): ?string => match ($state) {
+                        'success' => 'success',
+                        'failed' => 'danger',
+                        'ineligible' => 'gray',
+                        'not_synced' => 'warning',
+                        default => 'gray',
+                    })
+                    ->toggleable(),
+                TextColumn::make('poweroffice_journal_no')
+                    ->label('PO Journal #')
+                    ->visible(fn (): bool => self::isPowerOfficeActivatedForTenant())
+                    ->getStateUsing(function (PosSession $record): ?string {
+                        if ($record->status !== 'closed') {
+                            return null;
+                        }
+
+                        $integration = $record->store?->powerOfficeIntegration;
+                        if (! $integration?->isConnected()) {
+                            return null;
+                        }
+
+                        $run = $record->latestPowerOfficeSyncRun;
+                        if (! $run) {
+                            return null;
+                        }
+
+                        $journalNo = $run->journal_voucher_no;
+                        if (! is_numeric($journalNo)) {
+                            $journalNo = data_get($run->response_payload, 'VoucherNo')
+                                ?? data_get($run->response_payload, 'voucherNo');
+                        }
+
+                        return (is_numeric($journalNo) && (int) $journalNo > 0) ? (string) $journalNo : null;
+                    })
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('store.name')
                     ->label('Store')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('posDevice.device_name')
                     ->label('Device')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('user.name')
                     ->label('User')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('opened_at')
                     ->label('Opened')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('closed_at')
                     ->label('Closed')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('transaction_count')
                     ->label('Transactions')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('total_amount')
                     ->label('Total')
                     ->money('nok', divideBy: 100)
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('cash_difference')
                     ->label('Cash Diff')
                     ->money('nok', divideBy: 100)
                     ->color(fn ($state) => $state > 0 ? 'success' : ($state < 0 ? 'danger' : 'gray'))
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -77,8 +173,7 @@ class PosSessionsTable
                     ->options([
                         'open' => 'Open',
                         'closed' => 'Closed',
-                    ])
-                    ->default('closed'), // Default to showing closed sessions (Z-reports)
+                    ]),
 
                 SelectFilter::make('store_id')
                     ->label('Store')
@@ -93,6 +188,40 @@ class PosSessionsTable
                     ->searchable()
                     ->preload()
                     ->multiple(),
+
+                SelectFilter::make('poweroffice_synced')
+                    ->label('PowerOffice Synced')
+                    ->visible(fn (): bool => self::isPowerOfficeActivatedForTenant())
+                    ->options([
+                        'yes' => 'Yes',
+                        'no' => 'No',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $value = $data['value'] ?? null;
+                        if (! in_array($value, ['yes', 'no'], true)) {
+                            return $query;
+                        }
+
+                        $query->where('status', 'closed')
+                            ->whereHas('store.powerOfficeIntegration', function (Builder $integrationQuery): void {
+                                $integrationQuery->where('status', \App\Enums\PowerOfficeIntegrationStatus::Connected)
+                                    ->whereNotNull('client_key');
+                            });
+
+                        if ($value === 'yes') {
+                            return $query->whereHas('latestPowerOfficeSyncRun', function (Builder $syncQuery): void {
+                                $syncQuery->where('status', PowerOfficeSyncRunStatus::Success->value);
+                            });
+                        }
+
+                        return $query->where(function (Builder $unsyncedQuery): void {
+                            $unsyncedQuery
+                                ->whereDoesntHave('latestPowerOfficeSyncRun')
+                                ->orWhereHas('latestPowerOfficeSyncRun', function (Builder $syncQuery): void {
+                                    $syncQuery->where('status', '!=', PowerOfficeSyncRunStatus::Success->value);
+                                });
+                        });
+                    }),
 
                 Filter::make('closed_at')
                     ->label('Closed Date')
@@ -302,6 +431,67 @@ class PosSessionsTable
                         ]);
                     })
                     ->visible(fn (PosSession $record): bool => $record->status === 'closed'),
+                Action::make('sync_poweroffice')
+                    ->label('Sync PowerOffice')
+                    ->icon('heroicon-o-cloud-arrow-up')
+                    ->color('success')
+                    ->visible(fn (PosSession $record): bool => self::canSyncToPowerOffice($record))
+                    ->action(function (PosSession $record): void {
+                        Log::info('Filament PowerOffice sync clicked', [
+                            'pos_session_id' => $record->id,
+                            'session_number' => $record->session_number,
+                        ]);
+
+                        Notification::make()
+                            ->title('Syncing with PowerOffice...')
+                            ->body("Session {$record->session_number}")
+                            ->info()
+                            ->send();
+
+                        try {
+                            $sync = app(PowerOfficeZReportSync::class);
+                            $ok = $sync->sync($record->id, true);
+                            $run = PowerOfficeSyncRun::query()
+                                ->where('pos_session_id', $record->id)
+                                ->latest('id')
+                                ->first();
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->title('PowerOffice sync failed')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+
+                            Log::error('Filament PowerOffice sync action failed', [
+                                'pos_session_id' => $record->id,
+                                'exception' => $e->getMessage(),
+                            ]);
+
+                            return;
+                        }
+
+                        if (! $ok || $run?->status !== PowerOfficeSyncRunStatus::Success) {
+                            Notification::make()
+                                ->title('PowerOffice sync failed')
+                                ->body($run?->error_message ?? 'See PowerOffice sync runs for details.')
+                                ->danger()
+                                ->persistent()
+                                ->send();
+
+                            return;
+                        }
+
+                        $journalNo = $run->journal_voucher_no
+                            ?? data_get($run->response_payload, 'VoucherNo')
+                            ?? data_get($run->response_payload, 'voucherNo');
+
+                        Notification::make()
+                            ->title('Synced to PowerOffice')
+                            ->body((is_numeric($journalNo) && (int) $journalNo > 0) ? "Bilagsnr #{$journalNo}" : 'Z-report synced successfully.')
+                            ->success()
+                            ->persistent()
+                            ->send();
+                    }),
                 Action::make('send_z_report_email')
                     ->label('Send Z-Report Email')
                     ->icon('heroicon-o-envelope')
@@ -401,9 +591,112 @@ class PosSessionsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    // No bulk actions for sessions
+                    BulkAction::make('sync_poweroffice')
+                        ->label('Sync selected to PowerOffice')
+                        ->icon('heroicon-o-cloud-arrow-up')
+                        ->color('success')
+                        ->visible(fn (): bool => self::isPowerOfficeActivatedForTenant())
+                        ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function (Collection $records): void {
+                            $sync = app(PowerOfficeZReportSync::class);
+                            $synced = 0;
+                            $failed = 0;
+                            $skipped = 0;
+                            $errors = [];
+
+                            foreach ($records as $record) {
+                                if (! $record instanceof PosSession || $record->status !== 'closed') {
+                                    $skipped++;
+
+                                    continue;
+                                }
+
+                                $record->loadMissing('store.powerOfficeIntegration');
+                                $integration = $record->store?->powerOfficeIntegration;
+                                if (! $integration?->isConnected() || ! $integration->sync_enabled) {
+                                    $skipped++;
+
+                                    continue;
+                                }
+
+                                if (! $sync->isSessionEligibleForSync($record)) {
+                                    $skipped++;
+
+                                    continue;
+                                }
+
+                                $ok = $sync->sync($record->id, true);
+                                $run = PowerOfficeSyncRun::query()
+                                    ->where('pos_session_id', $record->id)
+                                    ->latest('id')
+                                    ->first();
+
+                                if ($ok && $run?->status === PowerOfficeSyncRunStatus::Success) {
+                                    $synced++;
+
+                                    continue;
+                                }
+
+                                $failed++;
+                                $errors[] = "Session {$record->session_number}: ".($run?->error_message ?? 'unknown error');
+                            }
+
+                            $parts = [
+                                "{$synced} synced",
+                                "{$failed} failed",
+                            ];
+                            if ($skipped > 0) {
+                                $parts[] = "{$skipped} skipped";
+                            }
+                            $body = implode(', ', $parts).'.';
+                            if ($errors !== []) {
+                                $body .= ' '.implode(' ', array_slice($errors, 0, 3));
+                                if (count($errors) > 3) {
+                                    $body .= ' … and '.(count($errors) - 3).' more.';
+                                }
+                            }
+
+                            $notification = Notification::make()
+                                ->title('PowerOffice bulk sync completed')
+                                ->body($body);
+
+                            if ($failed > 0) {
+                                $notification->warning();
+                            } elseif ($synced > 0) {
+                                $notification->success();
+                            } else {
+                                $notification->danger();
+                            }
+                            $notification->send();
+                        }),
                 ]),
             ]);
+    }
+
+    protected static function isPowerOfficeActivatedForTenant(): bool
+    {
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return false;
+        }
+
+        return Addon::storeHasActiveAddon($tenant->getKey(), AddonType::PowerOfficeGo);
+    }
+
+    protected static function canSyncToPowerOffice(PosSession $record): bool
+    {
+        if ($record->status !== 'closed') {
+            return false;
+        }
+
+        $record->loadMissing('store.powerOfficeIntegration');
+        $integration = $record->store?->powerOfficeIntegration;
+        if (! $integration?->isConnected() || ! $integration->sync_enabled) {
+            return false;
+        }
+
+        return app(PowerOfficeZReportSync::class)->isSessionEligibleForSync($record);
     }
 
     /**
@@ -470,6 +763,15 @@ class PosSessionsTable
             return [
                 'count' => $group->count(),
                 'amount' => $group->sum('amount'),
+                'tips' => $tipsEnabled ? $group->sum('tip_amount') : 0,
+            ];
+        });
+
+        // Net amount per payment method (after refunds), for accounting exports / PowerOffice routing
+        $byPaymentMethodNet = $charges->groupBy('payment_method')->map(function ($group) use ($tipsEnabled) {
+            return [
+                'count' => $group->count(),
+                'amount' => $group->sum(fn ($c) => (int) $c->amount - (int) ($c->amount_refunded ?? 0)),
                 'tips' => $tipsEnabled ? $group->sum('tip_amount') : 0,
             ];
         });
@@ -590,6 +892,7 @@ class PosSessionsTable
                 ];
             })->values(),
             'by_payment_method' => $byPaymentMethod,
+            'by_payment_method_net' => $byPaymentMethodNet,
             'by_payment_code' => $byPaymentCode,
             'transactions_by_type' => $transactionsByType,
             'cash_drawer_opens' => $cashDrawerOpens,
@@ -724,6 +1027,23 @@ class PosSessionsTable
                     }
                 }
 
+                $stripeSnapshotBefore = [
+                    'stripe_fees_minor' => $cachedReport['stripe_fees_minor'] ?? null,
+                    'payout_to_bank_minor' => $cachedReport['payout_to_bank_minor'] ?? null,
+                ];
+                self::mergeStripeSettlementTotalsIntoZReportData($session, $cachedReport);
+                $stripeSnapshotAfter = [
+                    'stripe_fees_minor' => $cachedReport['stripe_fees_minor'] ?? null,
+                    'payout_to_bank_minor' => $cachedReport['payout_to_bank_minor'] ?? null,
+                ];
+                if ($stripeSnapshotBefore !== $stripeSnapshotAfter && ! $dryRun) {
+                    $closingData = $session->closing_data;
+                    $closingData['z_report_data'] = $cachedReport;
+                    $closingData['z_report_data_backfilled_at'] = now()->toISOString();
+                    $session->closing_data = $closingData;
+                    $session->saveQuietly();
+                }
+
                 return $cachedReport;
             }
         }
@@ -837,6 +1157,8 @@ class PosSessionsTable
         // Products sold (aggregated from receipts)
         $report['products_sold'] = self::calculateProductsSold($session);
 
+        self::mergeStripeSettlementTotalsIntoZReportData($session, $report);
+
         // For closed sessions, store the report data in closing_data to preserve snapshot
         // This ensures reports remain unchanged even if vendor commission settings change later
         if ($session->status === 'closed' && ! $dryRun) {
@@ -848,6 +1170,23 @@ class PosSessionsTable
         }
 
         return $report;
+    }
+
+    /**
+     * Embed Stripe fee and payout totals into Z-report data for PowerOffice and exports.
+     * Positive values already on the report are kept (POS / manual override).
+     */
+    protected static function mergeStripeSettlementTotalsIntoZReportData(PosSession $session, array &$report): void
+    {
+        $settlements = app(StripeSettlementTotalsForPosSession::class);
+
+        if ((int) ($report['stripe_fees_minor'] ?? 0) <= 0) {
+            $report['stripe_fees_minor'] = $settlements->feesMinorForSession($session);
+        }
+
+        if ((int) ($report['payout_to_bank_minor'] ?? 0) <= 0) {
+            $report['payout_to_bank_minor'] = $settlements->payoutMinorForSessionCloseDate($session);
+        }
     }
 
     /**

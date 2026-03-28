@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\CashDrawerDisabledException;
+use App\Exceptions\InsufficientStockException;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
@@ -1124,6 +1125,7 @@ class PurchasesController extends BaseApiController
             'cart' => ['required', 'array'],
             'cart.items' => ['required', 'array', 'min:1'],
             'cart.items.*.product_id' => ['required', 'integer'],
+            'cart.items.*.variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
@@ -1263,6 +1265,19 @@ class PurchasesController extends BaseApiController
             }
         }
 
+        // For Verifone terminal payments, require provider reference metadata
+        if (($validated['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+            $verifoneReference = $validated['metadata']['verifone_payment_reference']
+                ?? $validated['metadata']['provider_payment_reference']
+                ?? null;
+            if (! $verifoneReference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifone payment reference is required for Verifone payments',
+                ], 422);
+            }
+        }
+
         try {
             // Process purchase (posSession has posDevice loaded for cash-drawer check)
             $result = $this->purchaseService->processPurchase(
@@ -1300,6 +1315,13 @@ class PurchasesController extends BaseApiController
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+            ], 422);
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'insufficient_stock',
+                'lines' => $e->lines,
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
@@ -1414,6 +1436,18 @@ class PurchasesController extends BaseApiController
             }
         }
 
+        if (($validated['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+            $verifoneReference = $validated['metadata']['verifone_payment_reference']
+                ?? $validated['metadata']['provider_payment_reference']
+                ?? null;
+            if (! $verifoneReference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifone payment reference is required for Verifone payments',
+                ], 422);
+            }
+        }
+
         // Get POS session: priority order:
         // 1. Explicitly provided pos_session_id
         // 2. Current active session for provided pos_device_id (compliance: default to current session)
@@ -1523,6 +1557,7 @@ class PurchasesController extends BaseApiController
             'cart' => ['required', 'array'],
             'cart.items' => ['required', 'array', 'min:1'],
             'cart.items.*.product_id' => ['required', 'integer'],
+            'cart.items.*.variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
@@ -1669,6 +1704,18 @@ class PurchasesController extends BaseApiController
                     ], 422);
                 }
             }
+
+            if (($paymentData['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+                $verifoneReference = $paymentData['metadata']['verifone_payment_reference']
+                    ?? $paymentData['metadata']['provider_payment_reference']
+                    ?? null;
+                if (! $verifoneReference) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Verifone payment reference is required for Verifone payment at index {$index}",
+                    ], 422);
+                }
+            }
         }
 
         try {
@@ -1709,6 +1756,13 @@ class PurchasesController extends BaseApiController
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+            ], 422);
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'insufficient_stock',
+                'lines' => $e->lines,
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
@@ -2101,6 +2155,12 @@ class PurchasesController extends BaseApiController
             'failure_message' => $purchase->failure_message,
             'created_at' => $this->formatDateTimeOslo($purchase->created_at),
         ];
+
+        $metadata = is_array($purchase->metadata) ? $purchase->metadata : [];
+        $payment['provider'] = $metadata['payment_provider'] ?? ($purchase->payment_method === 'verifone_terminal' ? 'verifone' : null);
+        $payment['provider_payment_reference'] = $metadata['provider_payment_reference']
+            ?? $metadata['verifone_payment_reference']
+            ?? null;
 
         // If there's a payment intent, try to get additional details
         if ($purchase->stripe_payment_intent_id) {

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WebhookLogs;
 
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\WebhookLogs\Pages\ListWebhookLogs;
 use App\Filament\Resources\WebhookLogs\Schemas\WebhookLogForm;
 use App\Filament\Resources\WebhookLogs\Tables\WebhookLogsTable;
@@ -14,13 +15,15 @@ use Filament\Tables\Table;
 
 class WebhookLogResource extends Resource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $model = WebhookLog::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Administration';
+        return __('filament.navigation_groups.settings');
     }
 
     protected static ?int $navigationSort = 100;
@@ -31,7 +34,7 @@ class WebhookLogResource extends Resource
     public static function boot(): void
     {
         parent::boot();
-        
+
         // Disable tenant scoping for webhook logs
         static::scopeToTenant(false);
     }
@@ -45,11 +48,11 @@ class WebhookLogResource extends Resource
     {
         // Only allow super admins to view webhook logs
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return false;
         }
-        
-        return \Filament\Facades\Filament::getTenant() 
+
+        return \Filament\Facades\Filament::getTenant()
             ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
             : $user->hasRole('super_admin');
     }

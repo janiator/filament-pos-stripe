@@ -3,9 +3,14 @@
 namespace App\Filament\Resources\PosSessions\Pages;
 
 use App\Actions\PosSessions\RegenerateZReports;
+use App\Enums\AddonType;
+use App\Enums\PowerOfficeSyncRunStatus;
 use App\Filament\Resources\PosSessions\PosSessionResource;
+use App\Models\Addon;
 use App\Models\PosEvent;
+use App\Models\PowerOfficeSyncRun;
 use App\Services\CashDrawerService;
+use App\Services\PowerOffice\PowerOfficeZReportSync;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;
@@ -32,6 +37,57 @@ class ViewPosSession extends ViewRecord
         return [
             EditAction::make()
                 ->visible(fn () => $this->record->status !== 'closed'),
+            Action::make('sync_poweroffice')
+                ->label('Sync PowerOffice')
+                ->icon('heroicon-o-cloud-arrow-up')
+                ->color('success')
+                ->visible(fn (): bool => $this->canSyncToPowerOffice())
+                ->action(function (): void {
+                    Notification::make()
+                        ->title('Syncing with PowerOffice...')
+                        ->body("Session {$this->record->session_number}")
+                        ->info()
+                        ->send();
+
+                    try {
+                        $sync = app(PowerOfficeZReportSync::class);
+                        $ok = $sync->sync($this->record->id, true);
+                        $run = PowerOfficeSyncRun::query()
+                            ->where('pos_session_id', $this->record->id)
+                            ->latest('id')
+                            ->first();
+                    } catch (\Throwable $e) {
+                        Notification::make()
+                            ->title('PowerOffice sync failed')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    if (! $ok || $run?->status !== PowerOfficeSyncRunStatus::Success) {
+                        Notification::make()
+                            ->title('PowerOffice sync failed')
+                            ->body($run?->error_message ?? 'See PowerOffice sync runs for details.')
+                            ->danger()
+                            ->persistent()
+                            ->send();
+
+                        return;
+                    }
+
+                    $journalNo = $run->journal_voucher_no
+                        ?? data_get($run->response_payload, 'VoucherNo')
+                        ?? data_get($run->response_payload, 'voucherNo');
+
+                    Notification::make()
+                        ->title('Synced to PowerOffice')
+                        ->body((is_numeric($journalNo) && (int) $journalNo > 0) ? "Bilagsnr #{$journalNo}" : 'Z-report synced successfully.')
+                        ->success()
+                        ->persistent()
+                        ->send();
+                }),
             Action::make('cash_withdrawal')
                 ->label('Registrer kontantuttak')
                 ->icon(Heroicon::OutlinedBanknotes)
@@ -234,5 +290,25 @@ class ViewPosSession extends ViewRecord
                     $this->refresh();
                 }),
         ];
+    }
+
+    protected function canSyncToPowerOffice(): bool
+    {
+        if ($this->record->status !== 'closed') {
+            return false;
+        }
+
+        $tenant = \Filament\Facades\Filament::getTenant();
+        if (! $tenant || ! Addon::storeHasActiveAddon($tenant->getKey(), AddonType::PowerOfficeGo)) {
+            return false;
+        }
+
+        $this->record->loadMissing('store.powerOfficeIntegration');
+        $integration = $this->record->store?->powerOfficeIntegration;
+        if (! $integration?->isConnected() || ! $integration->sync_enabled) {
+            return false;
+        }
+
+        return app(PowerOfficeZReportSync::class)->isSessionEligibleForSync($this->record);
     }
 }

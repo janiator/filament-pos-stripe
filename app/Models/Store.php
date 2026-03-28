@@ -30,6 +30,15 @@ class Store extends Model implements StripeAccount
         'commission_rate',
         'stripe_account_id',
         'default_terminal_location_id',
+        'default_terminal_provider',
+        'verifone_api_base_url',
+        'verifone_user_uid',
+        'verifone_api_key',
+        'verifone_encoded_basic_auth',
+        'verifone_site_entity_id',
+        'verifone_sale_id',
+        'verifone_operator_id',
+        'verifone_terminal_simulator',
         'merano_base_url',
         'merano_pos_api_token',
         'merano_ticket_connected_product_id',
@@ -40,6 +49,9 @@ class Store extends Model implements StripeAccount
         'commission_rate' => 'integer',
         'merano_pos_api_token' => 'encrypted',
         'reports_api_token' => 'encrypted',
+        'verifone_api_key' => 'encrypted',
+        'verifone_encoded_basic_auth' => 'encrypted',
+        'verifone_terminal_simulator' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -83,6 +95,16 @@ class Store extends Model implements StripeAccount
     public function terminalReaders()
     {
         return $this->hasMany(\App\Models\TerminalReader::class);
+    }
+
+    public function verifoneTerminals(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\VerifoneTerminal::class);
+    }
+
+    public function verifoneTerminalPayments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\VerifoneTerminalPayment::class);
     }
 
     /**
@@ -238,6 +260,22 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<\App\Models\InventoryStockMovement, $this>
+     */
+    public function inventoryStockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(InventoryStockMovement::class);
+    }
+
+    /**
+     * PowerOffice Go accounting integration (optional add-on).
+     */
+    public function powerOfficeIntegration(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PowerOfficeIntegration::class);
+    }
+
+    /**
      * Get event tickets for this store.
      */
     public function eventTickets()
@@ -265,6 +303,16 @@ class Store extends Model implements StripeAccount
      * Get stores for syncing based on current tenant
      * Returns current store, or all stores if on admin store
      */
+    public function stripePayouts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StoreStripePayout::class);
+    }
+
+    public function stripeBalanceTransactions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StoreStripeBalanceTransaction::class);
+    }
+
     public static function getStoresForSync(): \Illuminate\Database\Eloquent\Collection
     {
         try {

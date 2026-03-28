@@ -18,7 +18,7 @@
 //   String paymentMethodCode,
 //   String apiBaseUrl,
 //   String authToken,
-//   String? paymentIntentId,  // Optional, for Stripe payments
+//   CreateTerminalPaymentIntentResponseStruct? terminalPaymentResult,  // Optional, returned from createAndProcessTerminalPayment
 //   String? additionalMetadataJson,  // Optional, pass as JSON string. For deferred payments, include: {"deferred_payment": true, "deferred_reason": "Payment on pickup"}
 //   bool isSplitPayment,  // Default: false
 //   String? splitPaymentsJson,  // Optional, pass as JSON string for split payments
@@ -33,7 +33,7 @@ Future<dynamic> completePosPurchase(
   String paymentMethodCode,
   String apiBaseUrl,
   String authToken,
-  String? paymentIntentId,
+  CreateTerminalPaymentIntentResponseStruct? terminalPaymentResult,
   String? additionalMetadataJson,
   bool isSplitPayment,
   String? splitPaymentsJson,
@@ -218,14 +218,51 @@ Future<dynamic> completePosPurchase(
       }
     }
     
+    // Treat empty placeholder structs as "no terminal result".
+    final hasTerminalProvider =
+        (terminalPaymentResult?.provider ?? '').trim().isNotEmpty;
+    final paymentProvider =
+        hasTerminalProvider ? terminalPaymentResult?.provider : null;
+    final providerPaymentReference = hasTerminalProvider
+        ? terminalPaymentResult?.providerPaymentReference
+        : null;
+    final providerPaymentStatus =
+        hasTerminalProvider ? terminalPaymentResult?.status : null;
+    final paymentIntentId =
+        hasTerminalProvider ? terminalPaymentResult?.paymentIntentId : null;
+
     // Build request body
     Map<String, dynamic> requestBody;
     
     if (isSplitPayment && splitPayments != null && splitPayments.isNotEmpty) {
       // Split payment request
+      final normalizedSplitPayments = splitPayments.map((payment) {
+        final metadata = <String, dynamic>{
+          ...(payment['metadata'] as Map<String, dynamic>? ?? {}),
+        };
+
+        if (paymentProvider != null && paymentProvider.isNotEmpty) {
+          metadata['payment_provider'] = paymentProvider;
+        }
+        if (providerPaymentReference != null && providerPaymentReference.isNotEmpty) {
+          metadata['provider_payment_reference'] = providerPaymentReference;
+          if (paymentProvider == 'verifone') {
+            metadata['verifone_payment_reference'] = providerPaymentReference;
+          }
+        }
+        if (providerPaymentStatus != null && providerPaymentStatus.isNotEmpty) {
+          metadata['provider_payment_status'] = providerPaymentStatus;
+        }
+
+        return {
+          ...payment,
+          'metadata': metadata,
+        };
+      }).toList();
+
       requestBody = {
         'pos_session_id': posSessionId,
-        'payments': splitPayments,
+        'payments': normalizedSplitPayments,
         'cart': cartData,
         'metadata': {
           ...?additionalMetadata,
@@ -236,8 +273,21 @@ Future<dynamic> completePosPurchase(
       final metadata = <String, dynamic>{
         ...?additionalMetadata,
       };
-      
-      // Add payment intent ID if provided (for Stripe payments)
+
+      if (paymentProvider != null && paymentProvider.isNotEmpty) {
+        metadata['payment_provider'] = paymentProvider;
+      }
+      if (providerPaymentReference != null && providerPaymentReference.isNotEmpty) {
+        metadata['provider_payment_reference'] = providerPaymentReference;
+        if (paymentProvider == 'verifone') {
+          metadata['verifone_payment_reference'] = providerPaymentReference;
+        }
+      }
+      if (providerPaymentStatus != null && providerPaymentStatus.isNotEmpty) {
+        metadata['provider_payment_status'] = providerPaymentStatus;
+      }
+
+      // Add payment intent ID if provided (for Stripe payments, backwards-compatible)
       if (paymentIntentId != null && paymentIntentId.isNotEmpty) {
         metadata['payment_intent_id'] = paymentIntentId;
       }

@@ -55,12 +55,44 @@ class PosSessionObserver
                 'occurred_at' => $session->closed_at ?? now(),
             ]);
 
+            // Ensure a Z-report event exists when a session is closed.
+            // PowerOffice auto-sync is triggered by EVENT_Z_REPORT.
+            $hasZReportEvent = PosEvent::query()
+                ->where('pos_session_id', $session->id)
+                ->where('event_code', PosEvent::EVENT_Z_REPORT)
+                ->exists();
+
+            if (! $hasZReportEvent) {
+                try {
+                    $report = PosSessionsTable::generateZReport($session);
+
+                    PosEvent::create([
+                        'store_id' => $session->store_id,
+                        'pos_device_id' => $session->pos_device_id,
+                        'pos_session_id' => $session->id,
+                        'user_id' => $session->user_id,
+                        'event_code' => PosEvent::EVENT_Z_REPORT,
+                        'event_type' => 'report',
+                        'description' => "Z-report for session {$session->session_number}",
+                        'event_data' => [
+                            'report_type' => 'Z-Report',
+                            'session_number' => $session->session_number,
+                            'report_data' => $report,
+                            'auto_generated_on_close' => true,
+                        ],
+                        'occurred_at' => $session->closed_at ?? now(),
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::error("Failed to generate Z-report event on close for session {$session->session_number}: ".$e->getMessage());
+                }
+            }
+
             // Send Z-report email if store has z_report_email configured
             try {
                 PosSessionsTable::sendZReportEmail($session);
             } catch (\Exception $e) {
                 // Log error but don't fail the session closing
-                Log::error("Failed to send Z-report email for session {$session->session_number}: " . $e->getMessage());
+                Log::error("Failed to send Z-report email for session {$session->session_number}: ".$e->getMessage());
             }
         }
     }

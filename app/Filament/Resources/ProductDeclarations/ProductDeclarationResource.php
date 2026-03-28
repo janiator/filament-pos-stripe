@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\ProductDeclarations;
 
-use App\Enums\AddonType;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ProductDeclarations\Pages\CreateProductDeclaration;
 use App\Filament\Resources\ProductDeclarations\Pages\EditProductDeclaration;
@@ -11,7 +10,6 @@ use App\Filament\Resources\ProductDeclarations\Schemas\ProductDeclarationForm;
 use App\Filament\Resources\ProductDeclarations\Tables\ProductDeclarationsTable;
 use App\Models\ProductDeclaration;
 use BackedEnum;
-use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -39,7 +37,7 @@ class ProductDeclarationResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return \App\Models\Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Pos);
+        return false;
     }
 
     public static function getNavigationSort(): ?int

@@ -33,6 +33,7 @@ class PaymentMethodsTable
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'stripe' => 'success',
+                        'verifone' => 'info',
                         'cash' => 'warning',
                         'other' => 'gray',
                         default => 'gray',
@@ -82,6 +83,7 @@ class PaymentMethodsTable
                     ->label('Provider')
                     ->options([
                         'stripe' => 'Stripe',
+                        'verifone' => 'Verifone',
                         'cash' => 'Cash',
                         'other' => 'Other',
                     ]),
