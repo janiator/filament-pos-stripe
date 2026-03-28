@@ -24,6 +24,10 @@ return [
             'status_updated_title' => 'Product status updated',
             'status_updated_body' => 'The product active status has been updated successfully.',
         ],
+        'form' => [
+            'track_inventory' => 'Track inventory',
+            'track_inventory_help' => 'When enabled, variant quantities are enforced at checkout if the Inventory add-on is on for this store.',
+        ],
     ],
     'resources' => [
         'store' => [

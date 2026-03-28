@@ -54,6 +54,7 @@ class AppPanelProvider extends PanelProvider
                 RoleResource::class, // Register before plugin so plugin detects it
             ])
             ->maxContentWidth(Width::Full)
+            ->sidebarCollapsibleOnDesktop()
             ->plugin(FilamentShieldPlugin::make());
 
         if (class_exists(\Leek\FilamentWorkflows\WorkflowsPlugin::class)) {

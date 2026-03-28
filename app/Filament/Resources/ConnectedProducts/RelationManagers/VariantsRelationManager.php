@@ -2,13 +2,15 @@
 
 namespace App\Filament\Resources\ConnectedProducts\RelationManagers;
 
+use App\Enums\AddonType;
 use App\Filament\Resources\ConnectedProducts\Actions\BulkCreateVariantsAction;
-use App\Models\ProductVariant;
+use App\Models\Addon;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -45,19 +47,20 @@ class VariantsRelationManager extends RelationManager
         if (isset($data['compare_at_price_amount']) && $data['compare_at_price_amount'] !== null && $data['compare_at_price_amount'] > 0) {
             $data['compare_at_price_amount'] = $data['compare_at_price_amount'] / 100;
         }
+
         return $data;
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
         // dehydrateStateUsing handles the conversion now, but ensure stripe_account_id is set
-        if (!isset($data['stripe_account_id'])) {
+        if (! isset($data['stripe_account_id'])) {
             $data['stripe_account_id'] = $this->ownerRecord->stripe_account_id;
         }
 
         return $data;
     }
-    
+
     protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
     {
         // Ensure conversion happens even if mutateFormDataBeforeSave wasn't called
@@ -70,7 +73,7 @@ class VariantsRelationManager extends RelationManager
             }
             unset($data['price_decimal']);
         }
-        
+
         // Convert compare_at_price_decimal to compare_at_price_amount if present
         if (isset($data['compare_at_price_decimal'])) {
             if ($data['compare_at_price_decimal'] !== null && $data['compare_at_price_decimal'] !== '') {
@@ -80,7 +83,7 @@ class VariantsRelationManager extends RelationManager
             }
             unset($data['compare_at_price_decimal']);
         }
-        
+
         // Debug logging
         \Log::debug('VariantsRelationManager handleRecordUpdate', [
             'record_id' => $record->id,
@@ -89,20 +92,20 @@ class VariantsRelationManager extends RelationManager
             'price_decimal' => $data['price_decimal'] ?? 'NOT SET',
             'current_price_amount' => $record->price_amount,
         ]);
-        
+
         // Call parent to handle the update
         $result = parent::handleRecordUpdate($record, $data);
-        
+
         // Debug after save
         $result->refresh();
         \Log::debug('VariantsRelationManager after update', [
             'record_id' => $result->id,
             'saved_price_amount' => $result->price_amount,
         ]);
-        
+
         return $result;
     }
-    
+
     protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
         // Ensure conversion happens even if mutateFormDataBeforeSave wasn't called
@@ -115,7 +118,7 @@ class VariantsRelationManager extends RelationManager
             }
             unset($data['price_decimal']);
         }
-        
+
         // Convert compare_at_price_decimal to compare_at_price_amount if present
         if (isset($data['compare_at_price_decimal'])) {
             if ($data['compare_at_price_decimal'] !== null && $data['compare_at_price_decimal'] !== '') {
@@ -125,7 +128,7 @@ class VariantsRelationManager extends RelationManager
             }
             unset($data['compare_at_price_decimal']);
         }
-        
+
         // Call parent to handle the creation
         return parent::handleRecordCreation($data);
     }
@@ -193,6 +196,7 @@ class VariantsRelationManager extends RelationManager
                                         if ($state !== null && $state !== '') {
                                             return (int) round((float) $state * 100);
                                         }
+
                                         return null;
                                     })
                                     ->formatStateUsing(function ($state) {
@@ -200,6 +204,7 @@ class VariantsRelationManager extends RelationManager
                                         if ($state !== null && $state > 0) {
                                             return $state / 100;
                                         }
+
                                         return null;
                                     }),
 
@@ -220,6 +225,7 @@ class VariantsRelationManager extends RelationManager
                                         if ($state !== null && $state !== '') {
                                             return (int) round((float) $state * 100);
                                         }
+
                                         return null;
                                     })
                                     ->formatStateUsing(function ($state) {
@@ -227,6 +233,7 @@ class VariantsRelationManager extends RelationManager
                                         if ($state !== null && $state > 0) {
                                             return $state / 100;
                                         }
+
                                         return null;
                                     })
                                     ->visible(fn ($get) => ($get('price_amount') ?? 0) > 0),
@@ -296,6 +303,8 @@ class VariantsRelationManager extends RelationManager
                                     ->columnSpan(2),
                             ]),
                     ])
+                    ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Inventory)
+                        && (bool) $this->ownerRecord->track_inventory)
                     ->collapsible(),
 
                 Section::make('Physical Properties')
@@ -358,7 +367,7 @@ class VariantsRelationManager extends RelationManager
 
                 TextColumn::make('compare_at_price_amount')
                     ->label('Compare At')
-                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) . ' NOK' : '-')
+                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2).' NOK' : '-')
                     ->badge()
                     ->color('gray')
                     ->toggleable(),
@@ -376,6 +385,7 @@ class VariantsRelationManager extends RelationManager
                         if ($state === null) {
                             return 'Not tracked';
                         }
+
                         return $state > 0
                             ? "<span class='text-success-600 font-semibold'>{$state}</span>"
                             : "<span class='text-danger-600 font-semibold'>Out of stock</span>";
@@ -383,12 +393,16 @@ class VariantsRelationManager extends RelationManager
                     ->html()
                     ->sortable()
                     ->toggleable()
-                    ->searchable(),
+                    ->searchable()
+                    ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Inventory)
+                        && (bool) $this->ownerRecord->track_inventory),
 
                 IconColumn::make('in_stock')
                     ->label('In Stock')
                     ->boolean()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Inventory)
+                        && (bool) $this->ownerRecord->track_inventory),
 
                 IconColumn::make('active')
                     ->label('Active')
@@ -420,7 +434,9 @@ class VariantsRelationManager extends RelationManager
                     ->label('In Stock')
                     ->placeholder('All')
                     ->trueLabel('In stock only')
-                    ->falseLabel('Out of stock only'),
+                    ->falseLabel('Out of stock only')
+                    ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Inventory)
+                        && (bool) $this->ownerRecord->track_inventory),
             ])
             ->headerActions([
                 BulkCreateVariantsAction::make(),

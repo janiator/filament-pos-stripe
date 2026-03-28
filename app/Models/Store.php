@@ -260,6 +260,14 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<\App\Models\InventoryStockMovement, $this>
+     */
+    public function inventoryStockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(InventoryStockMovement::class);
+    }
+
+    /**
      * PowerOffice Go accounting integration (optional add-on).
      */
     public function powerOfficeIntegration(): \Illuminate\Database\Eloquent\Relations\HasOne

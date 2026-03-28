@@ -5,6 +5,8 @@ namespace App\Filament\Resources\ConnectedProducts\Tables;
 use App\Actions\ConnectedProducts\CreateConnectedProductInStripe;
 use App\Actions\ConnectedProducts\ResolveProductVatRate;
 use App\Actions\ConnectedProducts\UpdateConnectedProductToStripe;
+use App\Enums\AddonType;
+use App\Models\Addon;
 use App\Models\ArticleGroupCode;
 use App\Models\ConnectedProduct;
 use App\Models\Vendor;
@@ -15,6 +17,7 @@ use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
@@ -159,6 +162,7 @@ class ConnectedProductsTable
 
                         return (string) $variants->sum('inventory_quantity');
                     })
+                    ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Inventory))
                     ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('compare_at_price_amount')

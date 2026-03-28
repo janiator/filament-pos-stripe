@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\CashDrawerDisabledException;
+use App\Exceptions\InsufficientStockException;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
@@ -1124,6 +1125,7 @@ class PurchasesController extends BaseApiController
             'cart' => ['required', 'array'],
             'cart.items' => ['required', 'array', 'min:1'],
             'cart.items.*.product_id' => ['required', 'integer'],
+            'cart.items.*.variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
@@ -1313,6 +1315,13 @@ class PurchasesController extends BaseApiController
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+            ], 422);
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'insufficient_stock',
+                'lines' => $e->lines,
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
@@ -1548,6 +1557,7 @@ class PurchasesController extends BaseApiController
             'cart' => ['required', 'array'],
             'cart.items' => ['required', 'array', 'min:1'],
             'cart.items.*.product_id' => ['required', 'integer'],
+            'cart.items.*.variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
@@ -1746,6 +1756,13 @@ class PurchasesController extends BaseApiController
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+            ], 422);
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'insufficient_stock',
+                'lines' => $e->lines,
             ], 422);
         } catch (\Exception $e) {
             return response()->json([

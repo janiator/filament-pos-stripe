@@ -3591,7 +3591,8 @@ paths:
                             type: string
                             example: "11001"
         '422':
-          description: Validation error or business rule violation
+          description: |
+            Validation error or business rule violation. When the Inventory add-on is active and a line exceeds available stock (deny policy), the response may include `error: insufficient_stock` and `lines` with variant_id, requested, and available quantities.
           content:
             application/json:
               schema:
@@ -3603,6 +3604,28 @@ paths:
                   message:
                     type: string
                     example: Payment method is not enabled
+                  error:
+                    type: string
+                    example: insufficient_stock
+                    description: Present for inventory shortfall responses
+                  lines:
+                    type: array
+                    description: Per-variant shortfall details when error is insufficient_stock
+                    items:
+                      type: object
+                      properties:
+                        variant_id:
+                          type: integer
+                        product_id:
+                          type: integer
+                          nullable: true
+                        requested:
+                          type: integer
+                        available:
+                          type: integer
+                        sku:
+                          type: string
+                          nullable: true
                   errors:
                     type: object
         '403':
@@ -4401,7 +4424,9 @@ paths:
       tags:
         - Inventory
       summary: Get product inventory
-      description: Get inventory information for a product and all its variants
+      description: |
+        Get inventory information for a product and all its variants.
+        Requires the **Inventory** add-on to be enabled for the store; otherwise returns 403.
       operationId: getProductInventory
       parameters:
         - name: product
@@ -4456,6 +4481,16 @@ paths:
                               type: boolean
         '404':
           description: Product not found
+        '403':
+          description: Inventory add-on is not enabled for this store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Inventory add-on is not enabled for this store.
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -4610,6 +4645,8 @@ paths:
                             type: boolean
         '404':
           description: Variant not found
+        '403':
+          description: Inventory add-on is not enabled for this store
         '422':
           description: Validation error
         '401':
@@ -4672,6 +4709,8 @@ paths:
                         nullable: true
         '404':
           description: Variant not found
+        '403':
+          description: Inventory add-on is not enabled for this store
         '422':
           description: Validation error
         '401':
@@ -4730,6 +4769,8 @@ paths:
                         nullable: true
         '404':
           description: Variant not found
+        '403':
+          description: Inventory add-on is not enabled for this store
         '422':
           description: Validation error
         '401':
@@ -4740,7 +4781,7 @@ paths:
       tags:
         - Inventory
       summary: Bulk update inventory
-      description: Update inventory for multiple variants at once
+      description: Set absolute inventory quantity for multiple variants (requires Inventory add-on)
       operationId: bulkUpdateInventory
       requestBody:
         required: true
@@ -4749,31 +4790,24 @@ paths:
             schema:
               type: object
               required:
-                - updates
+                - variants
               properties:
-                updates:
+                variants:
                   type: array
-                  description: Array of inventory updates
+                  description: Variant IDs and target quantities
                   items:
                     type: object
                     required:
                       - variant_id
+                      - quantity
                     properties:
                       variant_id:
                         type: integer
                         description: Variant ID
-                      inventory_quantity:
+                      quantity:
                         type: integer
-                        nullable: true
                         minimum: 0
-                      inventory_policy:
-                        type: string
-                        nullable: true
-                        enum: [deny, continue]
-                      inventory_management:
-                        type: string
-                        nullable: true
-                        maxLength: 255
+                        description: New inventory quantity
       responses:
         '200':
           description: Bulk update completed
@@ -4782,15 +4816,23 @@ paths:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                    example: Bulk update completed
                   updated:
-                    type: integer
-                    description: Number of variants updated
-                  failed:
-                    type: integer
-                    description: Number of variants that failed to update
+                    type: array
+                    items:
+                      type: object
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                  summary:
+                    type: object
+                    properties:
+                      updated_count:
+                        type: integer
+                      error_count:
+                        type: integer
+        '403':
+          description: Inventory add-on is not enabled for this store
         '422':
           description: Validation error
         '401':
@@ -6411,6 +6453,10 @@ components:
           type: boolean
           default: false
           description: When true, booking actions may be enabled for this device if the store has the Merano Booking add-on active
+        inventory_enabled:
+          type: boolean
+          default: false
+          description: When true, the store has the Inventory add-on active; the app may show stock levels and must send variant_id on cart lines for tracked variants
         auto_print_receipt:
           type: boolean
           default: true
@@ -7746,6 +7792,10 @@ components:
           type: boolean
           description: If true, this product has no preset price and requires custom price input on POS.
           default: false
+        track_inventory:
+          type: boolean
+          default: false
+          description: When true and the store has the Inventory add-on, variant quantities with a non-null inventory_quantity are enforced at checkout (deny policy).
         product_price:
           type: object
           nullable: true
@@ -7859,6 +7909,7 @@ components:
                     nullable: true
                   tracked:
                     type: boolean
+                    description: True when the Inventory add-on is active, this product has track_inventory enabled, and this variant has inventory_quantity set (null means not tracked).
         variants_count:
           type: integer
         product_inventory:

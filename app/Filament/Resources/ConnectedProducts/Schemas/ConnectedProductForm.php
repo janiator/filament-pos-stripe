@@ -2,12 +2,16 @@
 
 namespace App\Filament\Resources\ConnectedProducts\Schemas;
 
+use App\Enums\AddonType;
+use App\Models\Addon;
 use App\Models\ArticleGroupCode;
 use App\Models\Collection;
 use App\Models\Vendor;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
@@ -201,6 +205,13 @@ class ConnectedProductForm
                                             ->default(false)
                                             ->columnSpanFull(),
 
+                                        Toggle::make('track_inventory')
+                                            ->label(__('filament.connected_products.form.track_inventory'))
+                                            ->helperText(__('filament.connected_products.form.track_inventory_help'))
+                                            ->default(false)
+                                            ->columnSpanFull()
+                                            ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Inventory)),
+
                                         Grid::make(2)
                                             ->schema([
                                                 self::buildArticleGroupCodeSelect(),
@@ -388,9 +399,8 @@ class ConnectedProductForm
                                                             ->label('Handle (Slug)')
                                                             ->maxLength(255)
                                                             ->helperText('URL-friendly identifier'),
-                                                        Textarea::make('description')
-                                                            ->label('Description')
-                                                            ->rows(3),
+                                                        RichEditor::make('description')
+                                                            ->label('Description'),
                                                         Toggle::make('active')
                                                             ->label('Active')
                                                             ->default(true),
@@ -577,9 +587,8 @@ class ConnectedProductForm
                                                             ->label('Symbol')
                                                             ->maxLength(20)
                                                             ->helperText('The symbol or abbreviation (e.g., "stk", "kg")'),
-                                                        Textarea::make('description')
+                                                        RichEditor::make('description')
                                                             ->label('Description')
-                                                            ->rows(3)
                                                             ->helperText('Optional description for this quantity unit'),
                                                         Toggle::make('active')
                                                             ->label('Active')
@@ -793,40 +802,6 @@ class ConnectedProductForm
                         // Left column - Media (takes 1/3 on large screens)
                         Group::make()
                             ->schema([
-                                Section::make('Media')
-                                    ->description('Product images and media')
-                                    ->schema([
-                                        SpatieMediaLibraryFileUpload::make('images')
-                                            ->label('Product Images')
-                                            ->collection('images')
-                                            ->multiple()
-                                            ->image()
-                                            ->optimize('webp')
-                                            ->maxImageWidth(1920)
-                                            ->maxImageHeight(1920)
-                                            ->imageEditor()
-                                            ->imageEditorAspectRatios([
-                                                null,
-                                                '16:9',
-                                                '4:3',
-                                                '1:1',
-                                            ])
-                                            ->maxFiles(8)
-                                            ->helperText('Upload product images. These will be synced to Stripe when saved.')
-                                            ->columnSpanFull(),
-                                    ])
-                                    ->collapsible()
-                                    ->collapsed(false),
-                            ])
-                            ->columnSpan([
-                                'default' => 1,
-                                'lg' => 1,
-                            ])
-                            ->visibleOn('edit'),
-
-                        // Right column - Product Details (takes 2/3 on large screens)
-                        Group::make()
-                            ->schema([
                                 // Product Information Section
                                 Section::make('Product Information')
                                     ->description('Basic product details')
@@ -838,27 +813,10 @@ class ConnectedProductForm
                                             ->columnSpanFull()
                                             ->helperText('This field will sync to Stripe when saved'),
 
-                                        Textarea::make('description')
+                                        RichEditor::make('description')
                                             ->label('Description')
-                                            ->rows(8)
                                             ->columnSpanFull()
                                             ->helperText('Product description. This field will sync to Stripe when saved'),
-
-                                        Grid::make(2)
-                                            ->schema([
-                                                TextInput::make('type')
-                                                    ->label('Product Type')
-                                                    ->disabled()
-                                                    ->dehydrated(false)
-                                                    ->formatStateUsing(fn ($state) => $state ? ucfirst($state) : 'Service')
-                                                    ->helperText('Product type cannot be changed after creation'),
-
-                                                Toggle::make('active')
-                                                    ->label('Product Status')
-                                                    ->helperText('Active products are visible in Stripe')
-                                                    ->default(true),
-                                            ])
-                                            ->columnSpanFull(),
 
                                         Select::make('product_type')
                                             ->label('Product Structure')
@@ -1023,18 +981,18 @@ class ConnectedProductForm
                                                 }
                                             }),
 
-                                        TextInput::make('default_price')
-                                            ->label('Default Price ID')
-                                            ->helperText('Automatically set when price is saved')
-                                            ->disabled()
-                                            ->dehydrated(false)
-                                            ->visible(fn ($record) => $record && $record->default_price),
-
                                         Toggle::make('no_price_in_pos')
                                             ->label('No Price in POS')
                                             ->helperText('Enable this to allow custom price input on POS. When enabled, the price field can be left empty and will not be restored from default_price.')
                                             ->default(false)
                                             ->columnSpanFull(),
+
+                                        Toggle::make('track_inventory')
+                                            ->label(__('filament.connected_products.form.track_inventory'))
+                                            ->helperText(__('filament.connected_products.form.track_inventory_help'))
+                                            ->default(false)
+                                            ->columnSpanFull()
+                                            ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Inventory)),
 
                                         Grid::make(2)
                                             ->schema([
@@ -1067,187 +1025,6 @@ class ConnectedProductForm
                                     ->collapsible()
                                     ->collapsed(true)
                                     ->visibleOn('edit'),
-
-                                // Vendor Section
-                                Section::make('Vendor')
-                                    ->description('Assign a vendor to this product')
-                                    ->schema([
-                                        Select::make('vendor_id')
-                                            ->label('Vendor')
-                                            ->relationship(
-                                                'vendor',
-                                                'name',
-                                                modifyQueryUsing: function ($query, $get, $record) {
-                                                    $stripeAccountId = self::resolveStripeAccountId($get, $record);
-
-                                                    if ($stripeAccountId) {
-                                                        return $query->where('stripe_account_id', $stripeAccountId)
-                                                            ->where('active', true)
-                                                            ->orderBy('name', 'asc');
-                                                    }
-
-                                                    return $query->whereRaw('1 = 0');
-                                                }
-                                            )
-                                            ->searchable()
-                                            ->preload()
-                                            ->helperText('Select the vendor for this product')
-                                            ->placeholder('No vendor')
-                                            ->hintAction(
-                                                Action::make('createVendor')
-                                                    ->label('Create New Vendor')
-                                                    ->icon('heroicon-o-plus')
-                                                    ->form([
-                                                        TextInput::make('name')
-                                                            ->label('Vendor Name')
-                                                            ->required()
-                                                            ->maxLength(255)
-                                                            ->helperText('The name of the vendor'),
-                                                        Textarea::make('description')
-                                                            ->label('Description')
-                                                            ->rows(3)
-                                                            ->helperText('Optional description for this vendor'),
-                                                        TextInput::make('contact_email')
-                                                            ->label('Contact Email')
-                                                            ->email()
-                                                            ->maxLength(255)
-                                                            ->helperText('Contact email address for this vendor'),
-                                                        TextInput::make('contact_phone')
-                                                            ->label('Contact Phone')
-                                                            ->tel()
-                                                            ->maxLength(255)
-                                                            ->helperText('Contact phone number for this vendor'),
-                                                        Toggle::make('active')
-                                                            ->label('Active')
-                                                            ->default(true)
-                                                            ->helperText('Only active vendors are visible'),
-                                                    ])
-                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
-                                                        // Get stripe_account_id from product record or form state
-                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-
-                                                        if (! $stripeAccountId) {
-                                                            throw new \Exception('Cannot create vendor: stripe_account_id is required');
-                                                        }
-
-                                                        // Get store_id from tenant
-                                                        $tenant = \Filament\Facades\Filament::getTenant();
-                                                        $storeId = $tenant?->id;
-
-                                                        if (! $storeId) {
-                                                            throw new \Exception('Cannot create vendor: store_id is required');
-                                                        }
-
-                                                        // Create the vendor
-                                                        $vendor = Vendor::create([
-                                                            'store_id' => $storeId,
-                                                            'stripe_account_id' => $stripeAccountId,
-                                                            'name' => $data['name'],
-                                                            'description' => $data['description'] ?? null,
-                                                            'contact_email' => $data['contact_email'] ?? null,
-                                                            'contact_phone' => $data['contact_phone'] ?? null,
-                                                            'active' => $data['active'] ?? true,
-                                                        ]);
-
-                                                        // Set the new vendor as selected
-                                                        $set('vendor_id', $vendor->id);
-                                                    })
-                                                    ->successNotificationTitle('Vendor created')
-                                            )
-                                            ->columnSpanFull(),
-                                    ])
-                                    ->collapsible()
-                                    ->collapsed(false)
-                                    ->visibleOn('edit'),
-
-                                // Collections Section
-                                Section::make('Collections')
-                                    ->description('Organize products into collections')
-                                    ->schema([
-                                        CheckboxList::make('collections')
-                                            ->label('Collections')
-                                            ->relationship(
-                                                'collections',
-                                                'name',
-                                                modifyQueryUsing: function ($query, $get, $record) {
-                                                    $tenant = \Filament\Facades\Filament::getTenant();
-                                                    $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-
-                                                    // Clear any existing orderBy clauses from the relationship
-                                                    // (the relationship has orderByPivot which causes PostgreSQL DISTINCT issues)
-                                                    $query->getQuery()->orders = [];
-
-                                                    // Tenant-scope: only show collections for the current store
-                                                    if ($tenant?->id) {
-                                                        $query->where('collections.store_id', $tenant->id);
-                                                    } elseif ($stripeAccountId) {
-                                                        $query->where('collections.stripe_account_id', $stripeAccountId);
-                                                    }
-
-                                                    return $query->select('collections.id', 'collections.name', 'collections.stripe_account_id')
-                                                        ->orderBy('collections.name', 'asc');
-                                                }
-                                            )
-                                            ->searchable()
-                                            ->helperText('Select collections this product belongs to')
-                                            ->hintAction(
-                                                Action::make('createCollection')
-                                                    ->label('Create New Collection')
-                                                    ->icon('heroicon-o-plus')
-                                                    ->form([
-                                                        TextInput::make('name')
-                                                            ->label('Collection Name')
-                                                            ->required()
-                                                            ->maxLength(255)
-                                                            ->live(onBlur: true)
-                                                            ->afterStateUpdated(function ($state, $set) {
-                                                                if ($state) {
-                                                                    $set('handle', Str::slug($state));
-                                                                }
-                                                            }),
-                                                        TextInput::make('handle')
-                                                            ->label('Handle (Slug)')
-                                                            ->maxLength(255)
-                                                            ->helperText('URL-friendly identifier'),
-                                                        Textarea::make('description')
-                                                            ->label('Description')
-                                                            ->rows(3),
-                                                        Toggle::make('active')
-                                                            ->label('Active')
-                                                            ->default(true),
-                                                    ])
-                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
-                                                        $tenant = \Filament\Facades\Filament::getTenant();
-                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id') ?? $tenant?->stripe_account_id;
-
-                                                        if (! $stripeAccountId) {
-                                                            throw new \Exception('Cannot create collection: stripe_account_id is required');
-                                                        }
-
-                                                        $storeId = $tenant?->id;
-
-                                                        $collection = Collection::create([
-                                                            'store_id' => $storeId,
-                                                            'stripe_account_id' => $stripeAccountId,
-                                                            'name' => $data['name'],
-                                                            'handle' => $data['handle'] ?? Str::slug($data['name']),
-                                                            'description' => $data['description'] ?? null,
-                                                            'active' => $data['active'] ?? true,
-                                                        ]);
-
-                                                        $currentCollections = $get('collections') ?? [];
-                                                        if (! is_array($currentCollections)) {
-                                                            $currentCollections = [];
-                                                        }
-                                                        $currentCollections[] = $collection->id;
-                                                        $set('collections', array_unique($currentCollections));
-                                                    })
-                                                    ->successNotificationTitle('Collection created')
-                                            )
-                                            ->columnSpanFull(),
-                                    ])
-                                    ->collapsible()
-                                    ->collapsed(true),
 
                                 // Additional Details Section
                                 Section::make('Additional Details')
@@ -1606,33 +1383,237 @@ class ConnectedProductForm
                                     ->collapsed(true)
                                     ->visibleOn('edit'),
 
-                                // System Information Section
-                                Section::make('System Information')
-                                    ->description('Technical details')
-                                    ->schema([
-                                        Grid::make(2)
-                                            ->schema([
-                                                TextInput::make('stripe_product_id')
-                                                    ->label('Stripe Product ID')
-                                                    ->disabled()
-                                                    ->dehydrated(false),
-
-                                                TextInput::make('stripe_account_id')
-                                                    ->label('Stripe Account ID')
-                                                    ->disabled()
-                                                    ->dehydrated(false),
-                                            ])
-                                            ->columnSpanFull(),
-                                    ])
-                                    ->collapsible()
-                                    ->collapsed(true)
-                                    ->visibleOn('edit'),
                             ])
                             ->columnSpan([
                                 'default' => 1,
                                 'lg' => 2,
                             ])
                             ->visibleOn('edit'),
+
+                        // Right column - Product Details (takes 2/3 on large screens)
+                        Group::make()
+                            ->schema([
+                                Section::make('Kanaler')
+                                    ->description('Product images and media')
+                                    ->schema([
+                                        Toggle::make('active')
+                                            ->label('Product Status')
+                                            ->helperText('Active products are visible in Stripe')
+                                            ->default(true),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(false),
+                                Section::make('Media')
+                                    ->description('Product images and media')
+                                    ->schema([
+                                        SpatieMediaLibraryFileUpload::make('images')
+                                            ->label('Product Images')
+                                            ->collection('images')
+                                            ->multiple()
+                                            ->image()
+                                            ->optimize('webp')
+                                            ->maxImageWidth(1920)
+                                            ->maxImageHeight(1920)
+                                            ->imageEditor()
+                                            ->imageEditorAspectRatios([
+                                                null,
+                                                '16:9',
+                                                '4:3',
+                                                '1:1',
+                                            ])
+                                            ->maxFiles(8)
+                                            ->helperText('Upload product images. These will be synced to Stripe when saved.')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(false),
+                                // Collections Section
+                                Section::make('Collections')
+                                    ->description('Organize products into collections')
+                                    ->schema([
+                                        CheckboxList::make('collections')
+                                            ->label('Collections')
+                                            ->relationship(
+                                                'collections',
+                                                'name',
+                                                modifyQueryUsing: function ($query, $get, $record) {
+                                                    $tenant = \Filament\Facades\Filament::getTenant();
+                                                    $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+
+                                                    // Clear any existing orderBy clauses from the relationship
+                                                    // (the relationship has orderByPivot which causes PostgreSQL DISTINCT issues)
+                                                    $query->getQuery()->orders = [];
+
+                                                    // Tenant-scope: only show collections for the current store
+                                                    if ($tenant?->id) {
+                                                        $query->where('collections.store_id', $tenant->id);
+                                                    } elseif ($stripeAccountId) {
+                                                        $query->where('collections.stripe_account_id', $stripeAccountId);
+                                                    }
+
+                                                    return $query->select('collections.id', 'collections.name', 'collections.stripe_account_id')
+                                                        ->orderBy('collections.name', 'asc');
+                                                }
+                                            )
+                                            ->searchable()
+                                            ->helperText('Select collections this product belongs to')
+                                            ->hintAction(
+                                                Action::make('createCollection')
+                                                    ->label('Create New Collection')
+                                                    ->icon('heroicon-o-plus')
+                                                    ->form([
+                                                        TextInput::make('name')
+                                                            ->label('Collection Name')
+                                                            ->required()
+                                                            ->maxLength(255)
+                                                            ->live(onBlur: true)
+                                                            ->afterStateUpdated(function ($state, $set) {
+                                                                if ($state) {
+                                                                    $set('handle', Str::slug($state));
+                                                                }
+                                                            }),
+                                                        TextInput::make('handle')
+                                                            ->label('Handle (Slug)')
+                                                            ->maxLength(255)
+                                                            ->helperText('URL-friendly identifier'),
+                                                        Textarea::make('description')
+                                                            ->label('Description')
+                                                            ->rows(3),
+                                                        Toggle::make('active')
+                                                            ->label('Active')
+                                                            ->default(true),
+                                                    ])
+                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id') ?? $tenant?->stripe_account_id;
+
+                                                        if (! $stripeAccountId) {
+                                                            throw new \Exception('Cannot create collection: stripe_account_id is required');
+                                                        }
+
+                                                        $storeId = $tenant?->id;
+
+                                                        $collection = Collection::create([
+                                                            'store_id' => $storeId,
+                                                            'stripe_account_id' => $stripeAccountId,
+                                                            'name' => $data['name'],
+                                                            'handle' => $data['handle'] ?? Str::slug($data['name']),
+                                                            'description' => $data['description'] ?? null,
+                                                            'active' => $data['active'] ?? true,
+                                                        ]);
+
+                                                        $currentCollections = $get('collections') ?? [];
+                                                        if (! is_array($currentCollections)) {
+                                                            $currentCollections = [];
+                                                        }
+                                                        $currentCollections[] = $collection->id;
+                                                        $set('collections', array_unique($currentCollections));
+                                                    })
+                                                    ->successNotificationTitle('Collection created')
+                                            )
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(true),
+
+                                // Vendor Section
+                                Section::make('Vendor')
+                                    ->description('Assign a vendor to this product')
+                                    ->schema([
+                                        Select::make('vendor_id')
+                                            ->label('Vendor')
+                                            ->relationship(
+                                                'vendor',
+                                                'name',
+                                                modifyQueryUsing: function ($query, $get, $record) {
+                                                    $stripeAccountId = self::resolveStripeAccountId($get, $record);
+
+                                                    if ($stripeAccountId) {
+                                                        return $query->where('stripe_account_id', $stripeAccountId)
+                                                            ->where('active', true)
+                                                            ->orderBy('name', 'asc');
+                                                    }
+
+                                                    return $query->whereRaw('1 = 0');
+                                                }
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->helperText('Select the vendor for this product')
+                                            ->placeholder('No vendor')
+                                            ->hintAction(
+                                                Action::make('createVendor')
+                                                    ->label('Create New Vendor')
+                                                    ->icon('heroicon-o-plus')
+                                                    ->form([
+                                                        TextInput::make('name')
+                                                            ->label('Vendor Name')
+                                                            ->required()
+                                                            ->maxLength(255)
+                                                            ->helperText('The name of the vendor'),
+                                                        Textarea::make('description')
+                                                            ->label('Description')
+                                                            ->rows(3)
+                                                            ->helperText('Optional description for this vendor'),
+                                                        TextInput::make('contact_email')
+                                                            ->label('Contact Email')
+                                                            ->email()
+                                                            ->maxLength(255)
+                                                            ->helperText('Contact email address for this vendor'),
+                                                        TextInput::make('contact_phone')
+                                                            ->label('Contact Phone')
+                                                            ->tel()
+                                                            ->maxLength(255)
+                                                            ->helperText('Contact phone number for this vendor'),
+                                                        Toggle::make('active')
+                                                            ->label('Active')
+                                                            ->default(true)
+                                                            ->helperText('Only active vendors are visible'),
+                                                    ])
+                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
+                                                        // Get stripe_account_id from product record or form state
+                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
+
+                                                        if (! $stripeAccountId) {
+                                                            throw new \Exception('Cannot create vendor: stripe_account_id is required');
+                                                        }
+
+                                                        // Get store_id from tenant
+                                                        $tenant = \Filament\Facades\Filament::getTenant();
+                                                        $storeId = $tenant?->id;
+
+                                                        if (! $storeId) {
+                                                            throw new \Exception('Cannot create vendor: store_id is required');
+                                                        }
+
+                                                        // Create the vendor
+                                                        $vendor = Vendor::create([
+                                                            'store_id' => $storeId,
+                                                            'stripe_account_id' => $stripeAccountId,
+                                                            'name' => $data['name'],
+                                                            'description' => $data['description'] ?? null,
+                                                            'contact_email' => $data['contact_email'] ?? null,
+                                                            'contact_phone' => $data['contact_phone'] ?? null,
+                                                            'active' => $data['active'] ?? true,
+                                                        ]);
+
+                                                        // Set the new vendor as selected
+                                                        $set('vendor_id', $vendor->id);
+                                                    })
+                                                    ->successNotificationTitle('Vendor created')
+                                            )
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(false)
+                                    ->visibleOn('edit'),
+                            ])
+                            ->columnSpan([
+                                'default' => 1,
+                                'lg' => 1,
+                            ])
+                            ->visibleOn('edit'),
+
                     ])
                     ->columnSpanFull()
                     ->visibleOn('edit'),

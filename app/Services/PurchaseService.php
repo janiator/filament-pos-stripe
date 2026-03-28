@@ -142,6 +142,13 @@ class PurchaseService
             $isDeferredPayment = $metadata['deferred_payment'] ?? false;
             $isDeferredPayment = $isDeferredPayment || ($paymentMethod->code === 'deferred' || $paymentMethod->code === 'pay_later');
 
+            $store = $posSession->store;
+            if (! $store) {
+                throw new \Exception('Store not found for POS session');
+            }
+
+            app(InventoryLedgerService::class)->assertCartSellable($store, $cartData['items'] ?? []);
+
             // Process payment based on provider
             $charge = match ($paymentMethod->provider) {
                 'cash' => $isDeferredPayment
@@ -165,6 +172,8 @@ class PurchaseService
             // Log POS event (13012 - Sales receipt)
             // Note: Delivery receipts for deferred payments still log as sales receipt events
             $posEvent = $this->logSalesReceiptEvent($posSession, $charge, $receipt, $paymentMethod);
+
+            app(InventoryLedgerService::class)->applySaleForCharge($store, $cartData['items'] ?? [], $charge);
 
             // Don't open cash drawer for deferred payments (payment not received yet)
             if (! $isDeferredPayment && $paymentMethod->isCash()) {
@@ -1133,6 +1142,13 @@ class PurchaseService
                 throw new \Exception('At least one payment is required');
             }
 
+            $store = $posSession->store;
+            if (! $store) {
+                throw new \Exception('Store not found for POS session');
+            }
+
+            app(InventoryLedgerService::class)->assertCartSellable($store, $cartData['items'] ?? []);
+
             $device = $posSession->posDevice;
             $hasCashDrawerDisabled = $device && $device->cash_drawer_enabled === false;
 
@@ -1195,6 +1211,15 @@ class PurchaseService
 
             // Log sales receipt event (13012)
             $posEvent = $this->logSplitSalesReceiptEvent($posSession, $charges, $receipt, $paymentMethods);
+
+            foreach ($charges as $splitCharge) {
+                $meta = $splitCharge->metadata ?? [];
+                $meta['inventory_pos_event_id'] = $posEvent->id;
+                $meta['inventory_split_primary'] = $splitCharge->id === $charges[0]->id;
+                $splitCharge->update(['metadata' => $meta]);
+            }
+
+            app(InventoryLedgerService::class)->applySaleForSplitPosEvent($store, $cartData['items'] ?? [], $posEvent->id);
 
             // Auto-print receipt (if configured)
             if (config('pos.auto_print_receipts', true)) {
@@ -1450,6 +1475,8 @@ class PurchaseService
                 $metadata['item_refunds'] = $itemRefunds;
             }
 
+            $refundIndex = count($refunds);
+
             $refunds[] = $refundData;
             $metadata['refunds'] = $refunds;
             $metadata['last_refund_at'] = now()->setTimezone('Europe/Oslo')->format('Y-m-d H:i:s');
@@ -1467,6 +1494,17 @@ class PurchaseService
 
             // Refresh charge to get updated values
             $charge->refresh();
+
+            $refundStore = $charge->store;
+            if ($refundStore) {
+                app(InventoryLedgerService::class)->applyRefund(
+                    $refundStore,
+                    $charge,
+                    $refundIndex,
+                    $refundedItems,
+                    $isFullyRefunded
+                );
+            }
 
             // Get original receipt (sales receipt for completed purchases, delivery receipt for deferred)
             $originalReceipt = $charge->receipt;

@@ -12,6 +12,10 @@ The purchase flow supports:
 - ✅ Cash drawer opening for cash payments
 - ✅ Complete SAF-T compliance logging
 
+### Inventory (Inventory add-on)
+
+When the POS device response includes `inventory_enabled: true`, the store uses stock tracking: include **`variant_id`** on each cart line that sells a variant so the backend can validate and decrement stock. Product list payloads include **`track_inventory`** and per-variant **`variant_inventory.tracked`** (effective tracking). If `POST /api/purchases` returns **422** with `error: insufficient_stock` and `lines`, refresh catalog data and do not rely on payment already captured for Stripe flows—prefer checking stock before confirming the payment intent when possible.
+
 ## API Endpoints
 
 ### 1. Get Payment Methods

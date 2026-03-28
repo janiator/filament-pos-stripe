@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\ConnectedProducts\Widgets;
 
+use App\Enums\AddonType;
+use App\Models\Addon;
 use App\Models\ConnectedProduct;
 use App\Models\ProductVariant;
 use App\Models\Store;
@@ -38,12 +40,17 @@ class ConnectedProductsOverviewWidget extends BaseWidget
 
         $totalProducts = (clone $productQuery)->count();
 
-        $inventoryQuery = ProductVariant::query()
-            ->whereHas('product', function (Builder $query) use ($store): void {
-                $this->applyTenantScope($query, $store);
-            });
+        $inventoryAddon = $store instanceof Store
+            && Addon::storeHasActiveAddon($store->id, AddonType::Inventory);
 
-        $inventoryUnits = (int) $inventoryQuery->sum('inventory_quantity');
+        $inventoryUnits = 0;
+        if ($inventoryAddon) {
+            $inventoryQuery = ProductVariant::query()
+                ->whereHas('product', function (Builder $query) use ($store): void {
+                    $this->applyTenantScope($query, $store);
+                });
+            $inventoryUnits = (int) $inventoryQuery->sum('inventory_quantity');
+        }
 
         $priceValues = (clone $productQuery)
             ->whereNotNull('price')
@@ -59,11 +66,17 @@ class ConnectedProductsOverviewWidget extends BaseWidget
             ? number_format((float) $avgPrice, 2, '.', '')
             : '—';
 
-        return [
+        $stats = [
             Stat::make(__('filament.connected_products.stats.total_products'), (string) $totalProducts),
-            Stat::make(__('filament.connected_products.stats.inventory_units'), (string) $inventoryUnits),
-            Stat::make(__('filament.connected_products.stats.average_price'), $avgPriceFormatted),
         ];
+
+        if ($inventoryAddon) {
+            $stats[] = Stat::make(__('filament.connected_products.stats.inventory_units'), (string) $inventoryUnits);
+        }
+
+        $stats[] = Stat::make(__('filament.connected_products.stats.average_price'), $avgPriceFormatted);
+
+        return $stats;
     }
 
     protected function applyTenantScope(Builder $query, ?Store $tenant): Builder

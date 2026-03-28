@@ -840,6 +840,7 @@ class PosDevicesController extends BaseApiController
             'has_integrated_drawer' => (bool) $device->has_integrated_drawer,
             'booking_enabled' => (bool) $device->booking_enabled,
             'auto_print_receipt' => (bool) $device->auto_print_receipt,
+            'inventory_enabled' => Addon::storeHasActiveAddon($device->store_id, AddonType::Inventory),
             'available_actions' => $availableActions,
             'terminal_location_id' => $terminalLocation?->id,
             'terminal_locations_count' => $terminalLocation ? 1 : 0,

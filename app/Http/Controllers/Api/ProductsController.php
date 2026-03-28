@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Models\ConnectedPrice;
 use App\Models\ConnectedProduct;
 use App\Models\ProductVariant;
+use App\Models\Store;
+use App\Services\InventoryLedgerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -122,6 +124,7 @@ class ProductsController extends BaseApiController
                         'prices' => [],
                         'variants' => [],
                         'variants_count' => 0,
+                        'track_inventory' => false,
                         'product_inventory' => [
                             'tracked' => false,
                             'total_quantity' => null,
@@ -277,12 +280,16 @@ class ProductsController extends BaseApiController
             ];
         })->values();
 
+        $ledger = app(InventoryLedgerService::class);
+        $store = Store::query()->where('stripe_account_id', $product->stripe_account_id)->first();
+
         // Get variants with inventory
         $variants = ProductVariant::where('connected_product_id', $product->id)
             ->where('stripe_account_id', $product->stripe_account_id)
             ->where('active', true)
+            ->with('product')
             ->get()
-            ->map(function ($variant) {
+            ->map(function ($variant) use ($ledger, $store) {
                 // Price handling for variants:
                 // - If price_amount is null (custom price input), return 0 and "0.00"
                 // - Frontend can check if price_amount === 0 to enable custom price input
@@ -339,7 +346,7 @@ class ProductsController extends BaseApiController
                         'in_stock' => $variant->in_stock ?? true,
                         'policy' => $variant->inventory_policy ?? null,
                         'management' => $variant->inventory_management ?? null,
-                        'tracked' => $variant->inventory_quantity !== null,
+                        'tracked' => $ledger->isVariantTracked($variant, $store),
                     ],
                     'weight_grams' => $variant->weight_grams ?? null,
                     'requires_shipping' => $variant->requires_shipping ?? false,
@@ -394,6 +401,7 @@ class ProductsController extends BaseApiController
             'url' => $product->url ?? null,
             'images' => $images,
             'no_price_in_pos' => $product->no_price_in_pos ?? false,
+            'track_inventory' => (bool) $product->track_inventory,
             'product_price' => $defaultPrice ? [
                 'id' => $defaultPrice->stripe_price_id,
                 'amount' => $defaultPrice->unit_amount,

@@ -24,6 +24,10 @@ return [
             'status_updated_title' => 'Produktstatus oppdatert',
             'status_updated_body' => 'Den aktive statusen for produktet er oppdatert.',
         ],
+        'form' => [
+            'track_inventory' => 'Spor lager',
+            'track_inventory_help' => 'Når aktivert, håndheves variantantall ved utsjekk hvis Inventory-tillegget er på for butikken.',
+        ],
     ],
     // Navigation Groups
     'navigation_groups' => [
