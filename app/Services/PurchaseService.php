@@ -768,6 +768,7 @@ class PurchaseService
                     'captured' => true,
                     'paid' => true,
                     'paid_at' => now(),
+                    'metadata' => array_merge(is_array($charge->metadata) ? $charge->metadata : [], $paymentData),
                 ]);
 
                 // Log card payment event (13017)
@@ -787,6 +788,7 @@ class PurchaseService
                     'captured' => true,
                     'paid' => true,
                     'paid_at' => now(),
+                    'metadata' => array_merge(is_array($charge->metadata) ? $charge->metadata : [], $paymentData),
                 ]);
 
                 // Log cash payment event (13016)
@@ -794,7 +796,7 @@ class PurchaseService
 
                 // Open cash drawer
                 $this->cashDrawerService->openCashDrawer($posSession, $charge->amount);
-            } elseif ($paymentMethod->provider === 'other') {
+            } elseif (in_array($paymentMethod->provider, ['other', 'verifone'], true)) {
                 // Handle other payment methods (e.g., Vipps, gift tokens, etc.)
                 // These are assumed to be confirmed automatically when completing the payment
                 $eventCode = $paymentMethod->saf_t_event_code ?? SafTCodeMapper::mapPaymentMethodToEventCode($paymentMethod->code, $paymentMethod->provider_method);
@@ -807,6 +809,7 @@ class PurchaseService
                     'captured' => true,
                     'paid' => true,
                     'paid_at' => now(),
+                    'metadata' => array_merge(is_array($charge->metadata) ? $charge->metadata : [], $paymentData),
                 ]);
 
                 // Log payment event using the payment method's event code

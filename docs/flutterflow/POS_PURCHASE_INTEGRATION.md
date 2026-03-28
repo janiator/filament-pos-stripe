@@ -109,6 +109,17 @@ The purchase flow supports:
 }
 ```
 
+**For Verifone terminal payments, add provider metadata:**
+```json
+{
+  "metadata": {
+    "payment_provider": "verifone",
+    "verifone_payment_reference": "344433",
+    "provider_payment_reference": "344433"
+  }
+}
+```
+
 **Response:**
 ```json
 {
@@ -558,6 +569,11 @@ Ensure your cart data matches this structure:
 2. **Payment Intent for Stripe:**
    - Must be created and confirmed BEFORE calling purchase API
    - Include `payment_intent_id` in metadata
+
+3. **Verifone provider references:**
+   - Start payment with `POST /api/verifone/stores/{store}/payments`
+   - Poll until final state with `POST /api/verifone/stores/{store}/payments/{serviceId}/status`
+   - Pass terminal result to `/api/purchases` metadata (`payment_provider=verifone` + `verifone_payment_reference`)
 
 3. **Cash Drawer:**
    - Automatically opens for cash payments

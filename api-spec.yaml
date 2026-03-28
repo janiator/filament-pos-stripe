@@ -18,6 +18,7 @@ info:
     - SAF-T file generation (Norwegian tax compliance)
     - PowerOffice Go onboarding and Z-report sync (optional per-store add-on)
     - Terminal operations (connection tokens and payment intents)
+    - Verifone terminal operations (payment start/status/abort)
 
     All endpoints (except login and webhooks) require Bearer token authentication.
     Requests are automatically scoped to the authenticated user's accessible stores.
@@ -67,9 +68,11 @@ tags:
     description: SAF-T file generation (Norwegian tax compliance)
   - name: PowerOffice
     description: |
-      PowerOffice Go accounting integration (Z-report sync, onboarding). Server-side calls to PowerOffice Go API v2 use OAuth 2.0 client credentials (Bearer access token from the Token URL; see `POWEROFFICE_CLIENT_ID` + per-store client key + `POWEROFFICE_SUBSCRIPTION_KEY` in server env). Z-report ledger post defaults to `POST …/Vouchers/ManualJournals` (direct posting; Go UI “Direktepostere manuelle bilag”); use `…/JournalEntryVouchers/ManualJournals` via `POWEROFFICE_LEDGER_POST_PATH` for the journal-entry workflow. HTTP 403 often means wrong path vs privilege set, stale token after Go privilege changes, or missing voucher documentation privilege. Z-report payloads stored on closed POS sessions may include `by_payment_method_net` (per payment_method after refunds) for ledger routing; optional `stripe_fees_minor`, `payout_to_bank_minor`, and `gift_card_sales_minor` when present—positive values override backend defaults. When those keys are absent or zero, the server may fill fees and payouts from Stripe data synced in Filament (**Stripe gebyr og saldo** / **Stripe-utbetalinger**). Category-style splits use **product collection** IDs (not article groups).
+      PowerOffice Go accounting integration (Z-report sync, onboarding). Server-side calls to PowerOffice Go API v2 use OAuth 2.0 client credentials (Bearer access token from the Token URL; see `POWEROFFICE_CLIENT_ID` + per-store client key + `POWEROFFICE_SUBSCRIPTION_KEY` in server env). Z-report ledger post defaults to `POST …/Vouchers/ManualJournals` (direct posting; Go UI “Direktepostere manuelle bilag”); use `…/JournalEntryVouchers/ManualJournals` via `POWEROFFICE_LEDGER_POST_PATH` for the journal-entry workflow. HTTP 403 often means wrong path vs privilege set, stale token after Go privilege changes, or missing voucher documentation privilege. Z-report payloads stored on closed POS sessions may include `by_payment_method_net` (per payment_method after refunds) for ledger routing; optional `stripe_fees_minor`, `payout_to_bank_minor`, and `gift_card_sales_minor` when present—positive values override backend defaults. The server merges fee and payout totals into `closing_data.z_report_data` when generating or serving a Z-report (from Stripe data synced in Filament) unless a positive override is already set. When those keys are absent or zero at ledger build time, the server may still fill fees and payouts from the same source (**Stripe gebyr og saldo** / **Stripe-utbetalinger**). Category-style splits use **product collection** IDs (not article groups).
   - name: Terminals
     description: Terminal locations and readers management (Stripe-specific)
+  - name: Verifone
+    description: Verifone POS Cloud terminal operations
   - name: Webhooks
     description: Stripe webhook endpoints
 
@@ -5695,6 +5698,162 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /verifone/stores/{store}/terminals:
+    get:
+      tags:
+        - Verifone
+      summary: List Verifone terminals for store
+      operationId: listVerifoneTerminals
+      parameters:
+        - name: store
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Verifone terminals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VerifoneTerminal'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden for tenant
+
+  /verifone/stores/{store}/payments:
+    post:
+      tags:
+        - Verifone
+      summary: Start Verifone terminal payment
+      operationId: createVerifonePayment
+      parameters:
+        - name: store
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifonePaymentCreateRequest'
+      responses:
+        '201':
+          description: Verifone payment started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifonePaymentStartResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation or provider error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /verifone/stores/{store}/payments/{serviceId}/status:
+    post:
+      tags:
+        - Verifone
+      summary: Poll Verifone transaction status
+      operationId: pollVerifonePaymentStatus
+      parameters:
+        - name: store
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: serviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifonePaymentStatusRequest'
+      responses:
+        '200':
+          description: Current Verifone payment status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifonePaymentStatusResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Payment not found
+        '422':
+          description: Provider status error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /verifone/stores/{store}/terminals/{terminal}/abort:
+    post:
+      tags:
+        - Verifone
+      summary: Abort active Verifone terminal request
+      operationId: abortVerifoneTerminalRequest
+      parameters:
+        - name: store
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: terminal
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifoneAbortRequest'
+      responses:
+        '200':
+          description: Abort submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  provider:
+                    type: string
+                    example: verifone
+                  status:
+                    type: string
+                    example: canceled
+                  serviceId:
+                    type: string
+                    example: A1B2C3D4
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation or provider abort error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /stripe/connect/webhook:
     post:
       tags:
@@ -6002,6 +6161,164 @@ components:
         terminal_location_id:
           type: integer
           nullable: true
+
+    VerifoneTerminal:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        terminal_identifier:
+          type: string
+          example: vm10000
+        display_name:
+          type: string
+          nullable: true
+          example: Front Desk VM10000
+        sale_id:
+          type: string
+          nullable: true
+          example: VisivoTest
+        operator_id:
+          type: string
+          nullable: true
+          example: "440010051"
+        site_entity_id:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+          example: true
+        pos_device_id:
+          type: integer
+          nullable: true
+
+    VerifonePaymentCreateRequest:
+      type: object
+      required:
+        - amount
+      anyOf:
+        - required: [terminal_id]
+        - required: [terminal_poiid]
+      properties:
+        terminal_id:
+          type: integer
+          nullable: true
+          example: 1
+          description: Internal terminal record ID (backward compatible)
+        terminal_poiid:
+          type: string
+          nullable: true
+          example: vm10000
+          description: Verifone POIID / terminal identifier
+        amount:
+          type: integer
+          description: Amount in minor units
+          example: 1000
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: NOK
+        description:
+          type: string
+          nullable: true
+        service_id:
+          type: string
+          nullable: true
+        sale_id:
+          type: string
+          nullable: true
+        operator_id:
+          type: string
+          nullable: true
+        pos_session_id:
+          type: integer
+          nullable: true
+        pos_device_id:
+          type: integer
+          nullable: true
+
+    VerifonePaymentStartResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        provider:
+          type: string
+          example: verifone
+        status:
+          type: string
+          example: pending
+        serviceId:
+          type: string
+          example: A1B2C3D4
+        saleId:
+          type: string
+          example: VisivoTest
+        terminalId:
+          type: string
+          example: vm10000
+        providerPaymentReference:
+          type: string
+          nullable: true
+
+    VerifonePaymentStatusRequest:
+      type: object
+      properties:
+        message_reference_service_id:
+          type: string
+          nullable: true
+        message_reference_sale_id:
+          type: string
+          nullable: true
+        message_reference_poiid:
+          type: string
+          nullable: true
+
+    VerifonePaymentStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        provider:
+          type: string
+          example: verifone
+        status:
+          type: string
+          enum: [pending, in_progress, succeeded, failed, canceled, unknown]
+        providerStatus:
+          type: object
+          additionalProperties: true
+        providerPaymentReference:
+          type: string
+          nullable: true
+        providerTransactionId:
+          type: string
+          nullable: true
+        serviceId:
+          type: string
+        terminalId:
+          type: string
+        receipt:
+          type: array
+          nullable: true
+          items:
+            type: object
+            additionalProperties: true
+
+    VerifoneAbortRequest:
+      type: object
+      required:
+        - service_id
+        - sale_id
+      properties:
+        service_id:
+          type: string
+        sale_id:
+          type: string
 
     PosDevice:
       type: object

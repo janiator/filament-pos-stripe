@@ -11,6 +11,7 @@ use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\PowerOfficeSyncRun;
 use App\Services\PowerOffice\PowerOfficeZReportSync;
+use App\Services\PowerOffice\StripeSettlementTotalsForPosSession;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Filament\Actions\Action;
@@ -1026,6 +1027,23 @@ class PosSessionsTable
                     }
                 }
 
+                $stripeSnapshotBefore = [
+                    'stripe_fees_minor' => $cachedReport['stripe_fees_minor'] ?? null,
+                    'payout_to_bank_minor' => $cachedReport['payout_to_bank_minor'] ?? null,
+                ];
+                self::mergeStripeSettlementTotalsIntoZReportData($session, $cachedReport);
+                $stripeSnapshotAfter = [
+                    'stripe_fees_minor' => $cachedReport['stripe_fees_minor'] ?? null,
+                    'payout_to_bank_minor' => $cachedReport['payout_to_bank_minor'] ?? null,
+                ];
+                if ($stripeSnapshotBefore !== $stripeSnapshotAfter && ! $dryRun) {
+                    $closingData = $session->closing_data;
+                    $closingData['z_report_data'] = $cachedReport;
+                    $closingData['z_report_data_backfilled_at'] = now()->toISOString();
+                    $session->closing_data = $closingData;
+                    $session->saveQuietly();
+                }
+
                 return $cachedReport;
             }
         }
@@ -1139,6 +1157,8 @@ class PosSessionsTable
         // Products sold (aggregated from receipts)
         $report['products_sold'] = self::calculateProductsSold($session);
 
+        self::mergeStripeSettlementTotalsIntoZReportData($session, $report);
+
         // For closed sessions, store the report data in closing_data to preserve snapshot
         // This ensures reports remain unchanged even if vendor commission settings change later
         if ($session->status === 'closed' && ! $dryRun) {
@@ -1150,6 +1170,23 @@ class PosSessionsTable
         }
 
         return $report;
+    }
+
+    /**
+     * Embed Stripe fee and payout totals into Z-report data for PowerOffice and exports.
+     * Positive values already on the report are kept (POS / manual override).
+     */
+    protected static function mergeStripeSettlementTotalsIntoZReportData(PosSession $session, array &$report): void
+    {
+        $settlements = app(StripeSettlementTotalsForPosSession::class);
+
+        if ((int) ($report['stripe_fees_minor'] ?? 0) <= 0) {
+            $report['stripe_fees_minor'] = $settlements->feesMinorForSession($session);
+        }
+
+        if ((int) ($report['payout_to_bank_minor'] ?? 0) <= 0) {
+            $report['payout_to_bank_minor'] = $settlements->payoutMinorForSessionCloseDate($session);
+        }
     }
 
     /**

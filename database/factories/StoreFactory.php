@@ -20,7 +20,9 @@ class StoreFactory extends Factory
             'name' => fake()->company(),
             'slug' => fake()->slug(),
             'email' => fake()->safeEmail(),
-            'stripe_account_id' => 'acct_test_' . fake()->uuid(),
+            'stripe_account_id' => 'acct_test_'.fake()->uuid(),
+            'default_terminal_provider' => 'stripe',
+            'verifone_terminal_simulator' => true,
             'commission_type' => 'percentage',
             'commission_rate' => 10,
         ];

@@ -48,10 +48,17 @@ The `api-spec.yaml` file is an OpenAPI 3.0.3 specification that can be imported 
 - `POST /pos-devices/{id}/heartbeat` - Update device heartbeat
 
 ### Terminals
+Stripe (backward-compatible):
 - `GET /terminals/locations` - List terminal locations
 - `GET /terminals/readers` - List terminal readers
 - `POST /stores/{store}/terminal/connection-token` - Get connection token
 - `POST /stores/{store}/terminal/payment-intents` - Create payment intent
+
+Verifone (provider-specific):
+- `GET /verifone/stores/{store}/terminals` - List Verifone terminals for a store
+- `POST /verifone/stores/{store}/payments` - Start Verifone payment
+- `POST /verifone/stores/{store}/payments/{serviceId}/status` - Poll Verifone transaction status
+- `POST /verifone/stores/{store}/terminals/{terminal}/abort` - Abort active Verifone request
 
 ### Customers
 - `GET /customers` - List customers (paginated)

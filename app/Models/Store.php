@@ -30,6 +30,15 @@ class Store extends Model implements StripeAccount
         'commission_rate',
         'stripe_account_id',
         'default_terminal_location_id',
+        'default_terminal_provider',
+        'verifone_api_base_url',
+        'verifone_user_uid',
+        'verifone_api_key',
+        'verifone_encoded_basic_auth',
+        'verifone_site_entity_id',
+        'verifone_sale_id',
+        'verifone_operator_id',
+        'verifone_terminal_simulator',
         'merano_base_url',
         'merano_pos_api_token',
         'merano_ticket_connected_product_id',
@@ -40,6 +49,9 @@ class Store extends Model implements StripeAccount
         'commission_rate' => 'integer',
         'merano_pos_api_token' => 'encrypted',
         'reports_api_token' => 'encrypted',
+        'verifone_api_key' => 'encrypted',
+        'verifone_encoded_basic_auth' => 'encrypted',
+        'verifone_terminal_simulator' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -83,6 +95,16 @@ class Store extends Model implements StripeAccount
     public function terminalReaders()
     {
         return $this->hasMany(\App\Models\TerminalReader::class);
+    }
+
+    public function verifoneTerminals(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\VerifoneTerminal::class);
+    }
+
+    public function verifoneTerminalPayments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\VerifoneTerminalPayment::class);
     }
 
     /**

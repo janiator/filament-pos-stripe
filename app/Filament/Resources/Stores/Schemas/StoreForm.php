@@ -9,6 +9,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -132,6 +133,92 @@ class StoreForm
                             ->disabled()
                             ->dehydrated(false),
                     ])
+                    ->collapsible()
+                    ->collapsed(),
+
+                Section::make('Terminal Provider Configuration')
+                    ->schema([
+                        Select::make('default_terminal_provider')
+                            ->label('Default terminal provider')
+                            ->options([
+                                'stripe' => 'Stripe',
+                                'verifone' => 'Verifone',
+                            ])
+                            ->required()
+                            ->default('stripe')
+                            ->helperText('Used by POS clients as default terminal provider when none is explicitly selected.'),
+
+                        TextInput::make('verifone_api_base_url')
+                            ->label('Verifone API base URL')
+                            ->nullable()
+                            ->url()
+                            ->placeholder('https://domainname.com')
+                            ->helperText('Base URL used for Verifone POS Cloud NEXO requests.'),
+
+                        TextInput::make('verifone_user_uid')
+                            ->label('Verifone User UID')
+                            ->nullable()
+                            ->maxLength(255)
+                            ->helperText('UID used together with API key for Verifone authorization.'),
+
+                        TextInput::make('verifone_api_key')
+                            ->label('Verifone API Key')
+                            ->password()
+                            ->revealable()
+                            ->nullable()
+                            ->afterStateHydrated(function ($component): void {
+                                $component->state('');
+                            })
+                            ->dehydrated(fn (?string $state): bool => filled($state))
+                            ->helperText(fn ($record) => filled($record?->verifone_api_key)
+                                ? 'Stored encrypted. A key is already saved; leave blank to keep it, or enter a new value to replace it.'
+                                : 'Stored encrypted. Leave blank to keep the existing key.'),
+
+                        TextInput::make('verifone_encoded_basic_auth')
+                            ->label('Verifone pre-encoded Basic auth')
+                            ->password()
+                            ->revealable()
+                            ->nullable()
+                            ->afterStateHydrated(function ($component): void {
+                                $component->state('');
+                            })
+                            ->dehydrated(fn (?string $state, Get $get): bool => filled($state) || (bool) $get('clear_verifone_encoded_basic_auth'))
+                            ->dehydrateStateUsing(fn (?string $state, Get $get): ?string => (bool) $get('clear_verifone_encoded_basic_auth') ? null : $state)
+                            ->helperText(fn ($record) => filled($record?->verifone_encoded_basic_auth)
+                                ? 'Optional override. A token is already saved. Leave blank to keep it, or enter a new value to replace it.'
+                                : 'Optional override. Paste only the base64 token (without "Basic "). When set, this is used instead of User UID + API key. Stored encrypted.'),
+
+                        Toggle::make('clear_verifone_encoded_basic_auth')
+                            ->label('Clear saved pre-encoded Basic auth token')
+                            ->default(false)
+                            ->dehydrated(false)
+                            ->visible(fn ($record): bool => filled($record?->verifone_encoded_basic_auth))
+                            ->helperText('Enable this when you want to remove the stored override and use Verifone User UID + API key instead.'),
+
+                        TextInput::make('verifone_site_entity_id')
+                            ->label('Verifone Site Entity ID')
+                            ->nullable()
+                            ->maxLength(255)
+                            ->helperText('Required when using parent tokens to scope terminal API calls.'),
+
+                        TextInput::make('verifone_sale_id')
+                            ->label('Default Verifone Sale ID')
+                            ->nullable()
+                            ->maxLength(255)
+                            ->helperText('Used as fallback sale ID for Verifone payment and status requests.'),
+
+                        TextInput::make('verifone_operator_id')
+                            ->label('Default Verifone Operator ID')
+                            ->nullable()
+                            ->maxLength(255)
+                            ->helperText('Used as fallback operator ID in payment requests.'),
+
+                        Toggle::make('verifone_terminal_simulator')
+                            ->label('Use Verifone terminal simulator')
+                            ->default(false)
+                            ->helperText('Adds simulator header for Verifone API calls in non-production testing.'),
+                    ])
+                    ->columns(2)
                     ->collapsible()
                     ->collapsed(),
 

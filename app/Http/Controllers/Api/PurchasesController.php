@@ -1263,6 +1263,19 @@ class PurchasesController extends BaseApiController
             }
         }
 
+        // For Verifone terminal payments, require provider reference metadata
+        if (($validated['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+            $verifoneReference = $validated['metadata']['verifone_payment_reference']
+                ?? $validated['metadata']['provider_payment_reference']
+                ?? null;
+            if (! $verifoneReference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifone payment reference is required for Verifone payments',
+                ], 422);
+            }
+        }
+
         try {
             // Process purchase (posSession has posDevice loaded for cash-drawer check)
             $result = $this->purchaseService->processPurchase(
@@ -1410,6 +1423,18 @@ class PurchasesController extends BaseApiController
                 return response()->json([
                     'success' => false,
                     'message' => 'Payment intent ID is required for Stripe payments',
+                ], 422);
+            }
+        }
+
+        if (($validated['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+            $verifoneReference = $validated['metadata']['verifone_payment_reference']
+                ?? $validated['metadata']['provider_payment_reference']
+                ?? null;
+            if (! $verifoneReference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifone payment reference is required for Verifone payments',
                 ], 422);
             }
         }
@@ -1666,6 +1691,18 @@ class PurchasesController extends BaseApiController
                     return response()->json([
                         'success' => false,
                         'message' => "Payment intent ID is required for Stripe payment at index {$index}",
+                    ], 422);
+                }
+            }
+
+            if (($paymentData['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+                $verifoneReference = $paymentData['metadata']['verifone_payment_reference']
+                    ?? $paymentData['metadata']['provider_payment_reference']
+                    ?? null;
+                if (! $verifoneReference) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Verifone payment reference is required for Verifone payment at index {$index}",
                     ], 422);
                 }
             }
@@ -2101,6 +2138,12 @@ class PurchasesController extends BaseApiController
             'failure_message' => $purchase->failure_message,
             'created_at' => $this->formatDateTimeOslo($purchase->created_at),
         ];
+
+        $metadata = is_array($purchase->metadata) ? $purchase->metadata : [];
+        $payment['provider'] = $metadata['payment_provider'] ?? ($purchase->payment_method === 'verifone_terminal' ? 'verifone' : null);
+        $payment['provider_payment_reference'] = $metadata['provider_payment_reference']
+            ?? $metadata['verifone_payment_reference']
+            ?? null;
 
         // If there's a payment intent, try to get additional details
         if ($purchase->stripe_payment_intent_id) {

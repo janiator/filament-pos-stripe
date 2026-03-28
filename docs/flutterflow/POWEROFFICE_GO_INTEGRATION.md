@@ -64,7 +64,9 @@ Z-reports now include **`by_payment_method_net`** (net amount per `payment_metho
 
 Under **Betalinger**, **Stripe-utbetalinger** and **Stripe gebyr og saldo** list data synced from each store’s **connected Stripe account** (`payouts` and `balance_transactions`). Use **Synk fra Stripe** on those screens (or **Synkroniser alt**) to refresh.
 
-When building the PowerOffice ledger payload, if the Z-report snapshot does **not** set **`stripe_fees_minor`** / **`payout_to_bank_minor`** (or they are `0`), the backend fills them from the database:
+When a **Z-report** is generated or loaded for a closed session, the server merges **`stripe_fees_minor`** and **`payout_to_bank_minor`** from the same Stripe-synced data (unless the snapshot already has a **positive** value for a key—POS override). Those values are stored on **`closing_data.z_report_data`** so the snapshot stays self-contained.
+
+When building the PowerOffice ledger payload, if the Z-report snapshot does **not** set **`stripe_fees_minor`** / **`payout_to_bank_minor`** (or they are `0`), the backend still fills them from the database the same way:
 
 - **Fees**: sum of **`fee`** on synced balance transactions of type **`charge`** whose **`stripe_charge_id`** matches **succeeded** charges on that POS session.
 - **Payout**: sum of **`amount`** on synced payouts with **`status` = `paid`** whose **`arrival_date`** falls on the **same calendar day** as **`closed_at`** (app timezone) for that session.

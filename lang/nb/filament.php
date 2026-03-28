@@ -1,6 +1,30 @@
 <?php
 
 return [
+    'connected_products' => [
+        'stats' => [
+            'total_products' => 'Produkter totalt',
+            'inventory_units' => 'Lager (varianter)',
+            'average_price' => 'Gjennomsnittspris',
+        ],
+        'table' => [
+            'image' => 'Bilde',
+            'brand' => 'Merke',
+            'visibility' => 'Synlighet',
+            'sku' => 'SKU',
+            'stock' => 'Lager',
+        ],
+        'actions' => [
+            'row' => 'Handlinger',
+            'toggle_active' => 'Synlighet',
+            'activate' => 'Aktiver',
+            'deactivate' => 'Deaktiver',
+        ],
+        'notifications' => [
+            'status_updated_title' => 'Produktstatus oppdatert',
+            'status_updated_body' => 'Den aktive statusen for produktet er oppdatert.',
+        ],
+    ],
     // Navigation Groups
     'navigation_groups' => [
         'automation' => 'Automasjon',
@@ -285,6 +309,7 @@ return [
             'label' => 'Butikk',
             'plural' => 'Butikker',
             'navigation' => 'Butikker',
+            'tenant_menu' => 'Butikkinformasjon',
         ],
     ],
 

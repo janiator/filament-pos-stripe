@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ConnectedProducts\Pages;
 
 use App\Filament\Resources\ConnectedProducts\ConnectedProductResource;
+use App\Filament\Resources\ConnectedProducts\Widgets\ConnectedProductsOverviewWidget;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -10,6 +11,16 @@ use Filament\Resources\Pages\ListRecords;
 class ListConnectedProducts extends ListRecords
 {
     protected static string $resource = ConnectedProductResource::class;
+
+    /**
+     * @return array<class-string>
+     */
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            ConnectedProductsOverviewWidget::class,
+        ];
+    }
 
     protected function getHeaderActions(): array
     {

@@ -124,4 +124,9 @@ class PosDevice extends Model
     {
         return $this->belongsTo(TerminalReader::class, 'last_connected_terminal_reader_id');
     }
+
+    public function verifoneTerminals(): HasMany
+    {
+        return $this->hasMany(VerifoneTerminal::class);
+    }
 }

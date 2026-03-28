@@ -2,6 +2,10 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\Verifone\VerifonePaymentsController;
+use App\Http\Controllers\Api\Verifone\VerifonePaymentStatusController;
+use App\Http\Controllers\Api\Verifone\VerifoneTerminalAbortController;
+use App\Http\Controllers\Api\Verifone\VerifoneTerminalsController;
 use App\Http\Controllers\Stores\StoreTerminalConnectionTokenController;
 use App\Http\Controllers\Stores\StoreTerminalPaymentIntentController;
 use App\Http\Controllers\Webhooks\StripeConnectWebhookController;
@@ -94,6 +98,16 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('stores.terminal.connection-token');
     Route::post('/stores/{store}/terminal/payment-intents', StoreTerminalPaymentIntentController::class)
         ->name('stores.terminal.payment-intents.store');
+
+    // Verifone terminal endpoints (provider-specific)
+    Route::get('/verifone/stores/{store}/terminals', [VerifoneTerminalsController::class, 'index'])
+        ->name('api.verifone.terminals.index');
+    Route::post('/verifone/stores/{store}/payments', [VerifonePaymentsController::class, 'store'])
+        ->name('api.verifone.payments.store');
+    Route::post('/verifone/stores/{store}/payments/{serviceId}/status', [VerifonePaymentStatusController::class, 'store'])
+        ->name('api.verifone.payments.status');
+    Route::post('/verifone/stores/{store}/terminals/{terminal}/abort', [VerifoneTerminalAbortController::class, 'store'])
+        ->name('api.verifone.terminals.abort');
 
     // Tenant-scoped API resources
     Route::apiResource('customers', \App\Http\Controllers\Api\CustomersController::class);

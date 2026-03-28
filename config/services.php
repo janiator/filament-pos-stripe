@@ -42,4 +42,12 @@ return [
         'connect_webhook_secret' => env('STRIPE_CONNECT_WEBHOOK_SECRET'),
     ],
 
+    'verifone' => [
+        'base_url' => env('VERIFONE_BASE_URL'),
+        'user_uid' => env('VERIFONE_USER_UID'),
+        'api_key' => env('VERIFONE_API_KEY'),
+        'site_entity_id' => env('VERIFONE_SITE_ENTITY_ID'),
+        'timeout' => env('VERIFONE_TIMEOUT', 15),
+    ],
+
 ];

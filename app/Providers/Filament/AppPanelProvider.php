@@ -4,11 +4,14 @@ namespace App\Providers\Filament;
 
 use App\Enums\AddonType;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Resources\ProductDeclarations\ProductDeclarationResource;
 use App\Filament\Resources\Shield\Roles\RoleResource;
+use App\Filament\Resources\Stores\StoreResource;
 use App\Http\Middleware\FilamentEmbedMode;
 use App\Models\Addon;
 use App\Models\Store;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -19,6 +22,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -41,6 +45,7 @@ class AppPanelProvider extends PanelProvider
             ->profile()
             ->databaseNotifications()
             ->tenant(Store::class)
+            ->searchableTenantMenu()
             ->tenantRoutePrefix('store')
             ->colors([
                 'primary' => Color::Amber,
@@ -54,7 +59,7 @@ class AppPanelProvider extends PanelProvider
         if (class_exists(\Leek\FilamentWorkflows\WorkflowsPlugin::class)) {
             $panel = $panel->plugin(
                 \Leek\FilamentWorkflows\WorkflowsPlugin::make()
-                    ->navigationGroup(__('filament.navigation_groups.automation'))
+                    ->navigationGroup(__('filament.navigation_groups.settings'))
                     ->navigation(false)
             );
         }
@@ -64,6 +69,7 @@ class AppPanelProvider extends PanelProvider
         return $panel
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
+            ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\Filament\Clusters')
             ->pages([
                 Dashboard::class,
             ])
@@ -89,9 +95,7 @@ class AppPanelProvider extends PanelProvider
                 __('filament.navigation_groups.catalog'),
                 __('filament.navigation_groups.customers'),
                 __('filament.navigation_groups.payments'),
-                __('filament.navigation_groups.terminals_and_equipment'),
                 __('filament.navigation_groups.settings'),
-                __('filament.navigation_groups.automation'),
                 __('filament.navigation_groups.system'),
                 __('filament.navigation_groups.administration'),
                 'Webflow CMS',
@@ -102,21 +106,23 @@ class AppPanelProvider extends PanelProvider
                     ->label('Workflows')
                     ->url(fn () => WorkflowResource::getUrl('index'))
                     ->icon('heroicon-o-arrow-path')
-                    ->group(__('filament.navigation_groups.automation'))
+                    ->group(__('filament.navigation_groups.settings'))
                     ->sort(0)
                     ->visible(fn () => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Workflows)),
-                NavigationItem::make('Horizon')
-                    ->label(__('filament.navigation.horizon'))
-                    ->url('/horizon', shouldOpenInNewTab: true)
-                    ->icon('heroicon-o-chart-bar-square')
-                    ->group(__('filament.navigation_groups.system'))
-                    ->sort(100),
-                NavigationItem::make('Pulse')
-                    ->label(__('filament.navigation.pulse'))
-                    ->url('/pulse', shouldOpenInNewTab: true)
-                    ->icon('heroicon-o-heart')
-                    ->group(__('filament.navigation_groups.system'))
-                    ->sort(101),
+            ])
+            ->tenantMenuItems([
+                'profile' => fn (Action $action): Action => $action
+                    ->label(__('filament.resources.store.tenant_menu'))
+                    ->url(fn (): string => StoreResource::getNavigationUrl())
+                    ->icon(Heroicon::OutlinedRectangleStack)
+                    ->visible(fn (): bool => StoreResource::canViewAny()),
+            ])
+            ->userMenuItems([
+                Action::make('productDeclaration')
+                    ->label('Produktfråsegn')
+                    ->url(fn (): string => ProductDeclarationResource::getUrl('index'))
+                    ->icon(Heroicon::OutlinedDocumentText)
+                    ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Pos)),
             ]);
     }
 }
