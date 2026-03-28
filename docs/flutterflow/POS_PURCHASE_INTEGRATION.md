@@ -240,8 +240,10 @@ This endpoint is intended for server-to-server reporting sync (for example Meran
 ```
 
 **Important behavior:**
-- Returns **kiosk-only** purchases (ticket-linked purchases are excluded server-side).
-- `net_amount_ore` is `amount - amount_refunded`.
+- Returns purchases with kiosk revenue. Mixed purchases (tickets + kiosk items) are included when kiosk line items exist in metadata.
+- Pure ticket purchases are excluded.
+- For mixed purchases, `net_amount_ore` is calculated from kiosk line items only (cart-level discounts are allocated proportionally across all lines first, then ticket lines are removed).
+- If no line-item metadata is available on a kiosk-only purchase, fallback is `amount - amount_refunded`.
 - Use `next_cursor` for paging; stop when `has_more` is `false`.
 
 ## FlutterFlow Implementation Steps

@@ -294,21 +294,28 @@ class PurchasesController extends BaseApiController
             foreach ($charges as $charge) {
                 $lastProcessedId = (int) $charge->id;
 
-                if (! $this->isKioskSale($charge)) {
+                $isKioskOnlyPurchase = $this->isKioskSale($charge);
+                $lineItems = $this->extractKioskLineItems($charge);
+
+                if (! $isKioskOnlyPurchase && empty($lineItems)) {
                     continue;
                 }
+
+                $netAmountOre = $isKioskOnlyPurchase
+                    ? (((int) $charge->amount) - ((int) $charge->amount_refunded))
+                    : (int) collect($lineItems)->sum(fn (array $item): int => (int) ($item['line_total_ore'] ?? 0));
 
                 $rows->push([
                     'purchase_id' => (int) $charge->id,
                     'sold_at' => $this->formatDateTimeOslo($charge->paid_at),
-                    'net_amount_ore' => ((int) $charge->amount) - ((int) $charge->amount_refunded),
+                    'net_amount_ore' => $netAmountOre,
                     'currency' => strtoupper((string) ($charge->currency ?: 'NOK')),
                     'store_slug' => $store->slug,
                     'is_refund' => ((int) $charge->amount_refunded) > 0
                         || ((int) $charge->amount) < 0
                         || $charge->status === 'refunded',
                     'updated_at' => $this->formatDateTimeOslo($charge->updated_at),
-                    'items' => $this->extractKioskLineItems($charge),
+                    'items' => $lineItems,
                 ]);
 
                 if ($rows->count() >= $limit) {
@@ -748,7 +755,7 @@ class PurchasesController extends BaseApiController
         $arrayItems = array_values(array_filter($items, fn ($item) => is_array($item)));
         $totalDiscountsOre = $this->resolveTotalDiscountsOreFromMetadata(is_array($metadata) ? $metadata : []);
 
-        $lineItems = [];
+        $normalizedItems = [];
         $itemDiscountsTotalOre = 0;
         $netBeforeCartDiscountTotalOre = 0;
 
@@ -768,11 +775,12 @@ class PurchasesController extends BaseApiController
             $itemDiscountOre = min($itemDiscountOre, $lineTotalOre);
             $lineNetBeforeCartDiscountOre = max(0, $lineTotalOre - $itemDiscountOre);
 
-            $lineItems[] = [
-                'product_name' => (string) ($item['product_name'] ?? $item['description'] ?? 'Ukjent produkt'),
+            $normalizedItems[] = [
+                'product_name' => (string) ($item['product_name'] ?? $item['name'] ?? $item['description'] ?? 'Ukjent produkt'),
                 'quantity' => $quantity,
                 'unit_price_ore' => $unitPrice,
                 'line_total_ore' => $lineNetBeforeCartDiscountOre,
+                'is_ticket' => $this->isTicketLineItem($item),
             ];
 
             $itemDiscountsTotalOre += $itemDiscountOre;
@@ -782,7 +790,7 @@ class PurchasesController extends BaseApiController
         $remainingCartDiscountOre = max(0, $totalDiscountsOre - $itemDiscountsTotalOre);
         if ($remainingCartDiscountOre > 0 && $netBeforeCartDiscountTotalOre > 0) {
             $lastPositiveIndex = null;
-            foreach ($lineItems as $index => $lineItem) {
+            foreach ($normalizedItems as $index => $lineItem) {
                 if ((int) ($lineItem['line_total_ore'] ?? 0) > 0) {
                     $lastPositiveIndex = $index;
                 }
@@ -790,7 +798,7 @@ class PurchasesController extends BaseApiController
 
             $allocated = 0;
 
-            foreach ($lineItems as $index => &$lineItem) {
+            foreach ($normalizedItems as $index => &$lineItem) {
                 $base = (int) ($lineItem['line_total_ore'] ?? 0);
                 if ($base <= 0) {
                     continue;
@@ -808,7 +816,32 @@ class PurchasesController extends BaseApiController
             unset($lineItem);
         }
 
-        return $lineItems;
+        return collect($normalizedItems)
+            ->filter(fn (array $item): bool => ($item['is_ticket'] ?? false) !== true)
+            ->map(fn (array $item): array => [
+                'product_name' => (string) ($item['product_name'] ?? 'Ukjent produkt'),
+                'quantity' => (float) ($item['quantity'] ?? 1),
+                'unit_price_ore' => (int) ($item['unit_price_ore'] ?? 0),
+                'line_total_ore' => (int) ($item['line_total_ore'] ?? 0),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Determine if an item row represents a Merano ticket line.
+     */
+    protected function isTicketLineItem(array $item): bool
+    {
+        $itemMetadata = $item['metadata'] ?? null;
+        if (! is_array($itemMetadata)) {
+            $itemMetadata = [];
+        }
+
+        return isset($item['merano_booking_id'])
+            || isset($item['merano_booking_number'])
+            || isset($itemMetadata['merano_booking_id'])
+            || isset($itemMetadata['merano_booking_number']);
     }
 
     /**
