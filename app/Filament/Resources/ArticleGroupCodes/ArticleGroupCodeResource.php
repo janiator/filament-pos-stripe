@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ArticleGroupCodes;
 
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\ArticleGroupCodes\Pages\CreateArticleGroupCode;
 use App\Filament\Resources\ArticleGroupCodes\Pages\EditArticleGroupCode;
 use App\Filament\Resources\ArticleGroupCodes\Pages\ListArticleGroupCodes;
@@ -16,6 +17,7 @@ use Filament\Tables\Table;
 
 class ArticleGroupCodeResource extends Resource
 {
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = ArticleGroupCode::class;
 
@@ -59,29 +61,29 @@ class ArticleGroupCodeResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('filament.navigation_groups.catalog');
+        return 'Katalog';
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         try {
             $tenant = \Filament\Facades\Filament::getTenant();
             if ($tenant && $tenant->slug !== 'visivo-admin') {
                 // Show store-specific codes and global standard codes
                 $query->where(function ($q) use ($tenant) {
                     $q->where('stripe_account_id', $tenant->stripe_account_id)
-                      ->orWhere(function ($q2) {
-                          $q2->whereNull('stripe_account_id')
-                             ->where('is_standard', true);
-                      });
+                        ->orWhere(function ($q2) {
+                            $q2->whereNull('stripe_account_id')
+                                ->where('is_standard', true);
+                        });
                 });
             }
         } catch (\Throwable $e) {
             // Fallback if Filament facade not available
         }
-        
+
         return $query;
     }
 

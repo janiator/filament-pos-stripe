@@ -21,7 +21,7 @@ class ConnectedProductFactory extends Factory
     public function definition(): array
     {
         return [
-            'stripe_product_id' => 'prod_' . fake()->unique()->bothify('????????????????????'),
+            'stripe_product_id' => 'prod_'.fake()->unique()->bothify('????????????????????'),
             'stripe_account_id' => Store::factory()->create()->stripe_account_id,
             'name' => fake()->words(3, true),
             'description' => fake()->paragraph(),
@@ -40,6 +40,7 @@ class ConnectedProductFactory extends Factory
             'currency' => 'nok',
             'article_group_code' => fake()->randomElement(['04003', '04006', '04014', '04004']),
             'product_code' => fake()->unique()->numerify('PLU#####'),
+            'track_inventory' => false,
         ];
     }
 }

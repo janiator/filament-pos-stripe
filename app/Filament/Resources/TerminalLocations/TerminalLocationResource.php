@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TerminalLocations;
 
 use App\Enums\AddonType;
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\TerminalLocations\Pages\CreateTerminalLocation;
 use App\Filament\Resources\TerminalLocations\Pages\EditTerminalLocation;
@@ -22,6 +23,8 @@ use Filament\Tables\Table;
 class TerminalLocationResource extends Resource
 {
     use HasTenantScopedQuery;
+
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = TerminalLocation::class;
 

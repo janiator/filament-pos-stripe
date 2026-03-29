@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\InventoryLedgerService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductVariant extends Model
 {
@@ -63,7 +65,7 @@ class ProductVariant extends Model
      */
     public function price(): ?BelongsTo
     {
-        if (!$this->stripe_price_id) {
+        if (! $this->stripe_price_id) {
             return null;
         }
 
@@ -83,15 +85,23 @@ class ProductVariant extends Model
     }
 
     /**
+     * @return HasMany<InventoryStockMovement, $this>
+     */
+    public function inventoryStockMovements(): HasMany
+    {
+        return $this->hasMany(InventoryStockMovement::class);
+    }
+
+    /**
      * Get formatted price
      */
     public function getFormattedPriceAttribute(): string
     {
-        if (!$this->price_amount) {
+        if (! $this->price_amount) {
             return 'N/A';
         }
 
-        return number_format($this->price_amount / 100, 2) . ' ' . strtoupper($this->currency ?? 'NOK');
+        return number_format($this->price_amount / 100, 2).' '.strtoupper($this->currency ?? 'NOK');
     }
 
     /**
@@ -100,7 +110,7 @@ class ProductVariant extends Model
     public function getVariantNameAttribute(): string
     {
         $parts = [];
-        
+
         if ($this->option1_value) {
             $parts[] = $this->option1_value;
         }
@@ -110,7 +120,7 @@ class ProductVariant extends Model
         if ($this->option3_value) {
             $parts[] = $this->option3_value;
         }
-        
+
         return implode(' / ', $parts) ?: 'Default';
     }
 
@@ -121,11 +131,11 @@ class ProductVariant extends Model
     {
         $productName = $this->product?->name ?? 'Product';
         $variantName = $this->variant_name;
-        
+
         if ($variantName === 'Default') {
             return $productName;
         }
-        
+
         return "{$productName} - {$variantName}";
     }
 
@@ -134,8 +144,8 @@ class ProductVariant extends Model
      */
     public function getInStockAttribute(): bool
     {
-        if ($this->inventory_quantity === null) {
-            return true; // Not tracking inventory
+        if (! app(InventoryLedgerService::class)->isVariantTracked($this)) {
+            return true;
         }
 
         if ($this->inventory_policy === 'continue') {
@@ -150,7 +160,7 @@ class ProductVariant extends Model
      */
     public function getDiscountPercentageAttribute(): ?float
     {
-        if (!$this->compare_at_price_amount || !$this->price_amount) {
+        if (! $this->compare_at_price_amount || ! $this->price_amount) {
             return null;
         }
 
@@ -167,6 +177,7 @@ class ProductVariant extends Model
     public function getApplicableDiscount(?string $customerId = null, int $quantity = 1, int $cartTotal = 0): ?\App\Models\Discount
     {
         $discountService = app(\App\Services\DiscountService::class);
+
         return $discountService->getBestDiscount($this, $customerId, $quantity, $cartTotal);
     }
 
@@ -176,6 +187,7 @@ class ProductVariant extends Model
     public function getDiscountedPrice(?string $customerId = null, int $quantity = 1, int $cartTotal = 0): array
     {
         $discountService = app(\App\Services\DiscountService::class);
+
         return $discountService->calculateDiscountedPrice($this, null, $customerId, $quantity, $cartTotal);
     }
 
@@ -185,22 +197,22 @@ class ProductVariant extends Model
      */
     public function hasBeenUsedInPurchases(): bool
     {
-        if (!$this->stripe_price_id) {
+        if (! $this->stripe_price_id) {
             return false;
         }
-        
+
         // Check if price is used in subscription items
         $usedInSubscriptions = \App\Models\ConnectedSubscriptionItem::where('connected_price', $this->stripe_price_id)
             ->exists();
-        
+
         if ($usedInSubscriptions) {
             return true;
         }
-        
+
         // Check if price is used in payment links
         $usedInPaymentLinks = \App\Models\ConnectedPaymentLink::where('stripe_price_id', $this->stripe_price_id)
             ->exists();
-        
+
         return $usedInPaymentLinks;
     }
 
@@ -215,13 +227,13 @@ class ProductVariant extends Model
             // Check if parent product is variable - only variable products should have variants in Stripe
             // A product is variable if it has 2+ variants (this variant + existing ones)
             $product = $variant->product;
-            if (!$product) {
+            if (! $product) {
                 return;
             }
 
             // Count existing variants (including this one that was just created)
             $variantCount = $product->variants()->count();
-            
+
             // Only create variant in Stripe if product is variable (2+ variants)
             if ($variantCount < 2) {
                 \Illuminate\Support\Facades\Log::info('Skipping Stripe creation for variant - parent product is not variable', [
@@ -229,19 +241,21 @@ class ProductVariant extends Model
                     'product_id' => $product->id,
                     'variant_count' => $variantCount,
                 ]);
+
                 return;
             }
 
             // Skip Stripe sync for variants without prices (custom price input on POS)
-            if (!$variant->price_amount || $variant->price_amount <= 0) {
+            if (! $variant->price_amount || $variant->price_amount <= 0) {
                 \Illuminate\Support\Facades\Log::info('Skipping Stripe creation for variant - no price set (custom price on POS)', [
                     'variant_id' => $variant->id,
                     'product_id' => $product->id,
                 ]);
+
                 return;
             }
 
-            if (!$variant->stripe_product_id && $variant->stripe_account_id) {
+            if (! $variant->stripe_product_id && $variant->stripe_account_id) {
                 $createVariantProductAction = app(\App\Actions\ConnectedProducts\CreateVariantProductInStripe::class);
                 $stripeProductId = $createVariantProductAction($variant);
 
@@ -250,7 +264,7 @@ class ProductVariant extends Model
                     $variant->saveQuietly();
 
                     // Create price for the variant product (skip if no_price_in_pos is enabled)
-                    if (!$variant->no_price_in_pos && $variant->price_amount && $variant->price_amount > 0) {
+                    if (! $variant->no_price_in_pos && $variant->price_amount && $variant->price_amount > 0) {
                         $createPriceAction = app(\App\Actions\ConnectedPrices\CreateConnectedPriceInStripe::class);
                         $priceId = $createPriceAction(
                             $stripeProductId,
@@ -321,4 +335,3 @@ class ProductVariant extends Model
         });
     }
 }
-

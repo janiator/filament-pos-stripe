@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users;
 
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
@@ -18,6 +19,8 @@ use Filament\Tables\Table;
 
 class UserResource extends Resource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUser;
@@ -30,7 +33,7 @@ class UserResource extends Resource
     public static function boot(): void
     {
         parent::boot();
-        
+
         // Disable tenant scoping for user management
         static::scopeToTenant(false);
     }
@@ -42,18 +45,18 @@ class UserResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('filament.navigation_groups.administration');
+        return __('filament.navigation_groups.settings');
     }
 
     public static function canViewAny(): bool
     {
         // Only allow super admins to view users
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return false;
         }
-        
-        return \Filament\Facades\Filament::getTenant() 
+
+        return \Filament\Facades\Filament::getTenant()
             ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
             : $user->hasRole('super_admin');
     }
@@ -62,21 +65,21 @@ class UserResource extends Resource
     {
         // Bypass tenant scoping
         $query = User::query()->withoutGlobalScopes();
-        
+
         // Super admins can see all users
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return $query->whereRaw('1 = 0');
         }
-        
-        $isSuperAdmin = \Filament\Facades\Filament::getTenant() 
+
+        $isSuperAdmin = \Filament\Facades\Filament::getTenant()
             ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
             : $user->hasRole('super_admin');
-            
-        if (!$isSuperAdmin) {
+
+        if (! $isSuperAdmin) {
             return $query->whereRaw('1 = 0'); // Return empty query
         }
-        
+
         return $query;
     }
 

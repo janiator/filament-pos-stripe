@@ -13,6 +13,8 @@ use App\Actions\ConnectedTransfers\SyncConnectedTransfersFromStripe;
 use App\Actions\Stores\SyncStoresFromStripe;
 use App\Actions\Stores\SyncStoreTerminalLocationsFromStripe;
 use App\Actions\Stores\SyncStoreTerminalReadersFromStripe;
+use App\Actions\Stripe\SyncStoreStripeBalanceTransactionsFromStripe;
+use App\Actions\Stripe\SyncStoreStripePayoutsFromStripe;
 use App\Models\Store;
 use Filament\Notifications\Notification;
 
@@ -27,7 +29,7 @@ class SyncEverythingFromStripe
 
         // Sync stores first (this ensures we have the latest store data before syncing everything else)
         // This is important because new stores might exist in Stripe that haven't been created locally yet
-        $storeSync = new SyncStoresFromStripe();
+        $storeSync = new SyncStoresFromStripe;
         $storeResult = $storeSync(false);
         $totalFound += $storeResult['total'];
         $totalCreated += $storeResult['created'];
@@ -45,6 +47,7 @@ class SyncEverythingFromStripe
                     ->warning()
                     ->send();
             }
+
             return [
                 'total' => $totalFound,
                 'created' => $totalCreated,
@@ -54,12 +57,12 @@ class SyncEverythingFromStripe
         }
 
         // Sync customers
-        $customerSync = new SyncConnectedCustomersFromStripe();
+        $customerSync = new SyncConnectedCustomersFromStripe;
         foreach ($stores as $store) {
             // Refresh the store to ensure we have the latest data
             $store->refresh();
             // Skip if store doesn't have stripe_account_id
-            if (!$store->stripe_account_id) {
+            if (! $store->stripe_account_id) {
                 continue;
             }
             $result = $customerSync($store, false);
@@ -73,10 +76,10 @@ class SyncEverythingFromStripe
         // Variants are synced as separate Stripe products but stored in ProductVariant table
         // The sync handles variants in two passes: first pass syncs what it can,
         // second pass retries variants whose parent products weren't found yet
-        $productSync = new SyncConnectedProductsFromStripe();
+        $productSync = new SyncConnectedProductsFromStripe;
         foreach ($stores as $store) {
             $store->refresh();
-            if (!$store->stripe_account_id) {
+            if (! $store->stripe_account_id) {
                 continue;
             }
             $result = $productSync($store, false);
@@ -87,10 +90,10 @@ class SyncEverythingFromStripe
         }
 
         // Sync subscriptions
-        $subscriptionSync = new SyncConnectedSubscriptionsFromStripe();
+        $subscriptionSync = new SyncConnectedSubscriptionsFromStripe;
         foreach ($stores as $store) {
             $store->refresh();
-            if (!$store->stripe_account_id) {
+            if (! $store->stripe_account_id) {
                 continue;
             }
             $result = $subscriptionSync($store, false);
@@ -101,10 +104,10 @@ class SyncEverythingFromStripe
         }
 
         // Sync payment intents
-        $paymentIntentSync = new SyncConnectedPaymentIntentsFromStripe();
+        $paymentIntentSync = new SyncConnectedPaymentIntentsFromStripe;
         foreach ($stores as $store) {
             $store->refresh();
-            if (!$store->stripe_account_id) {
+            if (! $store->stripe_account_id) {
                 continue;
             }
             $result = $paymentIntentSync($store, false);
@@ -115,10 +118,10 @@ class SyncEverythingFromStripe
         }
 
         // Sync charges
-        $chargeSync = new SyncConnectedChargesFromStripe();
+        $chargeSync = new SyncConnectedChargesFromStripe;
         foreach ($stores as $store) {
             $store->refresh();
-            if (!$store->stripe_account_id) {
+            if (! $store->stripe_account_id) {
                 continue;
             }
             $result = $chargeSync($store, false);
@@ -128,11 +131,39 @@ class SyncEverythingFromStripe
             $allErrors = array_merge($allErrors, $result['errors']);
         }
 
-        // Sync transfers
-        $transferSync = new SyncConnectedTransfersFromStripe();
+        // Sync Stripe payouts (connected account)
+        $payoutSync = new SyncStoreStripePayoutsFromStripe;
         foreach ($stores as $store) {
             $store->refresh();
-            if (!$store->stripe_account_id) {
+            if (! $store->stripe_account_id) {
+                continue;
+            }
+            $result = $payoutSync($store, false);
+            $totalFound += $result['total'];
+            $totalCreated += $result['created'];
+            $totalUpdated += $result['updated'];
+            $allErrors = array_merge($allErrors, $result['errors']);
+        }
+
+        // Sync Stripe balance transactions (fees, charges, etc.)
+        $balanceTxSync = new SyncStoreStripeBalanceTransactionsFromStripe;
+        foreach ($stores as $store) {
+            $store->refresh();
+            if (! $store->stripe_account_id) {
+                continue;
+            }
+            $result = $balanceTxSync($store, false);
+            $totalFound += $result['total'];
+            $totalCreated += $result['created'];
+            $totalUpdated += $result['updated'];
+            $allErrors = array_merge($allErrors, $result['errors']);
+        }
+
+        // Sync transfers
+        $transferSync = new SyncConnectedTransfersFromStripe;
+        foreach ($stores as $store) {
+            $store->refresh();
+            if (! $store->stripe_account_id) {
                 continue;
             }
             $result = $transferSync($store, false);
@@ -143,10 +174,10 @@ class SyncEverythingFromStripe
         }
 
         // Sync payment methods
-        $paymentMethodSync = new SyncConnectedPaymentMethodsFromStripe();
+        $paymentMethodSync = new SyncConnectedPaymentMethodsFromStripe;
         foreach ($stores as $store) {
             $store->refresh();
-            if (!$store->stripe_account_id) {
+            if (! $store->stripe_account_id) {
                 continue;
             }
             $result = $paymentMethodSync($store, false);
@@ -157,10 +188,10 @@ class SyncEverythingFromStripe
         }
 
         // Sync payment links
-        $paymentLinkSync = new SyncConnectedPaymentLinksFromStripe();
+        $paymentLinkSync = new SyncConnectedPaymentLinksFromStripe;
         foreach ($stores as $store) {
             $store->refresh();
-            if (!$store->stripe_account_id) {
+            if (! $store->stripe_account_id) {
                 continue;
             }
             $result = $paymentLinkSync($store, false);
@@ -171,7 +202,7 @@ class SyncEverythingFromStripe
         }
 
         // Sync terminal locations
-        $terminalLocationSync = new SyncStoreTerminalLocationsFromStripe();
+        $terminalLocationSync = new SyncStoreTerminalLocationsFromStripe;
         foreach ($stores as $store) {
             $result = $terminalLocationSync($store);
             $totalFound += $result['total'];
@@ -183,7 +214,7 @@ class SyncEverythingFromStripe
         }
 
         // Sync terminal readers
-        $terminalReaderSync = new SyncStoreTerminalReadersFromStripe();
+        $terminalReaderSync = new SyncStoreTerminalReadersFromStripe;
         foreach ($stores as $store) {
             $result = $terminalReaderSync($store);
             $totalFound += $result['total'];
@@ -198,7 +229,7 @@ class SyncEverythingFromStripe
             if (! empty($allErrors)) {
                 $errorDetails = implode("\n", array_slice($allErrors, 0, 5));
                 if (count($allErrors) > 5) {
-                    $errorDetails .= "\n... and " . (count($allErrors) - 5) . " more error(s)";
+                    $errorDetails .= "\n... and ".(count($allErrors) - 5).' more error(s)';
                 }
 
                 Notification::make()
@@ -238,7 +269,7 @@ class SyncEverythingFromStripe
         $store->refresh();
 
         // Skip if store doesn't have stripe_account_id
-        if (!$store->stripe_account_id) {
+        if (! $store->stripe_account_id) {
             if ($notify) {
                 Notification::make()
                     ->title('Store not connected to Stripe')
@@ -246,6 +277,7 @@ class SyncEverythingFromStripe
                     ->warning()
                     ->send();
             }
+
             return [
                 'total' => 0,
                 'created' => 0,
@@ -255,7 +287,7 @@ class SyncEverythingFromStripe
         }
 
         // Sync customers
-        $customerSync = new SyncConnectedCustomersFromStripe();
+        $customerSync = new SyncConnectedCustomersFromStripe;
         $result = $customerSync($store, false);
         $totalFound += $result['total'];
         $totalCreated += $result['created'];
@@ -263,7 +295,7 @@ class SyncEverythingFromStripe
         $allErrors = array_merge($allErrors, $result['errors']);
 
         // Sync products (also syncs prices and variants)
-        $productSync = new SyncConnectedProductsFromStripe();
+        $productSync = new SyncConnectedProductsFromStripe;
         $result = $productSync($store, false);
         $totalFound += $result['total'];
         $totalCreated += $result['created'];
@@ -271,7 +303,7 @@ class SyncEverythingFromStripe
         $allErrors = array_merge($allErrors, $result['errors']);
 
         // Sync subscriptions
-        $subscriptionSync = new SyncConnectedSubscriptionsFromStripe();
+        $subscriptionSync = new SyncConnectedSubscriptionsFromStripe;
         $result = $subscriptionSync($store, false);
         $totalFound += $result['total'];
         $totalCreated += $result['created'];
@@ -279,7 +311,7 @@ class SyncEverythingFromStripe
         $allErrors = array_merge($allErrors, $result['errors']);
 
         // Sync payment intents
-        $paymentIntentSync = new SyncConnectedPaymentIntentsFromStripe();
+        $paymentIntentSync = new SyncConnectedPaymentIntentsFromStripe;
         $result = $paymentIntentSync($store, false);
         $totalFound += $result['total'];
         $totalCreated += $result['created'];
@@ -287,15 +319,29 @@ class SyncEverythingFromStripe
         $allErrors = array_merge($allErrors, $result['errors']);
 
         // Sync charges
-        $chargeSync = new SyncConnectedChargesFromStripe();
+        $chargeSync = new SyncConnectedChargesFromStripe;
         $result = $chargeSync($store, false);
         $totalFound += $result['total'];
         $totalCreated += $result['created'];
         $totalUpdated += $result['updated'];
         $allErrors = array_merge($allErrors, $result['errors']);
 
+        $payoutSync = new SyncStoreStripePayoutsFromStripe;
+        $result = $payoutSync($store, false);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        $allErrors = array_merge($allErrors, $result['errors']);
+
+        $balanceTxSync = new SyncStoreStripeBalanceTransactionsFromStripe;
+        $result = $balanceTxSync($store, false);
+        $totalFound += $result['total'];
+        $totalCreated += $result['created'];
+        $totalUpdated += $result['updated'];
+        $allErrors = array_merge($allErrors, $result['errors']);
+
         // Sync transfers
-        $transferSync = new SyncConnectedTransfersFromStripe();
+        $transferSync = new SyncConnectedTransfersFromStripe;
         $result = $transferSync($store, false);
         $totalFound += $result['total'];
         $totalCreated += $result['created'];
@@ -303,7 +349,7 @@ class SyncEverythingFromStripe
         $allErrors = array_merge($allErrors, $result['errors']);
 
         // Sync payment methods
-        $paymentMethodSync = new SyncConnectedPaymentMethodsFromStripe();
+        $paymentMethodSync = new SyncConnectedPaymentMethodsFromStripe;
         $result = $paymentMethodSync($store, false);
         $totalFound += $result['total'];
         $totalCreated += $result['created'];
@@ -311,7 +357,7 @@ class SyncEverythingFromStripe
         $allErrors = array_merge($allErrors, $result['errors']);
 
         // Sync payment links
-        $paymentLinkSync = new SyncConnectedPaymentLinksFromStripe();
+        $paymentLinkSync = new SyncConnectedPaymentLinksFromStripe;
         $result = $paymentLinkSync($store, false);
         $totalFound += $result['total'];
         $totalCreated += $result['created'];
@@ -319,7 +365,7 @@ class SyncEverythingFromStripe
         $allErrors = array_merge($allErrors, $result['errors']);
 
         // Sync terminal locations
-        $terminalLocationSync = new SyncStoreTerminalLocationsFromStripe();
+        $terminalLocationSync = new SyncStoreTerminalLocationsFromStripe;
         $result = $terminalLocationSync($store);
         $totalFound += $result['total'];
         $totalCreated += $result['created'];
@@ -329,7 +375,7 @@ class SyncEverythingFromStripe
         }
 
         // Sync terminal readers
-        $terminalReaderSync = new SyncStoreTerminalReadersFromStripe();
+        $terminalReaderSync = new SyncStoreTerminalReadersFromStripe;
         $result = $terminalReaderSync($store);
         $totalFound += $result['total'];
         $totalCreated += $result['created'];
@@ -342,7 +388,7 @@ class SyncEverythingFromStripe
             if (! empty($allErrors)) {
                 $errorDetails = implode("\n", array_slice($allErrors, 0, 5));
                 if (count($allErrors) > 5) {
-                    $errorDetails .= "\n... and " . (count($allErrors) - 5) . " more error(s)";
+                    $errorDetails .= "\n... and ".(count($allErrors) - 5).' more error(s)';
                 }
 
                 Notification::make()
@@ -368,4 +414,3 @@ class SyncEverythingFromStripe
         ];
     }
 }
-

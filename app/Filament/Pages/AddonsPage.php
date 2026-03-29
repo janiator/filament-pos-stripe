@@ -218,6 +218,14 @@ class AddonsPage extends Page
                 'url' => \App\Filament\Resources\PosSessions\PosSessionResource::getUrl('index'),
                 'label' => 'Open POS',
             ],
+            AddonType::PowerOfficeGo => [
+                'url' => \App\Filament\Resources\PowerOfficeIntegrations\PowerOfficeIntegrationResource::getUrl('index'),
+                'label' => 'Open PowerOffice',
+            ],
+            AddonType::Inventory => [
+                'url' => \App\Filament\Resources\ConnectedProducts\ConnectedProductResource::getUrl('index'),
+                'label' => 'Open Products',
+            ],
             AddonType::MeranoBooking => null,
             AddonType::WebflowCms => null,
         };
