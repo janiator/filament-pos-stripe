@@ -20,6 +20,12 @@ class PurchasesController extends BaseApiController
 {
     protected PurchaseService $purchaseService;
 
+    /** @var array<string, array<int, ConnectedProduct>> */
+    protected array $connectedProductsCache = [];
+
+    /** @var array<string, array<int, ProductVariant>> */
+    protected array $productVariantsCache = [];
+
     public function __construct(PurchaseService $purchaseService)
     {
         $this->purchaseService = $purchaseService;
@@ -937,28 +943,25 @@ class PurchasesController extends BaseApiController
         }
 
         // Fetch products and variants in bulk
-        $products = ConnectedProduct::whereIn('id', array_unique($productIds))
-            ->where('stripe_account_id', $stripeAccountId)
-            ->get()
-            ->keyBy('id');
-
-        $variants = ProductVariant::whereIn('id', array_unique($variantIds))
-            ->where('stripe_account_id', $stripeAccountId)
-            ->get()
-            ->keyBy('id');
+        $products = $this->getConnectedProductsForAccount($stripeAccountId, $productIds);
+        $variants = $this->getProductVariantsForAccount($stripeAccountId, $variantIds);
 
         // Enrich each item from current product data
         return array_map(function ($item) use ($products, $variants, $itemRefunds) {
             $productId = isset($item['product_id']) ? (int) $item['product_id'] : null;
             $variantId = isset($item['variant_id']) ? (int) $item['variant_id'] : null;
+            $variant = $variantId ? ($variants[$variantId] ?? null) : null;
+
+            if (! $productId && $variant) {
+                $productId = (int) $variant->connected_product_id;
+            }
 
             $product = $productId ? ($products[$productId] ?? null) : null;
-            $variant = $variantId ? ($variants[$variantId] ?? null) : null;
 
             // Get product name (from variant if available, otherwise product)
             $productName = null;
-            if ($variant && $variant->product) {
-                $productName = $variant->product->name;
+            if ($variant && $product) {
+                $productName = $product->name;
                 if ($variant->variant_name !== 'Default') {
                     $productName .= ' - '.$variant->variant_name;
                 }
@@ -997,10 +1000,7 @@ class PurchasesController extends BaseApiController
             // Get article group code and product code
             $articleGroupCode = null;
             $productCode = null;
-            if ($variant && $variant->product) {
-                $articleGroupCode = $variant->product->article_group_code;
-                $productCode = $variant->product->product_code;
-            } elseif ($product) {
+            if ($product) {
                 $articleGroupCode = $product->article_group_code;
                 $productCode = $product->product_code;
             }
@@ -1035,6 +1035,80 @@ class PurchasesController extends BaseApiController
                     : null,
             ];
         }, $items);
+    }
+
+    /**
+     * @param  array<int, int>  $productIds
+     * @return array<int, ConnectedProduct>
+     */
+    protected function getConnectedProductsForAccount(string $stripeAccountId, array $productIds): array
+    {
+        $uniqueProductIds = array_values(array_unique(array_filter($productIds)));
+        if ($uniqueProductIds === []) {
+            return [];
+        }
+
+        if (! isset($this->connectedProductsCache[$stripeAccountId])) {
+            $this->connectedProductsCache[$stripeAccountId] = [];
+        }
+
+        $missingProductIds = array_values(array_diff(
+            $uniqueProductIds,
+            array_keys($this->connectedProductsCache[$stripeAccountId])
+        ));
+
+        if ($missingProductIds !== []) {
+            $fetchedProducts = ConnectedProduct::query()
+                ->where('stripe_account_id', $stripeAccountId)
+                ->whereIn('id', $missingProductIds)
+                ->get()
+                ->keyBy('id')
+                ->all();
+
+            $this->connectedProductsCache[$stripeAccountId] += $fetchedProducts;
+        }
+
+        return array_intersect_key(
+            $this->connectedProductsCache[$stripeAccountId],
+            array_flip($uniqueProductIds)
+        );
+    }
+
+    /**
+     * @param  array<int, int>  $variantIds
+     * @return array<int, ProductVariant>
+     */
+    protected function getProductVariantsForAccount(string $stripeAccountId, array $variantIds): array
+    {
+        $uniqueVariantIds = array_values(array_unique(array_filter($variantIds)));
+        if ($uniqueVariantIds === []) {
+            return [];
+        }
+
+        if (! isset($this->productVariantsCache[$stripeAccountId])) {
+            $this->productVariantsCache[$stripeAccountId] = [];
+        }
+
+        $missingVariantIds = array_values(array_diff(
+            $uniqueVariantIds,
+            array_keys($this->productVariantsCache[$stripeAccountId])
+        ));
+
+        if ($missingVariantIds !== []) {
+            $fetchedVariants = ProductVariant::query()
+                ->where('stripe_account_id', $stripeAccountId)
+                ->whereIn('id', $missingVariantIds)
+                ->get()
+                ->keyBy('id')
+                ->all();
+
+            $this->productVariantsCache[$stripeAccountId] += $fetchedVariants;
+        }
+
+        return array_intersect_key(
+            $this->productVariantsCache[$stripeAccountId],
+            array_flip($uniqueVariantIds)
+        );
     }
 
     /**
