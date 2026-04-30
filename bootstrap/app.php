@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust proxies for Herd's reverse proxy setup
         $middleware->trustProxies(at: '*');
 
+        // Reject malformed Livewire update payloads before Livewire hydration.
+        $middleware->append(\App\Http\Middleware\GuardLivewireUpdatePayload::class);
+
         // Set dynamic APP_URL based on request (must be before CORS)
         $middleware->append(\App\Http\Middleware\SetDynamicAppUrl::class);
 
