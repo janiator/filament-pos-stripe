@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PosSession extends Model
 {
@@ -103,6 +104,22 @@ class PosSession extends Model
     public function lineCorrections(): HasMany
     {
         return $this->hasMany(PosLineCorrection::class);
+    }
+
+    /**
+     * Get all PowerOffice sync runs for this session.
+     */
+    public function powerOfficeSyncRuns(): HasMany
+    {
+        return $this->hasMany(PowerOfficeSyncRun::class);
+    }
+
+    /**
+     * Get latest PowerOffice sync run for this session.
+     */
+    public function latestPowerOfficeSyncRun(): HasOne
+    {
+        return $this->hasOne(PowerOfficeSyncRun::class)->latestOfMany();
     }
 
     /**

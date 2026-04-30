@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ReceiptTemplates;
 
 use App\Enums\AddonType;
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\ReceiptTemplates\Pages\CreateReceiptTemplate;
 use App\Filament\Resources\ReceiptTemplates\Pages\EditReceiptTemplate;
 use App\Filament\Resources\ReceiptTemplates\Pages\ListReceiptTemplates;
@@ -18,6 +19,8 @@ use Filament\Tables\Table;
 
 class ReceiptTemplateResource extends Resource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $model = ReceiptTemplate::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;

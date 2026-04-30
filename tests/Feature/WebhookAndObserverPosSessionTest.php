@@ -1,7 +1,9 @@
 <?php
 
 use App\Actions\Webhooks\HandleChargeWebhook;
+use App\Actions\Webhooks\HandlePaymentMethodWebhook;
 use App\Models\ConnectedCharge;
+use App\Models\ConnectedPaymentMethod;
 use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\Store;
@@ -113,4 +115,78 @@ it('creates POS events when ConnectedCharge has pos_session_id', function () {
     ]);
 
     expect(PosEvent::where('event_code', PosEvent::EVENT_SALES_RECEIPT)->count())->toBe(1);
+});
+
+it('ignores charge refund update events when webhook object is not a charge', function () {
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_'.uniqid()]);
+
+    $secret = 'whsec_test_refund_event';
+    config()->set('cashierconnect.webhook.secret', $secret);
+
+    $payload = json_encode([
+        'id' => 'evt_'.uniqid(),
+        'object' => 'event',
+        'type' => 'charge.refund.updated',
+        'account' => $store->stripe_account_id,
+        'data' => [
+            'object' => [
+                'id' => 're_'.uniqid(),
+                'object' => 'refund',
+                'charge' => 'ch_'.uniqid(),
+            ],
+        ],
+    ], JSON_THROW_ON_ERROR);
+
+    $timestamp = time();
+    $signedPayload = "{$timestamp}.{$payload}";
+    $signature = hash_hmac('sha256', $signedPayload, $secret);
+    $signatureHeader = "t={$timestamp},v1={$signature}";
+
+    $response = $this->withHeader('Stripe-Signature', $signatureHeader)
+        ->postJson('/api/connectWebhook', json_decode($payload, true, 512, JSON_THROW_ON_ERROR));
+
+    $response->assertOk()
+        ->assertJsonPath('event_type', 'charge.refund.updated')
+        ->assertJsonPath('processed', false)
+        ->assertJsonPath('errors', []);
+});
+
+it('does not overwrite existing payment method customer with null value', function () {
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_'.uniqid()]);
+
+    $existing = ConnectedPaymentMethod::query()->create([
+        'stripe_payment_method_id' => 'pm_'.uniqid(),
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_customer_id' => 'cus_existing_123',
+        'type' => 'card',
+        'card_brand' => 'visa',
+        'card_last4' => '4242',
+        'card_exp_month' => 1,
+        'card_exp_year' => 2030,
+    ]);
+
+    $paymentMethod = \Stripe\PaymentMethod::constructFrom([
+        'id' => $existing->stripe_payment_method_id,
+        'customer' => null,
+        'type' => 'card',
+        'card' => [
+            'brand' => 'mastercard',
+            'last4' => '4444',
+            'exp_month' => 12,
+            'exp_year' => 2032,
+        ],
+        'metadata' => [],
+    ]);
+
+    app(HandlePaymentMethodWebhook::class)->handle(
+        $paymentMethod,
+        'payment_method.updated',
+        $store->stripe_account_id
+    );
+
+    $existing->refresh();
+
+    expect($existing->stripe_customer_id)->toBe('cus_existing_123')
+        ->and($existing->card_brand)->toBe('mastercard')
+        ->and($existing->card_last4)->toBe('4444');
 });

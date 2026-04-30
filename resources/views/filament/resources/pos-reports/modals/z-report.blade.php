@@ -278,6 +278,32 @@
         </div>
     @endif
 
+    @if(($report['report_type'] ?? '') === 'Z-Report')
+        @php
+            $zStripeFeesMinor = (int) ($report['stripe_fees_minor'] ?? 0);
+            $zPayoutToBankMinor = (int) ($report['payout_to_bank_minor'] ?? 0);
+        @endphp
+        <div class="z-report-section" style="background-color: rgb(241 245 249); border-color: rgb(203 213 225);">
+            <h4 class="z-report-title">Stripe</h4>
+            <div class="z-report-grid z-report-grid-2">
+                <div class="z-report-section z-report-card" style="margin: 0;">
+                    <div class="z-report-metric-label">Stripe-gebyr (kort)</div>
+                    <div class="z-report-metric-value" style="font-size: 1.25rem;">{{ number_format($zStripeFeesMinor / 100, 2) }} NOK</div>
+                    <div style="font-size: 0.75rem; color: rgb(107 114 128); margin-top: 0.375rem;">
+                        Fra synkede saldo-transaksjoner for denne økten.
+                    </div>
+                </div>
+                <div class="z-report-section z-report-card" style="margin: 0;">
+                    <div class="z-report-metric-label">Utbetaling til bank</div>
+                    <div class="z-report-metric-value" style="font-size: 1.25rem;">{{ number_format($zPayoutToBankMinor / 100, 2) }} NOK</div>
+                    <div style="font-size: 0.75rem; color: rgb(107 114 128); margin-top: 0.375rem;">
+                        Betalte utbetalinger med ankomst på stengedato (synket fra Stripe).
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Cash Management -->
     <div class="z-report-grid {{ (!empty($report['tips_enabled']) && $report['tips_enabled'] === true) ? 'z-report-grid-5' : 'z-report-grid-4' }}">
         <div class="z-report-section" style="background-color: rgb(254 252 232); border-color: rgb(253 224 71);">

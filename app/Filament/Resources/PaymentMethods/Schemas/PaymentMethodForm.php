@@ -76,6 +76,7 @@ class PaymentMethodForm
                     ->label('Provider')
                     ->options([
                         'stripe' => 'Stripe',
+                        'verifone' => 'Verifone',
                         'cash' => 'Cash',
                         'other' => 'Other',
                     ])
@@ -96,10 +97,15 @@ class PaymentMethodForm
                                 'link' => 'Link (Stripe)',
                             ];
                         }
+                        if ($provider === 'verifone') {
+                            return [
+                                'terminal' => 'Terminal (Verifone)',
+                            ];
+                        }
 
                         return [];
                     })
-                    ->visible(fn ($get) => $get('provider') === 'stripe')
+                    ->visible(fn ($get) => in_array($get('provider'), ['stripe', 'verifone'], true))
                     ->nullable()
                     ->live()
                     ->afterStateUpdated(function ($state, $set, $get) {

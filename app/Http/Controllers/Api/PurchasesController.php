@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\CashDrawerDisabledException;
+use App\Exceptions\InsufficientStockException;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
@@ -18,6 +19,12 @@ use Illuminate\Support\Facades\Validator;
 class PurchasesController extends BaseApiController
 {
     protected PurchaseService $purchaseService;
+
+    /** @var array<string, array<int, ConnectedProduct>> */
+    protected array $connectedProductsCache = [];
+
+    /** @var array<string, array<int, ProductVariant>> */
+    protected array $productVariantsCache = [];
 
     public function __construct(PurchaseService $purchaseService)
     {
@@ -969,28 +976,25 @@ class PurchasesController extends BaseApiController
         }
 
         // Fetch products and variants in bulk
-        $products = ConnectedProduct::whereIn('id', array_unique($productIds))
-            ->where('stripe_account_id', $stripeAccountId)
-            ->get()
-            ->keyBy('id');
-
-        $variants = ProductVariant::whereIn('id', array_unique($variantIds))
-            ->where('stripe_account_id', $stripeAccountId)
-            ->get()
-            ->keyBy('id');
+        $products = $this->getConnectedProductsForAccount($stripeAccountId, $productIds);
+        $variants = $this->getProductVariantsForAccount($stripeAccountId, $variantIds);
 
         // Enrich each item from current product data
         return array_map(function ($item) use ($products, $variants, $itemRefunds) {
             $productId = isset($item['product_id']) ? (int) $item['product_id'] : null;
             $variantId = isset($item['variant_id']) ? (int) $item['variant_id'] : null;
+            $variant = $variantId ? ($variants[$variantId] ?? null) : null;
+
+            if (! $productId && $variant) {
+                $productId = (int) $variant->connected_product_id;
+            }
 
             $product = $productId ? ($products[$productId] ?? null) : null;
-            $variant = $variantId ? ($variants[$variantId] ?? null) : null;
 
             // Get product name (from variant if available, otherwise product)
             $productName = null;
-            if ($variant && $variant->product) {
-                $productName = $variant->product->name;
+            if ($variant && $product) {
+                $productName = $product->name;
                 if ($variant->variant_name !== 'Default') {
                     $productName .= ' - '.$variant->variant_name;
                 }
@@ -1029,10 +1033,7 @@ class PurchasesController extends BaseApiController
             // Get article group code and product code
             $articleGroupCode = null;
             $productCode = null;
-            if ($variant && $variant->product) {
-                $articleGroupCode = $variant->product->article_group_code;
-                $productCode = $variant->product->product_code;
-            } elseif ($product) {
+            if ($product) {
                 $articleGroupCode = $product->article_group_code;
                 $productCode = $product->product_code;
             }
@@ -1067,6 +1068,80 @@ class PurchasesController extends BaseApiController
                     : null,
             ];
         }, $items);
+    }
+
+    /**
+     * @param  array<int, int>  $productIds
+     * @return array<int, ConnectedProduct>
+     */
+    protected function getConnectedProductsForAccount(string $stripeAccountId, array $productIds): array
+    {
+        $uniqueProductIds = array_values(array_unique(array_filter($productIds)));
+        if ($uniqueProductIds === []) {
+            return [];
+        }
+
+        if (! isset($this->connectedProductsCache[$stripeAccountId])) {
+            $this->connectedProductsCache[$stripeAccountId] = [];
+        }
+
+        $missingProductIds = array_values(array_diff(
+            $uniqueProductIds,
+            array_keys($this->connectedProductsCache[$stripeAccountId])
+        ));
+
+        if ($missingProductIds !== []) {
+            $fetchedProducts = ConnectedProduct::query()
+                ->where('stripe_account_id', $stripeAccountId)
+                ->whereIn('id', $missingProductIds)
+                ->get()
+                ->keyBy('id')
+                ->all();
+
+            $this->connectedProductsCache[$stripeAccountId] += $fetchedProducts;
+        }
+
+        return array_intersect_key(
+            $this->connectedProductsCache[$stripeAccountId],
+            array_flip($uniqueProductIds)
+        );
+    }
+
+    /**
+     * @param  array<int, int>  $variantIds
+     * @return array<int, ProductVariant>
+     */
+    protected function getProductVariantsForAccount(string $stripeAccountId, array $variantIds): array
+    {
+        $uniqueVariantIds = array_values(array_unique(array_filter($variantIds)));
+        if ($uniqueVariantIds === []) {
+            return [];
+        }
+
+        if (! isset($this->productVariantsCache[$stripeAccountId])) {
+            $this->productVariantsCache[$stripeAccountId] = [];
+        }
+
+        $missingVariantIds = array_values(array_diff(
+            $uniqueVariantIds,
+            array_keys($this->productVariantsCache[$stripeAccountId])
+        ));
+
+        if ($missingVariantIds !== []) {
+            $fetchedVariants = ProductVariant::query()
+                ->where('stripe_account_id', $stripeAccountId)
+                ->whereIn('id', $missingVariantIds)
+                ->get()
+                ->keyBy('id')
+                ->all();
+
+            $this->productVariantsCache[$stripeAccountId] += $fetchedVariants;
+        }
+
+        return array_intersect_key(
+            $this->productVariantsCache[$stripeAccountId],
+            array_flip($uniqueVariantIds)
+        );
     }
 
     /**
@@ -1157,6 +1232,7 @@ class PurchasesController extends BaseApiController
             'cart' => ['required', 'array'],
             'cart.items' => ['required', 'array', 'min:1'],
             'cart.items.*.product_id' => ['required', 'integer'],
+            'cart.items.*.variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
@@ -1296,6 +1372,19 @@ class PurchasesController extends BaseApiController
             }
         }
 
+        // For Verifone terminal payments, require provider reference metadata
+        if (($validated['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+            $verifoneReference = $validated['metadata']['verifone_payment_reference']
+                ?? $validated['metadata']['provider_payment_reference']
+                ?? null;
+            if (! $verifoneReference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifone payment reference is required for Verifone payments',
+                ], 422);
+            }
+        }
+
         try {
             // Process purchase (posSession has posDevice loaded for cash-drawer check)
             $result = $this->purchaseService->processPurchase(
@@ -1333,6 +1422,13 @@ class PurchasesController extends BaseApiController
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+            ], 422);
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'insufficient_stock',
+                'lines' => $e->lines,
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
@@ -1447,6 +1543,18 @@ class PurchasesController extends BaseApiController
             }
         }
 
+        if (($validated['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+            $verifoneReference = $validated['metadata']['verifone_payment_reference']
+                ?? $validated['metadata']['provider_payment_reference']
+                ?? null;
+            if (! $verifoneReference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifone payment reference is required for Verifone payments',
+                ], 422);
+            }
+        }
+
         // Get POS session: priority order:
         // 1. Explicitly provided pos_session_id
         // 2. Current active session for provided pos_device_id (compliance: default to current session)
@@ -1556,6 +1664,7 @@ class PurchasesController extends BaseApiController
             'cart' => ['required', 'array'],
             'cart.items' => ['required', 'array', 'min:1'],
             'cart.items.*.product_id' => ['required', 'integer'],
+            'cart.items.*.variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
@@ -1702,6 +1811,18 @@ class PurchasesController extends BaseApiController
                     ], 422);
                 }
             }
+
+            if (($paymentData['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+                $verifoneReference = $paymentData['metadata']['verifone_payment_reference']
+                    ?? $paymentData['metadata']['provider_payment_reference']
+                    ?? null;
+                if (! $verifoneReference) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Verifone payment reference is required for Verifone payment at index {$index}",
+                    ], 422);
+                }
+            }
         }
 
         try {
@@ -1742,6 +1863,13 @@ class PurchasesController extends BaseApiController
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+            ], 422);
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'insufficient_stock',
+                'lines' => $e->lines,
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
@@ -2134,6 +2262,12 @@ class PurchasesController extends BaseApiController
             'failure_message' => $purchase->failure_message,
             'created_at' => $this->formatDateTimeOslo($purchase->created_at),
         ];
+
+        $metadata = is_array($purchase->metadata) ? $purchase->metadata : [];
+        $payment['provider'] = $metadata['payment_provider'] ?? ($purchase->payment_method === 'verifone_terminal' ? 'verifone' : null);
+        $payment['provider_payment_reference'] = $metadata['provider_payment_reference']
+            ?? $metadata['verifone_payment_reference']
+            ?? null;
 
         // If there's a payment intent, try to get additional details
         if ($purchase->stripe_payment_intent_id) {

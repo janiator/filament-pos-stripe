@@ -8,6 +8,7 @@ use App\Models\PosSession;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
@@ -255,4 +256,58 @@ test('kiosk sales report supports cursor and updated_since filters', function ()
     $response->assertJsonPath('data.0.net_amount_ore', 15000);
     $response->assertJsonPath('data.0.is_refund', true);
     $response->assertJsonPath('meta.cursor', $olderKioskCharge->id);
+});
+
+test('purchases index avoids repeated product lookup queries for metadata fallback enrichment', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_purchase_lookup_cache']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Lookup cache product',
+    ]);
+
+    foreach (range(1, 3) as $index) {
+        ConnectedCharge::factory()->create([
+            'stripe_account_id' => $store->stripe_account_id,
+            'pos_session_id' => $session->id,
+            'paid' => true,
+            'status' => 'succeeded',
+            'amount' => 1000 * $index,
+            'metadata' => [
+                'items' => [
+                    [
+                        'id' => 'item_'.$index,
+                        'product_id' => $product->id,
+                        'quantity' => 1,
+                        'unit_price' => 1000,
+                    ],
+                ],
+            ],
+        ]);
+    }
+
+    Sanctum::actingAs($user, ['*']);
+
+    $connectedProductQueries = 0;
+    DB::listen(function ($query) use (&$connectedProductQueries) {
+        if (str_contains($query->sql, 'from "connected_products"')) {
+            $connectedProductQueries++;
+        }
+    });
+
+    $response = $this->getJson('/api/purchases?per_page=20&page=0');
+
+    $response->assertOk();
+    expect($connectedProductQueries)->toBe(1);
 });

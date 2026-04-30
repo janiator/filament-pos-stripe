@@ -46,12 +46,12 @@ class StripeConnectWebhookController extends Controller
         if (empty($payload)) {
             $payload = file_get_contents('php://input');
         }
-        
+
         // Get signature header - check multiple sources
         // Laravel normalizes headers, but Stripe sends "Stripe-Signature"
         // Try to get raw headers first (before Laravel processing)
         $signature = null;
-        
+
         // Method 1: Try PHP's native getallheaders() function (if available)
         if (function_exists('getallheaders')) {
             $rawHeaders = getallheaders();
@@ -64,7 +64,7 @@ class StripeConnectWebhookController extends Controller
                 }
             }
         }
-        
+
         // Method 2: Try apache_request_headers() (Apache-specific)
         if (empty($signature) && function_exists('apache_request_headers')) {
             $apacheHeaders = apache_request_headers();
@@ -77,18 +77,18 @@ class StripeConnectWebhookController extends Controller
                 }
             }
         }
-        
+
         // Method 3: Check Laravel's header bag
         if (empty($signature)) {
             $signature = $request->header('Stripe-Signature');
         }
-        
+
         // Method 4: Check $_SERVER directly (Laravel converts headers to HTTP_* format)
         if (empty($signature)) {
             // Check HTTP_STRIPE_SIGNATURE (Laravel converts "Stripe-Signature" to "HTTP_STRIPE_SIGNATURE")
             $signature = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? null;
         }
-        
+
         // Method 5: Check all Laravel headers case-insensitively
         if (empty($signature)) {
             $allHeaders = $request->headers->all();
@@ -99,7 +99,7 @@ class StripeConnectWebhookController extends Controller
                 }
             }
         }
-        
+
         // Method 6: Last resort - check $_SERVER for any variation
         if (empty($signature)) {
             foreach ($_SERVER as $key => $value) {
@@ -109,19 +109,19 @@ class StripeConnectWebhookController extends Controller
                 }
             }
         }
-        
+
         // Trim whitespace from signature if found
-        if (!empty($signature)) {
+        if (! empty($signature)) {
             $signature = trim($signature);
         }
-        
+
         // Check if signature is empty or just whitespace
         // empty() will catch null, false, 0, '', '0', [], etc.
         // But we also want to catch strings that are only whitespace
-        $signatureIsValid = !empty($signature) && strlen(trim($signature ?? '')) > 0;
+        $signatureIsValid = ! empty($signature) && strlen(trim($signature ?? '')) > 0;
 
         // Validate signature header is present and not empty
-        if (!$signatureIsValid) {
+        if (! $signatureIsValid) {
             // Collect all HTTP headers from $_SERVER for debugging
             $httpHeaders = [];
             foreach ($_SERVER as $key => $value) {
@@ -129,7 +129,7 @@ class StripeConnectWebhookController extends Controller
                     $httpHeaders[$key] = $value;
                 }
             }
-            
+
             // Get all HTTP_* keys for debugging
             $httpKeys = [];
             foreach (array_keys($_SERVER) as $key) {
@@ -137,7 +137,7 @@ class StripeConnectWebhookController extends Controller
                     $httpKeys[] = $key;
                 }
             }
-            
+
             // Log comprehensive debugging information
             \Log::error('Stripe webhook signature header missing', [
                 'method' => $request->method(),
@@ -146,11 +146,12 @@ class StripeConnectWebhookController extends Controller
                 'user_agent' => $request->userAgent(),
                 'laravel_headers' => $request->headers->all(),
                 'server_headers' => $httpHeaders,
-                'has_content' => !empty($payload),
+                'has_content' => ! empty($payload),
                 'content_length' => strlen($payload ?? ''),
                 'content_type' => $request->header('Content-Type'),
                 'all_http_keys' => $httpKeys,
             ]);
+
             // Return 400 (Bad Request) - this indicates the request is malformed
             // Note: If you're seeing 403 (Forbidden) in Stripe's dashboard, it might be:
             // 1. A proxy/load balancer (like Herd's Nginx) stripping the header
@@ -175,6 +176,7 @@ class StripeConnectWebhookController extends Controller
             // Misconfiguration – don't throw to Stripe, just log.
             \Log::error('Stripe webhook secret not configured');
             report(new \RuntimeException('Stripe webhook secret not configured.'));
+
             return response()->json([
                 'message' => 'Webhook misconfigured',
             ], 500);
@@ -185,6 +187,7 @@ class StripeConnectWebhookController extends Controller
             \Log::error('Stripe webhook payload is empty', [
                 'signature' => $signature ? 'present' : 'missing',
             ]);
+
             return response()->json([
                 'message' => 'Invalid payload',
             ], 400);
@@ -201,32 +204,33 @@ class StripeConnectWebhookController extends Controller
             \Log::error('Stripe webhook invalid payload', [
                 'error' => $e->getMessage(),
                 'payload_length' => strlen($payload),
-                'signature_present' => !empty($signature),
+                'signature_present' => ! empty($signature),
             ]);
+
             return response()->json([
                 'message' => 'Invalid payload',
             ], 400);
         } catch (SignatureVerificationException $e) {
             // Invalid signature - log with signature format info (truncated for security)
-            $signaturePreview = $signature ? (substr($signature, 0, 50) . '...') : 'missing';
+            $signaturePreview = $signature ? (substr($signature, 0, 50).'...') : 'missing';
             $signatureParts = $signature ? explode(',', $signature) : [];
-            
+
             // Check if the error is about missing signatures (this should have been caught earlier)
             $isMissingSignatureError = stripos($e->getMessage(), 'No signatures found') !== false;
-            
+
             \Log::error('Stripe webhook signature verification failed', [
                 'error' => $e->getMessage(),
                 'error_class' => get_class($e),
                 'is_missing_signature_error' => $isMissingSignatureError,
-                'signature_present' => !empty($signature),
+                'signature_present' => ! empty($signature),
                 'signature_length' => strlen($signature ?? ''),
                 'signature_preview' => $signaturePreview,
                 'signature_parts_count' => count($signatureParts),
                 'payload_length' => strlen($payload),
-                'secret_configured' => !empty($secret),
+                'secret_configured' => ! empty($secret),
                 'secret_length' => strlen($secret ?? ''),
             ]);
-            
+
             // Return the exact error message from Stripe
             // Note: If you see 403 in Stripe dashboard but we return 400, check:
             // 1. Proxy/load balancer converting status codes
@@ -250,7 +254,7 @@ class StripeConnectWebhookController extends Controller
         ]);
 
         // Warn if account ID is missing for Connect webhooks (except account events)
-        if (!$accountId && !in_array($event->type, ['account.created', 'account.updated', 'account.deleted'])) {
+        if (! $accountId && ! in_array($event->type, ['account.created', 'account.updated', 'account.deleted'])) {
             \Log::warning('Stripe webhook event missing account ID - may not be a Connect webhook', [
                 'event_type' => $event->type,
                 'event_id' => $event->id,
@@ -292,12 +296,12 @@ class StripeConnectWebhookController extends Controller
                     $result['message'] = "Account {$account->id} deletion processed";
                     break;
 
-                // Customer events
+                    // Customer events
                 case 'customer.created':
                 case 'customer.updated':
                     /** @var Customer $customer */
                     $customer = $event->data->object;
-                    if (!$accountId) {
+                    if (! $accountId) {
                         $result['warnings'][] = 'No account ID found in event';
                     }
                     $customerHandler->handle($customer, $event->type, $accountId);
@@ -311,7 +315,7 @@ class StripeConnectWebhookController extends Controller
                     $result['message'] = 'Customer deletion event received (not implemented)';
                     break;
 
-                // Subscription events
+                    // Subscription events
                 case 'customer.subscription.created':
                 case 'customer.subscription.updated':
                 case 'customer.subscription.deleted':
@@ -320,7 +324,7 @@ class StripeConnectWebhookController extends Controller
                 case 'customer.subscription.trial_will_end':
                     /** @var Subscription $subscription */
                     $subscription = $event->data->object;
-                    if (!$accountId) {
+                    if (! $accountId) {
                         $result['warnings'][] = 'No account ID found in event';
                     }
                     $subscriptionHandler->handle($subscription, $event->type, $accountId);
@@ -328,13 +332,13 @@ class StripeConnectWebhookController extends Controller
                     $result['message'] = "Subscription {$subscription->id} ({$event->type}) processed";
                     break;
 
-                // Product events
+                    // Product events
                 case 'product.created':
                 case 'product.updated':
                 case 'product.deleted':
                     /** @var Product $product */
                     $product = $event->data->object;
-                    if (!$accountId) {
+                    if (! $accountId) {
                         $result['warnings'][] = 'No account ID found in event';
                     }
                     $productHandler->handle($product, $event->type, $accountId);
@@ -342,13 +346,13 @@ class StripeConnectWebhookController extends Controller
                     $result['message'] = "Product {$product->id} ({$event->type}) processed";
                     break;
 
-                // Price events
+                    // Price events
                 case 'price.created':
                 case 'price.updated':
                 case 'price.deleted':
                     /** @var Price $price */
                     $price = $event->data->object;
-                    if (!$accountId) {
+                    if (! $accountId) {
                         $result['warnings'][] = 'No account ID found in event';
                     }
                     $priceHandler->handle($price, $event->type, $accountId);
@@ -356,7 +360,7 @@ class StripeConnectWebhookController extends Controller
                     $result['message'] = "Price {$price->id} ({$event->type}) processed";
                     break;
 
-                // Charge events
+                    // Charge events
                 case 'charge.created':
                 case 'charge.updated':
                 case 'charge.succeeded':
@@ -365,9 +369,14 @@ class StripeConnectWebhookController extends Controller
                 case 'charge.captured':
                 case 'charge.refunded':
                 case 'charge.refund.updated':
-                    /** @var Charge $charge */
-                    $charge = $event->data->object;
-                    if (!$accountId) {
+                    $chargeObject = $event->data->object;
+                    if (! $chargeObject instanceof Charge) {
+                        $result['warnings'][] = "Unexpected webhook object for {$event->type}: ".get_debug_type($chargeObject);
+                        $result['message'] = "Skipped {$event->type} because payload object was not a charge";
+                        break;
+                    }
+                    $charge = $chargeObject;
+                    if (! $accountId) {
                         $result['warnings'][] = 'No account ID found in event, attempting to extract from charge object';
                     }
                     $chargeHandler->handle($charge, $event->type, $accountId);
@@ -375,14 +384,14 @@ class StripeConnectWebhookController extends Controller
                     $result['message'] = "Charge {$charge->id} ({$event->type}) processed";
                     break;
 
-                // Payment method events
+                    // Payment method events
                 case 'payment_method.attached':
                 case 'payment_method.detached':
                 case 'payment_method.updated':
                 case 'payment_method.automatically_updated':
                     /** @var PaymentMethod $paymentMethod */
                     $paymentMethod = $event->data->object;
-                    if (!$accountId) {
+                    if (! $accountId) {
                         $result['warnings'][] = 'No account ID found in event';
                     }
                     $paymentMethodHandler->handle($paymentMethod, $event->type, $accountId);
@@ -390,12 +399,12 @@ class StripeConnectWebhookController extends Controller
                     $result['message'] = "Payment method {$paymentMethod->id} ({$event->type}) processed";
                     break;
 
-                // Payment link events
+                    // Payment link events
                 case 'payment_link.created':
                 case 'payment_link.updated':
                     /** @var PaymentLink $paymentLink */
                     $paymentLink = $event->data->object;
-                    if (!$accountId) {
+                    if (! $accountId) {
                         $result['warnings'][] = 'No account ID found in event';
                     }
                     $paymentLinkHandler->handle($paymentLink, $event->type, $accountId);
@@ -403,13 +412,13 @@ class StripeConnectWebhookController extends Controller
                     $result['message'] = "Payment link {$paymentLink->id} ({$event->type}) processed";
                     break;
 
-                // Transfer events
+                    // Transfer events
                 case 'transfer.created':
                 case 'transfer.updated':
                 case 'transfer.reversed':
                     /** @var Transfer $transfer */
                     $transfer = $event->data->object;
-                    if (!$accountId) {
+                    if (! $accountId) {
                         $result['warnings'][] = 'No account ID found in event, attempting to extract from transfer object';
                     }
                     $transferHandler->handle($transfer, $event->type, $accountId);
@@ -440,14 +449,14 @@ class StripeConnectWebhookController extends Controller
         }
 
         // Add warning if account ID was missing
-        if (!$accountId && !in_array($event->type, ['account.created', 'account.updated', 'account.deleted'])) {
+        if (! $accountId && ! in_array($event->type, ['account.created', 'account.updated', 'account.deleted'])) {
             $result['warnings'][] = 'No account ID found in event - this may indicate the webhook is from the platform account instead of a connected account';
         }
 
         // Ensure we have a message if none was set
         if (empty($result['message'])) {
-            $result['message'] = $result['processed'] 
-                ? "Event {$event->type} processed successfully" 
+            $result['message'] = $result['processed']
+                ? "Event {$event->type} processed successfully"
                 : "Event {$event->type} received but not processed";
         }
 
@@ -460,7 +469,7 @@ class StripeConnectWebhookController extends Controller
         // Save webhook log to database
         try {
             // Check if table exists before trying to save
-            if (!\Illuminate\Support\Facades\Schema::hasTable('webhook_logs')) {
+            if (! \Illuminate\Support\Facades\Schema::hasTable('webhook_logs')) {
                 \Log::warning('webhook_logs table does not exist - run migration first', [
                     'event_id' => $event->id,
                 ]);
@@ -473,8 +482,8 @@ class StripeConnectWebhookController extends Controller
                     'account_id' => $accountId,
                     'processed' => $result['processed'],
                     'message' => $result['message'],
-                    'warnings' => !empty($result['warnings']) ? $result['warnings'] : null,
-                    'errors' => !empty($result['errors']) ? $result['errors'] : null,
+                    'warnings' => ! empty($result['warnings']) ? $result['warnings'] : null,
+                    'errors' => ! empty($result['errors']) ? $result['errors'] : null,
                     'request_data' => [
                         'event_type' => $event->type,
                         'event_id' => $event->id,
@@ -484,7 +493,7 @@ class StripeConnectWebhookController extends Controller
                     ],
                     'response_data' => $result,
                     'http_status_code' => 200,
-                    'error_message' => !empty($result['errors']) ? implode('; ', $result['errors']) : null,
+                    'error_message' => ! empty($result['errors']) ? implode('; ', $result['errors']) : null,
                 ]);
 
                 // Cleanup old records (keep max 100 per store)

@@ -12,6 +12,10 @@ The purchase flow supports:
 - ✅ Cash drawer opening for cash payments
 - ✅ Complete SAF-T compliance logging
 
+### Inventory (Inventory add-on)
+
+When the POS device response includes `inventory_enabled: true`, the store uses stock tracking: include **`variant_id`** on each cart line that sells a variant so the backend can validate and decrement stock. Product list payloads include **`track_inventory`** and per-variant **`variant_inventory.tracked`** (effective tracking). If `POST /api/purchases` returns **422** with `error: insufficient_stock` and `lines`, refresh catalog data and do not rely on payment already captured for Stripe flows—prefer checking stock before confirming the payment intent when possible.
+
 ## API Endpoints
 
 ### 1. Get Payment Methods
@@ -105,6 +109,17 @@ The purchase flow supports:
 {
   "metadata": {
     "payment_intent_id": "pi_xxx"
+  }
+}
+```
+
+**For Verifone terminal payments, add provider metadata:**
+```json
+{
+  "metadata": {
+    "payment_provider": "verifone",
+    "verifone_payment_reference": "344433",
+    "provider_payment_reference": "344433"
   }
 }
 ```
@@ -560,6 +575,11 @@ Ensure your cart data matches this structure:
 2. **Payment Intent for Stripe:**
    - Must be created and confirmed BEFORE calling purchase API
    - Include `payment_intent_id` in metadata
+
+3. **Verifone provider references:**
+   - Start payment with `POST /api/verifone/stores/{store}/payments`
+   - Poll until final state with `POST /api/verifone/stores/{store}/payments/{serviceId}/status`
+   - Pass terminal result to `/api/purchases` metadata (`payment_provider=verifone` + `verifone_payment_reference`)
 
 3. **Cash Drawer:**
    - Automatically opens for cash payments

@@ -189,15 +189,22 @@ All inventory endpoints are registered under authenticated routes:
 
 **Code Location:** `app/Services/ShopifyCsvImporter.php::downloadAndAddImages()`
 
-## Missing Features (Not Implemented)
+## Inventory add-on and stock ledger (implemented)
 
-The following features are **not** currently implemented but could be added:
+- **Tenant add-on:** `AddonType::Inventory` — enable under **Settings → Add-ons** in Filament. When off, inventory API returns **403** and Filament hides product stock UI (toggle, table column, variant inventory section unless product tracks inventory).
+- **Per product:** `connected_products.track_inventory` — when false, variants are not enforced for stock even if quantities are set. **Effective tracking** for a variant requires: Inventory add-on active **and** `track_inventory` on the product **and** `inventory_quantity` not null on the variant.
+- **Sales:** `PurchaseService` validates the cart (`InventoryLedgerService::assertCartSellable`) and decrements stock once per sale (`applySaleForCharge`). Split payments use `applySaleForSplitPosEvent` with idempotency per `pos_event_id`; charge metadata includes `inventory_pos_event_id` and `inventory_split_primary` on split charges.
+- **Deferred payments:** Stock is reduced when the deferred sale is created (same as paid sale); `completeDeferredPayment` does **not** change stock again.
+- **Refunds:** `processRefund` calls `applyRefund` with idempotency per refund index; restores only when a matching sale movement exists. Partial refunds can pass line items with `variant_id` or `item_id`.
+- **Audit:** `inventory_stock_movements` records deltas (`sale`, `refund`, `manual_adjust`) with unique `idempotency_key`.
+- **API:** Product payloads include `track_inventory`; variant `variant_inventory.tracked` reflects effective tracking. POS device responses include `inventory_enabled`.
 
-1. **Inventory Adjustment History** - No audit trail of inventory changes
-2. **Low Stock Alerts** - No notifications when inventory is low
-3. **Inventory Reservations** - No system for reserving inventory during checkout
-4. **Multi-location Inventory** - No support for tracking inventory across multiple locations
-5. **Inventory Sync with Stripe** - Stripe doesn't natively support inventory, so this is handled locally
+## Missing Features (optional follow-ups)
+
+1. **Low Stock Alerts** - No notifications when inventory is low
+2. **Inventory Reservations** - No reservation between cart and payment (Stripe may capture before the server rejects insufficient stock)
+3. **Multi-location Inventory** - No support for tracking inventory across multiple locations
+4. **Inventory Sync with Stripe** - Stripe doesn't natively support inventory; quantities remain local
 
 ## Usage Examples
 

@@ -16,7 +16,9 @@ info:
     - Receipt printer configuration and management
     - Product and inventory management
     - SAF-T file generation (Norwegian tax compliance)
+    - PowerOffice Go onboarding and Z-report sync (optional per-store add-on)
     - Terminal operations (connection tokens and payment intents)
+    - Verifone terminal operations (payment start/status/abort)
 
     All endpoints (except login and webhooks) require Bearer token authentication.
     Requests are automatically scoped to the authenticated user's accessible stores.
@@ -64,8 +66,13 @@ tags:
     description: Inventory management operations
   - name: SAF-T
     description: SAF-T file generation (Norwegian tax compliance)
+  - name: PowerOffice
+    description: |
+      PowerOffice Go accounting integration (Z-report sync, onboarding). Server-side calls to PowerOffice Go API v2 use OAuth 2.0 client credentials (Bearer access token from the Token URL; see `POWEROFFICE_CLIENT_ID` + per-store client key + `POWEROFFICE_SUBSCRIPTION_KEY` in server env). Z-report ledger post defaults to `POST …/Vouchers/ManualJournals` (direct posting; Go UI “Direktepostere manuelle bilag”); use `…/JournalEntryVouchers/ManualJournals` via `POWEROFFICE_LEDGER_POST_PATH` for the journal-entry workflow. HTTP 403 often means wrong path vs privilege set, stale token after Go privilege changes, or missing voucher documentation privilege. Z-report payloads stored on closed POS sessions may include `by_payment_method_net` (per payment_method after refunds) for ledger routing; optional `stripe_fees_minor`, `payout_to_bank_minor`, and `gift_card_sales_minor` when present—positive values override backend defaults. The server merges fee and payout totals into `closing_data.z_report_data` when generating or serving a Z-report (from Stripe data synced in Filament) unless a positive override is already set. When those keys are absent or zero at ledger build time, the server may still fill fees and payouts from the same source (**Stripe gebyr og saldo** / **Stripe-utbetalinger**). Category-style splits use **product collection** IDs (not article groups).
   - name: Terminals
     description: Terminal locations and readers management (Stripe-specific)
+  - name: Verifone
+    description: Verifone POS Cloud terminal operations
   - name: Webhooks
     description: Stripe webhook endpoints
 
@@ -111,11 +118,12 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
                 default:
+                  summary: Wrong email or password
                   value:
-                    message: The provided credentials are incorrect.
+                    message: E-postadressen eller passordet er feil.
                     errors:
                       email:
-                        - The provided credentials are incorrect.
+                        - E-postadressen eller passordet er feil.
 
   /auth/me:
     get:
@@ -3584,7 +3592,8 @@ paths:
                             type: string
                             example: "11001"
         '422':
-          description: Validation error or business rule violation
+          description: |
+            Validation error or business rule violation. When the Inventory add-on is active and a line exceeds available stock (deny policy), the response may include `error: insufficient_stock` and `lines` with variant_id, requested, and available quantities.
           content:
             application/json:
               schema:
@@ -3596,6 +3605,28 @@ paths:
                   message:
                     type: string
                     example: Payment method is not enabled
+                  error:
+                    type: string
+                    example: insufficient_stock
+                    description: Present for inventory shortfall responses
+                  lines:
+                    type: array
+                    description: Per-variant shortfall details when error is insufficient_stock
+                    items:
+                      type: object
+                      properties:
+                        variant_id:
+                          type: integer
+                        product_id:
+                          type: integer
+                          nullable: true
+                        requested:
+                          type: integer
+                        available:
+                          type: integer
+                        sku:
+                          type: string
+                          nullable: true
                   errors:
                     type: object
         '403':
@@ -4394,7 +4425,9 @@ paths:
       tags:
         - Inventory
       summary: Get product inventory
-      description: Get inventory information for a product and all its variants
+      description: |
+        Get inventory information for a product and all its variants.
+        Requires the **Inventory** add-on to be enabled for the store; otherwise returns 403.
       operationId: getProductInventory
       parameters:
         - name: product
@@ -4449,6 +4482,16 @@ paths:
                               type: boolean
         '404':
           description: Product not found
+        '403':
+          description: Inventory add-on is not enabled for this store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Inventory add-on is not enabled for this store.
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -4603,6 +4646,8 @@ paths:
                             type: boolean
         '404':
           description: Variant not found
+        '403':
+          description: Inventory add-on is not enabled for this store
         '422':
           description: Validation error
         '401':
@@ -4665,6 +4710,8 @@ paths:
                         nullable: true
         '404':
           description: Variant not found
+        '403':
+          description: Inventory add-on is not enabled for this store
         '422':
           description: Validation error
         '401':
@@ -4723,6 +4770,8 @@ paths:
                         nullable: true
         '404':
           description: Variant not found
+        '403':
+          description: Inventory add-on is not enabled for this store
         '422':
           description: Validation error
         '401':
@@ -4733,7 +4782,7 @@ paths:
       tags:
         - Inventory
       summary: Bulk update inventory
-      description: Update inventory for multiple variants at once
+      description: Set absolute inventory quantity for multiple variants (requires Inventory add-on)
       operationId: bulkUpdateInventory
       requestBody:
         required: true
@@ -4742,31 +4791,24 @@ paths:
             schema:
               type: object
               required:
-                - updates
+                - variants
               properties:
-                updates:
+                variants:
                   type: array
-                  description: Array of inventory updates
+                  description: Variant IDs and target quantities
                   items:
                     type: object
                     required:
                       - variant_id
+                      - quantity
                     properties:
                       variant_id:
                         type: integer
                         description: Variant ID
-                      inventory_quantity:
+                      quantity:
                         type: integer
-                        nullable: true
                         minimum: 0
-                      inventory_policy:
-                        type: string
-                        nullable: true
-                        enum: [deny, continue]
-                      inventory_management:
-                        type: string
-                        nullable: true
-                        maxLength: 255
+                        description: New inventory quantity
       responses:
         '200':
           description: Bulk update completed
@@ -4775,17 +4817,145 @@ paths:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                    example: Bulk update completed
                   updated:
-                    type: integer
-                    description: Number of variants updated
-                  failed:
-                    type: integer
-                    description: Number of variants that failed to update
+                    type: array
+                    items:
+                      type: object
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                  summary:
+                    type: object
+                    properties:
+                      updated_count:
+                        type: integer
+                      error_count:
+                        type: integer
+        '403':
+          description: Inventory add-on is not enabled for this store
         '422':
           description: Validation error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /poweroffice/onboarding/init:
+    post:
+      tags:
+        - PowerOffice
+      summary: Start PowerOffice Go onboarding
+      description: |
+        Returns a URL where the store admin completes PowerOffice Go activation.
+        Requires the **PowerOffice Go** add-on to be enabled for the store.
+        The backend calls PowerOffice Go API v2 `POST …/Onboarding/Initiate` using `POWEROFFICE_CLIENT_ID` (Application Key) and `POWEROFFICE_SUBSCRIPTION_KEY` (Ocp-Apim-Subscription-Key); the response `TemporaryUrl` is returned as `onboarding_url`.
+      operationId: powerofficeOnboardingInit
+      responses:
+        '200':
+          description: Onboarding URL returned
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - onboarding_url
+                properties:
+                  onboarding_url:
+                    type: string
+                    format: uri
+        '403':
+          description: Add-on disabled or no access to store
+        '404':
+          description: Store not found
+        '422':
+          description: Init failed (e.g. missing POWEROFFICE_CLIENT_ID or POWEROFFICE_SUBSCRIPTION_KEY on server, or PowerOffice API error)
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /poweroffice/onboarding/callback:
+    post:
+      tags:
+        - PowerOffice
+      summary: PowerOffice onboarding server callback
+      description: |
+        Optional server-to-server hook if PowerOffice posts back here after user approval.
+        In v2, the browser is usually redirected to `POWEROFFICE_REDIRECT_URL` (or `/integrations/poweroffice/onboarding/redirect`) with `state` and `token` query parameters; that page finalizes onboarding via `POST …/Onboarding/Finalize`.
+        Optional header `X-PowerOffice-Callback-Secret` when `POWEROFFICE_CALLBACK_SECRET` is set.
+      operationId: powerofficeOnboardingCallback
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - state
+              properties:
+                state:
+                  type: string
+                token:
+                  type: string
+                onboardingToken:
+                  type: string
+      responses:
+        '200':
+          description: Credentials stored
+        '422':
+          description: Invalid state or token
+
+  /poweroffice/sync/z-report/{posSession}:
+    post:
+      tags:
+        - PowerOffice
+      summary: Queue Z-report sync to PowerOffice
+      description: Queues a job to post the session Z-report snapshot to PowerOffice (manual / force sync).
+      operationId: powerofficeSyncZReport
+      parameters:
+        - name: posSession
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  pos_session_id:
+                    type: integer
+        '403':
+          description: Add-on disabled, or PowerOffice sync is turned off for the store (`sync_enabled` in Filament)
+        '404':
+          description: Session not found
+        '422':
+          description: Session not closed
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /poweroffice/sync/retry/{syncRun}:
+    post:
+      tags:
+        - PowerOffice
+      summary: Retry a failed PowerOffice sync
+      operationId: powerofficeSyncRetry
+      parameters:
+        - name: syncRun
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Retry queued
+        '403':
+          description: Add-on disabled, or PowerOffice sync is turned off for the store
+        '404':
+          description: Sync run not found
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -5571,6 +5741,162 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /verifone/stores/{store}/terminals:
+    get:
+      tags:
+        - Verifone
+      summary: List Verifone terminals for store
+      operationId: listVerifoneTerminals
+      parameters:
+        - name: store
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Verifone terminals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VerifoneTerminal'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden for tenant
+
+  /verifone/stores/{store}/payments:
+    post:
+      tags:
+        - Verifone
+      summary: Start Verifone terminal payment
+      operationId: createVerifonePayment
+      parameters:
+        - name: store
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifonePaymentCreateRequest'
+      responses:
+        '201':
+          description: Verifone payment started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifonePaymentStartResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation or provider error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /verifone/stores/{store}/payments/{serviceId}/status:
+    post:
+      tags:
+        - Verifone
+      summary: Poll Verifone transaction status
+      operationId: pollVerifonePaymentStatus
+      parameters:
+        - name: store
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: serviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifonePaymentStatusRequest'
+      responses:
+        '200':
+          description: Current Verifone payment status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifonePaymentStatusResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Payment not found
+        '422':
+          description: Provider status error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /verifone/stores/{store}/terminals/{terminal}/abort:
+    post:
+      tags:
+        - Verifone
+      summary: Abort active Verifone terminal request
+      operationId: abortVerifoneTerminalRequest
+      parameters:
+        - name: store
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: terminal
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifoneAbortRequest'
+      responses:
+        '200':
+          description: Abort submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  provider:
+                    type: string
+                    example: verifone
+                  status:
+                    type: string
+                    example: canceled
+                  serviceId:
+                    type: string
+                    example: A1B2C3D4
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation or provider abort error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /stripe/connect/webhook:
     post:
       tags:
@@ -5879,6 +6205,164 @@ components:
           type: integer
           nullable: true
 
+    VerifoneTerminal:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        terminal_identifier:
+          type: string
+          example: vm10000
+        display_name:
+          type: string
+          nullable: true
+          example: Front Desk VM10000
+        sale_id:
+          type: string
+          nullable: true
+          example: VisivoTest
+        operator_id:
+          type: string
+          nullable: true
+          example: "440010051"
+        site_entity_id:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+          example: true
+        pos_device_id:
+          type: integer
+          nullable: true
+
+    VerifonePaymentCreateRequest:
+      type: object
+      required:
+        - amount
+      anyOf:
+        - required: [terminal_id]
+        - required: [terminal_poiid]
+      properties:
+        terminal_id:
+          type: integer
+          nullable: true
+          example: 1
+          description: Internal terminal record ID (backward compatible)
+        terminal_poiid:
+          type: string
+          nullable: true
+          example: vm10000
+          description: Verifone POIID / terminal identifier
+        amount:
+          type: integer
+          description: Amount in minor units
+          example: 1000
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: NOK
+        description:
+          type: string
+          nullable: true
+        service_id:
+          type: string
+          nullable: true
+        sale_id:
+          type: string
+          nullable: true
+        operator_id:
+          type: string
+          nullable: true
+        pos_session_id:
+          type: integer
+          nullable: true
+        pos_device_id:
+          type: integer
+          nullable: true
+
+    VerifonePaymentStartResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        provider:
+          type: string
+          example: verifone
+        status:
+          type: string
+          example: pending
+        serviceId:
+          type: string
+          example: A1B2C3D4
+        saleId:
+          type: string
+          example: VisivoTest
+        terminalId:
+          type: string
+          example: vm10000
+        providerPaymentReference:
+          type: string
+          nullable: true
+
+    VerifonePaymentStatusRequest:
+      type: object
+      properties:
+        message_reference_service_id:
+          type: string
+          nullable: true
+        message_reference_sale_id:
+          type: string
+          nullable: true
+        message_reference_poiid:
+          type: string
+          nullable: true
+
+    VerifonePaymentStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        provider:
+          type: string
+          example: verifone
+        status:
+          type: string
+          enum: [pending, in_progress, succeeded, failed, canceled, unknown]
+        providerStatus:
+          type: object
+          additionalProperties: true
+        providerPaymentReference:
+          type: string
+          nullable: true
+        providerTransactionId:
+          type: string
+          nullable: true
+        serviceId:
+          type: string
+        terminalId:
+          type: string
+        receipt:
+          type: array
+          nullable: true
+          items:
+            type: object
+            additionalProperties: true
+
+    VerifoneAbortRequest:
+      type: object
+      required:
+        - service_id
+        - sale_id
+      properties:
+        service_id:
+          type: string
+        sale_id:
+          type: string
+
     PosDevice:
       type: object
       properties:
@@ -5970,6 +6454,10 @@ components:
           type: boolean
           default: false
           description: When true, booking actions may be enabled for this device if the store has the Merano Booking add-on active
+        inventory_enabled:
+          type: boolean
+          default: false
+          description: When true, the store has the Inventory add-on active; the app may show stock levels and must send variant_id on cart lines for tracked variants
         auto_print_receipt:
           type: boolean
           default: true
@@ -7305,6 +7793,10 @@ components:
           type: boolean
           description: If true, this product has no preset price and requires custom price input on POS.
           default: false
+        track_inventory:
+          type: boolean
+          default: false
+          description: When true and the store has the Inventory add-on, variant quantities with a non-null inventory_quantity are enforced at checkout (deny policy).
         product_price:
           type: object
           nullable: true
@@ -7418,6 +7910,7 @@ components:
                     nullable: true
                   tracked:
                     type: boolean
+                    description: True when the Inventory add-on is active, this product has track_inventory enabled, and this variant has inventory_quantity set (null means not tracked).
         variants_count:
           type: integer
         product_inventory:
@@ -7572,7 +8065,8 @@ components:
       properties:
         message:
           type: string
-          example: The given data was invalid.
+          description: Human-readable summary (same locale as API; typically mirrors the first error or a short rollup).
+          example: E-postadressen eller passordet er feil.
         errors:
           type: object
           additionalProperties:
@@ -7581,10 +8075,10 @@ components:
               type: string
           example:
             email:
-              - The email field is required.
-              - The email must be a valid email address.
+              - Email må fylles ut.
+              - Email må være en gyldig e-postadresse.
             password:
-              - The password field is required.
+              - Password må fylles ut.
 
     PurchaseCart:
       type: object
