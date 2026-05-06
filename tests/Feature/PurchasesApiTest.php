@@ -183,7 +183,7 @@ test('get purchase returns purchase item quantities with decimals', function () 
     $response->assertJsonPath('purchase.purchase_items.0.purchase_item_quantity', 2.5);
 });
 
-test('kiosk sales report returns only kiosk purchases in date range', function () {
+test('kiosk sales report includes mixed purchases but only kiosk item totals', function () {
     $user = User::factory()->create();
     $store = Store::factory()->create(['stripe_account_id' => 'acct_test_kiosk_report']);
     $user->stores()->attach($store);
@@ -217,7 +217,7 @@ test('kiosk sales report returns only kiosk purchases in date range', function (
         ],
     ]);
 
-    ConnectedCharge::factory()->create([
+    $mixedCharge = ConnectedCharge::factory()->create([
         'stripe_account_id' => $store->stripe_account_id,
         'pos_session_id' => $session->id,
         'paid' => true,
@@ -227,6 +227,31 @@ test('kiosk sales report returns only kiosk purchases in date range', function (
         'metadata' => [
             'purchase_contains_tickets' => true,
             'purchase_ticket_reference' => 'BK-2026-000123',
+            'total_discounts' => 2000,
+            'items' => [
+                [
+                    'id' => 'ticket_line_1',
+                    'name' => 'Billett',
+                    'quantity' => 1,
+                    'unit_price' => 10000,
+                    'metadata' => [
+                        'merano_booking_id' => 123,
+                        'merano_booking_number' => 'BK-2026-000123',
+                    ],
+                ],
+                [
+                    'id' => 'kiosk_popcorn_1',
+                    'name' => 'Popcorn',
+                    'quantity' => 2,
+                    'unit_price' => 5000,
+                ],
+                [
+                    'id' => 'kiosk_soda_1',
+                    'name' => 'Brus',
+                    'quantity' => 1,
+                    'unit_price' => 3000,
+                ],
+            ],
         ],
     ]);
 
@@ -245,58 +270,16 @@ test('kiosk sales report returns only kiosk purchases in date range', function (
     $response = $this->getJson('/api/reports/kiosk-sales?from_datetime=2026-03-13T00:00:00Z&to_datetime=2026-03-13T23:59:59Z&limit=50');
 
     $response->assertOk();
-    $response->assertJsonCount(1, 'data');
+    $response->assertJsonCount(2, 'data');
     $response->assertJsonPath('data.0.purchase_id', $kioskCharge->id);
     $response->assertJsonPath('data.0.net_amount_ore', 50000);
     $response->assertJsonPath('data.0.is_refund', false);
-});
-
-test('kiosk sales report items include net line totals after discounts', function () {
-    $user = User::factory()->create();
-    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_kiosk_item_discounts']);
-    $user->stores()->attach($store);
-    $user->setCurrentStore($store);
-
-    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
-        'pos_device_id' => $posDevice->id,
-        'user_id' => $user->id,
-        'status' => 'open',
-    ]);
-
-    $kioskCharge = ConnectedCharge::factory()->create([
-        'stripe_account_id' => $store->stripe_account_id,
-        'pos_session_id' => $session->id,
-        'paid' => true,
-        'status' => 'succeeded',
-        'amount' => 5000,
-        'amount_refunded' => 0,
-        'paid_at' => '2026-03-13 09:30:00',
-        'metadata' => [
-            'items' => [
-                [
-                    'id' => 'item_kiosk_discounted',
-                    'name' => 'Kaffe',
-                    'quantity' => 1,
-                    'unit_price' => 10000,
-                    'discount_amount' => 5000,
-                ],
-            ],
-            'total_discounts' => 5000,
-            'total' => 5000,
-        ],
-    ]);
-
-    Sanctum::actingAs($user, ['*']);
-
-    $response = $this->getJson('/api/reports/kiosk-sales?from_datetime=2026-03-13T00:00:00Z&to_datetime=2026-03-13T23:59:59Z&limit=50');
-
-    $response->assertOk();
-    $response->assertJsonCount(1, 'data');
-    $response->assertJsonPath('data.0.purchase_id', $kioskCharge->id);
-    $response->assertJsonPath('data.0.net_amount_ore', 5000);
-    $response->assertJsonPath('data.0.items.0.line_total_ore', 5000);
+    $response->assertJsonPath('data.1.purchase_id', $mixedCharge->id);
+    $response->assertJsonPath('data.1.net_amount_ore', 11869);
+    $response->assertJsonPath('data.1.items.0.product_name', 'Popcorn');
+    $response->assertJsonPath('data.1.items.0.line_total_ore', 9131);
+    $response->assertJsonPath('data.1.items.1.product_name', 'Brus');
+    $response->assertJsonPath('data.1.items.1.line_total_ore', 2738);
 });
 
 test('kiosk sales report supports cursor and updated_since filters', function () {

@@ -4,9 +4,9 @@ namespace App\Actions\ConnectedProducts;
 
 use App\Models\ConnectedProduct;
 use App\Models\Store;
+use Illuminate\Support\Facades\Log;
 use Stripe\StripeClient;
 use Throwable;
-use Illuminate\Support\Facades\Log;
 
 class UpdateConnectedProductToStripe
 {
@@ -26,8 +26,6 @@ class UpdateConnectedProductToStripe
             return;
         }
 
-        $stripe = new StripeClient($secret);
-
         try {
             $updateData = [];
 
@@ -44,15 +42,15 @@ class UpdateConnectedProductToStripe
 
             // Handle images - check if media library has images, otherwise use stored URLs
             $imageUrls = [];
-            
+
             // Check if product has media library images
             if ($product->hasMedia('images')) {
                 // Upload media library images to Stripe File API
-                $uploadAction = new UploadProductImagesToStripe();
+                $uploadAction = new UploadProductImagesToStripe;
                 $imageUrls = $uploadAction($product);
-                
+
                 // Update the images field with Stripe URLs
-                if (!empty($imageUrls)) {
+                if (! empty($imageUrls)) {
                     $product->images = $imageUrls;
                     $product->saveQuietly(); // Save without triggering events
                 } else {
@@ -79,18 +77,19 @@ class UpdateConnectedProductToStripe
                 $metadata = [];
                 foreach ($product->product_meta as $key => $value) {
                     // Skip non-string keys or keys with null bytes or internal Stripe options
-                    if (!is_string($key) || 
-                        str_contains($key, "\0") || 
-                        str_contains($key, '*') || 
+                    if (! is_string($key) ||
+                        str_contains($key, "\0") ||
+                        str_contains($key, '*') ||
                         str_contains($key, '_opts') ||
                         str_starts_with($key, '_')) {
                         Log::warning('Skipping invalid metadata key', [
                             'key' => bin2hex($key), // Log hex representation to see null bytes
                             'product_id' => $product->id,
                         ]);
+
                         continue;
                     }
-                    
+
                     // Convert all values to strings
                     if (is_string($value)) {
                         $metadata[$key] = $value;
@@ -104,9 +103,9 @@ class UpdateConnectedProductToStripe
                         $metadata[$key] = json_encode($value);
                     }
                 }
-                
+
                 // Only include metadata if it's not empty
-                if (!empty($metadata)) {
+                if (! empty($metadata)) {
                     $updateData['metadata'] = $metadata;
                 }
             }
@@ -131,7 +130,11 @@ class UpdateConnectedProductToStripe
                 $updateData['tax_code'] = $product->tax_code;
             }
 
-            if ($product->unit_label !== null) {
+            if (
+                is_string($product->type)
+                && strtolower($product->type) === 'service'
+                && $product->unit_label !== null
+            ) {
                 $updateData['unit_label'] = $product->unit_label;
             }
 
@@ -143,21 +146,28 @@ class UpdateConnectedProductToStripe
                 // Clean updateData to ensure no invalid data is passed
                 $cleanUpdateData = array_filter($updateData, function ($value, $key) {
                     // Filter out any keys that might cause issues
-                    if (!is_string($key) || str_contains($key, "\0") || str_contains($key, '*')) {
+                    if (! is_string($key) || str_contains($key, "\0") || str_contains($key, '*')) {
                         return false;
                     }
+
                     return true;
                 }, ARRAY_FILTER_USE_BOTH);
-                
-                $stripe->products->update(
-                    $product->stripe_product_id,
-                    $cleanUpdateData,
-                    ['stripe_account' => $product->stripe_account_id]
-                );
+
+                $this->updateStripeProduct($product, $cleanUpdateData, $secret);
             }
         } catch (Throwable $e) {
             report($e);
         }
     }
-}
 
+    protected function updateStripeProduct(ConnectedProduct $product, array $cleanUpdateData, string $secret): void
+    {
+        $stripe = new StripeClient($secret);
+
+        $stripe->products->update(
+            $product->stripe_product_id,
+            $cleanUpdateData,
+            ['stripe_account' => $product->stripe_account_id]
+        );
+    }
+}
