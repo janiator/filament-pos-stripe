@@ -46,7 +46,7 @@ class ProductVariant extends Model
         'weight_grams' => 'integer',
         'requires_shipping' => 'boolean',
         'taxable' => 'boolean',
-        'inventory_quantity' => 'integer',
+        'inventory_quantity' => 'decimal:4',
         'active' => 'boolean',
         'metadata' => 'array',
         'no_price_in_pos' => 'boolean',
@@ -152,7 +152,7 @@ class ProductVariant extends Model
             return true; // Allow backorders
         }
 
-        return $this->inventory_quantity > 0;
+        return ((float) ($this->inventory_quantity ?? 0)) > 0;
     }
 
     /**

@@ -159,7 +159,7 @@
         </div>
     </div>
 
-    <!-- Key Metrics -->
+    <!-- Key Metrics (net after refunds; matches Z-report / generateXReport) -->
     <div class="x-report-grid x-report-grid-4">
         <div class="x-report-section x-report-card">
             <div class="x-report-metric-label">Transaksjoner</div>
@@ -167,15 +167,52 @@
         </div>
         <div class="x-report-section x-report-card">
             <div class="x-report-metric-label">Totalt Beløp</div>
-            <div class="x-report-metric-value">{{ number_format($report['total_amount'] / 100, 2) }} NOK</div>
+            @php
+                $netAmount = $report['net_amount'] ?? ($report['total_amount'] - ($report['total_refunded'] ?? 0));
+                $hasRefunds = isset($report['total_refunded']) && $report['total_refunded'] > 0;
+            @endphp
+            <div class="x-report-metric-value">{{ number_format($netAmount / 100, 2) }} NOK</div>
+            @if($hasRefunds)
+                <div style="font-size: 0.75rem; color: rgb(75 85 99); margin-top: 0.25rem;">
+                    Totalt: {{ number_format($report['total_amount'] / 100, 2) }} NOK
+                </div>
+                <div style="font-size: 0.75rem; color: rgb(239 68 68); margin-top: 0.125rem;">
+                    Refusjoner: -{{ number_format($report['total_refunded'] / 100, 2) }} NOK
+                </div>
+            @endif
         </div>
         <div class="x-report-section x-report-card">
             <div class="x-report-metric-label">Kontant</div>
-            <div class="x-report-metric-value">{{ number_format($report['cash_amount'] / 100, 2) }} NOK</div>
+            @php
+                $netCashAmount = $report['net_cash_amount'] ?? ($report['cash_amount'] - ($report['cash_refunded'] ?? 0));
+                $hasCashRefunds = isset($report['cash_refunded']) && $report['cash_refunded'] > 0;
+            @endphp
+            <div class="x-report-metric-value">{{ number_format($netCashAmount / 100, 2) }} NOK</div>
+            @if($hasCashRefunds)
+                <div style="font-size: 0.75rem; color: rgb(75 85 99); margin-top: 0.25rem;">
+                    Totalt: {{ number_format($report['cash_amount'] / 100, 2) }} NOK
+                </div>
+                <div style="font-size: 0.75rem; color: rgb(239 68 68); margin-top: 0.125rem;">
+                    Refusjoner: -{{ number_format($report['cash_refunded'] / 100, 2) }} NOK
+                </div>
+            @endif
         </div>
         <div class="x-report-section x-report-card">
             <div class="x-report-metric-label">Kort</div>
-            <div class="x-report-metric-value">{{ number_format($report['card_amount'] / 100, 2) }} NOK</div>
+            @php
+                $netCardAmount = $report['net_card_amount'] ?? ($report['card_amount'] - ($report['card_refunded'] ?? 0));
+                $cardRefunded = $report['card_refunded'] ?? 0;
+                $hasCardRefunds = $cardRefunded > 0;
+            @endphp
+            <div class="x-report-metric-value">{{ number_format($netCardAmount / 100, 2) }} NOK</div>
+            @if($hasCardRefunds)
+                <div style="font-size: 0.75rem; color: rgb(75 85 99); margin-top: 0.25rem;">
+                    Totalt: {{ number_format($report['card_amount'] / 100, 2) }} NOK
+                </div>
+                <div style="font-size: 0.75rem; color: rgb(239 68 68); margin-top: 0.125rem;">
+                    Refusjoner: -{{ number_format($cardRefunded / 100, 2) }} NOK
+                </div>
+            @endif
         </div>
     </div>
 
@@ -184,15 +221,89 @@
             @if($report['mobile_amount'] > 0)
                 <div class="x-report-section x-report-card">
                     <div class="x-report-metric-label">Mobil</div>
-                    <div class="x-report-metric-value" style="font-size: 1.25rem;">{{ number_format($report['mobile_amount'] / 100, 2) }} NOK</div>
+                    @php
+                        $netMobileAmount = $report['net_mobile_amount'] ?? ($report['mobile_amount'] - ($report['mobile_refunded'] ?? 0));
+                        $mobileRefunded = $report['mobile_refunded'] ?? 0;
+                        $hasMobileRefunds = $mobileRefunded > 0;
+                    @endphp
+                    <div class="x-report-metric-value" style="font-size: 1.25rem;">{{ number_format($netMobileAmount / 100, 2) }} NOK</div>
+                    @if($hasMobileRefunds)
+                        <div style="font-size: 0.75rem; color: rgb(75 85 99); margin-top: 0.25rem;">
+                            Totalt: {{ number_format($report['mobile_amount'] / 100, 2) }} NOK
+                        </div>
+                        <div style="font-size: 0.75rem; color: rgb(239 68 68); margin-top: 0.125rem;">
+                            Refusjoner: -{{ number_format($mobileRefunded / 100, 2) }} NOK
+                        </div>
+                    @endif
                 </div>
             @endif
             @if($report['other_amount'] > 0)
                 <div class="x-report-section x-report-card">
                     <div class="x-report-metric-label">Annet</div>
-                    <div class="x-report-metric-value" style="font-size: 1.25rem;">{{ number_format($report['other_amount'] / 100, 2) }} NOK</div>
+                    @php
+                        $netOtherAmount = $report['net_other_amount'] ?? ($report['other_amount'] - ($report['other_refunded'] ?? 0));
+                        $otherRefunded = $report['other_refunded'] ?? 0;
+                        $hasOtherRefunds = $otherRefunded > 0;
+                    @endphp
+                    <div class="x-report-metric-value" style="font-size: 1.25rem;">{{ number_format($netOtherAmount / 100, 2) }} NOK</div>
+                    @if($hasOtherRefunds)
+                        <div style="font-size: 0.75rem; color: rgb(75 85 99); margin-top: 0.25rem;">
+                            Totalt: {{ number_format($report['other_amount'] / 100, 2) }} NOK
+                        </div>
+                        <div style="font-size: 0.75rem; color: rgb(239 68 68); margin-top: 0.125rem;">
+                            Refusjoner: -{{ number_format($otherRefunded / 100, 2) }} NOK
+                        </div>
+                    @endif
                 </div>
             @endif
+        </div>
+    @endif
+
+    @if(isset($report['refunds']) && count($report['refunds']) > 0)
+        <div class="x-report-section x-report-card" style="background-color: rgb(254 242 242); border-color: rgb(252 165 165);">
+            <h4 class="x-report-title">Refusjoner ({{ $report['refund_count'] ?? count($report['refunds']) }} refusjoner)</h4>
+            <div style="margin-bottom: 1rem;">
+                <div class="x-report-grid x-report-grid-2">
+                    <div>
+                        <div class="x-report-metric-label">Totalt refundert</div>
+                        <div style="font-size: 1.25rem; font-weight: 700; color: rgb(220 38 38);">{{ number_format($report['total_refunded'] / 100, 2) }} NOK</div>
+                    </div>
+                    <div>
+                        <div class="x-report-metric-label">Netto beløp</div>
+                        <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format(($report['net_amount'] ?? ($report['total_amount'] - $report['total_refunded'])) / 100, 2) }} NOK</div>
+                    </div>
+                </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="x-report-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">Tid</th>
+                            <th style="text-align: left;">ID</th>
+                            <th style="text-align: left;">Metode</th>
+                            <th style="text-align: left;">Beskrivelse</th>
+                            <th style="text-align: right;">Opprinnelig</th>
+                            <th style="text-align: right;">Refundert</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($report['refunds'] as $refund)
+                            <tr>
+                                <td style="color: rgb(75 85 99);">
+                                    {{ \Carbon\Carbon::parse($refund['paid_at'] ?? $refund['created_at'])->format('H:i:s') }}
+                                </td>
+                                <td style="font-size: 0.75rem; color: rgb(107 114 128);">{{ substr($refund['stripe_charge_id'] ?? (string) $refund['id'], 0, 12) }}...</td>
+                                <td>
+                                    <span style="text-transform: capitalize; color: rgb(17 24 39);">{{ $refund['payment_method'] ?? 'N/A' }}</span>
+                                </td>
+                                <td style="color: rgb(75 85 99);">{{ $refund['description'] ?? 'N/A' }}</td>
+                                <td style="text-align: right; color: rgb(75 85 99);">{{ number_format(($refund['amount'] ?? 0) / 100, 2) }} NOK</td>
+                                <td style="text-align: right; font-weight: 600; color: rgb(220 38 38);">-{{ number_format(($refund['amount_refunded'] ?? 0) / 100, 2) }} NOK</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     @endif
 
@@ -233,8 +344,8 @@
                 <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format(($report['vat_amount'] ?? 0) / 100, 2) }} NOK</div>
             </div>
             <div>
-                <div class="x-report-metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Totalt (inkl. MVA)</div>
-                <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format($report['total_amount'] / 100, 2) }} NOK</div>
+                <div class="x-report-metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Totalt (inkl. MVA, netto)</div>
+                <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format(($report['net_amount'] ?? $report['total_amount']) / 100, 2) }} NOK</div>
             </div>
         </div>
     </div>
@@ -428,16 +539,27 @@
                             <th style="text-align: left;">Tid</th>
                             <th style="text-align: left;">Metode</th>
                             <th style="text-align: right;">Beløp</th>
+                            <th style="text-align: right;">Refundert</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($report['charges']->take(10) as $charge)
+                            @php
+                                $refundedMinor = (int) ($charge->amount_refunded ?? 0);
+                            @endphp
                             <tr>
                                 <td style="color: rgb(75 85 99);">{{ $charge->paid_at?->format('H:i') ?? $charge->created_at->format('H:i') }}</td>
                                 <td>
                                     <span style="text-transform: capitalize; color: rgb(17 24 39);">{{ $charge->payment_method }}</span>
                                 </td>
                                 <td style="text-align: right; font-weight: 600; color: rgb(17 24 39);">{{ number_format($charge->amount / 100, 2) }} NOK</td>
+                                <td style="text-align: right; color: {{ $refundedMinor > 0 ? 'rgb(220 38 38)' : 'rgb(156 163 175)' }};">
+                                    @if($refundedMinor > 0)
+                                        -{{ number_format($refundedMinor / 100, 2) }} NOK
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

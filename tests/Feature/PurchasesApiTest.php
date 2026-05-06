@@ -140,7 +140,8 @@ test('single purchase persists and returns cart and item discounts', function ()
         ->assertJsonPath('purchase.purchase_discounts.0.amount', 500)
         ->assertJsonPath('purchase.purchase_total_discounts', 2000)
         ->assertJsonPath('purchase.purchase_items.0.purchase_item_discount_amount', 1500)
-        ->assertJsonPath('purchase.purchase_items.0.purchase_item_discount_reason', 'Manual item discount');
+        ->assertJsonPath('purchase.purchase_items.0.purchase_item_discount_reason', 'Manual item discount')
+        ->assertJsonPath('purchase.purchase_items.0.purchase_item_line_total_ore', 8000);
 });
 
 test('get purchase returns purchase item quantities with decimals', function () {

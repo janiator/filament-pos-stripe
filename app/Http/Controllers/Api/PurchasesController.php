@@ -581,7 +581,7 @@ class PurchasesController extends BaseApiController
         if (! empty($items) && is_array($items)) {
             // Get item refunds from metadata for refund status tracking
             $itemRefunds = $cleanMetadata['item_refunds'] ?? [];
-            $data['purchase_items'] = $this->enrichPurchaseItems($items, $purchase->stripe_account_id, $itemRefunds);
+            $data['purchase_items'] = $this->enrichPurchaseItems($items, $purchase->stripe_account_id, $itemRefunds, $cleanMetadata);
 
             // Calculate totals from items if metadata values are missing or 0
             $calculatedSubtotal = 0;
@@ -739,21 +739,20 @@ class PurchasesController extends BaseApiController
     }
 
     /**
-     * Extract lightweight line-item data from charge metadata for the kiosk-sales report.
+     * Final line totals in øre per cart line (after item-level and proportional cart discount).
+     * Matches allocation used for kiosk reporting and POS refunds.
      *
-     * @return array<int, array{product_name: string, quantity: float, unit_price_ore: int, line_total_ore: int}>
+     * @param  array<int, array<string, mixed>>  $arrayItems
+     * @param  array<string, mixed>  $metadata  Charge metadata (total_discounts and/or discounts)
+     * @return list<int>
      */
-    protected function extractKioskLineItems(ConnectedCharge $charge): array
+    protected function computeLineTotalsOreAfterCartDiscountFromItemLines(array $arrayItems, array $metadata): array
     {
-        $metadata = $charge->metadata ?? [];
-        $items = is_array($metadata) ? ($metadata['items'] ?? []) : [];
-
-        if (empty($items) || ! is_array($items)) {
+        if ($arrayItems === []) {
             return [];
         }
 
-        $arrayItems = array_values(array_filter($items, fn ($item) => is_array($item)));
-        $totalDiscountsOre = $this->resolveTotalDiscountsOreFromMetadata(is_array($metadata) ? $metadata : []);
+        $totalDiscountsOre = $this->resolveTotalDiscountsOreFromMetadata($metadata);
 
         $lineItems = [];
         $itemDiscountsTotalOre = 0;
@@ -776,9 +775,6 @@ class PurchasesController extends BaseApiController
             $lineNetBeforeCartDiscountOre = max(0, $lineTotalOre - $itemDiscountOre);
 
             $lineItems[] = [
-                'product_name' => (string) ($item['product_name'] ?? $item['description'] ?? 'Ukjent produkt'),
-                'quantity' => $quantity,
-                'unit_price_ore' => $unitPrice,
                 'line_total_ore' => $lineNetBeforeCartDiscountOre,
             ];
 
@@ -813,6 +809,45 @@ class PurchasesController extends BaseApiController
                 $lineItem['line_total_ore'] = max(0, $base - $cartShare);
             }
             unset($lineItem);
+        }
+
+        $totals = [];
+        foreach ($lineItems as $lineItem) {
+            $totals[] = (int) ($lineItem['line_total_ore'] ?? 0);
+        }
+
+        return $totals;
+    }
+
+    /**
+     * Extract lightweight line-item data from charge metadata for the kiosk-sales report.
+     *
+     * @return array<int, array{product_name: string, quantity: float, unit_price_ore: int, line_total_ore: int}>
+     */
+    protected function extractKioskLineItems(ConnectedCharge $charge): array
+    {
+        $metadata = $charge->metadata ?? [];
+        $items = is_array($metadata) ? ($metadata['items'] ?? []) : [];
+
+        if (empty($items) || ! is_array($items)) {
+            return [];
+        }
+
+        $arrayItems = array_values(array_filter($items, fn ($item) => is_array($item)));
+        $metadataArray = is_array($metadata) ? $metadata : [];
+        $lineTotalsOre = $this->computeLineTotalsOreAfterCartDiscountFromItemLines($arrayItems, $metadataArray);
+
+        $lineItems = [];
+        foreach ($arrayItems as $index => $item) {
+            $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+            $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
+
+            $lineItems[] = [
+                'product_name' => (string) ($item['product_name'] ?? $item['description'] ?? 'Ukjent produkt'),
+                'quantity' => $quantity,
+                'unit_price_ore' => $unitPrice,
+                'line_total_ore' => $lineTotalsOre[$index] ?? 0,
+            ];
         }
 
         return $lineItems;
@@ -901,12 +936,16 @@ class PurchasesController extends BaseApiController
      * falls back to current product data if snapshot is missing (backward compatibility)
      *
      * @param  array  $itemRefunds  Item refunds tracking (item_id => quantity_refunded)
+     * @param  array<string, mixed>  $discountMetadata  Metadata subset for cart/item discount totals (e.g. total_discounts, discounts)
      */
-    protected function enrichPurchaseItems(array $items, string $stripeAccountId, array $itemRefunds = []): array
+    protected function enrichPurchaseItems(array $items, string $stripeAccountId, array $itemRefunds = [], array $discountMetadata = []): array
     {
         if (empty($items)) {
             return [];
         }
+
+        $arrayItemsForTotals = array_values(array_filter($items, fn ($item) => is_array($item)));
+        $lineTotalsOre = $this->computeLineTotalsOreAfterCartDiscountFromItemLines($arrayItemsForTotals, $discountMetadata);
 
         // Check if items already have product snapshots (new purchases)
         $hasSnapshots = ! empty($items[0]['product_name'] ?? null);
@@ -914,6 +953,7 @@ class PurchasesController extends BaseApiController
         // If snapshots exist, use them directly (preserves historical data)
         if ($hasSnapshots) {
             $out = [];
+            $lineTotalIndex = 0;
             foreach ($items as $lineIndex => $item) {
                 if (! is_array($item)) {
                     continue;
@@ -938,6 +978,7 @@ class PurchasesController extends BaseApiController
                     'purchase_item_product_image_url' => $item['product_image_url'] ?? null,
                     'purchase_item_unit_price' => $unitPrice,
                     'purchase_item_quantity' => $quantity,
+                    'purchase_item_line_total_ore' => $lineTotalsOre[$lineTotalIndex] ?? 0,
                     'purchase_item_quantity_refunded' => $quantityRefunded > 0 ? $quantityRefunded : null,
                     'purchase_item_is_refunded' => $isFullyRefunded,
                     'purchase_item_is_partially_refunded' => $isPartiallyRefunded,
@@ -950,6 +991,7 @@ class PurchasesController extends BaseApiController
                         ? $item['metadata']
                         : null,
                 ];
+                $lineTotalIndex++;
             }
 
             return $out;
@@ -975,6 +1017,7 @@ class PurchasesController extends BaseApiController
 
         // Enrich each item from current product data
         $out = [];
+        $lineTotalIndex = 0;
         foreach ($items as $lineIndex => $item) {
             if (! is_array($item)) {
                 continue;
@@ -1051,6 +1094,7 @@ class PurchasesController extends BaseApiController
                 'purchase_item_product_image_url' => $productImageUrl,
                 'purchase_item_unit_price' => $unitPrice,
                 'purchase_item_quantity' => $quantity,
+                'purchase_item_line_total_ore' => $lineTotalsOre[$lineTotalIndex] ?? 0,
                 'purchase_item_quantity_refunded' => $quantityRefunded > 0 ? $quantityRefunded : null,
                 'purchase_item_is_refunded' => $isFullyRefunded,
                 'purchase_item_is_partially_refunded' => $isPartiallyRefunded,
@@ -1063,6 +1107,7 @@ class PurchasesController extends BaseApiController
                     ? $item['metadata']
                     : null,
             ];
+            $lineTotalIndex++;
         }
 
         return $out;
@@ -2048,7 +2093,7 @@ class PurchasesController extends BaseApiController
             'reason' => ['nullable', 'string', 'max:500'],
             'items' => ['nullable', 'array'],
             'items.*.item_id' => ['nullable', 'string'],
-            'items.*.quantity' => ['nullable', 'integer', 'min:1'],
+            'items.*.quantity' => ['nullable', 'numeric', 'min:0.01'],
             'pos_device_id' => ['nullable', 'integer', 'exists:pos_devices,id'], // Optional: auto-detected if not provided
             'pos_session_id' => ['nullable', 'integer', 'exists:pos_sessions,id'], // Optional: auto-detected if not provided
         ]);

@@ -17,10 +17,10 @@ This document verifies compliance of the X-Report and Z-Report implementations w
 | Shows current session summary | ✅ **COMPLIANT** | Report shows session number, store, opened date, device, cashier |
 | Does NOT close session | ✅ **COMPLIANT** | X-report is view-only, does not trigger session closure |
 | Number of transactions | ✅ **COMPLIANT** | Shows `transactions_count` |
-| Total amounts | ✅ **COMPLIANT** | Shows `total_amount` |
+| Total amounts | ✅ **COMPLIANT** | Shows net totals with refund detail; API payload includes `total_amount`, `total_refunded`, `net_amount`, `refunds` |
 | Payment method breakdown | ✅ **COMPLIANT** | Shows breakdown by payment method (cash, card, mobile, other) |
-| Cash amounts | ✅ **COMPLIANT** | Shows `cash_amount` |
-| Card amounts | ✅ **COMPLIANT** | Shows `card_amount` |
+| Cash amounts | ✅ **COMPLIANT** | Shows net cash with refund sublines when applicable |
+| Card amounts | ✅ **COMPLIANT** | Shows net card with refund sublines when applicable |
 | Log event 13008 when generated | ✅ **COMPLIANT** | Event 13008 is logged when X-report is generated (both API and Filament) |
 | Norwegian language | ✅ **COMPLIANT** | All labels are in Norwegian |
 | Nullinnslag count (§ 2-2) | ✅ **COMPLIANT** | Shows `nullinnslag_count` |
@@ -37,11 +37,14 @@ This document verifies compliance of the X-Report and Z-Report implementations w
 
 **Key Metrics:**
 - ✅ Transaction count (Transaksjoner)
-- ✅ Total amount (Totalt Beløp)
-- ✅ Cash amount (Kontant)
-- ✅ Card amount (Kort)
-- ✅ Mobile amount (Mobil) - if applicable
-- ✅ Other amount (Annet) - if applicable
+- ✅ Total amount net of refunds (Totalt Beløp), with gross total and Refusjoner sublines when applicable (same logic as Z-report / `generateXReport`)
+- ✅ Cash amount (Kontant), net with refund sublines when applicable
+- ✅ Card amount (Kort), net with refund sublines when applicable
+- ✅ Mobile amount (Mobil) - if applicable, net with refund sublines when applicable
+- ✅ Other amount (Annet) - if applicable, net with refund sublines when applicable
+
+**Refunds (when any charge has `amount_refunded` > 0):**
+- ✅ Refusjoner section with per-charge table (aligned with Z-report)
 
 **Cash Management:**
 - ✅ Opening balance (Åpningssaldo)
@@ -51,7 +54,7 @@ This document verifies compliance of the X-Report and Z-Report implementations w
 **VAT Breakdown:**
 - ✅ VAT base (MVA-grunnlag)
 - ✅ VAT amount (MVA-beløp)
-- ✅ Total including VAT (Totalt inkl. MVA)
+- ✅ Total including VAT on **net** sales (Totalt inkl. MVA, netto) — matches `generateXReport` VAT calculation
 
 **Activity Metrics:**
 - ✅ Cash drawer opens (Kontantskuff-åpninger)
@@ -61,7 +64,7 @@ This document verifies compliance of the X-Report and Z-Report implementations w
 **Additional Information:**
 - ✅ Payment code breakdown (Oppdeling etter Betalingskode)
 - ✅ Sales by category (Salg per Produktkategori)
-- ✅ Recent transactions (Siste Transaksjoner)
+- ✅ Recent transactions (Siste Transaksjoner), including refunded column when applicable
 
 ### Event Logging
 

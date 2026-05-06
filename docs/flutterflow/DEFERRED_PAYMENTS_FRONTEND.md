@@ -6,6 +6,8 @@ This guide explains how to implement deferred payments (payment on pickup) in yo
 
 The **checkout** action block should print delivery receipts the same way as paid sales. A common FlutterFlow pitfall is gating print on `FFAppState().receiptPrinter.isActive` only, while the actual `eposUrl` lives on `activePosDevice.defaultPrinterId` from the API—so printers work for Merano/tickets but POS receipt XML never prints. Prefer: allow print when the default device printer has a non-empty `eposUrl`, and treat `auto_print_receipt` as **on** when the API omits the field (your device struct may map omitted/null to `false`).
 
+**Canonical implementation:** custom action `receiptPrintAfterPosPurchase` in `docs/flutterflow/custom-actions/receipt_print_after_pos_purchase.dart` (same file under the FlutterFlow export `lib/custom_code/actions/`). The FlutterFlow AI workspace can push it and rewire the `checkoutFlow` → `receiptPrint` action block via `dart run dsl/sync_checkout_receipt_print.dart` (sources live in `docs/flutterflow/dsl/`; copy into the workspace `dsl/` after `flutterflow ai init`—see `.cursor/rules/multi-repo-workspace.mdc`). Validate with FlutterFlow MCP `validate` / `run` as you do for other DSL scripts.
+
 ## Overview
 
 Deferred payments allow you to:

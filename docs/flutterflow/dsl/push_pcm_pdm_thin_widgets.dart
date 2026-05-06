@@ -24,9 +24,7 @@ String _joinPath(String dir, List<String> segments) {
   return base;
 }
 
-/// Prefers `docs/flutterflow/custom-widgets/` under the **pos-stripe** repo (walks up from
-/// this script), then falls back to the FlutterFlow desktop export paths.
-File _customArtifactSource(String fileName) {
+File _docsThinWidget(String fileName) {
   var dir = _dirname(Platform.script.toFilePath());
   for (var i = 0; i < 14; i++) {
     final fromDocs = File(
@@ -41,15 +39,9 @@ File _customArtifactSource(String fileName) {
     }
     dir = parent;
   }
-
-  if (fileName == 'products_categories_manager.dart' ||
-      fileName == 'printer_detection_manager.dart') {
-    return positivCustomWidgetSource(fileName);
-  }
-  return positivCustomCodeSource(fileName);
+  return positivCustomWidgetSource(fileName);
 }
 
-/// Pre-existing POSitiv project issues that block `dart run` / MCP validate unless filtered.
 bool _keepProjectValidatorFinding(ProjectError error) {
   if (error.isWarning) {
     return true;
@@ -63,40 +55,21 @@ bool _keepProjectValidatorFinding(ProjectError error) {
   return true;
 }
 
-void _upsertCustomClass(FFProject project, String name, String code) {
-  if (findCustomClass(project, name: name) == null) {
-    addCustomClass(project, name: name, code: code);
-  } else {
-    updateCustomClass(project, name: name, code: code);
-  }
-}
-
-/// Pushes `PcmInternalLibrary` / `PdmInternalLibrary` as **custom classes** (full UI logic)
-/// and updates thin `ProductsCategoriesManager` / `PrinterDetectionManager` custom widgets
-/// so each widget artifact stays under FlutterFlow's 65536-byte limit.
-///
-/// Sources: local FlutterFlow export `p_o_sitiv/lib/custom_code/...` (mirrored under
-/// pos-stripe `docs/flutterflow/custom-widgets/`).
+/// Updates only [ProductsCategoriesManager] and [PrinterDetectionManager] from
+/// `docs/flutterflow/custom-widgets/` (thin shells delegating to custom classes).
 Future<void> main(List<String> args) async {
   final options = _parseCliOptions(args);
 
-  final pcmLib = _customArtifactSource('pcm_internal_library.dart');
-  final pdmLib = _customArtifactSource('pdm_internal_library.dart');
-  final pcmWidget = _customArtifactSource('products_categories_manager.dart');
-  final pdmWidget = _customArtifactSource('printer_detection_manager.dart');
+  final pcmWidget = _docsThinWidget('products_categories_manager.dart');
+  final pdmWidget = _docsThinWidget('printer_detection_manager.dart');
 
-  for (final f in [pcmLib, pdmLib, pcmWidget, pdmWidget]) {
+  for (final f in [pcmWidget, pdmWidget]) {
     if (!f.existsSync()) {
       stderr.writeln('Missing source file: ${f.path}');
-      stderr.writeln(
-        'Set POSITIV_FLUTTER_EXPORT_ROOT to your p_o_sitiv project root, or open the project in FlutterFlow desktop so the export exists.',
-      );
       exit(1);
     }
   }
 
-  final pcmLibCode = pcmLib.readAsStringSync();
-  final pdmLibCode = pdmLib.readAsStringSync();
   final pcmWidgetCode = pcmWidget.readAsStringSync();
   final pdmWidgetCode = pdmWidget.readAsStringSync();
 
@@ -104,8 +77,6 @@ Future<void> main(List<String> args) async {
     await flutterFlowAI(
       (app) {
         app.raw((project) {
-          _upsertCustomClass(project, 'PcmInternalLibrary', pcmLibCode);
-          _upsertCustomClass(project, 'PdmInternalLibrary', pdmLibCode);
           updateCustomWidget(
             project,
             name: 'ProductsCategoriesManager',
@@ -127,7 +98,7 @@ Future<void> main(List<String> args) async {
       dryRun: options.dryRun,
       commitMessage:
           options.commitMessage ??
-          'fix(pos): split oversized custom widgets into PcmInternalLibrary/PdmInternalLibrary classes',
+          'fix(pos): thin ProductsCategoriesManager/PrinterDetectionManager shells',
       validationFilter: _keepProjectValidatorFinding,
     );
   } catch (error) {
@@ -173,7 +144,9 @@ _CliOptions _parseCliOptions(List<String> args) {
     switch (arg) {
       case '--help':
       case '-h':
-        _printUsage();
+        stdout.writeln(
+          'Push thin PCM/PDM widget shells from docs/flutterflow/custom-widgets/.',
+        );
         exit(0);
       case '--api-key':
         apiKey = _requireValue(args, ++i, '--api-key');
@@ -193,7 +166,6 @@ _CliOptions _parseCliOptions(List<String> args) {
         dryRun = true;
       default:
         stderr.writeln('Unknown option: $arg');
-        _printUsage();
         exit(64);
     }
   }
@@ -219,28 +191,7 @@ _CliOptions _parseCliOptions(List<String> args) {
 String _requireValue(List<String> args, int index, String flag) {
   if (index >= args.length) {
     stderr.writeln('Missing value for $flag.');
-    _printUsage();
     exit(64);
   }
   return args[index];
-}
-
-void _printUsage() {
-  stdout.writeln('''
-Push PcmInternalLibrary + PdmInternalLibrary custom classes and thin widget shells.
-
-Usage:
-  dart run dsl/fix_oversized_custom_widgets.dart [options]
-
-Options:
-  --api-key <key>           FlutterFlow API key. Defaults to FLUTTERFLOW_AI_API_KEY or FF_API_KEY.
-  --base-url <url>          Override the FlutterFlow API base URL.
-  --project-name <name>     Create a new project with this name.
-  --project-id <id>         Push into an existing project (default: pointofsale-xrlz5i or FLUTTERFLOW_POSITIV_PROJECT_ID).
-  --find-or-create          Retry by reusing a same-name project before creating.
-  --allow-new-project       Bypass the workspace binding guard and create a different project.
-  --commit-message <text>   Commit message for the push.
-  --dry-run                 Compile and validate without pushing.
-  --help, -h                Show this help.
-''');
 }

@@ -170,7 +170,7 @@ class InventoryLedgerService
     protected function applySaleLine(
         Store $store,
         int $variantId,
-        int $quantitySold,
+        float $quantitySold,
         string $idempotencyKey,
         array $movementAttrs
     ): void {
@@ -267,7 +267,7 @@ class InventoryLedgerService
     }
 
     /**
-     * @return array<int, int> variant_id => quantity to restore
+     * @return array<int, float> variant_id => quantity to restore
      */
     protected function resolveRefundQuantitiesByVariant(
         ConnectedCharge $charge,
@@ -297,14 +297,14 @@ class InventoryLedgerService
     /**
      * @param  array<int, array<string, mixed>>  $originalItems
      * @param  array<int, array<string, mixed>>  $refundedItems
-     * @return array<int, int>
+     * @return array<int, float>
      */
     protected function mapRefundedItemsToVariants(array $originalItems, array $refundedItems): array
     {
         $byVariant = [];
 
         foreach ($refundedItems as $refunded) {
-            $qty = (int) ($refunded['quantity'] ?? 1);
+            $qty = (float) ($refunded['quantity'] ?? 1);
             if ($qty <= 0) {
                 continue;
             }
@@ -323,8 +323,8 @@ class InventoryLedgerService
                 continue;
             }
 
-            foreach ($originalItems as $idx => $item) {
-                $lineId = $item['id'] ?? $item['item_id'] ?? $item['line_id'] ?? $idx;
+            foreach ($originalItems as $lineIndex => $item) {
+                $lineId = $this->resolveStoredLineItemId($item, (int) $lineIndex);
                 if ((string) $lineId !== (string) $itemId) {
                     continue;
                 }
@@ -342,7 +342,7 @@ class InventoryLedgerService
     protected function applyRefundLine(
         Store $store,
         int $variantId,
-        int $quantityToRestore,
+        float $quantityToRestore,
         string $idempotencyKey,
         int $chargeId
     ): void {
@@ -494,7 +494,7 @@ class InventoryLedgerService
 
     /**
      * @param  array<int, array<string, mixed>>  $items
-     * @return array<int, int>
+     * @return array<int, float>
      */
     protected function aggregateVariantQuantities(array $items): array
     {
@@ -508,11 +508,11 @@ class InventoryLedgerService
             if ($vid <= 0) {
                 continue;
             }
-            $qty = (int) ($item['quantity'] ?? 1);
+            $qty = (float) ($item['quantity'] ?? 1);
             if ($qty <= 0) {
                 continue;
             }
-            $byVariant[$vid] = ($byVariant[$vid] ?? 0) + $qty;
+            $byVariant[$vid] = ($byVariant[$vid] ?? 0.0) + $qty;
         }
 
         return $byVariant;
@@ -520,9 +520,31 @@ class InventoryLedgerService
 
     protected function isDuplicateKey(QueryException $e): bool
     {
-        $sqlState = $e->errorInfo[0] ?? null;
-        $driverCode = $e->errorInfo[1] ?? null;
+        $code = $e->errorInfo[1] ?? null;
 
-        return $driverCode === 1062 || $sqlState === '23505';
+        return $code === 1062 || $code === 23505;
+    }
+
+    /**
+     * Stable line id for matching refund payloads to stored purchase metadata items.
+     * Mirrors {@see \App\Http\Controllers\Api\PurchasesController::resolvePurchaseLineItemId}.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    protected function resolveStoredLineItemId(array $item, int $lineIndex): string
+    {
+        $raw = $item['id'] ?? $item['item_id'] ?? $item['line_id'] ?? null;
+
+        if (is_string($raw)) {
+            $trimmed = trim($raw);
+
+            return $trimmed !== '' ? $trimmed : 'legacy_line_'.$lineIndex;
+        }
+
+        if (is_int($raw) || is_float($raw)) {
+            return (string) $raw;
+        }
+
+        return 'legacy_line_'.$lineIndex;
     }
 }

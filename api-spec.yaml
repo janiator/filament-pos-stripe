@@ -4037,8 +4037,11 @@ paths:
                         type: string
                         description: Purchase item ID
                       quantity:
-                        type: integer
-                        description: Quantity to refund
+                        type: number
+                        format: float
+                        minimum: 0.01
+                        description: |
+                          Quantity to refund (supports decimals, e.g. 1.5 kg), same semantics as cart line `quantity`.
       responses:
         '200':
           description: Refund processed successfully
@@ -7174,6 +7177,10 @@ components:
                 description: Quantity purchased (supports decimals for continuous units like meters, kilograms)
                 minimum: 0.01
                 example: 4.3
+              purchase_item_line_total_ore:
+                type: integer
+                description: Line total in øre after item-level and proportional cart-level discounts (matches charged amount split across lines; use for refunds when cart discounts apply)
+                example: 7500
               purchase_item_original_price:
                 type: integer
                 nullable: true

@@ -76,6 +76,7 @@
 <text>{{.}}</text>
 {{/lines}}
 {{/order_note_section}}
+<feed/>
 <text>—————————————————————————————————————————————</text>
 <feed/>
 <text>Total: {{currency}} {{total_amount}}</text>

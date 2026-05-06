@@ -30,7 +30,7 @@ class InventoryStockMovement extends Model
     protected function casts(): array
     {
         return [
-            'quantity_delta' => 'integer',
+            'quantity_delta' => 'decimal:4',
             'metadata' => 'array',
         ];
     }

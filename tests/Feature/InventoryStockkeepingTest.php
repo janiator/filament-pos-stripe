@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Addon;
+use App\Models\ConnectedCharge;
 use App\Models\ConnectedPrice;
 use App\Models\ConnectedProduct;
 use App\Models\InventoryStockMovement;
@@ -131,7 +132,7 @@ test('cash purchase decrements stock when inventory add-on and product tracking 
     $response->assertCreated();
 
     $variant->refresh();
-    expect($variant->inventory_quantity)->toBe(3);
+    expect((float) $variant->inventory_quantity)->toEqual(3.0);
 
     expect(
         InventoryStockMovement::query()
@@ -170,7 +171,7 @@ test('purchase returns 422 insufficient stock when deny policy and not enough qu
         ->assertJsonPath('lines.0.variant_id', $variant->id);
 
     $variant->refresh();
-    expect($variant->inventory_quantity)->toBe(5);
+    expect((float) $variant->inventory_quantity)->toEqual(5.0);
 });
 
 test('split payment purchase applies inventory deduction once', function () {
@@ -211,7 +212,7 @@ test('split payment purchase applies inventory deduction once', function () {
     $response->assertCreated();
 
     $variant->refresh();
-    expect($variant->inventory_quantity)->toBe(3);
+    expect((float) $variant->inventory_quantity)->toEqual(3.0);
 
     expect(
         InventoryStockMovement::query()
@@ -249,12 +250,60 @@ test('full refund restores stock for tracked variant', function () {
     $chargeId = $purchaseResponse->json('data.charge.id');
 
     $variant->refresh();
-    expect($variant->inventory_quantity)->toBe(3);
+    expect((float) $variant->inventory_quantity)->toEqual(3.0);
 
     $refundResponse = $this->postJson("/api/purchases/{$chargeId}/refund", []);
 
     $refundResponse->assertOk();
 
     $variant->refresh();
-    expect($variant->inventory_quantity)->toBe(5);
+    expect((float) $variant->inventory_quantity)->toEqual(5.0);
+});
+
+test('decimal quantity purchase and itemized refund restore fractional stock', function () {
+    extract(inventoryTestContext());
+    Addon::factory()->inventory()->create(['store_id' => $store->id]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $purchaseResponse = $this->postJson('/api/purchases', [
+        'pos_session_id' => $session->id,
+        'payment_method_code' => 'cash',
+        'cart' => [
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'variant_id' => $variant->id,
+                    'quantity' => 1.5,
+                    'unit_price' => 10000,
+                ],
+            ],
+            'total' => 15000,
+            'currency' => 'nok',
+        ],
+        'metadata' => [],
+    ]);
+
+    $purchaseResponse->assertCreated();
+    $chargeId = $purchaseResponse->json('data.charge.id');
+
+    $variant->refresh();
+    expect((float) $variant->inventory_quantity)->toEqual(3.5);
+
+    $charge = ConnectedCharge::query()->findOrFail($chargeId);
+    $metadata = is_array($charge->metadata) ? $charge->metadata : [];
+    $items = $metadata['items'] ?? [];
+    $lineId = is_array($items[0] ?? null) ? ($items[0]['id'] ?? 'legacy_line_0') : 'legacy_line_0';
+
+    $refundResponse = $this->postJson("/api/purchases/{$chargeId}/refund", [
+        'amount' => 15000,
+        'items' => [
+            ['item_id' => (string) $lineId, 'quantity' => 1.5],
+        ],
+    ]);
+
+    $refundResponse->assertSuccessful();
+
+    $variant->refresh();
+    expect((float) $variant->inventory_quantity)->toEqual(5.0);
 });

@@ -1482,9 +1482,9 @@ class PurchaseService
                     $itemId = $refundedItem['item_id'] ?? null;
                     if ($itemId) {
                         if (! isset($itemRefunds[$itemId])) {
-                            $itemRefunds[$itemId] = 0;
+                            $itemRefunds[$itemId] = 0.0;
                         }
-                        $itemRefunds[$itemId] += $refundedItem['quantity'] ?? 1;
+                        $itemRefunds[$itemId] += (float) ($refundedItem['quantity'] ?? 1);
                     }
                 }
                 $metadata['item_refunds'] = $itemRefunds;

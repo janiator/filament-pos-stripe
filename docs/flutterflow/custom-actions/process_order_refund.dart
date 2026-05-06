@@ -20,6 +20,92 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+/// Final line totals in øre per cart line (item discount + proportional cart discount).
+/// Matches Laravel [PurchasesController::computeLineTotalsOreAfterCartDiscountFromItemLines].
+List<int> computeLineTotalsAfterCartDiscountForRefund(
+  List<PurchaseItemStruct> items,
+  int totalDiscountsOre,
+) {
+  if (items.isEmpty) {
+    return [];
+  }
+
+  final n = items.length;
+  final netBeforeCart = List<int>.filled(n, 0);
+  var itemDiscountsTotalOre = 0;
+  var netBeforeCartDiscountTotalOre = 0;
+
+  for (var i = 0; i < n; i++) {
+    final item = items[i];
+    final qty = item.purchaseItemQuantity ?? 1.0;
+    final unitPrice = item.purchaseItemUnitPrice ?? 0;
+    final discPerUnit = item.purchaseItemDiscountAmount ?? 0;
+    final lineTotalOre = (unitPrice * qty).round();
+
+    var itemDiscountOre = (discPerUnit * qty).round();
+    if (itemDiscountOre > lineTotalOre) {
+      itemDiscountOre = lineTotalOre;
+    }
+    final lineNet = lineTotalOre - itemDiscountOre;
+    final clampedNet = lineNet < 0 ? 0 : lineNet;
+    netBeforeCart[i] = clampedNet;
+    itemDiscountsTotalOre += itemDiscountOre;
+    netBeforeCartDiscountTotalOre += clampedNet;
+  }
+
+  var remainingCartDiscountOre =
+      totalDiscountsOre - itemDiscountsTotalOre;
+  if (remainingCartDiscountOre < 0) {
+    remainingCartDiscountOre = 0;
+  }
+
+  final totals = List<int>.from(netBeforeCart);
+
+  if (remainingCartDiscountOre <= 0 || netBeforeCartDiscountTotalOre <= 0) {
+    return totals;
+  }
+
+  int? lastPositiveIndex;
+  for (var i = 0; i < n; i++) {
+    if (totals[i] > 0) {
+      lastPositiveIndex = i;
+    }
+  }
+
+  var allocated = 0;
+  for (var i = 0; i < n; i++) {
+    final base = totals[i];
+    if (base <= 0) {
+      continue;
+    }
+
+    final cartShare = i == lastPositiveIndex
+        ? remainingCartDiscountOre - allocated
+        : (remainingCartDiscountOre * base / netBeforeCartDiscountTotalOre)
+            .floor();
+    if (i != lastPositiveIndex) {
+      allocated += cartShare;
+    }
+    totals[i] = base - cartShare;
+    if (totals[i] < 0) {
+      totals[i] = 0;
+    }
+  }
+
+  return totals;
+}
+
+int lineRefundOreForQuantity(
+  int lineTotalOre,
+  num lineQuantity,
+  num refundQuantity,
+) {
+  if (lineQuantity <= 0) {
+    return 0;
+  }
+  return (lineTotalOre * refundQuantity / lineQuantity).round();
+}
+
 /// ────────────────────────────────────────────────────────────────
 /// REFUND ITEM SELECTION MODAL
 /// Allows selecting which items from an order should be refunded
@@ -28,6 +114,7 @@ class RefundItemSelectionModal extends StatefulWidget {
   const RefundItemSelectionModal({
     Key? key,
     required this.purchaseItems,
+    required this.lineTotalsOre,
     required this.purchaseAmount,
     required this.amountRefunded,
     required this.paymentMethod,
@@ -36,6 +123,8 @@ class RefundItemSelectionModal extends StatefulWidget {
   }) : super(key: key);
 
   final List<PurchaseItemStruct> purchaseItems;
+  /// Per-line totals in øre after item + cart discounts (same order as [purchaseItems]).
+  final List<int> lineTotalsOre;
   final int purchaseAmount;
   final int amountRefunded;
   final String paymentMethod;
@@ -112,11 +201,15 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
       final lineId = _lineIdForIndex(i);
       if (_selectedItems.containsKey(lineId)) {
         final quantityToRefund = _selectedItems[lineId] ?? 0;
-        final unitPrice = item.purchaseItemUnitPrice ?? 0;
-        final discountAmount = item.purchaseItemDiscountAmount ?? 0;
-        // Calculate line total: (unit_price - discount) * quantity (quantity may be decimal)
-        final lineTotal = (unitPrice - discountAmount) * quantityToRefund;
-        total += lineTotal.round();
+        final quantity = item.purchaseItemQuantity ?? 1.0;
+        final lineTotalOre = i < widget.lineTotalsOre.length
+            ? widget.lineTotalsOre[i]
+            : 0;
+        total += lineRefundOreForQuantity(
+          lineTotalOre,
+          quantity,
+          quantityToRefund,
+        );
       }
     }
     return total;
@@ -280,13 +373,12 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
                       final lineId = _lineIdForIndex(lineIndex);
                       final isSelected = _selectedItems.containsKey(lineId);
                       final quantity = item.purchaseItemQuantity ?? 1.0;
-                      final unitPrice = item.purchaseItemUnitPrice ?? 0;
-                      final discountAmount =
-                          item.purchaseItemDiscountAmount ?? 0;
                       final selectedQuantity = _selectedItems[lineId] ?? 0;
-                      final itemTotal = (unitPrice - discountAmount) * quantity;
+                      final lineTotalOre = lineIndex < widget.lineTotalsOre.length
+                          ? widget.lineTotalsOre[lineIndex]
+                          : 0;
                       final itemTotalFormatted =
-                          (itemTotal / 100).toStringAsFixed(2);
+                          (lineTotalOre / 100).toStringAsFixed(2);
 
                       return Container(
                         margin:
@@ -578,6 +670,12 @@ Future<dynamic> processOrderRefund(
     final modalWidth = width ?? 600.0;
     final modalHeight = height ?? 700.0;
 
+    final totalDiscountsOre = purchase.purchaseTotalDiscounts ?? 0;
+    final lineTotalsOre = computeLineTotalsAfterCartDiscountForRefund(
+      purchaseItems,
+      totalDiscountsOre,
+    );
+
     final modalResult = await showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
@@ -587,6 +685,7 @@ Future<dynamic> processOrderRefund(
           insetPadding: EdgeInsets.zero,
           child: RefundItemSelectionModal(
             purchaseItems: purchaseItems,
+            lineTotalsOre: lineTotalsOre,
             purchaseAmount: purchaseAmount,
             amountRefunded: amountRefunded,
             paymentMethod: paymentMethod,

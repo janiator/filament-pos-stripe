@@ -184,6 +184,7 @@ Future<dynamic> completePosPurchase(
       'customer_id': cart.cartCustomerId,
       'customer_name':
           cart.cartCustomerName.isNotEmpty ? cart.cartCustomerName : null,
+      'note': cart.cartNote.isNotEmpty ? cart.cartNote : null,
       'subtotal': subtotal,
       'total_discounts': totalDiscounts,
       'total_tax': totalTax,

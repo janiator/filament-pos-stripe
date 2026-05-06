@@ -7,6 +7,7 @@
 // Supports:
 // - Single and split payments
 // - Cash and Stripe payments
+// - Whole-order note: FFAppState().cart.cartNote → API cart.note (printed on sales/delivery receipts when set)
 // - Deferred payments (payment on pickup) - use payment_method_code: "deferred" or set metadata.deferred_payment: true
 // - Estimated pickup date for deferred payments - pass as DateTime? parameter (use null constant if not needed) or include in additionalMetadataJson
 //
@@ -184,6 +185,7 @@ Future<dynamic> completePosPurchase(
       'tip_amount': tipAmount,
       'customer_id': customerIdForApi, // Local customer ID (integer) - backend will resolve to Stripe ID
       'customer_name': cart.cartCustomerName.isNotEmpty ? cart.cartCustomerName : null,
+      'note': cart.cartNote.isNotEmpty ? cart.cartNote : null,
       'subtotal': subtotal,
       'total_discounts': totalDiscounts,
       'total_tax': totalTax,
