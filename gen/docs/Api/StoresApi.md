@@ -1,4 +1,4 @@
-# OpenAPI\Client\StoresApi
+# OpenAPIClient\StoresApi
 
 Store management operations
 
@@ -8,6 +8,7 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 | ------------- | ------------- | ------------- |
 | [**changeCurrentStore()**](StoresApi.md#changeCurrentStore) | **PUT** /stores/current | Change current store |
 | [**getCurrentStore()**](StoresApi.md#getCurrentStore) | **GET** /stores/current | Get current store |
+| [**getMeranoTicketProduct()**](StoresApi.md#getMeranoTicketProduct) | **GET** /stores/current/merano-ticket-product | Get Merano ticket product |
 | [**getStore()**](StoresApi.md#getStore) | **GET** /stores/{slug} | Get store by slug |
 | [**listStores()**](StoresApi.md#listStores) | **GET** /stores | List stores |
 | [**patchCurrentStore()**](StoresApi.md#patchCurrentStore) | **PATCH** /stores/current | Change current store (partial) |
@@ -16,7 +17,7 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 ## `changeCurrentStore()`
 
 ```php
-changeCurrentStore($change_current_store_request): \OpenAPI\Client\Model\ChangeCurrentStore200Response
+changeCurrentStore($change_current_store_request): \OpenAPIClient\Model\ChangeCurrentStore200Response
 ```
 
 Change current store
@@ -31,16 +32,16 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\StoresApi(
+$apiInstance = new OpenAPIClient\Api\StoresApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
-$change_current_store_request = new \OpenAPI\Client\Model\ChangeCurrentStoreRequest(); // \OpenAPI\Client\Model\ChangeCurrentStoreRequest
+$change_current_store_request = new \OpenAPIClient\Model\ChangeCurrentStoreRequest(); // \OpenAPIClient\Model\ChangeCurrentStoreRequest
 
 try {
     $result = $apiInstance->changeCurrentStore($change_current_store_request);
@@ -54,11 +55,11 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **change_current_store_request** | [**\OpenAPI\Client\Model\ChangeCurrentStoreRequest**](../Model/ChangeCurrentStoreRequest.md)|  | |
+| **change_current_store_request** | [**\OpenAPIClient\Model\ChangeCurrentStoreRequest**](../Model/ChangeCurrentStoreRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\ChangeCurrentStore200Response**](../Model/ChangeCurrentStore200Response.md)
+[**\OpenAPIClient\Model\ChangeCurrentStore200Response**](../Model/ChangeCurrentStore200Response.md)
 
 ### Authorization
 
@@ -76,7 +77,7 @@ try {
 ## `getCurrentStore()`
 
 ```php
-getCurrentStore(): \OpenAPI\Client\Model\GetCurrentStore200Response
+getCurrentStore(): \OpenAPIClient\Model\GetCurrentStore200Response
 ```
 
 Get current store
@@ -91,10 +92,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\StoresApi(
+$apiInstance = new OpenAPIClient\Api\StoresApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -115,7 +116,64 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**\OpenAPI\Client\Model\GetCurrentStore200Response**](../Model/GetCurrentStore200Response.md)
+[**\OpenAPIClient\Model\GetCurrentStore200Response**](../Model/GetCurrentStore200Response.md)
+
+### Authorization
+
+[bearerAuth](../../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+[[Back to top]](#) [[Back to API list]](../../README.md#endpoints)
+[[Back to Model list]](../../README.md#models)
+[[Back to README]](../../README.md)
+
+## `getMeranoTicketProduct()`
+
+```php
+getMeranoTicketProduct(): \OpenAPIClient\Model\GetMeranoTicketProduct200Response
+```
+
+Get Merano ticket product
+
+Get the product configured in Filament as the Merano ticket product for the current store. Used by the POS when adding Merano bookings to the cart (e.g. showProviderActionModal with ticketProduct, or addMeranoBookingResultToCart). Returns the same product shape as GET /products/{id}. Tenant is determined by X-Tenant header or the authenticated user's current store.
+
+### Example
+
+```php
+<?php
+require_once(__DIR__ . '/vendor/autoload.php');
+
+
+// Configure Bearer (JWT) authorization: bearerAuth
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+
+
+$apiInstance = new OpenAPIClient\Api\StoresApi(
+    // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
+    // This is optional, `GuzzleHttp\Client` will be used as default.
+    new GuzzleHttp\Client(),
+    $config
+);
+
+try {
+    $result = $apiInstance->getMeranoTicketProduct();
+    print_r($result);
+} catch (Exception $e) {
+    echo 'Exception when calling StoresApi->getMeranoTicketProduct: ', $e->getMessage(), PHP_EOL;
+}
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**\OpenAPIClient\Model\GetMeranoTicketProduct200Response**](../Model/GetMeranoTicketProduct200Response.md)
 
 ### Authorization
 
@@ -133,7 +191,7 @@ This endpoint does not need any parameter.
 ## `getStore()`
 
 ```php
-getStore($slug): \OpenAPI\Client\Model\GetCurrentStore200Response
+getStore($slug): \OpenAPIClient\Model\GetCurrentStore200Response
 ```
 
 Get store by slug
@@ -148,10 +206,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\StoresApi(
+$apiInstance = new OpenAPIClient\Api\StoresApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -175,7 +233,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\GetCurrentStore200Response**](../Model/GetCurrentStore200Response.md)
+[**\OpenAPIClient\Model\GetCurrentStore200Response**](../Model/GetCurrentStore200Response.md)
 
 ### Authorization
 
@@ -193,7 +251,7 @@ try {
 ## `listStores()`
 
 ```php
-listStores(): \OpenAPI\Client\Model\ListStores200Response
+listStores(): \OpenAPIClient\Model\ListStores200Response
 ```
 
 List stores
@@ -208,10 +266,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\StoresApi(
+$apiInstance = new OpenAPIClient\Api\StoresApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -232,7 +290,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**\OpenAPI\Client\Model\ListStores200Response**](../Model/ListStores200Response.md)
+[**\OpenAPIClient\Model\ListStores200Response**](../Model/ListStores200Response.md)
 
 ### Authorization
 
@@ -250,7 +308,7 @@ This endpoint does not need any parameter.
 ## `patchCurrentStore()`
 
 ```php
-patchCurrentStore($change_current_store_request): \OpenAPI\Client\Model\ChangeCurrentStore200Response
+patchCurrentStore($change_current_store_request): \OpenAPIClient\Model\ChangeCurrentStore200Response
 ```
 
 Change current store (partial)
@@ -265,16 +323,16 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\StoresApi(
+$apiInstance = new OpenAPIClient\Api\StoresApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
-$change_current_store_request = new \OpenAPI\Client\Model\ChangeCurrentStoreRequest(); // \OpenAPI\Client\Model\ChangeCurrentStoreRequest
+$change_current_store_request = new \OpenAPIClient\Model\ChangeCurrentStoreRequest(); // \OpenAPIClient\Model\ChangeCurrentStoreRequest
 
 try {
     $result = $apiInstance->patchCurrentStore($change_current_store_request);
@@ -288,11 +346,11 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **change_current_store_request** | [**\OpenAPI\Client\Model\ChangeCurrentStoreRequest**](../Model/ChangeCurrentStoreRequest.md)|  | |
+| **change_current_store_request** | [**\OpenAPIClient\Model\ChangeCurrentStoreRequest**](../Model/ChangeCurrentStoreRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\ChangeCurrentStore200Response**](../Model/ChangeCurrentStore200Response.md)
+[**\OpenAPIClient\Model\ChangeCurrentStore200Response**](../Model/ChangeCurrentStore200Response.md)
 
 ### Authorization
 

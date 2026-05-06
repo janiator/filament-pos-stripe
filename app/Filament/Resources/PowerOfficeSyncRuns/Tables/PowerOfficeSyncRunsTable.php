@@ -18,7 +18,7 @@ class PowerOfficeSyncRunsTable
                 TextColumn::make('id')
                     ->sortable(),
                 TextColumn::make('pos_session_id')
-                    ->label('Session')
+                    ->label(__('Session'))
                     ->sortable(),
                 TextColumn::make('status')
                     ->badge()
@@ -30,29 +30,29 @@ class PowerOfficeSyncRunsTable
                         default => 'gray',
                     }),
                 TextColumn::make('journal_voucher_no')
-                    ->label('Journal #')
+                    ->label(__('Journal #'))
                     ->formatStateUsing(fn ($state): ?string => (is_numeric($state) && (int) $state > 0) ? (string) $state : null)
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
                 TextColumn::make('attempts'),
                 TextColumn::make('finished_at')
                     ->dateTime()
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
                 TextColumn::make('error_message')
                     ->limit(40)
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->tooltip(fn ($state): ?string => is_string($state) ? $state : null),
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([
                 Action::make('retry')
-                    ->label('Retry')
+                    ->label(__('Retry'))
                     ->icon('heroicon-o-arrow-path')
                     ->visible(fn ($record): bool => $record->status === PowerOfficeSyncRunStatus::Failed)
                     ->requiresConfirmation()
                     ->action(function ($record): void {
                         SyncPowerOfficeZReportJob::dispatch($record->pos_session_id, true);
                         Notification::make()
-                            ->title('Retry queued')
+                            ->title(__('Retry queued'))
                             ->success()
                             ->send();
                     }),

@@ -1,19 +1,21 @@
 <?php
+
 /**
  * UpdateReceiptPrinterRequest
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * UpdateReceiptPrinterRequest Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonSerializable
+class UpdateReceiptPrinterRequest implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'updateReceiptPrinter_request';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'name' => 'string',
         'printer_type' => 'string',
@@ -73,16 +77,18 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         'drawer_open_level' => 'string',
         'use_job_id' => 'bool',
         'pos_device_id' => 'int',
-        'printer_metadata' => 'array<string,mixed>'
+        'printer_metadata' => 'array<string,mixed>',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'name' => null,
         'printer_type' => null,
@@ -99,14 +105,14 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         'drawer_open_level' => null,
         'use_job_id' => null,
         'pos_device_id' => null,
-        'printer_metadata' => null
+        'printer_metadata' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'name' => false,
         'printer_type' => false,
@@ -123,14 +129,14 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         'drawer_open_level' => false,
         'use_job_id' => false,
         'pos_device_id' => true,
-        'printer_metadata' => true
+        'printer_metadata' => true,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -155,8 +161,6 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -166,7 +170,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -176,7 +180,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -185,9 +189,6 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -196,9 +197,6 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -227,7 +225,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         'drawer_open_level' => 'drawer_open_level',
         'use_job_id' => 'use_job_id',
         'pos_device_id' => 'pos_device_id',
-        'printer_metadata' => 'printer_metadata'
+        'printer_metadata' => 'printer_metadata',
     ];
 
     /**
@@ -251,7 +249,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         'drawer_open_level' => 'setDrawerOpenLevel',
         'use_job_id' => 'setUseJobId',
         'pos_device_id' => 'setPosDeviceId',
-        'printer_metadata' => 'setPrinterMetadata'
+        'printer_metadata' => 'setPrinterMetadata',
     ];
 
     /**
@@ -275,7 +273,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         'drawer_open_level' => 'getDrawerOpenLevel',
         'use_job_id' => 'getUseJobId',
         'pos_device_id' => 'getPosDeviceId',
-        'printer_metadata' => 'getPrinterMetadata'
+        'printer_metadata' => 'getPrinterMetadata',
     ];
 
     /**
@@ -320,14 +318,23 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     }
 
     public const PRINTER_TYPE_EPSON = 'epson';
+
     public const PRINTER_TYPE_STAR = 'star';
+
     public const PRINTER_TYPE_GENERIC = 'generic';
+
     public const PAPER_WIDTH__80 = '80';
+
     public const PAPER_WIDTH__58 = '58';
+
     public const CONNECTION_TYPE_NETWORK = 'network';
+
     public const CONNECTION_TYPE_USB = 'usb';
+
     public const CONNECTION_TYPE_BLUETOOTH = 'bluetooth';
+
     public const DRAWER_OPEN_LEVEL_LOW = 'low';
+
     public const DRAWER_OPEN_LEVEL_HIGH = 'high';
 
     /**
@@ -394,8 +401,8 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -418,14 +425,12 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -445,7 +450,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         $invalidProperties = [];
 
         $allowedValues = $this->getPrinterTypeAllowableValues();
-        if (!is_null($this->container['printer_type']) && !in_array($this->container['printer_type'], $allowedValues, true)) {
+        if (! is_null($this->container['printer_type']) && ! in_array($this->container['printer_type'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'printer_type', must be one of '%s'",
                 $this->container['printer_type'],
@@ -454,7 +459,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         }
 
         $allowedValues = $this->getPaperWidthAllowableValues();
-        if (!is_null($this->container['paper_width']) && !in_array($this->container['paper_width'], $allowedValues, true)) {
+        if (! is_null($this->container['paper_width']) && ! in_array($this->container['paper_width'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'paper_width', must be one of '%s'",
                 $this->container['paper_width'],
@@ -463,7 +468,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         }
 
         $allowedValues = $this->getConnectionTypeAllowableValues();
-        if (!is_null($this->container['connection_type']) && !in_array($this->container['connection_type'], $allowedValues, true)) {
+        if (! is_null($this->container['connection_type']) && ! in_array($this->container['connection_type'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'connection_type', must be one of '%s'",
                 $this->container['connection_type'],
@@ -471,24 +476,24 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
             );
         }
 
-        if (!is_null($this->container['port']) && ($this->container['port'] > 65535)) {
+        if (! is_null($this->container['port']) && ($this->container['port'] > 65535)) {
             $invalidProperties[] = "invalid value for 'port', must be smaller than or equal to 65535.";
         }
 
-        if (!is_null($this->container['port']) && ($this->container['port'] < 1)) {
+        if (! is_null($this->container['port']) && ($this->container['port'] < 1)) {
             $invalidProperties[] = "invalid value for 'port', must be bigger than or equal to 1.";
         }
 
-        if (!is_null($this->container['timeout']) && ($this->container['timeout'] > 300000)) {
+        if (! is_null($this->container['timeout']) && ($this->container['timeout'] > 300000)) {
             $invalidProperties[] = "invalid value for 'timeout', must be smaller than or equal to 300000.";
         }
 
-        if (!is_null($this->container['timeout']) && ($this->container['timeout'] < 1000)) {
+        if (! is_null($this->container['timeout']) && ($this->container['timeout'] < 1000)) {
             $invalidProperties[] = "invalid value for 'timeout', must be bigger than or equal to 1000.";
         }
 
         $allowedValues = $this->getDrawerOpenLevelAllowableValues();
-        if (!is_null($this->container['drawer_open_level']) && !in_array($this->container['drawer_open_level'], $allowedValues, true)) {
+        if (! is_null($this->container['drawer_open_level']) && ! in_array($this->container['drawer_open_level'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'drawer_open_level', must be one of '%s'",
                 $this->container['drawer_open_level'],
@@ -510,7 +515,6 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets name
      *
@@ -524,8 +528,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets name
      *
-     * @param string|null $name name
-     *
+     * @param  string|null  $name  name
      * @return self
      */
     public function setName($name)
@@ -551,8 +554,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets printer_type
      *
-     * @param string|null $printer_type printer_type
-     *
+     * @param  string|null  $printer_type  printer_type
      * @return self
      */
     public function setPrinterType($printer_type)
@@ -561,7 +563,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
             throw new \InvalidArgumentException('non-nullable printer_type cannot be null');
         }
         $allowedValues = $this->getPrinterTypeAllowableValues();
-        if (!in_array($printer_type, $allowedValues, true)) {
+        if (! in_array($printer_type, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'printer_type', must be one of '%s'",
@@ -588,8 +590,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets printer_model
      *
-     * @param string|null $printer_model printer_model
-     *
+     * @param  string|null  $printer_model  printer_model
      * @return self
      */
     public function setPrinterModel($printer_model)
@@ -599,7 +600,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('printer_model', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -622,8 +623,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets paper_width
      *
-     * @param string|null $paper_width paper_width
-     *
+     * @param  string|null  $paper_width  paper_width
      * @return self
      */
     public function setPaperWidth($paper_width)
@@ -632,7 +632,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
             throw new \InvalidArgumentException('non-nullable paper_width cannot be null');
         }
         $allowedValues = $this->getPaperWidthAllowableValues();
-        if (!in_array($paper_width, $allowedValues, true)) {
+        if (! in_array($paper_width, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'paper_width', must be one of '%s'",
@@ -659,8 +659,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets connection_type
      *
-     * @param string|null $connection_type connection_type
-     *
+     * @param  string|null  $connection_type  connection_type
      * @return self
      */
     public function setConnectionType($connection_type)
@@ -669,7 +668,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
             throw new \InvalidArgumentException('non-nullable connection_type cannot be null');
         }
         $allowedValues = $this->getConnectionTypeAllowableValues();
-        if (!in_array($connection_type, $allowedValues, true)) {
+        if (! in_array($connection_type, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'connection_type', must be one of '%s'",
@@ -696,8 +695,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets ip_address
      *
-     * @param string|null $ip_address ip_address
-     *
+     * @param  string|null  $ip_address  ip_address
      * @return self
      */
     public function setIpAddress($ip_address)
@@ -707,7 +705,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('ip_address', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -730,8 +728,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets port
      *
-     * @param int|null $port port
-     *
+     * @param  int|null  $port  port
      * @return self
      */
     public function setPort($port)
@@ -765,8 +762,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets device_id
      *
-     * @param string|null $device_id device_id
-     *
+     * @param  string|null  $device_id  device_id
      * @return self
      */
     public function setDeviceId($device_id)
@@ -776,7 +772,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('device_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -799,8 +795,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets use_https
      *
-     * @param bool|null $use_https use_https
-     *
+     * @param  bool|null  $use_https  use_https
      * @return self
      */
     public function setUseHttps($use_https)
@@ -826,8 +821,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets timeout
      *
-     * @param int|null $timeout timeout
-     *
+     * @param  int|null  $timeout  timeout
      * @return self
      */
     public function setTimeout($timeout)
@@ -861,8 +855,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets is_active
      *
-     * @param bool|null $is_active is_active
-     *
+     * @param  bool|null  $is_active  is_active
      * @return self
      */
     public function setIsActive($is_active)
@@ -888,8 +881,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets monitor_status
      *
-     * @param bool|null $monitor_status monitor_status
-     *
+     * @param  bool|null  $monitor_status  monitor_status
      * @return self
      */
     public function setMonitorStatus($monitor_status)
@@ -915,8 +907,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets drawer_open_level
      *
-     * @param string|null $drawer_open_level drawer_open_level
-     *
+     * @param  string|null  $drawer_open_level  drawer_open_level
      * @return self
      */
     public function setDrawerOpenLevel($drawer_open_level)
@@ -925,7 +916,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
             throw new \InvalidArgumentException('non-nullable drawer_open_level cannot be null');
         }
         $allowedValues = $this->getDrawerOpenLevelAllowableValues();
-        if (!in_array($drawer_open_level, $allowedValues, true)) {
+        if (! in_array($drawer_open_level, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'drawer_open_level', must be one of '%s'",
@@ -952,8 +943,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets use_job_id
      *
-     * @param bool|null $use_job_id use_job_id
-     *
+     * @param  bool|null  $use_job_id  use_job_id
      * @return self
      */
     public function setUseJobId($use_job_id)
@@ -979,8 +969,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets pos_device_id
      *
-     * @param int|null $pos_device_id pos_device_id
-     *
+     * @param  int|null  $pos_device_id  pos_device_id
      * @return self
      */
     public function setPosDeviceId($pos_device_id)
@@ -990,7 +979,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('pos_device_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1013,8 +1002,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets printer_metadata
      *
-     * @param array<string,mixed>|null $printer_metadata printer_metadata
-     *
+     * @param  array<string,mixed>|null  $printer_metadata  printer_metadata
      * @return self
      */
     public function setPrinterMetadata($printer_metadata)
@@ -1024,7 +1012,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('printer_metadata', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1033,12 +1021,11 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -1048,8 +1035,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -1061,10 +1047,8 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -1078,9 +1062,7 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -1089,15 +1071,16 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -1123,5 +1106,3 @@ class UpdateReceiptPrinterRequest implements ModelInterface, ArrayAccess, \JsonS
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

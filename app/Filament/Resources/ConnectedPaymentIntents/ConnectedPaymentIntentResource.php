@@ -2,12 +2,13 @@
 
 namespace App\Filament\Resources\ConnectedPaymentIntents;
 
+use App\Filament\Clusters\SettingsCluster;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ConnectedPaymentIntents\Pages\ListConnectedPaymentIntents;
 use App\Filament\Resources\ConnectedPaymentIntents\Pages\ViewConnectedPaymentIntent;
 use App\Filament\Resources\ConnectedPaymentIntents\Schemas\ConnectedPaymentIntentForm;
 use App\Filament\Resources\ConnectedPaymentIntents\Schemas\ConnectedPaymentIntentInfolist;
 use App\Filament\Resources\ConnectedPaymentIntents\Tables\ConnectedPaymentIntentsTable;
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedPaymentIntent;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -18,6 +19,8 @@ use Filament\Tables\Table;
 class ConnectedPaymentIntentResource extends Resource
 {
     use HasTenantScopedQuery;
+
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = ConnectedPaymentIntent::class;
 
@@ -53,7 +56,8 @@ class ConnectedPaymentIntentResource extends Resource
         if (! $record) {
             return null;
         }
-        return $record->formatted_amount . ' - ' . ($record->description ?? $record->stripe_id);
+
+        return $record->formatted_amount.' - '.($record->description ?? $record->stripe_id);
     }
 
     public static function form(Schema $schema): Schema

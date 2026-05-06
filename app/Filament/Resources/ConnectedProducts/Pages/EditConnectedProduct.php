@@ -23,7 +23,7 @@ class EditConnectedProduct extends EditRecord
             // Check via stripe_account_id since ConnectedProduct doesn't have store_id
             if ($product->stripe_account_id !== $tenant->stripe_account_id) {
                 \Filament\Notifications\Notification::make()
-                    ->title('Access Denied')
+                    ->title(__('Access Denied'))
                     ->danger()
                     ->body('This product does not belong to your store.')
                     ->send();
@@ -81,16 +81,16 @@ class EditConnectedProduct extends EditRecord
     {
         return [
             Action::make('generateSkus')
-                ->label('Generate SKUs')
+                ->label(__('Generate SKUs'))
                 ->icon('heroicon-o-tag')
                 ->color('gray')
                 ->requiresConfirmation()
-                ->modalHeading('Generate SKUs for Variants')
-                ->modalDescription('This will generate unique SKUs for all variants that don\'t have one. This action cannot be undone.')
+                ->modalHeading(__('Generate SKUs for Variants'))
+                ->modalDescription(__('This will generate unique SKUs for all variants that don\'t have one. This action cannot be undone.'))
                 ->action('generateSkus'),
             DeleteAction::make()
                 ->requiresConfirmation()
-                ->modalHeading('Delete Product')
+                ->modalHeading(__('Delete Product'))
                 ->modalDescription(function () {
                     $product = $this->record;
                     $hasBeenUsed = $product->hasBeenUsedInPurchases();
@@ -111,7 +111,7 @@ class EditConnectedProduct extends EditRecord
 
                         Notification::make()
                             ->warning()
-                            ->title('Product Archived')
+                            ->title(__('Product Archived'))
                             ->body('This product has been used in purchases and cannot be deleted. It has been archived instead (set to inactive).')
                             ->send();
 
@@ -124,7 +124,7 @@ class EditConnectedProduct extends EditRecord
 
                         Notification::make()
                             ->success()
-                            ->title('Product Deleted')
+                            ->title(__('Product Deleted'))
                             ->body('The product and its variants have been deleted successfully.')
                             ->send();
 
@@ -196,7 +196,7 @@ class EditConnectedProduct extends EditRecord
         if ($variants->isEmpty()) {
             Notification::make()
                 ->info()
-                ->title('No variants need SKUs')
+                ->title(__('No variants need SKUs'))
                 ->body('All variants already have SKUs assigned.')
                 ->send();
 
@@ -232,7 +232,7 @@ class EditConnectedProduct extends EditRecord
 
         Notification::make()
             ->success()
-            ->title('SKUs Generated')
+            ->title(__('SKUs Generated'))
             ->body("Successfully generated SKUs for {$generated} variant(s).")
             ->send();
     }

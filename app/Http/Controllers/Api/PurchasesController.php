@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Exceptions\CashDrawerDisabledException;
 use App\Exceptions\InsufficientStockException;
+use App\Http\Requests\Api\CompletePurchasePaymentRequest;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
@@ -15,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class PurchasesController extends BaseApiController
 {
@@ -661,10 +663,12 @@ class PurchasesController extends BaseApiController
         // Use metadata tip (or 0 if not set)
         $data['purchase_tip_amount'] = $metadataTip ?? 0;
 
-        // Extract note from metadata if present
-        $data['purchase_note'] = isset($cleanMetadata['note']) && ! empty($cleanMetadata['note'])
-            ? $cleanMetadata['note']
-            : null;
+        // Whole-order note: prefer `note`, fall back to legacy `cart_note` in metadata
+        $noteCandidate = $cleanMetadata['note'] ?? $cleanMetadata['cart_note'] ?? null;
+        $noteString = is_string($noteCandidate)
+            ? trim($noteCandidate)
+            : (is_scalar($noteCandidate) ? trim((string) $noteCandidate) : '');
+        $data['purchase_note'] = $noteString !== '' ? $noteString : null;
 
         // Add purchase payments - list of payments connected to this purchase
         $data['purchase_payments'] = $this->formatPurchasePayments($purchase);
@@ -1487,24 +1491,9 @@ class PurchasesController extends BaseApiController
      *
      * @param  string|int  $id  Charge ID
      */
-    public function completePayment(Request $request, string|int $id): JsonResponse
+    public function completePayment(CompletePurchasePaymentRequest $request, string|int $id): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'payment_method_code' => ['required', 'string'],
-            'metadata' => ['nullable', 'array'],
-            'pos_session_id' => ['nullable', 'integer', 'exists:pos_sessions,id'],
-            'pos_device_id' => ['nullable', 'integer', 'exists:pos_devices,id'],
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
+        $validated = $request->validated();
 
         // Get charge
         $charge = ConnectedCharge::findOrFail($id);
@@ -1537,65 +1526,6 @@ class PurchasesController extends BaseApiController
                 'success' => false,
                 'message' => 'Charge is not pending or already paid',
             ], 422);
-        }
-
-        // Get payment method
-        $paymentMethod = PaymentMethod::where('store_id', $charge->store->id)
-            ->where('code', $validated['payment_method_code'])
-            ->first();
-
-        if (! $paymentMethod) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment method not found',
-            ], 404);
-        }
-
-        if (! $paymentMethod->enabled) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment method is not enabled',
-            ], 422);
-        }
-
-        if (! $paymentMethod->meetsMinimumAmount($charge->amount)) {
-            $minKr = $paymentMethod->minimum_amount_kroner;
-
-            return response()->json([
-                'success' => false,
-                'message' => "Minimum amount for this payment method is {$minKr} kr.",
-            ], 422);
-        }
-
-        $chargeSession = $charge->posSession;
-        if ($chargeSession && ! $paymentMethod->isAvailableOnDevice($chargeSession->pos_device_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This payment method is not available on the device for this session.',
-            ], 422);
-        }
-
-        // For Stripe payments, require payment_intent_id in metadata
-        if ($paymentMethod->provider === 'stripe') {
-            $paymentIntentId = $validated['metadata']['payment_intent_id'] ?? null;
-            if (! $paymentIntentId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Payment intent ID is required for Stripe payments',
-                ], 422);
-            }
-        }
-
-        if (($validated['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
-            $verifoneReference = $validated['metadata']['verifone_payment_reference']
-                ?? $validated['metadata']['provider_payment_reference']
-                ?? null;
-            if (! $verifoneReference) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Verifone payment reference is required for Verifone payments',
-                ], 422);
-            }
         }
 
         // Get POS session: priority order:
@@ -1645,7 +1575,95 @@ class PurchasesController extends BaseApiController
                 ], 404);
             }
         }
-        // If neither pos_session_id nor pos_device_id provided, will use charge's original session (fallback)
+
+        if (! $posSession) {
+            $posSession = $charge->posSession;
+            if ($posSession) {
+                $posSession->load('posDevice');
+            }
+        }
+
+        // Get payment method
+        $paymentMethod = PaymentMethod::where('store_id', $charge->store->id)
+            ->where('code', $validated['payment_method_code'])
+            ->first();
+
+        if (! $paymentMethod) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment method not found',
+            ], 404);
+        }
+
+        if (! $paymentMethod->enabled) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment method is not enabled',
+            ], 422);
+        }
+
+        $completionAmount = isset($validated['cart']['total'])
+            ? (int) $validated['cart']['total']
+            : $charge->amount;
+
+        if (! $paymentMethod->meetsMinimumAmount($completionAmount)) {
+            $minKr = $paymentMethod->minimum_amount_kroner;
+
+            return response()->json([
+                'success' => false,
+                'message' => "Minimum amount for this payment method is {$minKr} kr.",
+            ], 422);
+        }
+
+        $sessionForDevice = $posSession ?? $charge->posSession;
+        if ($sessionForDevice && ! $paymentMethod->isAvailableOnDevice($sessionForDevice->pos_device_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This payment method is not available on the device for this session.',
+            ], 422);
+        }
+
+        // For Stripe payments, require payment_intent_id in metadata
+        if ($paymentMethod->provider === 'stripe') {
+            $paymentIntentId = $validated['metadata']['payment_intent_id'] ?? null;
+            if (! $paymentIntentId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment intent ID is required for Stripe payments',
+                ], 422);
+            }
+        }
+
+        if (($validated['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+            $verifoneReference = $validated['metadata']['verifone_payment_reference']
+                ?? $validated['metadata']['provider_payment_reference']
+                ?? null;
+            if (! $verifoneReference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifone payment reference is required for Verifone payments',
+                ], 422);
+            }
+        }
+
+        if (isset($validated['cart']['customer_id']) && $validated['cart']['customer_id'] !== null && $validated['cart']['customer_id'] !== 0) {
+            $customerExists = \App\Models\ConnectedCustomer::query()
+                ->where('id', (int) $validated['cart']['customer_id'])
+                ->where('stripe_account_id', $charge->store->stripe_account_id)
+                ->exists();
+
+            if (! $customerExists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => [
+                        'cart.customer_id' => ['Customer not found or does not belong to this store'],
+                    ],
+                ], 422);
+            }
+        }
+
+        $cartPayload = $validated['cart'] ?? null;
 
         try {
             // Complete deferred payment
@@ -1653,7 +1671,8 @@ class PurchasesController extends BaseApiController
                 $charge,
                 $paymentMethod,
                 $validated['metadata'] ?? [],
-                $posSession
+                $posSession,
+                $cartPayload
             );
 
             return response()->json([
@@ -1680,10 +1699,23 @@ class PurchasesController extends BaseApiController
                     ],
                 ],
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (CashDrawerDisabledException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+            ], 422);
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'insufficient_stock',
+                'lines' => $e->lines,
             ], 422);
         } catch (\Exception $e) {
             return response()->json([

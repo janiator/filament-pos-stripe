@@ -18,7 +18,7 @@ class PowerOfficeIntegrationForm
                 Section::make('Connection')
                     ->schema([
                         Select::make('environment')
-                            ->label('PowerOffice environment')
+                            ->label(__('PowerOffice environment'))
                             ->options(collect(PowerOfficeEnvironment::cases())->mapWithKeys(
                                 fn (PowerOfficeEnvironment $e) => [$e->value => $e->label()]
                             ))
@@ -28,15 +28,15 @@ class PowerOfficeIntegrationForm
                 Section::make('Accounting')
                     ->schema([
                         Select::make('mapping_basis')
-                            ->label('Account mapping basis')
+                            ->label(__('Account mapping basis'))
                             ->options(collect(PowerOfficeMappingBasis::cases())->mapWithKeys(
                                 fn (PowerOfficeMappingBasis $b) => [$b->value => $b->label()]
                             ))
                             ->required()
                             ->native(false)
-                            ->helperText('Choose one dimension to map ledger accounts (VAT, article group, vendor, or payment method).'),
+                            ->helperText(__('Choose one dimension to map ledger accounts (VAT, article group, vendor, or payment method).')),
                         Toggle::make('auto_sync_on_z_report')
-                            ->label('Automatically sync when a Z-report is generated')
+                            ->label(__('Automatically sync when a Z-report is generated'))
                             ->default(true),
                     ]),
             ]);

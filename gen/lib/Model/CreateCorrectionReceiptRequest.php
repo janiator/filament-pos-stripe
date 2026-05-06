@@ -1,19 +1,21 @@
 <?php
+
 /**
  * CreateCorrectionReceiptRequest
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * CreateCorrectionReceiptRequest Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \JsonSerializable
+class CreateCorrectionReceiptRequest implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'createCorrectionReceipt_request';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'pos_session_id' => 'int',
         'related_charge_id' => 'int',
@@ -64,16 +68,18 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         'original_amount' => 'int',
         'corrected_amount' => 'int',
         'description' => 'string',
-        'correction_data' => 'array<string,mixed>'
+        'correction_data' => 'array<string,mixed>',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'pos_session_id' => null,
         'related_charge_id' => null,
@@ -81,14 +87,14 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         'original_amount' => null,
         'corrected_amount' => null,
         'description' => null,
-        'correction_data' => null
+        'correction_data' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'pos_session_id' => false,
         'related_charge_id' => true,
@@ -96,14 +102,14 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         'original_amount' => true,
         'corrected_amount' => true,
         'description' => false,
-        'correction_data' => true
+        'correction_data' => true,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -128,8 +134,6 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -139,7 +143,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -149,7 +153,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -158,9 +162,6 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -169,9 +170,6 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -191,7 +189,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         'original_amount' => 'original_amount',
         'corrected_amount' => 'corrected_amount',
         'description' => 'description',
-        'correction_data' => 'correction_data'
+        'correction_data' => 'correction_data',
     ];
 
     /**
@@ -206,7 +204,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         'original_amount' => 'setOriginalAmount',
         'corrected_amount' => 'setCorrectedAmount',
         'description' => 'setDescription',
-        'correction_data' => 'setCorrectionData'
+        'correction_data' => 'setCorrectionData',
     ];
 
     /**
@@ -221,7 +219,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         'original_amount' => 'getOriginalAmount',
         'corrected_amount' => 'getCorrectedAmount',
         'description' => 'getDescription',
-        'correction_data' => 'getCorrectionData'
+        'correction_data' => 'getCorrectionData',
     ];
 
     /**
@@ -266,8 +264,11 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     }
 
     public const CORRECTION_TYPE_PRICE_CORRECTION = 'price_correction';
+
     public const CORRECTION_TYPE_ITEM_CORRECTION = 'item_correction';
+
     public const CORRECTION_TYPE_PAYMENT_CORRECTION = 'payment_correction';
+
     public const CORRECTION_TYPE_OTHER = 'other';
 
     /**
@@ -295,8 +296,8 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -310,14 +311,12 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -343,7 +342,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
             $invalidProperties[] = "'correction_type' can't be null";
         }
         $allowedValues = $this->getCorrectionTypeAllowableValues();
-        if (!is_null($this->container['correction_type']) && !in_array($this->container['correction_type'], $allowedValues, true)) {
+        if (! is_null($this->container['correction_type']) && ! in_array($this->container['correction_type'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'correction_type', must be one of '%s'",
                 $this->container['correction_type'],
@@ -351,11 +350,11 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
             );
         }
 
-        if (!is_null($this->container['original_amount']) && ($this->container['original_amount'] < 0)) {
+        if (! is_null($this->container['original_amount']) && ($this->container['original_amount'] < 0)) {
             $invalidProperties[] = "invalid value for 'original_amount', must be bigger than or equal to 0.";
         }
 
-        if (!is_null($this->container['corrected_amount']) && ($this->container['corrected_amount'] < 0)) {
+        if (! is_null($this->container['corrected_amount']) && ($this->container['corrected_amount'] < 0)) {
             $invalidProperties[] = "invalid value for 'corrected_amount', must be bigger than or equal to 0.";
         }
 
@@ -380,7 +379,6 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets pos_session_id
      *
@@ -394,8 +392,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets pos_session_id
      *
-     * @param int $pos_session_id POS session ID
-     *
+     * @param  int  $pos_session_id  POS session ID
      * @return self
      */
     public function setPosSessionId($pos_session_id)
@@ -421,8 +418,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets related_charge_id
      *
-     * @param int|null $related_charge_id Related charge ID (if applicable)
-     *
+     * @param  int|null  $related_charge_id  Related charge ID (if applicable)
      * @return self
      */
     public function setRelatedChargeId($related_charge_id)
@@ -432,7 +428,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('related_charge_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -455,8 +451,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets correction_type
      *
-     * @param string $correction_type Type of correction
-     *
+     * @param  string  $correction_type  Type of correction
      * @return self
      */
     public function setCorrectionType($correction_type)
@@ -465,7 +460,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
             throw new \InvalidArgumentException('non-nullable correction_type cannot be null');
         }
         $allowedValues = $this->getCorrectionTypeAllowableValues();
-        if (!in_array($correction_type, $allowedValues, true)) {
+        if (! in_array($correction_type, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'correction_type', must be one of '%s'",
@@ -492,8 +487,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets original_amount
      *
-     * @param int|null $original_amount Original amount in øre
-     *
+     * @param  int|null  $original_amount  Original amount in øre
      * @return self
      */
     public function setOriginalAmount($original_amount)
@@ -503,13 +497,13 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('original_amount', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
         }
 
-        if (!is_null($original_amount) && ($original_amount < 0)) {
+        if (! is_null($original_amount) && ($original_amount < 0)) {
             throw new \InvalidArgumentException('invalid value for $original_amount when calling CreateCorrectionReceiptRequest., must be bigger than or equal to 0.');
         }
 
@@ -531,8 +525,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets corrected_amount
      *
-     * @param int|null $corrected_amount Corrected amount in øre
-     *
+     * @param  int|null  $corrected_amount  Corrected amount in øre
      * @return self
      */
     public function setCorrectedAmount($corrected_amount)
@@ -542,13 +535,13 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('corrected_amount', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
         }
 
-        if (!is_null($corrected_amount) && ($corrected_amount < 0)) {
+        if (! is_null($corrected_amount) && ($corrected_amount < 0)) {
             throw new \InvalidArgumentException('invalid value for $corrected_amount when calling CreateCorrectionReceiptRequest., must be bigger than or equal to 0.');
         }
 
@@ -570,8 +563,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets description
      *
-     * @param string $description Description of correction
-     *
+     * @param  string  $description  Description of correction
      * @return self
      */
     public function setDescription($description)
@@ -601,8 +593,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets correction_data
      *
-     * @param array<string,mixed>|null $correction_data Additional correction data
-     *
+     * @param  array<string,mixed>|null  $correction_data  Additional correction data
      * @return self
      */
     public function setCorrectionData($correction_data)
@@ -612,7 +603,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('correction_data', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -621,12 +612,11 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -636,8 +626,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -649,10 +638,8 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -666,9 +653,7 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -677,15 +662,16 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -711,5 +697,3 @@ class CreateCorrectionReceiptRequest implements ModelInterface, ArrayAccess, \Js
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

@@ -36,16 +36,16 @@ class StoreStripePayoutInfolist
                         TextEntry::make('arrival_date')
                             ->label(__('filament.resources.store_stripe_payout.columns.arrival_date'))
                             ->dateTime()
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedCalendar),
 
                         TextEntry::make('method')
                             ->label(__('filament.resources.store_stripe_payout.columns.method'))
-                            ->placeholder('-'),
+                            ->placeholder(__('-')),
 
                         TextEntry::make('statement_descriptor')
                             ->label(__('filament.resources.store_stripe_payout.infolist.statement_descriptor'))
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->wrap(),
                     ])
                     ->columns(2),
@@ -54,7 +54,7 @@ class StoreStripePayoutInfolist
                     ->schema([
                         TextEntry::make('store.name')
                             ->label(__('filament.resources.store_stripe_payout.columns.store'))
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedBuildingStorefront)
                             ->url(fn ($record) => $record->store
                                 ? \App\Filament\Resources\Stores\StoreResource::getUrl('view', ['record' => $record->store])
@@ -70,7 +70,7 @@ class StoreStripePayoutInfolist
                             ->icon(Heroicon::OutlinedHashtag),
 
                         TextEntry::make('stripe_account_id')
-                            ->label('Stripe account')
+                            ->label(__('Stripe account'))
                             ->copyable()
                             ->icon(Heroicon::OutlinedIdentification),
 

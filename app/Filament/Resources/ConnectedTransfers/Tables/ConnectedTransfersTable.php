@@ -17,7 +17,7 @@ class ConnectedTransfersTable
             ->modifyQueryUsing(fn ($query) => $query->with(['store', 'charge']))
             ->columns([
                 TextColumn::make('formatted_amount')
-                    ->label('Amount')
+                    ->label(__('Amount'))
                     ->badge()
                     ->color('success')
                     ->weight('bold')
@@ -26,7 +26,7 @@ class ConnectedTransfersTable
                     }),
 
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->colors([
                         'success' => 'paid',
@@ -37,21 +37,21 @@ class ConnectedTransfersTable
                     ->sortable(),
 
                 TextColumn::make('arrival_date')
-                    ->label('Arrival Date')
+                    ->label(__('Arrival Date'))
                     ->dateTime()
                     ->sortable()
-                    ->placeholder('-')
+                    ->placeholder(__('-'))
                     ->color(fn ($record) => $record->arrival_date && $record->arrival_date->isPast() ? 'success' : null),
 
                 TextColumn::make('description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->searchable()
                     ->wrap()
                     ->limit(50)
                     ->toggleable(),
 
                 TextColumn::make('store.name')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->searchable()
                     ->sortable()
                     ->badge()
@@ -59,20 +59,20 @@ class ConnectedTransfersTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('stripe_transfer_id')
-                    ->label('Transfer ID')
+                    ->label(__('Transfer ID'))
                     ->searchable()
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->options([
                         'paid' => 'Paid',
                         'pending' => 'Pending',

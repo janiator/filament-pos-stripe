@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PurchaseSplitPaymentRequestPaymentsInner
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,71 +29,75 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * PurchaseSplitPaymentRequestPaymentsInner Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayAccess, \JsonSerializable
+class PurchaseSplitPaymentRequestPaymentsInner implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'PurchaseSplitPaymentRequest_payments_inner';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'payment_method_code' => 'string',
         'amount' => 'int',
-        'metadata' => 'array<string,mixed>'
+        'metadata' => 'array<string,mixed>',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'payment_method_code' => null,
         'amount' => null,
-        'metadata' => null
+        'metadata' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'payment_method_code' => false,
         'amount' => false,
-        'metadata' => false
+        'metadata' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -116,8 +122,6 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -127,7 +131,7 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -137,7 +141,7 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -146,9 +150,6 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -157,9 +158,6 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -175,7 +173,7 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     protected static $attributeMap = [
         'payment_method_code' => 'payment_method_code',
         'amount' => 'amount',
-        'metadata' => 'metadata'
+        'metadata' => 'metadata',
     ];
 
     /**
@@ -186,7 +184,7 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     protected static $setters = [
         'payment_method_code' => 'setPaymentMethodCode',
         'amount' => 'setAmount',
-        'metadata' => 'setMetadata'
+        'metadata' => 'setMetadata',
     ];
 
     /**
@@ -197,7 +195,7 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     protected static $getters = [
         'payment_method_code' => 'getPaymentMethodCode',
         'amount' => 'getAmount',
-        'metadata' => 'getMetadata'
+        'metadata' => 'getMetadata',
     ];
 
     /**
@@ -241,7 +239,6 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -252,8 +249,8 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -263,14 +260,12 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -295,8 +290,8 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
         if ($this->container['amount'] === null) {
             $invalidProperties[] = "'amount' can't be null";
         }
-        if (($this->container['amount'] < 1)) {
-            $invalidProperties[] = "invalid value for 'amount', must be bigger than or equal to 1.";
+        if (($this->container['amount'] < 0)) {
+            $invalidProperties[] = "invalid value for 'amount', must be bigger than or equal to 0.";
         }
 
         return $invalidProperties;
@@ -313,7 +308,6 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets payment_method_code
      *
@@ -327,8 +321,7 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     /**
      * Sets payment_method_code
      *
-     * @param string $payment_method_code payment_method_code
-     *
+     * @param  string  $payment_method_code  payment_method_code
      * @return self
      */
     public function setPaymentMethodCode($payment_method_code)
@@ -354,8 +347,7 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     /**
      * Sets amount
      *
-     * @param int $amount Payment amount in minor units (øre)
-     *
+     * @param  int  $amount  Payment amount in minor units (øre). 0 allowed for freeticket/zero-total orders.
      * @return self
      */
     public function setAmount($amount)
@@ -364,8 +356,8 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
             throw new \InvalidArgumentException('non-nullable amount cannot be null');
         }
 
-        if (($amount < 1)) {
-            throw new \InvalidArgumentException('invalid value for $amount when calling PurchaseSplitPaymentRequestPaymentsInner., must be bigger than or equal to 1.');
+        if (($amount < 0)) {
+            throw new \InvalidArgumentException('invalid value for $amount when calling PurchaseSplitPaymentRequestPaymentsInner., must be bigger than or equal to 0.');
         }
 
         $this->container['amount'] = $amount;
@@ -386,8 +378,7 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     /**
      * Sets metadata
      *
-     * @param array<string,mixed>|null $metadata Payment-specific metadata (e.g., payment_intent_id for Stripe)
-     *
+     * @param  array<string,mixed>|null  $metadata  Payment-specific metadata (e.g., payment_intent_id for Stripe)
      * @return self
      */
     public function setMetadata($metadata)
@@ -399,12 +390,11 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -414,8 +404,7 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -427,10 +416,8 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -444,9 +431,7 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -455,15 +440,16 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -489,5 +475,3 @@ class PurchaseSplitPaymentRequestPaymentsInner implements ModelInterface, ArrayA
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

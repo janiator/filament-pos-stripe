@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StoreStripePayouts;
 
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\StoreStripePayouts\Pages\ListStoreStripePayouts;
 use App\Filament\Resources\StoreStripePayouts\Pages\ViewStoreStripePayout;
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Model;
 class StoreStripePayoutResource extends Resource
 {
     use HasTenantScopedQuery;
+
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = StoreStripePayout::class;
 

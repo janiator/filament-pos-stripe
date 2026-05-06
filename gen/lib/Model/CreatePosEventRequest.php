@@ -1,19 +1,21 @@
 <?php
+
 /**
  * CreatePosEventRequest
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * CreatePosEventRequest Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSerializable
+class CreatePosEventRequest implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'createPosEvent_request';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'pos_device_id' => 'int',
         'pos_session_id' => 'int',
@@ -65,16 +69,18 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'description' => 'string',
         'related_charge_id' => 'int',
         'event_data' => 'array<string,mixed>',
-        'occurred_at' => '\DateTime'
+        'occurred_at' => '\DateTime',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'pos_device_id' => null,
         'pos_session_id' => null,
@@ -83,14 +89,14 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'description' => null,
         'related_charge_id' => null,
         'event_data' => null,
-        'occurred_at' => 'date-time'
+        'occurred_at' => 'date-time',
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'pos_device_id' => true,
         'pos_session_id' => true,
@@ -99,14 +105,14 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'description' => true,
         'related_charge_id' => true,
         'event_data' => true,
-        'occurred_at' => true
+        'occurred_at' => true,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -131,8 +137,6 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -142,7 +146,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -152,7 +156,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -161,9 +165,6 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -172,9 +173,6 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -195,7 +193,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'description' => 'description',
         'related_charge_id' => 'related_charge_id',
         'event_data' => 'event_data',
-        'occurred_at' => 'occurred_at'
+        'occurred_at' => 'occurred_at',
     ];
 
     /**
@@ -211,7 +209,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'description' => 'setDescription',
         'related_charge_id' => 'setRelatedChargeId',
         'event_data' => 'setEventData',
-        'occurred_at' => 'setOccurredAt'
+        'occurred_at' => 'setOccurredAt',
     ];
 
     /**
@@ -227,7 +225,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'description' => 'getDescription',
         'related_charge_id' => 'getRelatedChargeId',
         'event_data' => 'getEventData',
-        'occurred_at' => 'getOccurredAt'
+        'occurred_at' => 'getOccurredAt',
     ];
 
     /**
@@ -272,12 +270,19 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     }
 
     public const EVENT_TYPE_APPLICATION = 'application';
+
     public const EVENT_TYPE_USER = 'user';
+
     public const EVENT_TYPE_DRAWER = 'drawer';
+
     public const EVENT_TYPE_REPORT = 'report';
+
     public const EVENT_TYPE_TRANSACTION = 'transaction';
+
     public const EVENT_TYPE_PAYMENT = 'payment';
+
     public const EVENT_TYPE_SESSION = 'session';
+
     public const EVENT_TYPE_OTHER = 'other';
 
     /**
@@ -309,8 +314,8 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -325,14 +330,12 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -358,7 +361,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
             $invalidProperties[] = "'event_type' can't be null";
         }
         $allowedValues = $this->getEventTypeAllowableValues();
-        if (!is_null($this->container['event_type']) && !in_array($this->container['event_type'], $allowedValues, true)) {
+        if (! is_null($this->container['event_type']) && ! in_array($this->container['event_type'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'event_type', must be one of '%s'",
                 $this->container['event_type'],
@@ -366,7 +369,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
             );
         }
 
-        if (!is_null($this->container['description']) && (mb_strlen($this->container['description']) > 1000)) {
+        if (! is_null($this->container['description']) && (mb_strlen($this->container['description']) > 1000)) {
             $invalidProperties[] = "invalid value for 'description', the character length must be smaller than or equal to 1000.";
         }
 
@@ -384,7 +387,6 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets pos_device_id
      *
@@ -398,8 +400,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets pos_device_id
      *
-     * @param int|null $pos_device_id POS device ID
-     *
+     * @param  int|null  $pos_device_id  POS device ID
      * @return self
      */
     public function setPosDeviceId($pos_device_id)
@@ -409,7 +410,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('pos_device_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -432,8 +433,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets pos_session_id
      *
-     * @param int|null $pos_session_id POS session ID
-     *
+     * @param  int|null  $pos_session_id  POS session ID
      * @return self
      */
     public function setPosSessionId($pos_session_id)
@@ -443,7 +443,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('pos_session_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -466,8 +466,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets event_code
      *
-     * @param string $event_code SAF-T event code (PredefinedBasicID-13)
-     *
+     * @param  string  $event_code  SAF-T event code (PredefinedBasicID-13)
      * @return self
      */
     public function setEventCode($event_code)
@@ -493,8 +492,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets event_type
      *
-     * @param string $event_type Event type category
-     *
+     * @param  string  $event_type  Event type category
      * @return self
      */
     public function setEventType($event_type)
@@ -503,7 +501,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
             throw new \InvalidArgumentException('non-nullable event_type cannot be null');
         }
         $allowedValues = $this->getEventTypeAllowableValues();
-        if (!in_array($event_type, $allowedValues, true)) {
+        if (! in_array($event_type, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'event_type', must be one of '%s'",
@@ -530,8 +528,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets description
      *
-     * @param string|null $description Human-readable description
-     *
+     * @param  string|null  $description  Human-readable description
      * @return self
      */
     public function setDescription($description)
@@ -541,12 +538,12 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('description', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
         }
-        if (!is_null($description) && (mb_strlen($description) > 1000)) {
+        if (! is_null($description) && (mb_strlen($description) > 1000)) {
             throw new \InvalidArgumentException('invalid length for $description when calling CreatePosEventRequest., must be smaller than or equal to 1000.');
         }
 
@@ -568,8 +565,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets related_charge_id
      *
-     * @param int|null $related_charge_id Related charge ID (for transaction events)
-     *
+     * @param  int|null  $related_charge_id  Related charge ID (for transaction events)
      * @return self
      */
     public function setRelatedChargeId($related_charge_id)
@@ -579,7 +575,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('related_charge_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -602,8 +598,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets event_data
      *
-     * @param array<string,mixed>|null $event_data Additional event-specific data
-     *
+     * @param  array<string,mixed>|null  $event_data  Additional event-specific data
      * @return self
      */
     public function setEventData($event_data)
@@ -613,7 +608,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('event_data', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -636,8 +631,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets occurred_at
      *
-     * @param \DateTime|null $occurred_at When event occurred (defaults to now)
-     *
+     * @param  \DateTime|null  $occurred_at  When event occurred (defaults to now)
      * @return self
      */
     public function setOccurredAt($occurred_at)
@@ -647,7 +641,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('occurred_at', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -656,12 +650,11 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -671,8 +664,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -684,10 +676,8 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -701,9 +691,7 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -712,15 +700,16 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -746,5 +735,3 @@ class CreatePosEventRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

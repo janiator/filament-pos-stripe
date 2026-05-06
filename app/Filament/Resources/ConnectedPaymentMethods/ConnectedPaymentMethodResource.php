@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\ConnectedPaymentMethods;
 
+use App\Filament\Clusters\SettingsCluster;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ConnectedPaymentMethods\Pages\CreateConnectedPaymentMethod;
 use App\Filament\Resources\ConnectedPaymentMethods\Pages\EditConnectedPaymentMethod;
 use App\Filament\Resources\ConnectedPaymentMethods\Pages\ListConnectedPaymentMethods;
@@ -9,7 +11,6 @@ use App\Filament\Resources\ConnectedPaymentMethods\Pages\ViewConnectedPaymentMet
 use App\Filament\Resources\ConnectedPaymentMethods\Schemas\ConnectedPaymentMethodForm;
 use App\Filament\Resources\ConnectedPaymentMethods\Schemas\ConnectedPaymentMethodInfolist;
 use App\Filament\Resources\ConnectedPaymentMethods\Tables\ConnectedPaymentMethodsTable;
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedPaymentMethod;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -20,6 +21,8 @@ use Filament\Tables\Table;
 class ConnectedPaymentMethodResource extends Resource
 {
     use HasTenantScopedQuery;
+
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = ConnectedPaymentMethod::class;
 
@@ -55,6 +58,7 @@ class ConnectedPaymentMethodResource extends Resource
         if (! $record) {
             return null;
         }
+
         return $record->card_display ?? $record->stripe_payment_method_id;
     }
 

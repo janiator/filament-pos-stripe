@@ -16,13 +16,13 @@ class PosDevicesTable
                 ->with(['terminalLocation', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader']))
             ->columns([
                 TextColumn::make('device_name')
-                    ->label('Device Name')
+                    ->label(__('Device Name'))
                     ->searchable()
                     ->sortable()
                     ->weight(FontWeight::Bold),
 
                 TextColumn::make('platform')
-                    ->label('Platform')
+                    ->label(__('Platform'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'ios' => 'info',
@@ -33,7 +33,7 @@ class PosDevicesTable
                     ->sortable(),
 
                 TextColumn::make('device_status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'active' => 'success',
@@ -45,18 +45,18 @@ class PosDevicesTable
                     ->sortable(),
 
                 TextColumn::make('device_model')
-                    ->label('Model')
+                    ->label(__('Model'))
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('system_version')
-                    ->label('OS Version')
+                    ->label(__('OS Version'))
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('last_seen_at')
-                    ->label('Last Seen')
+                    ->label(__('Last Seen'))
                     ->dateTime()
                     ->sortable()
                     ->since()
@@ -64,13 +64,13 @@ class PosDevicesTable
                     ->icon(fn ($state) => $state && $state->isBefore(now()->subHours(24)) ? 'heroicon-o-exclamation-triangle' : null),
 
                 TextColumn::make('terminalLocation.display_name')
-                    ->label('Terminal Location')
-                    ->placeholder('—')
+                    ->label(__('Terminal Location'))
+                    ->placeholder(__('—'))
                     ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('lastConnectedTerminalReader.label')
-                    ->label('Last Terminal')
+                    ->label(__('Last Terminal'))
                     ->formatStateUsing(function ($record) {
                         $loc = $record->lastConnectedTerminalLocation?->display_name;
                         $reader = $record->lastConnectedTerminalReader?->label;
@@ -82,23 +82,23 @@ class PosDevicesTable
                             ? ($loc ? "{$loc} / {$reader}" : $reader)
                             : ($loc ?? '—');
                     })
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->toggleable(),
 
                 TextColumn::make('pos_sessions_count')
-                    ->label('Open Sessions')
+                    ->label(__('Open Sessions'))
                     ->badge()
                     ->color(fn ($state): string => $state > 0 ? 'success' : 'gray')
                     ->sortable(),
 
                 TextColumn::make('device_identifier')
-                    ->label('Device ID')
+                    ->label(__('Device ID'))
                     ->copyable()
                     ->copyMessage('Device ID copied!')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
-                    ->label('Registered')
+                    ->label(__('Registered'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -121,9 +121,9 @@ class PosDevicesTable
                 \Filament\Tables\Filters\Filter::make('last_seen_at')
                     ->form([
                         \Filament\Forms\Components\DatePicker::make('last_seen_from')
-                            ->label('Last Seen From'),
+                            ->label(__('Last Seen From')),
                         \Filament\Forms\Components\DatePicker::make('last_seen_until')
-                            ->label('Last Seen Until'),
+                            ->label(__('Last Seen Until')),
                     ])
                     ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data): \Illuminate\Database\Eloquent\Builder {
                         return $query

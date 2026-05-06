@@ -18,29 +18,29 @@ class PosDeviceInfolist
                 Section::make('Device Information')
                     ->schema([
                         TextEntry::make('device_name')
-                            ->label('Device Name')
+                            ->label(__('Device Name'))
                             ->weight(FontWeight::Bold)
                             ->size(TextSize::Large),
 
                         TextEntry::make('device_identifier')
-                            ->label('Device Identifier')
+                            ->label(__('Device Identifier'))
                             ->copyable()
                             ->copyMessage('Device ID copied!'),
 
                         TextEntry::make('defaultPrinter.name')
-                            ->label('Default Receipt Printer')
-                            ->placeholder('No default printer set')
+                            ->label(__('Default Receipt Printer'))
+                            ->placeholder(__('No default printer set'))
                             ->default('No default printer set'),
 
                         TextEntry::make('lastConnectedTerminalReader.label')
-                            ->label('Last Connected Terminal')
+                            ->label(__('Last Connected Terminal'))
                             ->formatStateUsing(fn ($state, $record) => $record->lastConnectedTerminalLocation?->display_name
                                 ? "{$record->lastConnectedTerminalLocation->display_name} / ".($state ?? $record->lastConnectedTerminalReader?->label ?? '—')
                                 : ($state ?? $record->lastConnectedTerminalReader?->label ?? '—'))
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         TextEntry::make('platform')
-                            ->label('Platform')
+                            ->label(__('Platform'))
                             ->badge()
                             ->color(fn (string $state): string => match ($state) {
                                 'ios' => 'info',
@@ -50,7 +50,7 @@ class PosDeviceInfolist
                             ->formatStateUsing(fn (string $state): string => strtoupper($state)),
 
                         TextEntry::make('device_status')
-                            ->label('Status')
+                            ->label(__('Status'))
                             ->badge()
                             ->color(fn (string $state): string => match ($state) {
                                 'active' => 'success',
@@ -61,25 +61,25 @@ class PosDeviceInfolist
                             }),
 
                         TextEntry::make('cash_drawer_enabled')
-                            ->label('Cash drawer enabled')
+                            ->label(__('Cash drawer enabled'))
                             ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
                             ->badge()
                             ->color(fn (bool $state): string => $state ? 'success' : 'warning'),
 
                         TextEntry::make('has_integrated_drawer')
-                            ->label('Has integrated drawer')
+                            ->label(__('Has integrated drawer'))
                             ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
                             ->badge()
                             ->color(fn (bool $state): string => $state ? 'success' : 'gray'),
 
                         TextEntry::make('booking_enabled')
-                            ->label('Booking enabled')
+                            ->label(__('Booking enabled'))
                             ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
                             ->badge()
                             ->color(fn (bool $state): string => $state ? 'success' : 'gray'),
 
                         TextEntry::make('auto_print_receipt')
-                            ->label('Auto-print receipt')
+                            ->label(__('Auto-print receipt'))
                             ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
                             ->badge()
                             ->color(fn (bool $state): string => $state ? 'success' : 'gray'),
@@ -89,37 +89,37 @@ class PosDeviceInfolist
                 Section::make('Device Details')
                     ->schema([
                         TextEntry::make('device_model')
-                            ->label('Model'),
+                            ->label(__('Model')),
 
                         TextEntry::make('device_brand')
-                            ->label('Brand'),
+                            ->label(__('Brand')),
 
                         TextEntry::make('device_manufacturer')
-                            ->label('Manufacturer'),
+                            ->label(__('Manufacturer')),
 
                         TextEntry::make('device_product')
-                            ->label('Product'),
+                            ->label(__('Product')),
 
                         TextEntry::make('device_hardware')
-                            ->label('Hardware'),
+                            ->label(__('Hardware')),
 
                         TextEntry::make('machine_identifier')
-                            ->label('Machine Identifier'),
+                            ->label(__('Machine Identifier')),
 
                         TextEntry::make('system_name')
-                            ->label('System Name'),
+                            ->label(__('System Name')),
 
                         TextEntry::make('system_version')
-                            ->label('System Version'),
+                            ->label(__('System Version')),
 
                         TextEntry::make('vendor_identifier')
-                            ->label('Vendor Identifier'),
+                            ->label(__('Vendor Identifier')),
 
                         TextEntry::make('android_id')
-                            ->label('Android ID'),
+                            ->label(__('Android ID')),
 
                         TextEntry::make('serial_number')
-                            ->label('Serial Number'),
+                            ->label(__('Serial Number')),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -127,18 +127,18 @@ class PosDeviceInfolist
                 Section::make('Status & Activity')
                     ->schema([
                         TextEntry::make('last_seen_at')
-                            ->label('Last Seen')
+                            ->label(__('Last Seen'))
                             ->dateTime()
                             ->since()
                             ->color(fn ($state) => $state && $state->isBefore(now()->subHours(24)) ? 'danger' : null)
                             ->icon(fn ($state) => $state && $state->isBefore(now()->subHours(24)) ? 'heroicon-o-exclamation-triangle' : null),
 
                         TextEntry::make('created_at')
-                            ->label('Registered')
+                            ->label(__('Registered'))
                             ->dateTime(),
 
                         TextEntry::make('updated_at')
-                            ->label('Last Updated')
+                            ->label(__('Last Updated'))
                             ->dateTime(),
                     ])
                     ->columns(3),
@@ -146,7 +146,7 @@ class PosDeviceInfolist
                 Section::make('Device Metadata')
                     ->schema([
                         KeyValueEntry::make('device_metadata')
-                            ->label('Metadata'),
+                            ->label(__('Metadata')),
                     ])
                     ->collapsible()
                     ->visible(fn ($record) => ! empty($record->device_metadata)),
@@ -154,10 +154,10 @@ class PosDeviceInfolist
                 Section::make('Store')
                     ->schema([
                         TextEntry::make('store.name')
-                            ->label('Store Name'),
+                            ->label(__('Store Name')),
 
                         TextEntry::make('store.slug')
-                            ->label('Store Slug'),
+                            ->label(__('Store Slug')),
                     ])
                     ->columns(2)
                     ->collapsible(),

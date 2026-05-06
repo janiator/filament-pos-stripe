@@ -18,11 +18,11 @@ class ArticleGroupCodeForm
                 Section::make('Basic Information')
                     ->schema([
                         TextInput::make('code')
-                            ->label('Code')
+                            ->label(__('Code'))
                             ->required()
                             ->maxLength(10)
                             ->columnSpanFull()
-                            ->helperText('PredefinedBasicID-04 code (e.g., "04001", "04003")')
+                            ->helperText(__('PredefinedBasicID-04 code (e.g., "04001", "04003")'))
                             ->disabled(fn ($record) => $record && $record->is_standard)
                             ->rules([
                                 'required',
@@ -36,51 +36,51 @@ class ArticleGroupCodeForm
                             ]),
 
                         TextInput::make('name')
-                            ->label('Name')
+                            ->label(__('Name'))
                             ->required()
                             ->maxLength(255)
                             ->columnSpanFull()
-                            ->helperText('Norwegian name for this article group code'),
+                            ->helperText(__('Norwegian name for this article group code')),
 
                         Textarea::make('description')
-                            ->label('Description')
+                            ->label(__('Description'))
                             ->rows(3)
                             ->columnSpanFull()
-                            ->helperText('Optional description for this article group code'),
+                            ->helperText(__('Optional description for this article group code')),
 
                         TextInput::make('default_vat_percent')
-                            ->label('Default VAT Percent (%)')
+                            ->label(__('Default VAT Percent (%)'))
                             ->numeric()
                             ->step(0.01)
                             ->minValue(0)
                             ->maxValue(100)
                             ->columnSpan(1)
-                            ->helperText('Default VAT percentage for products using this code')
+                            ->helperText(__('Default VAT percentage for products using this code'))
                             ->formatStateUsing(fn ($state) => $state !== null ? (float) $state * 100 : null)
                             ->dehydrateStateUsing(fn ($state) => $state !== null && $state !== '' ? (float) $state / 100 : null),
 
                         TextInput::make('sort_order')
-                            ->label('Sort Order')
+                            ->label(__('Sort Order'))
                             ->numeric()
                             ->default(0)
                             ->columnSpan(1)
-                            ->helperText('Order for display in lists'),
+                            ->helperText(__('Order for display in lists')),
 
                         Toggle::make('active')
-                            ->label('Active')
+                            ->label(__('Active'))
                             ->default(true)
-                            ->helperText('Only active codes are available for selection')
+                            ->helperText(__('Only active codes are available for selection'))
                             ->disabled(fn ($record) => $record && $record->is_standard),
 
                         Toggle::make('show_in_pos')
-                            ->label('Visible in POS')
+                            ->label(__('Visible in POS'))
                             ->default(true)
-                            ->helperText('When enabled, this code appears in the POS app (e.g. in product edit). When disabled, it is hidden from POS.'),
+                            ->helperText(__('When enabled, this code appears in the POS app (e.g. in product edit). When disabled, it is hidden from POS.')),
 
                         Toggle::make('is_standard')
-                            ->label('Standard Code')
+                            ->label(__('Standard Code'))
                             ->default(false)
-                            ->helperText('Standard SAF-T codes are pre-seeded and cannot be deleted')
+                            ->helperText(__('Standard SAF-T codes are pre-seeded and cannot be deleted'))
                             ->disabled(fn ($record) => $record && $record->is_standard),
                     ]),
             ]);

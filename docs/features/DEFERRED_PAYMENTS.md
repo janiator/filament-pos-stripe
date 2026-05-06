@@ -62,6 +62,28 @@ POST /api/purchases/{charge_id}/complete-payment
 }
 ```
 
+**Optional final cart (edit before pay / parked order):** Send a `cart` object with the same shape as `POST /api/purchases` (items, discounts, `total`, `currency`, etc.). The server then replaces the pending charge’s stored lines and amount, applies an **inventory delta** compared to the original deferred cart, and completes payment for that final total. Omit `cart` to keep the original deferred lines and amount unchanged.
+
+- **Stripe:** Create and confirm the PaymentIntent for the **final** `cart.total`; the succeeded PI amount must equal `cart.total`, and currency must match.
+- **Inventory:** Stock was already reduced when the deferred sale was created; only the difference between the original and final line quantities is applied at completion (extra sales or restores).
+- **Validation:** `cart` is only accepted for charges that are deferred (pending) purchases; otherwise the API returns **422**.
+
+```json
+POST /api/purchases/{charge_id}/complete-payment
+{
+  "payment_method_code": "cash",
+  "pos_device_id": 5,
+  "metadata": {},
+  "cart": {
+    "items": [
+      { "product_id": 123, "variant_id": 456, "quantity": 1, "unit_price": 5000 }
+    ],
+    "total": 5000,
+    "currency": "nok"
+  }
+}
+```
+
 **What happens:**
 - Charge status is updated to `'succeeded'` and `paid: true`
 - `paid_at` timestamp is set

@@ -1,4 +1,4 @@
-# OpenAPI\Client\CustomersApi
+# OpenAPIClient\CustomersApi
 
 Customer management operations
 
@@ -16,7 +16,7 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 ## `createCustomer()`
 
 ```php
-createCustomer($create_customer_request, $x_tenant): \OpenAPI\Client\Model\Customer
+createCustomer($create_customer_request, $x_tenant): \OpenAPIClient\Model\Customer
 ```
 
 Create customer
@@ -31,16 +31,16 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\CustomersApi(
+$apiInstance = new OpenAPIClient\Api\CustomersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
-$create_customer_request = new \OpenAPI\Client\Model\CreateCustomerRequest(); // \OpenAPI\Client\Model\CreateCustomerRequest
+$create_customer_request = new \OpenAPIClient\Model\CreateCustomerRequest(); // \OpenAPIClient\Model\CreateCustomerRequest
 $x_tenant = 'x_tenant_example'; // string | Store slug (optional, defaults to user's first store)
 
 try {
@@ -55,12 +55,12 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **create_customer_request** | [**\OpenAPI\Client\Model\CreateCustomerRequest**](../Model/CreateCustomerRequest.md)|  | |
+| **create_customer_request** | [**\OpenAPIClient\Model\CreateCustomerRequest**](../Model/CreateCustomerRequest.md)|  | |
 | **x_tenant** | **string**| Store slug (optional, defaults to user&#39;s first store) | [optional] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\Customer**](../Model/Customer.md)
+[**\OpenAPIClient\Model\Customer**](../Model/Customer.md)
 
 ### Authorization
 
@@ -93,10 +93,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\CustomersApi(
+$apiInstance = new OpenAPIClient\Api\CustomersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -139,7 +139,7 @@ void (empty response body)
 ## `getCustomer()`
 
 ```php
-getCustomer($id, $x_tenant): \OpenAPI\Client\Model\Customer
+getCustomer($id, $x_tenant): \OpenAPIClient\Model\Customer
 ```
 
 Get customer
@@ -154,10 +154,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\CustomersApi(
+$apiInstance = new OpenAPIClient\Api\CustomersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -183,7 +183,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\Customer**](../Model/Customer.md)
+[**\OpenAPIClient\Model\Customer**](../Model/Customer.md)
 
 ### Authorization
 
@@ -201,7 +201,7 @@ try {
 ## `listCustomers()`
 
 ```php
-listCustomers($per_page, $page, $x_tenant): \OpenAPI\Client\Model\ListCustomers200Response
+listCustomers($per_page, $page, $search, $x_tenant): \OpenAPIClient\Model\ListCustomers200Response
 ```
 
 List customers
@@ -216,10 +216,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\CustomersApi(
+$apiInstance = new OpenAPIClient\Api\CustomersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -227,10 +227,11 @@ $apiInstance = new OpenAPI\Client\Api\CustomersApi(
 );
 $per_page = 15; // int | Number of items per page
 $page = 0; // int | Page number (0-based, starts at 0)
+$search = john; // string | Search term to filter customers by name, email, or phone (case-insensitive)
 $x_tenant = 'x_tenant_example'; // string | Store slug (optional, defaults to user's first store)
 
 try {
-    $result = $apiInstance->listCustomers($per_page, $page, $x_tenant);
+    $result = $apiInstance->listCustomers($per_page, $page, $search, $x_tenant);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling CustomersApi->listCustomers: ', $e->getMessage(), PHP_EOL;
@@ -243,11 +244,12 @@ try {
 | ------------- | ------------- | ------------- | ------------- |
 | **per_page** | **int**| Number of items per page | [optional] [default to 15] |
 | **page** | **int**| Page number (0-based, starts at 0) | [optional] [default to 0] |
+| **search** | **string**| Search term to filter customers by name, email, or phone (case-insensitive) | [optional] |
 | **x_tenant** | **string**| Store slug (optional, defaults to user&#39;s first store) | [optional] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\ListCustomers200Response**](../Model/ListCustomers200Response.md)
+[**\OpenAPIClient\Model\ListCustomers200Response**](../Model/ListCustomers200Response.md)
 
 ### Authorization
 
@@ -265,7 +267,7 @@ try {
 ## `updateCustomer()`
 
 ```php
-updateCustomer($id, $update_customer_request, $x_tenant): \OpenAPI\Client\Model\Customer
+updateCustomer($id, $update_customer_request, $x_tenant): \OpenAPIClient\Model\Customer
 ```
 
 Update customer
@@ -280,17 +282,17 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\CustomersApi(
+$apiInstance = new OpenAPIClient\Api\CustomersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $id = 1; // int
-$update_customer_request = new \OpenAPI\Client\Model\UpdateCustomerRequest(); // \OpenAPI\Client\Model\UpdateCustomerRequest
+$update_customer_request = new \OpenAPIClient\Model\UpdateCustomerRequest(); // \OpenAPIClient\Model\UpdateCustomerRequest
 $x_tenant = 'x_tenant_example'; // string | Store slug (optional, defaults to user's first store)
 
 try {
@@ -306,12 +308,12 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **id** | **int**|  | |
-| **update_customer_request** | [**\OpenAPI\Client\Model\UpdateCustomerRequest**](../Model/UpdateCustomerRequest.md)|  | |
+| **update_customer_request** | [**\OpenAPIClient\Model\UpdateCustomerRequest**](../Model/UpdateCustomerRequest.md)|  | |
 | **x_tenant** | **string**| Store slug (optional, defaults to user&#39;s first store) | [optional] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\Customer**](../Model/Customer.md)
+[**\OpenAPIClient\Model\Customer**](../Model/Customer.md)
 
 ### Authorization
 

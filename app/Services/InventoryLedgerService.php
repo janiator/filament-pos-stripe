@@ -107,6 +107,85 @@ class InventoryLedgerService
     }
 
     /**
+     * Adjust inventory when a pending deferred charge is completed with a revised cart.
+     * Original sale movements used keys {@code sale:charge:{id}:variant:{vid}}; this applies only the delta
+     * (extra sales and restores) with stable idempotency keys so retries do not double-apply.
+     *
+     * @param  array<int, array<string, mixed>>  $oldCartItems  Items previously stored on the charge (metadata)
+     * @param  array<int, array<string, mixed>>  $newCartItems  Final cart lines from the completion request
+     *
+     * @throws InsufficientStockException
+     */
+    public function applyDeferredCompletionInventoryDelta(
+        Store $store,
+        ConnectedCharge $charge,
+        array $oldCartItems,
+        array $newCartItems
+    ): void {
+        if (! $this->inventoryAddonActive($store)) {
+            return;
+        }
+
+        $oldBy = $this->aggregateVariantQuantities($oldCartItems);
+        $newBy = $this->aggregateVariantQuantities($newCartItems);
+        $variantIds = array_unique(array_merge(array_keys($oldBy), array_keys($newBy)));
+        sort($variantIds);
+
+        $positiveDeltaLines = [];
+        foreach ($variantIds as $variantId) {
+            $oldQty = $oldBy[$variantId] ?? 0.0;
+            $newQty = $newBy[$variantId] ?? 0.0;
+            $delta = $newQty - $oldQty;
+            if ($delta > 0) {
+                $positiveDeltaLines[] = [
+                    'variant_id' => $variantId,
+                    'quantity' => $delta,
+                ];
+            }
+        }
+
+        if ($positiveDeltaLines !== []) {
+            $this->assertCartSellable($store, $positiveDeltaLines);
+        }
+
+        foreach ($variantIds as $variantId) {
+            $oldQty = $oldBy[$variantId] ?? 0.0;
+            $newQty = $newBy[$variantId] ?? 0.0;
+            $delta = $newQty - $oldQty;
+            if ($delta === 0.0 || $delta === 0) {
+                continue;
+            }
+
+            if ($delta > 0) {
+                $idempotencyKey = 'deferred_complete_delta:charge:'.$charge->id.':variant:'.$variantId;
+                $this->applySaleLine(
+                    $store,
+                    (int) $variantId,
+                    $delta,
+                    $idempotencyKey,
+                    [
+                        'reason' => InventoryStockMovement::REASON_SALE,
+                        'connected_charge_id' => $charge->id,
+                        'pos_event_id' => null,
+                    ]
+                );
+
+                continue;
+            }
+
+            $restoreQty = abs($delta);
+            $idempotencyKey = 'deferred_complete_restore:charge:'.$charge->id.':variant:'.$variantId;
+            $this->applyDeferredCompletionRestoreLine(
+                $store,
+                (int) $variantId,
+                $restoreQty,
+                $charge->id,
+                $idempotencyKey
+            );
+        }
+    }
+
+    /**
      * @param  array<int, array<string, mixed>>  $cartItems
      */
     public function applySaleForCharge(Store $store, array $cartItems, ConnectedCharge $charge): void
@@ -337,6 +416,61 @@ class InventoryLedgerService
         }
 
         return $byVariant;
+    }
+
+    /**
+     * Restore stock when a deferred order is completed with fewer units than at deferral time.
+     */
+    protected function applyDeferredCompletionRestoreLine(
+        Store $store,
+        int $variantId,
+        float $quantityToRestore,
+        int $chargeId,
+        string $idempotencyKey
+    ): void {
+        if ($quantityToRestore <= 0) {
+            return;
+        }
+
+        DB::transaction(function () use ($store, $variantId, $quantityToRestore, $idempotencyKey, $chargeId): void {
+            if (InventoryStockMovement::query()->where('idempotency_key', $idempotencyKey)->exists()) {
+                return;
+            }
+
+            $variant = ProductVariant::query()
+                ->whereKey($variantId)
+                ->where('stripe_account_id', $store->stripe_account_id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $variant || ! $this->isVariantTracked($variant)) {
+                return;
+            }
+
+            $newQty = ($variant->inventory_quantity ?? 0) + $quantityToRestore;
+            $variant->update(['inventory_quantity' => $newQty]);
+
+            try {
+                InventoryStockMovement::query()->create([
+                    'store_id' => $store->id,
+                    'product_variant_id' => $variant->id,
+                    'quantity_delta' => $quantityToRestore,
+                    'reason' => InventoryStockMovement::REASON_MANUAL_ADJUST,
+                    'connected_charge_id' => $chargeId,
+                    'pos_event_id' => null,
+                    'refund_reference' => null,
+                    'idempotency_key' => $idempotencyKey,
+                    'metadata' => [
+                        'deferred_completion_revision' => true,
+                    ],
+                ]);
+            } catch (QueryException $e) {
+                if ($this->isDuplicateKey($e)) {
+                    return;
+                }
+                throw $e;
+            }
+        });
     }
 
     protected function applyRefundLine(

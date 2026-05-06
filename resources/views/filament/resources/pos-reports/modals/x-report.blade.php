@@ -263,15 +263,9 @@
         <div class="x-report-section x-report-card" style="background-color: rgb(254 242 242); border-color: rgb(252 165 165);">
             <h4 class="x-report-title">Refusjoner ({{ $report['refund_count'] ?? count($report['refunds']) }} refusjoner)</h4>
             <div style="margin-bottom: 1rem;">
-                <div class="x-report-grid x-report-grid-2">
-                    <div>
-                        <div class="x-report-metric-label">Totalt refundert</div>
-                        <div style="font-size: 1.25rem; font-weight: 700; color: rgb(220 38 38);">{{ number_format($report['total_refunded'] / 100, 2) }} NOK</div>
-                    </div>
-                    <div>
-                        <div class="x-report-metric-label">Netto beløp</div>
-                        <div style="font-size: 1.25rem; font-weight: 700; color: rgb(17 24 39);">{{ number_format(($report['net_amount'] ?? ($report['total_amount'] - $report['total_refunded'])) / 100, 2) }} NOK</div>
-                    </div>
+                <div>
+                    <div class="x-report-metric-label">Totalt refundert</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: rgb(220 38 38);">{{ number_format($report['total_refunded'] / 100, 2) }} NOK</div>
                 </div>
             </div>
             <div style="overflow-x: auto;">

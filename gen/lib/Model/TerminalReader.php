@@ -1,19 +1,21 @@
 <?php
+
 /**
  * TerminalReader
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,89 +29,96 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * TerminalReader Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
+class TerminalReader implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'TerminalReader';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'stripe_reader_id' => 'string',
+        'serial_number' => 'string',
         'label' => 'string',
         'tap_to_pay' => 'bool',
         'device_type' => 'string',
         'status' => 'string',
-        'location' => '\OpenAPI\Client\Model\TerminalReaderLocation',
+        'location' => '\OpenAPIClient\Model\TerminalReaderLocation',
         'created_at' => '\DateTime',
-        'updated_at' => '\DateTime'
+        'updated_at' => '\DateTime',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'stripe_reader_id' => null,
+        'serial_number' => null,
         'label' => null,
         'tap_to_pay' => null,
         'device_type' => null,
         'status' => null,
         'location' => null,
         'created_at' => 'date-time',
-        'updated_at' => 'date-time'
+        'updated_at' => 'date-time',
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'stripe_reader_id' => true,
+        'serial_number' => true,
         'label' => false,
         'tap_to_pay' => false,
         'device_type' => true,
         'status' => true,
         'location' => true,
         'created_at' => false,
-        'updated_at' => false
+        'updated_at' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -134,8 +143,6 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -145,7 +152,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -155,7 +162,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -164,9 +171,6 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -175,9 +179,6 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -193,13 +194,14 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     protected static $attributeMap = [
         'id' => 'id',
         'stripe_reader_id' => 'stripe_reader_id',
+        'serial_number' => 'serial_number',
         'label' => 'label',
         'tap_to_pay' => 'tap_to_pay',
         'device_type' => 'device_type',
         'status' => 'status',
         'location' => 'location',
         'created_at' => 'created_at',
-        'updated_at' => 'updated_at'
+        'updated_at' => 'updated_at',
     ];
 
     /**
@@ -210,13 +212,14 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     protected static $setters = [
         'id' => 'setId',
         'stripe_reader_id' => 'setStripeReaderId',
+        'serial_number' => 'setSerialNumber',
         'label' => 'setLabel',
         'tap_to_pay' => 'setTapToPay',
         'device_type' => 'setDeviceType',
         'status' => 'setStatus',
         'location' => 'setLocation',
         'created_at' => 'setCreatedAt',
-        'updated_at' => 'setUpdatedAt'
+        'updated_at' => 'setUpdatedAt',
     ];
 
     /**
@@ -227,13 +230,14 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     protected static $getters = [
         'id' => 'getId',
         'stripe_reader_id' => 'getStripeReaderId',
+        'serial_number' => 'getSerialNumber',
         'label' => 'getLabel',
         'tap_to_pay' => 'getTapToPay',
         'device_type' => 'getDeviceType',
         'status' => 'getStatus',
         'location' => 'getLocation',
         'created_at' => 'getCreatedAt',
-        'updated_at' => 'getUpdatedAt'
+        'updated_at' => 'getUpdatedAt',
     ];
 
     /**
@@ -277,7 +281,6 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -288,13 +291,14 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
         $this->setIfExists('id', $data ?? [], null);
         $this->setIfExists('stripe_reader_id', $data ?? [], null);
+        $this->setIfExists('serial_number', $data ?? [], null);
         $this->setIfExists('label', $data ?? [], null);
         $this->setIfExists('tap_to_pay', $data ?? [], null);
         $this->setIfExists('device_type', $data ?? [], null);
@@ -305,14 +309,12 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -345,7 +347,6 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -359,8 +360,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets id
      *
-     * @param int|null $id id
-     *
+     * @param  int|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -386,8 +386,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets stripe_reader_id
      *
-     * @param string|null $stripe_reader_id stripe_reader_id
-     *
+     * @param  string|null  $stripe_reader_id  stripe_reader_id
      * @return self
      */
     public function setStripeReaderId($stripe_reader_id)
@@ -397,12 +396,45 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('stripe_reader_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
         }
         $this->container['stripe_reader_id'] = $stripe_reader_id;
+
+        return $this;
+    }
+
+    /**
+     * Gets serial_number
+     *
+     * @return string|null
+     */
+    public function getSerialNumber()
+    {
+        return $this->container['serial_number'];
+    }
+
+    /**
+     * Sets serial_number
+     *
+     * @param  string|null  $serial_number  Reader serial number from Stripe (used for re-registration across stores)
+     * @return self
+     */
+    public function setSerialNumber($serial_number)
+    {
+        if (is_null($serial_number)) {
+            array_push($this->openAPINullablesSetToNull, 'serial_number');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('serial_number', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['serial_number'] = $serial_number;
 
         return $this;
     }
@@ -420,8 +452,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets label
      *
-     * @param string|null $label label
-     *
+     * @param  string|null  $label  label
      * @return self
      */
     public function setLabel($label)
@@ -447,8 +478,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets tap_to_pay
      *
-     * @param bool|null $tap_to_pay tap_to_pay
-     *
+     * @param  bool|null  $tap_to_pay  tap_to_pay
      * @return self
      */
     public function setTapToPay($tap_to_pay)
@@ -474,8 +504,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets device_type
      *
-     * @param string|null $device_type device_type
-     *
+     * @param  string|null  $device_type  device_type
      * @return self
      */
     public function setDeviceType($device_type)
@@ -485,7 +514,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('device_type', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -508,8 +537,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets status
      *
-     * @param string|null $status status
-     *
+     * @param  string|null  $status  status
      * @return self
      */
     public function setStatus($status)
@@ -519,7 +547,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('status', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -532,7 +560,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets location
      *
-     * @return \OpenAPI\Client\Model\TerminalReaderLocation|null
+     * @return \OpenAPIClient\Model\TerminalReaderLocation|null
      */
     public function getLocation()
     {
@@ -542,8 +570,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets location
      *
-     * @param \OpenAPI\Client\Model\TerminalReaderLocation|null $location location
-     *
+     * @param  \OpenAPIClient\Model\TerminalReaderLocation|null  $location  location
      * @return self
      */
     public function setLocation($location)
@@ -553,7 +580,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('location', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -576,8 +603,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets created_at
      *
-     * @param \DateTime|null $created_at created_at
-     *
+     * @param  \DateTime|null  $created_at  created_at
      * @return self
      */
     public function setCreatedAt($created_at)
@@ -603,8 +629,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets updated_at
      *
-     * @param \DateTime|null $updated_at updated_at
-     *
+     * @param  \DateTime|null  $updated_at  updated_at
      * @return self
      */
     public function setUpdatedAt($updated_at)
@@ -616,12 +641,11 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -631,8 +655,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -644,10 +667,8 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -661,9 +682,7 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -672,15 +691,16 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -706,5 +726,3 @@ class TerminalReader implements ModelInterface, ArrayAccess, \JsonSerializable
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

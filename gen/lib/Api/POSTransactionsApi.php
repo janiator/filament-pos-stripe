@@ -1,18 +1,20 @@
 <?php
+
 /**
  * POSTransactionsApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * POSTransactionsApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class POSTransactionsApi
@@ -73,7 +75,7 @@ class POSTransactionsApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'createCorrectionReceipt' => [
             'application/json',
@@ -84,10 +86,7 @@ class POSTransactionsApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -95,16 +94,16 @@ class POSTransactionsApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -134,16 +133,17 @@ class POSTransactionsApi
      *
      * Create correction receipt
      *
-     * @param  \OpenAPI\Client\Model\CreateCorrectionReceiptRequest $create_correction_receipt_request create_correction_receipt_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createCorrectionReceipt'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateCorrectionReceiptRequest  $create_correction_receipt_request  create_correction_receipt_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createCorrectionReceipt'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CreateCorrectionReceipt201Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\CreateCorrectionReceipt201Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function createCorrectionReceipt($create_correction_receipt_request, string $contentType = self::contentTypes['createCorrectionReceipt'][0])
     {
-        list($response) = $this->createCorrectionReceiptWithHttpInfo($create_correction_receipt_request, $contentType);
+        [$response] = $this->createCorrectionReceiptWithHttpInfo($create_correction_receipt_request, $contentType);
+
         return $response;
     }
 
@@ -152,12 +152,12 @@ class POSTransactionsApi
      *
      * Create correction receipt
      *
-     * @param  \OpenAPI\Client\Model\CreateCorrectionReceiptRequest $create_correction_receipt_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createCorrectionReceipt'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateCorrectionReceiptRequest  $create_correction_receipt_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createCorrectionReceipt'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CreateCorrectionReceipt201Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\CreateCorrectionReceipt201Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function createCorrectionReceiptWithHttpInfo($create_correction_receipt_request, string $contentType = self::contentTypes['createCorrectionReceipt'][0])
     {
@@ -185,23 +185,20 @@ class POSTransactionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 201:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CreateCorrectionReceipt201Response',
+                        '\OpenAPIClient\Model\CreateCorrectionReceipt201Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -217,7 +214,7 @@ class POSTransactionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\CreateCorrectionReceipt201Response',
+                '\OpenAPIClient\Model\CreateCorrectionReceipt201Response',
                 $request,
                 $response,
             );
@@ -226,7 +223,7 @@ class POSTransactionsApi
                 case 201:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CreateCorrectionReceipt201Response',
+                        '\OpenAPIClient\Model\CreateCorrectionReceipt201Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -234,13 +231,12 @@ class POSTransactionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -251,11 +247,11 @@ class POSTransactionsApi
      *
      * Create correction receipt
      *
-     * @param  \OpenAPI\Client\Model\CreateCorrectionReceiptRequest $create_correction_receipt_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createCorrectionReceipt'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateCorrectionReceiptRequest  $create_correction_receipt_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createCorrectionReceipt'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createCorrectionReceiptAsync($create_correction_receipt_request, string $contentType = self::contentTypes['createCorrectionReceipt'][0])
     {
@@ -272,15 +268,15 @@ class POSTransactionsApi
      *
      * Create correction receipt
      *
-     * @param  \OpenAPI\Client\Model\CreateCorrectionReceiptRequest $create_correction_receipt_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createCorrectionReceipt'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateCorrectionReceiptRequest  $create_correction_receipt_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createCorrectionReceipt'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createCorrectionReceiptAsyncWithHttpInfo($create_correction_receipt_request, string $contentType = self::contentTypes['createCorrectionReceipt'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\CreateCorrectionReceipt201Response';
+        $returnType = '\OpenAPIClient\Model\CreateCorrectionReceipt201Response';
         $request = $this->createCorrectionReceiptRequest($create_correction_receipt_request, $contentType);
 
         return $this->client
@@ -288,7 +284,7 @@ class POSTransactionsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -299,7 +295,7 @@ class POSTransactionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -322,11 +318,11 @@ class POSTransactionsApi
     /**
      * Create request for operation 'createCorrectionReceipt'
      *
-     * @param  \OpenAPI\Client\Model\CreateCorrectionReceiptRequest $create_correction_receipt_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createCorrectionReceipt'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateCorrectionReceiptRequest  $create_correction_receipt_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createCorrectionReceipt'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function createCorrectionReceiptRequest($create_correction_receipt_request, string $contentType = self::contentTypes['createCorrectionReceipt'][0])
     {
@@ -338,7 +334,6 @@ class POSTransactionsApi
             );
         }
 
-
         $resourcePath = '/pos-transactions/correction-receipt';
         $formParams = [];
         $queryParams = [];
@@ -346,12 +341,8 @@ class POSTransactionsApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -359,7 +350,7 @@ class POSTransactionsApi
         // for model (json/xml)
         if (isset($create_correction_receipt_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($create_correction_receipt_request));
             } else {
                 $httpBody = $create_correction_receipt_request;
@@ -372,7 +363,7 @@ class POSTransactionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -380,7 +371,7 @@ class POSTransactionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -389,8 +380,8 @@ class POSTransactionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -406,9 +397,10 @@ class POSTransactionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -419,17 +411,18 @@ class POSTransactionsApi
      *
      * Void transaction
      *
-     * @param  int $charge_id charge_id (required)
-     * @param  \OpenAPI\Client\Model\VoidTransactionRequest|null $void_transaction_request void_transaction_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['voidTransaction'] to see the possible values for this operation
+     * @param  int  $charge_id  charge_id (required)
+     * @param  \OpenAPIClient\Model\VoidTransactionRequest|null  $void_transaction_request  void_transaction_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['voidTransaction'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\VoidTransaction200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\VoidTransaction200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function voidTransaction($charge_id, $void_transaction_request = null, string $contentType = self::contentTypes['voidTransaction'][0])
     {
-        list($response) = $this->voidTransactionWithHttpInfo($charge_id, $void_transaction_request, $contentType);
+        [$response] = $this->voidTransactionWithHttpInfo($charge_id, $void_transaction_request, $contentType);
+
         return $response;
     }
 
@@ -438,13 +431,13 @@ class POSTransactionsApi
      *
      * Void transaction
      *
-     * @param  int $charge_id (required)
-     * @param  \OpenAPI\Client\Model\VoidTransactionRequest|null $void_transaction_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['voidTransaction'] to see the possible values for this operation
+     * @param  int  $charge_id  (required)
+     * @param  \OpenAPIClient\Model\VoidTransactionRequest|null  $void_transaction_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['voidTransaction'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\VoidTransaction200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\VoidTransaction200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function voidTransactionWithHttpInfo($charge_id, $void_transaction_request = null, string $contentType = self::contentTypes['voidTransaction'][0])
     {
@@ -472,29 +465,26 @@ class POSTransactionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\VoidTransaction200Response',
+                        '\OpenAPIClient\Model\VoidTransaction200Response',
                         $request,
                         $response,
                     );
                 case 400:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -510,7 +500,7 @@ class POSTransactionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\VoidTransaction200Response',
+                '\OpenAPIClient\Model\VoidTransaction200Response',
                 $request,
                 $response,
             );
@@ -519,7 +509,7 @@ class POSTransactionsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\VoidTransaction200Response',
+                        '\OpenAPIClient\Model\VoidTransaction200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -527,7 +517,7 @@ class POSTransactionsApi
                 case 400:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -535,13 +525,12 @@ class POSTransactionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -552,12 +541,12 @@ class POSTransactionsApi
      *
      * Void transaction
      *
-     * @param  int $charge_id (required)
-     * @param  \OpenAPI\Client\Model\VoidTransactionRequest|null $void_transaction_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['voidTransaction'] to see the possible values for this operation
+     * @param  int  $charge_id  (required)
+     * @param  \OpenAPIClient\Model\VoidTransactionRequest|null  $void_transaction_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['voidTransaction'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function voidTransactionAsync($charge_id, $void_transaction_request = null, string $contentType = self::contentTypes['voidTransaction'][0])
     {
@@ -574,16 +563,16 @@ class POSTransactionsApi
      *
      * Void transaction
      *
-     * @param  int $charge_id (required)
-     * @param  \OpenAPI\Client\Model\VoidTransactionRequest|null $void_transaction_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['voidTransaction'] to see the possible values for this operation
+     * @param  int  $charge_id  (required)
+     * @param  \OpenAPIClient\Model\VoidTransactionRequest|null  $void_transaction_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['voidTransaction'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function voidTransactionAsyncWithHttpInfo($charge_id, $void_transaction_request = null, string $contentType = self::contentTypes['voidTransaction'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\VoidTransaction200Response';
+        $returnType = '\OpenAPIClient\Model\VoidTransaction200Response';
         $request = $this->voidTransactionRequest($charge_id, $void_transaction_request, $contentType);
 
         return $this->client
@@ -591,7 +580,7 @@ class POSTransactionsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -602,7 +591,7 @@ class POSTransactionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -625,12 +614,12 @@ class POSTransactionsApi
     /**
      * Create request for operation 'voidTransaction'
      *
-     * @param  int $charge_id (required)
-     * @param  \OpenAPI\Client\Model\VoidTransactionRequest|null $void_transaction_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['voidTransaction'] to see the possible values for this operation
+     * @param  int  $charge_id  (required)
+     * @param  \OpenAPIClient\Model\VoidTransactionRequest|null  $void_transaction_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['voidTransaction'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function voidTransactionRequest($charge_id, $void_transaction_request = null, string $contentType = self::contentTypes['voidTransaction'][0])
     {
@@ -642,8 +631,6 @@ class POSTransactionsApi
             );
         }
 
-
-
         $resourcePath = '/pos-transactions/charges/{chargeId}/void';
         $formParams = [];
         $queryParams = [];
@@ -651,20 +638,17 @@ class POSTransactionsApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($charge_id !== null) {
             $resourcePath = str_replace(
-                '{' . 'chargeId' . '}',
+                '{'.'chargeId'.'}',
                 ObjectSerializer::toPathValue($charge_id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -672,7 +656,7 @@ class POSTransactionsApi
         // for model (json/xml)
         if (isset($void_transaction_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($void_transaction_request));
             } else {
                 $httpBody = $void_transaction_request;
@@ -685,7 +669,7 @@ class POSTransactionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -693,7 +677,7 @@ class POSTransactionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -702,8 +686,8 @@ class POSTransactionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -719,9 +703,10 @@ class POSTransactionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -730,16 +715,17 @@ class POSTransactionsApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -760,7 +746,7 @@ class POSTransactionsApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -783,7 +769,7 @@ class POSTransactionsApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

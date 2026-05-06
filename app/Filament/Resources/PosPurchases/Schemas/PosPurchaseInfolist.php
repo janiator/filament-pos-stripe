@@ -188,8 +188,8 @@ class PosPurchaseInfolist
                 Section::make('Purchase Overview')
                     ->schema([
                         TextEntry::make('formatted_amount')
-                            ->label('Total Amount')
-                            ->placeholder('-')
+                            ->label(__('Total Amount'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedCurrencyDollar)
                             ->size(TextSize::Large)
                             ->badge()
@@ -197,7 +197,7 @@ class PosPurchaseInfolist
                             ->weight('bold'),
 
                         TextEntry::make('status')
-                            ->label('Payment Status')
+                            ->label(__('Payment Status'))
                             ->badge()
                             ->colors([
                                 'success' => 'succeeded',
@@ -209,8 +209,8 @@ class PosPurchaseInfolist
                             ->size(TextSize::Large),
 
                         TextEntry::make('payment_method')
-                            ->label('Payment Method')
-                            ->placeholder('-')
+                            ->label(__('Payment Method'))
+                            ->placeholder(__('-'))
                             ->formatStateUsing(fn ($state) => $state ? ucfirst(str_replace('_', ' ', $state)) : null)
                             ->badge()
                             ->color(fn ($state) => match ($state) {
@@ -222,15 +222,15 @@ class PosPurchaseInfolist
                             ->size(TextSize::Large),
 
                         TextEntry::make('paid_at')
-                            ->label('Transaction Date & Time')
+                            ->label(__('Transaction Date & Time'))
                             ->dateTime('d.m.Y H:i')
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedCalendar)
                             ->size(TextSize::Large)
                             ->color('gray'),
 
                         TextEntry::make('charge_display')
-                            ->label('Transaction ID')
+                            ->label(__('Transaction ID'))
                             ->formatStateUsing(function ($record) {
                                 if ($record->stripe_charge_id) {
                                     return $record->stripe_charge_id;
@@ -250,7 +250,7 @@ class PosPurchaseInfolist
                 Section::make('Customer Information')
                     ->schema([
                         TextEntry::make('customer.name')
-                            ->label('Customer Name')
+                            ->label(__('Customer Name'))
                             ->icon(Heroicon::OutlinedUser)
                             ->badge()
                             ->color('info')
@@ -261,7 +261,7 @@ class PosPurchaseInfolist
                             ->visible(fn ($record) => $record->customer),
 
                         TextEntry::make('metadata.customer_name')
-                            ->label('Customer Name')
+                            ->label(__('Customer Name'))
                             ->icon(Heroicon::OutlinedUser)
                             ->badge()
                             ->color('info')
@@ -269,7 +269,7 @@ class PosPurchaseInfolist
                             ->visible(fn ($record) => ! $record->customer && ($record->metadata['customer_name'] ?? null)),
 
                         TextEntry::make('customer.email')
-                            ->label('Email')
+                            ->label(__('Email'))
                             ->icon(Heroicon::OutlinedEnvelope)
                             ->copyable()
                             ->size(TextSize::Large)
@@ -283,9 +283,9 @@ class PosPurchaseInfolist
                 Section::make('Purchase Note')
                     ->schema([
                         TextEntry::make('metadata.note')
-                            ->label('Note')
+                            ->label(__('Note'))
                             ->icon(Heroicon::OutlinedDocumentText)
-                            ->placeholder('No note')
+                            ->placeholder(__('No note'))
                             ->wrap()
                             ->columnSpanFull(),
                     ])
@@ -296,7 +296,7 @@ class PosPurchaseInfolist
                 Section::make('Receipt & Session')
                     ->schema([
                         TextEntry::make('receipt.receipt_number')
-                            ->label('Receipt Number')
+                            ->label(__('Receipt Number'))
                             ->badge()
                             ->color('primary')
                             ->icon(Heroicon::OutlinedDocumentText)
@@ -304,27 +304,27 @@ class PosPurchaseInfolist
                             ->url(fn ($record) => $record->receipt
                                 ? \App\Filament\Resources\Receipts\ReceiptResource::getUrl('preview', ['record' => $record->receipt])
                                 : null)
-                            ->placeholder('No receipt generated'),
+                            ->placeholder(__('No receipt generated')),
 
                         TextEntry::make('posSession.session_number')
-                            ->label('POS Session')
+                            ->label(__('POS Session'))
                             ->badge()
                             ->color('info')
                             ->icon(Heroicon::OutlinedRectangleStack)
                             ->url(fn ($record) => $record->posSession
                                 ? \App\Filament\Resources\PosSessions\PosSessionResource::getUrl('view', ['record' => $record->posSession])
                                 : null)
-                            ->placeholder('No session'),
+                            ->placeholder(__('No session')),
 
                         TextEntry::make('posSession.user.name')
-                            ->label('Cashier')
+                            ->label(__('Cashier'))
                             ->icon(Heroicon::OutlinedUser)
                             ->badge()
                             ->color('gray')
                             ->visible(fn ($record) => $record->posSession && $record->posSession->user),
 
                         TextEntry::make('posSession.status')
-                            ->label('Session Status')
+                            ->label(__('Session Status'))
                             ->badge()
                             ->colors([
                                 'success' => 'open',
@@ -440,17 +440,17 @@ class PosPurchaseInfolist
                             ])
                             ->schema([
                                 TextEntry::make('display_name')
-                                    ->label('Product')
+                                    ->label(__('Product'))
                                     ->weight('bold'),
 
                                 TextEntry::make('display_quantity')
-                                    ->label('Qty')
+                                    ->label(__('Qty'))
                                     ->formatStateUsing(fn ($state) => $state ?? 1)
                                     ->badge()
                                     ->color('gray'),
 
                                 TextEntry::make('display_unit_price')
-                                    ->label('Unit Price')
+                                    ->label(__('Unit Price'))
                                     ->formatStateUsing(function ($state, $get) {
                                         $originalPrice = $get('display_original_price');
 
@@ -463,19 +463,19 @@ class PosPurchaseInfolist
                                     ->html(),
 
                                 TextEntry::make('display_discount_amount')
-                                    ->label('Discount')
+                                    ->label(__('Discount'))
                                     ->formatStateUsing(fn ($state) => $state > 0 ? '-'.number_format($state, 2).' NOK' : '-')
                                     ->badge()
                                     ->color(fn ($get) => ($get('display_discount_amount') ?? 0) > 0 ? 'success' : 'gray'),
 
                                 TextEntry::make('display_tax_amount')
-                                    ->label('Tax')
+                                    ->label(__('Tax'))
                                     ->formatStateUsing(fn ($state) => $state !== null && $state > 0 ? number_format($state, 2).' NOK' : '-')
                                     ->badge()
                                     ->color('gray'),
 
                                 TextEntry::make('display_line_total')
-                                    ->label('Total')
+                                    ->label(__('Total'))
                                     ->formatStateUsing(fn ($state) => number_format($state, 2).' NOK')
                                     ->weight('bold')
                                     ->badge()
@@ -489,7 +489,7 @@ class PosPurchaseInfolist
                 Section::make('Purchase Summary')
                     ->schema([
                         TextEntry::make('subtotal_display')
-                            ->label('Subtotal')
+                            ->label(__('Subtotal'))
                             ->state(function ($record) {
                                 // Use same calculation logic as API (PurchasesController)
                                 $metadata = $record->metadata ?? [];
@@ -524,7 +524,7 @@ class PosPurchaseInfolist
                             ->icon(Heroicon::OutlinedCalculator),
 
                         TextEntry::make('discounts_display')
-                            ->label('Discounts')
+                            ->label(__('Discounts'))
                             ->formatStateUsing(function ($state, $record) {
                                 $discounts = self::resolveTotalDiscountsOreForDisplay($record) / 100;
                                 if ($discounts <= 0) {
@@ -539,7 +539,7 @@ class PosPurchaseInfolist
                             ->visible(fn ($record) => self::resolveTotalDiscountsOreForDisplay($record) > 0),
 
                         RepeatableEntry::make('tax_breakdown')
-                            ->label('Tax')
+                            ->label(__('Tax'))
                             ->state(fn ($record) => self::buildTaxBreakdownForRecord($record))
                             ->table([
                                 TableColumn::make('Rate')->alignment(Alignment::End),
@@ -547,16 +547,16 @@ class PosPurchaseInfolist
                             ])
                             ->schema([
                                 TextEntry::make('rate')
-                                    ->label('Rate')
+                                    ->label(__('Rate'))
                                     ->badge()
                                     ->color('gray'),
                                 TextEntry::make('amount')
-                                    ->label('Amount'),
+                                    ->label(__('Amount')),
                             ])
                             ->columnSpanFull(),
 
                         TextEntry::make('tip_display')
-                            ->label('Tip')
+                            ->label(__('Tip'))
                             ->formatStateUsing(function ($state, $record) {
                                 $metadata = $record->metadata ?? [];
                                 $tip = ($metadata['tip_amount'] ?? $record->tip_amount ?? 0) / 100;
@@ -572,7 +572,7 @@ class PosPurchaseInfolist
                             ->visible(fn ($record) => (($record->metadata['tip_amount'] ?? $record->tip_amount ?? 0) > 0)),
 
                         TextEntry::make('formatted_amount')
-                            ->label('Total Paid')
+                            ->label(__('Total Paid'))
                             ->size(TextSize::Large)
                             ->badge()
                             ->color('success')
@@ -587,7 +587,7 @@ class PosPurchaseInfolist
                 Section::make('Payment Status')
                     ->schema([
                         IconEntry::make('paid')
-                            ->label('Payment Received')
+                            ->label(__('Payment Received'))
                             ->boolean()
                             ->trueIcon('heroicon-o-check-circle')
                             ->falseIcon('heroicon-o-x-circle')
@@ -596,7 +596,7 @@ class PosPurchaseInfolist
                             ->size(IconSize::Large),
 
                         IconEntry::make('captured')
-                            ->label('Payment Captured')
+                            ->label(__('Payment Captured'))
                             ->boolean()
                             ->trueIcon('heroicon-o-check-circle')
                             ->falseIcon('heroicon-o-x-circle')
@@ -605,7 +605,7 @@ class PosPurchaseInfolist
                             ->size(IconSize::Large),
 
                         IconEntry::make('refunded')
-                            ->label('Refunded')
+                            ->label(__('Refunded'))
                             ->boolean()
                             ->trueIcon('heroicon-o-x-circle')
                             ->falseIcon('heroicon-o-check-circle')
@@ -614,7 +614,7 @@ class PosPurchaseInfolist
                             ->size(IconSize::Large),
 
                         TextEntry::make('formatted_amount_refunded')
-                            ->label('Refund Amount')
+                            ->label(__('Refund Amount'))
                             ->badge()
                             ->color('warning')
                             ->icon(Heroicon::OutlinedArrowPath)
@@ -628,24 +628,24 @@ class PosPurchaseInfolist
                 Section::make('SAF-T Compliance')
                     ->schema([
                         TextEntry::make('payment_code')
-                            ->label('Payment Code (SAF-T)')
+                            ->label(__('Payment Code (SAF-T)'))
                             ->badge()
                             ->color('info')
                             ->icon(Heroicon::OutlinedHashtag)
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->copyable(),
 
                         TextEntry::make('transaction_code')
-                            ->label('Transaction Code (SAF-T)')
+                            ->label(__('Transaction Code (SAF-T)'))
                             ->badge()
                             ->color('info')
                             ->icon(Heroicon::OutlinedHashtag)
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->copyable(),
 
                         TextEntry::make('description')
-                            ->label('Description')
-                            ->placeholder('-')
+                            ->label(__('Description'))
+                            ->placeholder(__('-'))
                             ->wrap()
                             ->icon(Heroicon::OutlinedDocumentText)
                             ->columnSpanFull(),
@@ -659,40 +659,40 @@ class PosPurchaseInfolist
                 Section::make('Technical Details')
                     ->schema([
                         TextEntry::make('stripe_charge_id')
-                            ->label('Stripe Charge ID')
+                            ->label(__('Stripe Charge ID'))
                             ->copyable()
-                            ->placeholder('Cash payment (no Stripe ID)')
+                            ->placeholder(__('Cash payment (no Stripe ID)'))
                             ->icon(Heroicon::OutlinedHashtag)
                             ->visible(fn ($record) => $record->stripe_charge_id),
 
                         TextEntry::make('stripe_payment_intent_id')
-                            ->label('Payment Intent ID')
+                            ->label(__('Payment Intent ID'))
                             ->copyable()
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedHashtag)
                             ->visible(fn ($record) => $record->stripe_payment_intent_id),
 
                         TextEntry::make('failure_code')
-                            ->label('Failure Code')
-                            ->placeholder('-')
+                            ->label(__('Failure Code'))
+                            ->placeholder(__('-'))
                             ->badge()
                             ->color('danger')
                             ->visible(fn ($record) => $record->failure_code),
 
                         TextEntry::make('failure_message')
-                            ->label('Failure Message')
-                            ->placeholder('-')
+                            ->label(__('Failure Message'))
+                            ->placeholder(__('-'))
                             ->wrap()
                             ->color('danger')
                             ->visible(fn ($record) => $record->failure_message),
 
                         TextEntry::make('created_at')
-                            ->label('Created')
+                            ->label(__('Created'))
                             ->dateTime('d.m.Y H:i:s')
                             ->icon(Heroicon::OutlinedCalendar),
 
                         TextEntry::make('updated_at')
-                            ->label('Last Updated')
+                            ->label(__('Last Updated'))
                             ->dateTime('d.m.Y H:i:s')
                             ->icon(Heroicon::OutlinedCalendar),
                     ])

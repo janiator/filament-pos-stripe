@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PatchPosDeviceRequest
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,71 +29,96 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * PatchPosDeviceRequest Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSerializable
+class PatchPosDeviceRequest implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'patchPosDevice_request';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'device_name' => 'string',
+        'device_identifier' => 'string',
         'device_status' => 'string',
-        'device_metadata' => 'array<string,mixed>'
+        'device_metadata' => 'array<string,mixed>',
+        'cash_drawer_enabled' => 'bool',
+        'has_integrated_drawer' => 'bool',
+        'booking_enabled' => 'bool',
+        'auto_print_receipt' => 'bool',
+        'last_connected_terminal_location_id' => 'int',
+        'last_connected_terminal_reader_id' => 'int',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'device_name' => null,
+        'device_identifier' => null,
         'device_status' => null,
-        'device_metadata' => null
+        'device_metadata' => null,
+        'cash_drawer_enabled' => null,
+        'has_integrated_drawer' => null,
+        'booking_enabled' => null,
+        'auto_print_receipt' => null,
+        'last_connected_terminal_location_id' => null,
+        'last_connected_terminal_reader_id' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'device_name' => false,
+        'device_identifier' => false,
         'device_status' => false,
-        'device_metadata' => true
+        'device_metadata' => true,
+        'cash_drawer_enabled' => false,
+        'has_integrated_drawer' => false,
+        'booking_enabled' => false,
+        'auto_print_receipt' => false,
+        'last_connected_terminal_location_id' => true,
+        'last_connected_terminal_reader_id' => true,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -116,8 +143,6 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -127,7 +152,7 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -137,7 +162,7 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -146,9 +171,6 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -157,9 +179,6 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -174,8 +193,15 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
      */
     protected static $attributeMap = [
         'device_name' => 'device_name',
+        'device_identifier' => 'device_identifier',
         'device_status' => 'device_status',
-        'device_metadata' => 'device_metadata'
+        'device_metadata' => 'device_metadata',
+        'cash_drawer_enabled' => 'cash_drawer_enabled',
+        'has_integrated_drawer' => 'has_integrated_drawer',
+        'booking_enabled' => 'booking_enabled',
+        'auto_print_receipt' => 'auto_print_receipt',
+        'last_connected_terminal_location_id' => 'last_connected_terminal_location_id',
+        'last_connected_terminal_reader_id' => 'last_connected_terminal_reader_id',
     ];
 
     /**
@@ -185,8 +211,15 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
      */
     protected static $setters = [
         'device_name' => 'setDeviceName',
+        'device_identifier' => 'setDeviceIdentifier',
         'device_status' => 'setDeviceStatus',
-        'device_metadata' => 'setDeviceMetadata'
+        'device_metadata' => 'setDeviceMetadata',
+        'cash_drawer_enabled' => 'setCashDrawerEnabled',
+        'has_integrated_drawer' => 'setHasIntegratedDrawer',
+        'booking_enabled' => 'setBookingEnabled',
+        'auto_print_receipt' => 'setAutoPrintReceipt',
+        'last_connected_terminal_location_id' => 'setLastConnectedTerminalLocationId',
+        'last_connected_terminal_reader_id' => 'setLastConnectedTerminalReaderId',
     ];
 
     /**
@@ -196,8 +229,15 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
      */
     protected static $getters = [
         'device_name' => 'getDeviceName',
+        'device_identifier' => 'getDeviceIdentifier',
         'device_status' => 'getDeviceStatus',
-        'device_metadata' => 'getDeviceMetadata'
+        'device_metadata' => 'getDeviceMetadata',
+        'cash_drawer_enabled' => 'getCashDrawerEnabled',
+        'has_integrated_drawer' => 'getHasIntegratedDrawer',
+        'booking_enabled' => 'getBookingEnabled',
+        'auto_print_receipt' => 'getAutoPrintReceipt',
+        'last_connected_terminal_location_id' => 'getLastConnectedTerminalLocationId',
+        'last_connected_terminal_reader_id' => 'getLastConnectedTerminalReaderId',
     ];
 
     /**
@@ -242,8 +282,11 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     }
 
     public const DEVICE_STATUS_ACTIVE = 'active';
+
     public const DEVICE_STATUS_INACTIVE = 'inactive';
+
     public const DEVICE_STATUS_MAINTENANCE = 'maintenance';
+
     public const DEVICE_STATUS_OFFLINE = 'offline';
 
     /**
@@ -271,25 +314,30 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
         $this->setIfExists('device_name', $data ?? [], null);
+        $this->setIfExists('device_identifier', $data ?? [], null);
         $this->setIfExists('device_status', $data ?? [], null);
         $this->setIfExists('device_metadata', $data ?? [], null);
+        $this->setIfExists('cash_drawer_enabled', $data ?? [], null);
+        $this->setIfExists('has_integrated_drawer', $data ?? [], null);
+        $this->setIfExists('booking_enabled', $data ?? [], null);
+        $this->setIfExists('auto_print_receipt', $data ?? [], null);
+        $this->setIfExists('last_connected_terminal_location_id', $data ?? [], null);
+        $this->setIfExists('last_connected_terminal_reader_id', $data ?? [], null);
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -309,7 +357,7 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         $invalidProperties = [];
 
         $allowedValues = $this->getDeviceStatusAllowableValues();
-        if (!is_null($this->container['device_status']) && !in_array($this->container['device_status'], $allowedValues, true)) {
+        if (! is_null($this->container['device_status']) && ! in_array($this->container['device_status'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'device_status', must be one of '%s'",
                 $this->container['device_status'],
@@ -331,7 +379,6 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets device_name
      *
@@ -345,8 +392,7 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets device_name
      *
-     * @param string|null $device_name device_name
-     *
+     * @param  string|null  $device_name  device_name
      * @return self
      */
     public function setDeviceName($device_name)
@@ -355,6 +401,32 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
             throw new \InvalidArgumentException('non-nullable device_name cannot be null');
         }
         $this->container['device_name'] = $device_name;
+
+        return $this;
+    }
+
+    /**
+     * Gets device_identifier
+     *
+     * @return string|null
+     */
+    public function getDeviceIdentifier()
+    {
+        return $this->container['device_identifier'];
+    }
+
+    /**
+     * Sets device_identifier
+     *
+     * @param  string|null  $device_identifier  Update the stored device identifier (e.g. when re-registering)
+     * @return self
+     */
+    public function setDeviceIdentifier($device_identifier)
+    {
+        if (is_null($device_identifier)) {
+            throw new \InvalidArgumentException('non-nullable device_identifier cannot be null');
+        }
+        $this->container['device_identifier'] = $device_identifier;
 
         return $this;
     }
@@ -372,8 +444,7 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets device_status
      *
-     * @param string|null $device_status device_status
-     *
+     * @param  string|null  $device_status  device_status
      * @return self
      */
     public function setDeviceStatus($device_status)
@@ -382,7 +453,7 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
             throw new \InvalidArgumentException('non-nullable device_status cannot be null');
         }
         $allowedValues = $this->getDeviceStatusAllowableValues();
-        if (!in_array($device_status, $allowedValues, true)) {
+        if (! in_array($device_status, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'device_status', must be one of '%s'",
@@ -409,8 +480,7 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets device_metadata
      *
-     * @param array<string,mixed>|null $device_metadata device_metadata
-     *
+     * @param  array<string,mixed>|null  $device_metadata  device_metadata
      * @return self
      */
     public function setDeviceMetadata($device_metadata)
@@ -420,7 +490,7 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('device_metadata', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -429,12 +499,181 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
         return $this;
     }
+
+    /**
+     * Gets cash_drawer_enabled
+     *
+     * @return bool|null
+     */
+    public function getCashDrawerEnabled()
+    {
+        return $this->container['cash_drawer_enabled'];
+    }
+
+    /**
+     * Sets cash_drawer_enabled
+     *
+     * @param  bool|null  $cash_drawer_enabled  When false, only non-cash transactions are allowed on this device
+     * @return self
+     */
+    public function setCashDrawerEnabled($cash_drawer_enabled)
+    {
+        if (is_null($cash_drawer_enabled)) {
+            throw new \InvalidArgumentException('non-nullable cash_drawer_enabled cannot be null');
+        }
+        $this->container['cash_drawer_enabled'] = $cash_drawer_enabled;
+
+        return $this;
+    }
+
+    /**
+     * Gets has_integrated_drawer
+     *
+     * @return bool|null
+     */
+    public function getHasIntegratedDrawer()
+    {
+        return $this->container['has_integrated_drawer'];
+    }
+
+    /**
+     * Sets has_integrated_drawer
+     *
+     * @param  bool|null  $has_integrated_drawer  When true, this device has a built-in cash drawer (e.g. Stripe Terminal S700)
+     * @return self
+     */
+    public function setHasIntegratedDrawer($has_integrated_drawer)
+    {
+        if (is_null($has_integrated_drawer)) {
+            throw new \InvalidArgumentException('non-nullable has_integrated_drawer cannot be null');
+        }
+        $this->container['has_integrated_drawer'] = $has_integrated_drawer;
+
+        return $this;
+    }
+
+    /**
+     * Gets booking_enabled
+     *
+     * @return bool|null
+     */
+    public function getBookingEnabled()
+    {
+        return $this->container['booking_enabled'];
+    }
+
+    /**
+     * Sets booking_enabled
+     *
+     * @param  bool|null  $booking_enabled  When true, booking actions may be enabled for this device
+     * @return self
+     */
+    public function setBookingEnabled($booking_enabled)
+    {
+        if (is_null($booking_enabled)) {
+            throw new \InvalidArgumentException('non-nullable booking_enabled cannot be null');
+        }
+        $this->container['booking_enabled'] = $booking_enabled;
+
+        return $this;
+    }
+
+    /**
+     * Gets auto_print_receipt
+     *
+     * @return bool|null
+     */
+    public function getAutoPrintReceipt()
+    {
+        return $this->container['auto_print_receipt'];
+    }
+
+    /**
+     * Sets auto_print_receipt
+     *
+     * @param  bool|null  $auto_print_receipt  When true, receipts are auto-printed after purchase
+     * @return self
+     */
+    public function setAutoPrintReceipt($auto_print_receipt)
+    {
+        if (is_null($auto_print_receipt)) {
+            throw new \InvalidArgumentException('non-nullable auto_print_receipt cannot be null');
+        }
+        $this->container['auto_print_receipt'] = $auto_print_receipt;
+
+        return $this;
+    }
+
+    /**
+     * Gets last_connected_terminal_location_id
+     *
+     * @return int|null
+     */
+    public function getLastConnectedTerminalLocationId()
+    {
+        return $this->container['last_connected_terminal_location_id'];
+    }
+
+    /**
+     * Sets last_connected_terminal_location_id
+     *
+     * @param  int|null  $last_connected_terminal_location_id  last_connected_terminal_location_id
+     * @return self
+     */
+    public function setLastConnectedTerminalLocationId($last_connected_terminal_location_id)
+    {
+        if (is_null($last_connected_terminal_location_id)) {
+            array_push($this->openAPINullablesSetToNull, 'last_connected_terminal_location_id');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('last_connected_terminal_location_id', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['last_connected_terminal_location_id'] = $last_connected_terminal_location_id;
+
+        return $this;
+    }
+
+    /**
+     * Gets last_connected_terminal_reader_id
+     *
+     * @return int|null
+     */
+    public function getLastConnectedTerminalReaderId()
+    {
+        return $this->container['last_connected_terminal_reader_id'];
+    }
+
+    /**
+     * Sets last_connected_terminal_reader_id
+     *
+     * @param  int|null  $last_connected_terminal_reader_id  last_connected_terminal_reader_id
+     * @return self
+     */
+    public function setLastConnectedTerminalReaderId($last_connected_terminal_reader_id)
+    {
+        if (is_null($last_connected_terminal_reader_id)) {
+            array_push($this->openAPINullablesSetToNull, 'last_connected_terminal_reader_id');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('last_connected_terminal_reader_id', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['last_connected_terminal_reader_id'] = $last_connected_terminal_reader_id;
+
+        return $this;
+    }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -444,8 +683,7 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -457,10 +695,8 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -474,9 +710,7 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -485,15 +719,16 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -519,5 +754,3 @@ class PatchPosDeviceRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

@@ -17,33 +17,33 @@ class QuantityUnitForm
                 Section::make('Basic Information')
                     ->schema([
                         TextInput::make('name')
-                            ->label('Name')
+                            ->label(__('Name'))
                             ->required()
                             ->maxLength(255)
                             ->columnSpanFull()
-                            ->helperText('The name of the quantity unit (e.g., "Piece", "Kilogram", "Meter")'),
+                            ->helperText(__('The name of the quantity unit (e.g., "Piece", "Kilogram", "Meter")')),
 
                         TextInput::make('symbol')
-                            ->label('Symbol')
+                            ->label(__('Symbol'))
                             ->maxLength(20)
                             ->columnSpanFull()
-                            ->helperText('The symbol or abbreviation (e.g., "stk", "kg", "m")'),
+                            ->helperText(__('The symbol or abbreviation (e.g., "stk", "kg", "m")')),
 
                         Textarea::make('description')
-                            ->label('Description')
+                            ->label(__('Description'))
                             ->rows(3)
                             ->columnSpanFull()
-                            ->helperText('Optional description for this quantity unit'),
+                            ->helperText(__('Optional description for this quantity unit')),
 
                         Toggle::make('active')
-                            ->label('Active')
+                            ->label(__('Active'))
                             ->default(true)
-                            ->helperText('Only active quantity units are available for selection'),
+                            ->helperText(__('Only active quantity units are available for selection')),
 
                         Toggle::make('is_standard')
-                            ->label('Standard Unit')
+                            ->label(__('Standard Unit'))
                             ->default(false)
-                            ->helperText('Standard units are pre-seeded and cannot be deleted')
+                            ->helperText(__('Standard units are pre-seeded and cannot be deleted'))
                             ->disabled(fn ($record) => $record && $record->is_standard),
                     ]),
             ]);

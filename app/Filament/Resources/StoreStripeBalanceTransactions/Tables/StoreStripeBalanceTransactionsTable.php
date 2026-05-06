@@ -38,7 +38,7 @@ class StoreStripeBalanceTransactionsTable
                     ->label(__('filament.resources.store_stripe_balance_transaction.columns.charge_id'))
                     ->searchable()
                     ->copyable()
-                    ->placeholder('-')
+                    ->placeholder(__('-'))
                     ->toggleable(),
 
                 TextColumn::make('status')

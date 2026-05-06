@@ -16,7 +16,7 @@ class PowerOfficeIntegrationsTable
         return $table
             ->columns([
                 TextColumn::make('store.name')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('status')
@@ -31,12 +31,12 @@ class PowerOfficeIntegrationsTable
                 TextColumn::make('environment')
                     ->badge(),
                 TextColumn::make('mapping_basis')
-                    ->label('Basis')
+                    ->label(__('Basis'))
                     ->formatStateUsing(fn (PowerOfficeMappingBasis $state): string => $state->label()),
                 TextColumn::make('last_synced_at')
                     ->dateTime()
                     ->sortable()
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
             ])
             ->filters([
                 SelectFilter::make('status')

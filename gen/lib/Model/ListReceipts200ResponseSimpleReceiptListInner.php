@@ -1,19 +1,21 @@
 <?php
+
 /**
  * ListReceipts200ResponseSimpleReceiptListInner
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * ListReceipts200ResponseSimpleReceiptListInner Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, ArrayAccess, \JsonSerializable
+class ListReceipts200ResponseSimpleReceiptListInner implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'listReceipts_200_response_simpleReceiptList_inner';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'receipt_type' => 'string',
@@ -65,16 +69,18 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
         'cashier_name' => 'string',
         'reprint_count' => 'int',
         'can_be_printed' => 'bool',
-        'is_generated' => 'bool'
+        'is_generated' => 'bool',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'receipt_type' => null,
@@ -83,14 +89,14 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
         'cashier_name' => null,
         'reprint_count' => null,
         'can_be_printed' => null,
-        'is_generated' => null
+        'is_generated' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => true,
         'receipt_type' => false,
@@ -99,14 +105,14 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
         'cashier_name' => true,
         'reprint_count' => false,
         'can_be_printed' => false,
-        'is_generated' => false
+        'is_generated' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -131,8 +137,6 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -142,7 +146,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -152,7 +156,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -161,9 +165,6 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -172,9 +173,6 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -195,7 +193,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
         'cashier_name' => 'cashier_name',
         'reprint_count' => 'reprint_count',
         'can_be_printed' => 'can_be_printed',
-        'is_generated' => 'is_generated'
+        'is_generated' => 'is_generated',
     ];
 
     /**
@@ -211,7 +209,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
         'cashier_name' => 'setCashierName',
         'reprint_count' => 'setReprintCount',
         'can_be_printed' => 'setCanBePrinted',
-        'is_generated' => 'setIsGenerated'
+        'is_generated' => 'setIsGenerated',
     ];
 
     /**
@@ -227,7 +225,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
         'cashier_name' => 'getCashierName',
         'reprint_count' => 'getReprintCount',
         'can_be_printed' => 'getCanBePrinted',
-        'is_generated' => 'getIsGenerated'
+        'is_generated' => 'getIsGenerated',
     ];
 
     /**
@@ -272,12 +270,19 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     }
 
     public const RECEIPT_TYPE_SALES = 'sales';
+
     public const RECEIPT_TYPE__RETURN = 'return';
+
     public const RECEIPT_TYPE_COPY = 'copy';
+
     public const RECEIPT_TYPE_STEB = 'steb';
+
     public const RECEIPT_TYPE_PROVISIONAL = 'provisional';
+
     public const RECEIPT_TYPE_TRAINING = 'training';
+
     public const RECEIPT_TYPE_DELIVERY = 'delivery';
+
     public const RECEIPT_TYPE_CORRECTION = 'correction';
 
     /**
@@ -309,8 +314,8 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -325,14 +330,12 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -352,7 +355,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
         $invalidProperties = [];
 
         $allowedValues = $this->getReceiptTypeAllowableValues();
-        if (!is_null($this->container['receipt_type']) && !in_array($this->container['receipt_type'], $allowedValues, true)) {
+        if (! is_null($this->container['receipt_type']) && ! in_array($this->container['receipt_type'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'receipt_type', must be one of '%s'",
                 $this->container['receipt_type'],
@@ -374,7 +377,6 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -388,8 +390,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Sets id
      *
-     * @param int|null $id Receipt ID (only present when is_generated is true)
-     *
+     * @param  int|null  $id  Receipt ID (only present when is_generated is true)
      * @return self
      */
     public function setId($id)
@@ -399,7 +400,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -422,8 +423,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Sets receipt_type
      *
-     * @param string|null $receipt_type Receipt type code
-     *
+     * @param  string|null  $receipt_type  Receipt type code
      * @return self
      */
     public function setReceiptType($receipt_type)
@@ -432,7 +432,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
             throw new \InvalidArgumentException('non-nullable receipt_type cannot be null');
         }
         $allowedValues = $this->getReceiptTypeAllowableValues();
-        if (!in_array($receipt_type, $allowedValues, true)) {
+        if (! in_array($receipt_type, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'receipt_type', must be one of '%s'",
@@ -459,8 +459,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Sets receipt_type_display_name
      *
-     * @param string|null $receipt_type_display_name Receipt type display name in Norwegian
-     *
+     * @param  string|null  $receipt_type_display_name  Receipt type display name in Norwegian
      * @return self
      */
     public function setReceiptTypeDisplayName($receipt_type_display_name)
@@ -486,8 +485,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Sets created_at
      *
-     * @param \DateTime|null $created_at Date and time when receipt was created (Oslo timezone)
-     *
+     * @param  \DateTime|null  $created_at  Date and time when receipt was created (Oslo timezone)
      * @return self
      */
     public function setCreatedAt($created_at)
@@ -513,8 +511,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Sets cashier_name
      *
-     * @param string|null $cashier_name Name of the cashier who created the receipt
-     *
+     * @param  string|null  $cashier_name  Name of the cashier who created the receipt
      * @return self
      */
     public function setCashierName($cashier_name)
@@ -524,7 +521,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('cashier_name', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -547,8 +544,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Sets reprint_count
      *
-     * @param int|null $reprint_count Number of times the receipt has been reprinted
-     *
+     * @param  int|null  $reprint_count  Number of times the receipt has been reprinted
      * @return self
      */
     public function setReprintCount($reprint_count)
@@ -574,8 +570,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Sets can_be_printed
      *
-     * @param bool|null $can_be_printed Whether the receipt can still be printed/reprinted according to Kassasystemforskriften § 2-8-4: - Original sales receipts: can only be printed once (no reprints) - Copy receipts: can only be printed once - STEB receipts: can be printed multiple times (exception for tax-free shops) - Other receipt types: can only be printed once
-     *
+     * @param  bool|null  $can_be_printed  Whether the receipt can still be printed/reprinted according to Kassasystemforskriften § 2-8-4: - Original sales receipts: can only be printed once (no reprints) - Copy receipts: can only be printed once - STEB receipts: can be printed multiple times (exception for tax-free shops) - Other receipt types: can only be printed once
      * @return self
      */
     public function setCanBePrinted($can_be_printed)
@@ -601,8 +596,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Sets is_generated
      *
-     * @param bool|null $is_generated Whether this receipt has been generated or is just available to generate. - true: Receipt exists in the database (has id) - false: Receipt type is available but not yet generated (no id)
-     *
+     * @param  bool|null  $is_generated  Whether this receipt has been generated or is just available to generate. - true: Receipt exists in the database (has id) - false: Receipt type is available but not yet generated (no id)
      * @return self
      */
     public function setIsGenerated($is_generated)
@@ -614,12 +608,11 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -629,8 +622,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -642,10 +634,8 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -659,9 +649,7 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -670,15 +658,16 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -704,5 +693,3 @@ class ListReceipts200ResponseSimpleReceiptListInner implements ModelInterface, A
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

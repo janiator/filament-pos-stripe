@@ -1,18 +1,20 @@
 <?php
+
 /**
  * POSSessionsApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * POSSessionsApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class POSSessionsApi
@@ -73,12 +75,24 @@ class POSSessionsApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
+        'cashDeposit' => [
+            'application/json',
+        ],
+        'cashWithdrawal' => [
+            'application/json',
+        ],
         'closePosSession' => [
             'application/json',
         ],
         'createDailyClosing' => [
+            'application/json',
+        ],
+        'downloadXReportPdf' => [
+            'application/json',
+        ],
+        'downloadZReportPdf' => [
             'application/json',
         ],
         'generateXReport' => [
@@ -102,10 +116,7 @@ class POSSessionsApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -113,16 +124,16 @@ class POSSessionsApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -148,40 +159,41 @@ class POSSessionsApi
     }
 
     /**
-     * Operation closePosSession
+     * Operation cashDeposit
      *
-     * Close POS session
+     * Record cash deposit
      *
-     * @param  int $id id (required)
-     * @param  \OpenAPI\Client\Model\ClosePosSessionRequest|null $close_pos_session_request close_pos_session_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['closePosSession'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  \OpenAPIClient\Model\CashDepositRequest  $cash_deposit_request  cash_deposit_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cashDeposit'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CashDeposit201Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ClosePosSession200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
-    public function closePosSession($id, $close_pos_session_request = null, string $contentType = self::contentTypes['closePosSession'][0])
+    public function cashDeposit($id, $cash_deposit_request, string $contentType = self::contentTypes['cashDeposit'][0])
     {
-        list($response) = $this->closePosSessionWithHttpInfo($id, $close_pos_session_request, $contentType);
+        [$response] = $this->cashDepositWithHttpInfo($id, $cash_deposit_request, $contentType);
+
         return $response;
     }
 
     /**
-     * Operation closePosSessionWithHttpInfo
+     * Operation cashDepositWithHttpInfo
      *
-     * Close POS session
+     * Record cash deposit
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\ClosePosSessionRequest|null $close_pos_session_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['closePosSession'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CashDepositRequest  $cash_deposit_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cashDeposit'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CashDeposit201Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ClosePosSession200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
-    public function closePosSessionWithHttpInfo($id, $close_pos_session_request = null, string $contentType = self::contentTypes['closePosSession'][0])
+    public function cashDepositWithHttpInfo($id, $cash_deposit_request, string $contentType = self::contentTypes['cashDeposit'][0])
     {
-        $request = $this->closePosSessionRequest($id, $close_pos_session_request, $contentType);
+        $request = $this->cashDepositRequest($id, $cash_deposit_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -205,29 +217,26 @@ class POSSessionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
-                case 200:
+            switch ($statusCode) {
+                case 201:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ClosePosSession200Response',
+                        '\OpenAPIClient\Model\CashDeposit201Response',
                         $request,
                         $response,
                     );
                 case 400:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -243,7 +252,635 @@ class POSSessionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ClosePosSession200Response',
+                '\OpenAPIClient\Model\CashDeposit201Response',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 201:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\CashDeposit201Response',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 400:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation cashDepositAsync
+     *
+     * Record cash deposit
+     *
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CashDepositRequest  $cash_deposit_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cashDeposit'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function cashDepositAsync($id, $cash_deposit_request, string $contentType = self::contentTypes['cashDeposit'][0])
+    {
+        return $this->cashDepositAsyncWithHttpInfo($id, $cash_deposit_request, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation cashDepositAsyncWithHttpInfo
+     *
+     * Record cash deposit
+     *
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CashDepositRequest  $cash_deposit_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cashDeposit'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function cashDepositAsyncWithHttpInfo($id, $cash_deposit_request, string $contentType = self::contentTypes['cashDeposit'][0])
+    {
+        $returnType = '\OpenAPIClient\Model\CashDeposit201Response';
+        $request = $this->cashDepositRequest($id, $cash_deposit_request, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); // stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders(),
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'cashDeposit'
+     *
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CashDepositRequest  $cash_deposit_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cashDeposit'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function cashDepositRequest($id, $cash_deposit_request, string $contentType = self::contentTypes['cashDeposit'][0])
+    {
+
+        // verify the required parameter 'id' is set
+        if ($id === null || (is_array($id) && count($id) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $id when calling cashDeposit'
+            );
+        }
+
+        // verify the required parameter 'cash_deposit_request' is set
+        if ($cash_deposit_request === null || (is_array($cash_deposit_request) && count($cash_deposit_request) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $cash_deposit_request when calling cashDeposit'
+            );
+        }
+
+        $resourcePath = '/pos-sessions/{id}/cash-deposit';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+        // path params
+        if ($id !== null) {
+            $resourcePath = str_replace(
+                '{'.'id'.'}',
+                ObjectSerializer::toPathValue($id),
+                $resourcePath
+            );
+        }
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json'],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (isset($cash_deposit_request)) {
+            if (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the body
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($cash_deposit_request));
+            } else {
+                $httpBody = $cash_deposit_request;
+            }
+        } elseif (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem,
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires Bearer (JWT) authentication (access token)
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+
+        return new Request(
+            'POST',
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation cashWithdrawal
+     *
+     * Record cash withdrawal
+     *
+     * @param  int  $id  id (required)
+     * @param  \OpenAPIClient\Model\CashWithdrawalRequest  $cash_withdrawal_request  cash_withdrawal_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cashWithdrawal'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CashWithdrawal201Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function cashWithdrawal($id, $cash_withdrawal_request, string $contentType = self::contentTypes['cashWithdrawal'][0])
+    {
+        [$response] = $this->cashWithdrawalWithHttpInfo($id, $cash_withdrawal_request, $contentType);
+
+        return $response;
+    }
+
+    /**
+     * Operation cashWithdrawalWithHttpInfo
+     *
+     * Record cash withdrawal
+     *
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CashWithdrawalRequest  $cash_withdrawal_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cashWithdrawal'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CashWithdrawal201Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function cashWithdrawalWithHttpInfo($id, $cash_withdrawal_request, string $contentType = self::contentTypes['cashWithdrawal'][0])
+    {
+        $request = $this->cashWithdrawalRequest($id, $cash_withdrawal_request, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+            switch ($statusCode) {
+                case 201:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\CashWithdrawal201Response',
+                        $request,
+                        $response,
+                    );
+                case 400:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+            }
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\OpenAPIClient\Model\CashWithdrawal201Response',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 201:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\CashWithdrawal201Response',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 400:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation cashWithdrawalAsync
+     *
+     * Record cash withdrawal
+     *
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CashWithdrawalRequest  $cash_withdrawal_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cashWithdrawal'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function cashWithdrawalAsync($id, $cash_withdrawal_request, string $contentType = self::contentTypes['cashWithdrawal'][0])
+    {
+        return $this->cashWithdrawalAsyncWithHttpInfo($id, $cash_withdrawal_request, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation cashWithdrawalAsyncWithHttpInfo
+     *
+     * Record cash withdrawal
+     *
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CashWithdrawalRequest  $cash_withdrawal_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cashWithdrawal'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function cashWithdrawalAsyncWithHttpInfo($id, $cash_withdrawal_request, string $contentType = self::contentTypes['cashWithdrawal'][0])
+    {
+        $returnType = '\OpenAPIClient\Model\CashWithdrawal201Response';
+        $request = $this->cashWithdrawalRequest($id, $cash_withdrawal_request, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); // stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders(),
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'cashWithdrawal'
+     *
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CashWithdrawalRequest  $cash_withdrawal_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cashWithdrawal'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function cashWithdrawalRequest($id, $cash_withdrawal_request, string $contentType = self::contentTypes['cashWithdrawal'][0])
+    {
+
+        // verify the required parameter 'id' is set
+        if ($id === null || (is_array($id) && count($id) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $id when calling cashWithdrawal'
+            );
+        }
+
+        // verify the required parameter 'cash_withdrawal_request' is set
+        if ($cash_withdrawal_request === null || (is_array($cash_withdrawal_request) && count($cash_withdrawal_request) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $cash_withdrawal_request when calling cashWithdrawal'
+            );
+        }
+
+        $resourcePath = '/pos-sessions/{id}/cash-withdrawal';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+        // path params
+        if ($id !== null) {
+            $resourcePath = str_replace(
+                '{'.'id'.'}',
+                ObjectSerializer::toPathValue($id),
+                $resourcePath
+            );
+        }
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json'],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (isset($cash_withdrawal_request)) {
+            if (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the body
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($cash_withdrawal_request));
+            } else {
+                $httpBody = $cash_withdrawal_request;
+            }
+        } elseif (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem,
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires Bearer (JWT) authentication (access token)
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+
+        return new Request(
+            'POST',
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation closePosSession
+     *
+     * Close POS session
+     *
+     * @param  int  $id  id (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session. Default false. (optional, default to false)
+     * @param  \OpenAPIClient\Model\ClosePosSessionRequest|null  $close_pos_session_request  close_pos_session_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['closePosSession'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ClosePosSession200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function closePosSession($id, $include_session_charges = false, $close_pos_session_request = null, string $contentType = self::contentTypes['closePosSession'][0])
+    {
+        [$response] = $this->closePosSessionWithHttpInfo($id, $include_session_charges, $close_pos_session_request, $contentType);
+
+        return $response;
+    }
+
+    /**
+     * Operation closePosSessionWithHttpInfo
+     *
+     * Close POS session
+     *
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session. Default false. (optional, default to false)
+     * @param  \OpenAPIClient\Model\ClosePosSessionRequest|null  $close_pos_session_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['closePosSession'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ClosePosSession200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function closePosSessionWithHttpInfo($id, $include_session_charges = false, $close_pos_session_request = null, string $contentType = self::contentTypes['closePosSession'][0])
+    {
+        $request = $this->closePosSessionRequest($id, $include_session_charges, $close_pos_session_request, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+            switch ($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ClosePosSession200Response',
+                        $request,
+                        $response,
+                    );
+                case 400:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+            }
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\OpenAPIClient\Model\ClosePosSession200Response',
                 $request,
                 $response,
             );
@@ -252,7 +889,7 @@ class POSSessionsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ClosePosSession200Response',
+                        '\OpenAPIClient\Model\ClosePosSession200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -260,7 +897,7 @@ class POSSessionsApi
                 case 400:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -268,13 +905,12 @@ class POSSessionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -285,16 +921,17 @@ class POSSessionsApi
      *
      * Close POS session
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\ClosePosSessionRequest|null $close_pos_session_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['closePosSession'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session. Default false. (optional, default to false)
+     * @param  \OpenAPIClient\Model\ClosePosSessionRequest|null  $close_pos_session_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['closePosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function closePosSessionAsync($id, $close_pos_session_request = null, string $contentType = self::contentTypes['closePosSession'][0])
+    public function closePosSessionAsync($id, $include_session_charges = false, $close_pos_session_request = null, string $contentType = self::contentTypes['closePosSession'][0])
     {
-        return $this->closePosSessionAsyncWithHttpInfo($id, $close_pos_session_request, $contentType)
+        return $this->closePosSessionAsyncWithHttpInfo($id, $include_session_charges, $close_pos_session_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -307,24 +944,25 @@ class POSSessionsApi
      *
      * Close POS session
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\ClosePosSessionRequest|null $close_pos_session_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['closePosSession'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session. Default false. (optional, default to false)
+     * @param  \OpenAPIClient\Model\ClosePosSessionRequest|null  $close_pos_session_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['closePosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function closePosSessionAsyncWithHttpInfo($id, $close_pos_session_request = null, string $contentType = self::contentTypes['closePosSession'][0])
+    public function closePosSessionAsyncWithHttpInfo($id, $include_session_charges = false, $close_pos_session_request = null, string $contentType = self::contentTypes['closePosSession'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ClosePosSession200Response';
-        $request = $this->closePosSessionRequest($id, $close_pos_session_request, $contentType);
+        $returnType = '\OpenAPIClient\Model\ClosePosSession200Response';
+        $request = $this->closePosSessionRequest($id, $include_session_charges, $close_pos_session_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -335,7 +973,7 @@ class POSSessionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -358,14 +996,15 @@ class POSSessionsApi
     /**
      * Create request for operation 'closePosSession'
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\ClosePosSessionRequest|null $close_pos_session_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['closePosSession'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session. Default false. (optional, default to false)
+     * @param  \OpenAPIClient\Model\ClosePosSessionRequest|null  $close_pos_session_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['closePosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
-    public function closePosSessionRequest($id, $close_pos_session_request = null, string $contentType = self::contentTypes['closePosSession'][0])
+    public function closePosSessionRequest($id, $include_session_charges = false, $close_pos_session_request = null, string $contentType = self::contentTypes['closePosSession'][0])
     {
 
         // verify the required parameter 'id' is set
@@ -375,8 +1014,6 @@ class POSSessionsApi
             );
         }
 
-
-
         $resourcePath = '/pos-sessions/{id}/close';
         $formParams = [];
         $queryParams = [];
@@ -384,20 +1021,27 @@ class POSSessionsApi
         $httpBody = '';
         $multipart = false;
 
-
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $include_session_charges,
+            'include_session_charges', // param base name
+            'boolean', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
 
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -405,7 +1049,7 @@ class POSSessionsApi
         // for model (json/xml)
         if (isset($close_pos_session_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($close_pos_session_request));
             } else {
                 $httpBody = $close_pos_session_request;
@@ -418,7 +1062,7 @@ class POSSessionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -426,7 +1070,7 @@ class POSSessionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -435,8 +1079,8 @@ class POSSessionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -452,9 +1096,10 @@ class POSSessionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -465,16 +1110,17 @@ class POSSessionsApi
      *
      * Create daily closing report
      *
-     * @param  \OpenAPI\Client\Model\CreateDailyClosingRequest $create_daily_closing_request create_daily_closing_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createDailyClosing'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateDailyClosingRequest  $create_daily_closing_request  create_daily_closing_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createDailyClosing'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CreateDailyClosing201Response|\OpenAPIClient\Model\CreateDailyClosing409Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\CreateDailyClosing201Response|\OpenAPI\Client\Model\CreateDailyClosing409Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function createDailyClosing($create_daily_closing_request, string $contentType = self::contentTypes['createDailyClosing'][0])
     {
-        list($response) = $this->createDailyClosingWithHttpInfo($create_daily_closing_request, $contentType);
+        [$response] = $this->createDailyClosingWithHttpInfo($create_daily_closing_request, $contentType);
+
         return $response;
     }
 
@@ -483,12 +1129,12 @@ class POSSessionsApi
      *
      * Create daily closing report
      *
-     * @param  \OpenAPI\Client\Model\CreateDailyClosingRequest $create_daily_closing_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createDailyClosing'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateDailyClosingRequest  $create_daily_closing_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createDailyClosing'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CreateDailyClosing201Response|\OpenAPIClient\Model\CreateDailyClosing409Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\CreateDailyClosing201Response|\OpenAPI\Client\Model\CreateDailyClosing409Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function createDailyClosingWithHttpInfo($create_daily_closing_request, string $contentType = self::contentTypes['createDailyClosing'][0])
     {
@@ -516,29 +1162,26 @@ class POSSessionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 201:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CreateDailyClosing201Response',
+                        '\OpenAPIClient\Model\CreateDailyClosing201Response',
                         $request,
                         $response,
                     );
                 case 409:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CreateDailyClosing409Response',
+                        '\OpenAPIClient\Model\CreateDailyClosing409Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -554,7 +1197,7 @@ class POSSessionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\CreateDailyClosing201Response',
+                '\OpenAPIClient\Model\CreateDailyClosing201Response',
                 $request,
                 $response,
             );
@@ -563,7 +1206,7 @@ class POSSessionsApi
                 case 201:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CreateDailyClosing201Response',
+                        '\OpenAPIClient\Model\CreateDailyClosing201Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -571,7 +1214,7 @@ class POSSessionsApi
                 case 409:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CreateDailyClosing409Response',
+                        '\OpenAPIClient\Model\CreateDailyClosing409Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -579,13 +1222,12 @@ class POSSessionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -596,11 +1238,11 @@ class POSSessionsApi
      *
      * Create daily closing report
      *
-     * @param  \OpenAPI\Client\Model\CreateDailyClosingRequest $create_daily_closing_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createDailyClosing'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateDailyClosingRequest  $create_daily_closing_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createDailyClosing'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createDailyClosingAsync($create_daily_closing_request, string $contentType = self::contentTypes['createDailyClosing'][0])
     {
@@ -617,15 +1259,15 @@ class POSSessionsApi
      *
      * Create daily closing report
      *
-     * @param  \OpenAPI\Client\Model\CreateDailyClosingRequest $create_daily_closing_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createDailyClosing'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateDailyClosingRequest  $create_daily_closing_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createDailyClosing'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createDailyClosingAsyncWithHttpInfo($create_daily_closing_request, string $contentType = self::contentTypes['createDailyClosing'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\CreateDailyClosing201Response';
+        $returnType = '\OpenAPIClient\Model\CreateDailyClosing201Response';
         $request = $this->createDailyClosingRequest($create_daily_closing_request, $contentType);
 
         return $this->client
@@ -633,7 +1275,7 @@ class POSSessionsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -644,7 +1286,7 @@ class POSSessionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -667,11 +1309,11 @@ class POSSessionsApi
     /**
      * Create request for operation 'createDailyClosing'
      *
-     * @param  \OpenAPI\Client\Model\CreateDailyClosingRequest $create_daily_closing_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createDailyClosing'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateDailyClosingRequest  $create_daily_closing_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createDailyClosing'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function createDailyClosingRequest($create_daily_closing_request, string $contentType = self::contentTypes['createDailyClosing'][0])
     {
@@ -683,7 +1325,6 @@ class POSSessionsApi
             );
         }
 
-
         $resourcePath = '/pos-sessions/daily-closing';
         $formParams = [];
         $queryParams = [];
@@ -691,12 +1332,8 @@ class POSSessionsApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -704,7 +1341,7 @@ class POSSessionsApi
         // for model (json/xml)
         if (isset($create_daily_closing_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($create_daily_closing_request));
             } else {
                 $httpBody = $create_daily_closing_request;
@@ -717,7 +1354,7 @@ class POSSessionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -725,7 +1362,7 @@ class POSSessionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -734,8 +1371,8 @@ class POSSessionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -751,9 +1388,600 @@ class POSSessionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation downloadXReportPdf
+     *
+     * Download X-report as PDF
+     *
+     * @param  int  $id  id (required)
+     * @param  string|null  $store  Store slug (optional if user has current store or single store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadXReportPdf'] to see the possible values for this operation
+     * @return \SplFileObject|\OpenAPIClient\Model\ErrorResponse
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function downloadXReportPdf($id, $store = null, string $contentType = self::contentTypes['downloadXReportPdf'][0])
+    {
+        [$response] = $this->downloadXReportPdfWithHttpInfo($id, $store, $contentType);
+
+        return $response;
+    }
+
+    /**
+     * Operation downloadXReportPdfWithHttpInfo
+     *
+     * Download X-report as PDF
+     *
+     * @param  int  $id  (required)
+     * @param  string|null  $store  Store slug (optional if user has current store or single store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadXReportPdf'] to see the possible values for this operation
+     * @return array of \SplFileObject|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function downloadXReportPdfWithHttpInfo($id, $store = null, string $contentType = self::contentTypes['downloadXReportPdf'][0])
+    {
+        $request = $this->downloadXReportPdfRequest($id, $store, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+            switch ($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\SplFileObject',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+            }
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\SplFileObject',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\SplFileObject',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation downloadXReportPdfAsync
+     *
+     * Download X-report as PDF
+     *
+     * @param  int  $id  (required)
+     * @param  string|null  $store  Store slug (optional if user has current store or single store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadXReportPdf'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function downloadXReportPdfAsync($id, $store = null, string $contentType = self::contentTypes['downloadXReportPdf'][0])
+    {
+        return $this->downloadXReportPdfAsyncWithHttpInfo($id, $store, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation downloadXReportPdfAsyncWithHttpInfo
+     *
+     * Download X-report as PDF
+     *
+     * @param  int  $id  (required)
+     * @param  string|null  $store  Store slug (optional if user has current store or single store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadXReportPdf'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function downloadXReportPdfAsyncWithHttpInfo($id, $store = null, string $contentType = self::contentTypes['downloadXReportPdf'][0])
+    {
+        $returnType = '\SplFileObject';
+        $request = $this->downloadXReportPdfRequest($id, $store, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); // stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders(),
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'downloadXReportPdf'
+     *
+     * @param  int  $id  (required)
+     * @param  string|null  $store  Store slug (optional if user has current store or single store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadXReportPdf'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function downloadXReportPdfRequest($id, $store = null, string $contentType = self::contentTypes['downloadXReportPdf'][0])
+    {
+
+        // verify the required parameter 'id' is set
+        if ($id === null || (is_array($id) && count($id) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $id when calling downloadXReportPdf'
+            );
+        }
+
+        $resourcePath = '/pos-sessions/{id}/x-report/pdf';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $store,
+            'store', // param base name
+            'string', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
+
+        // path params
+        if ($id !== null) {
+            $resourcePath = str_replace(
+                '{'.'id'.'}',
+                ObjectSerializer::toPathValue($id),
+                $resourcePath
+            );
+        }
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/pdf', 'application/json'],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem,
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires Bearer (JWT) authentication (access token)
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+
+        return new Request(
+            'GET',
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation downloadZReportPdf
+     *
+     * Download Z-report as PDF
+     *
+     * @param  int  $id  id (required)
+     * @param  string|null  $store  Store slug (optional if user has current store or single store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadZReportPdf'] to see the possible values for this operation
+     * @return \SplFileObject|\OpenAPIClient\Model\ErrorResponse
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function downloadZReportPdf($id, $store = null, string $contentType = self::contentTypes['downloadZReportPdf'][0])
+    {
+        [$response] = $this->downloadZReportPdfWithHttpInfo($id, $store, $contentType);
+
+        return $response;
+    }
+
+    /**
+     * Operation downloadZReportPdfWithHttpInfo
+     *
+     * Download Z-report as PDF
+     *
+     * @param  int  $id  (required)
+     * @param  string|null  $store  Store slug (optional if user has current store or single store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadZReportPdf'] to see the possible values for this operation
+     * @return array of \SplFileObject|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function downloadZReportPdfWithHttpInfo($id, $store = null, string $contentType = self::contentTypes['downloadZReportPdf'][0])
+    {
+        $request = $this->downloadZReportPdfRequest($id, $store, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+            switch ($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\SplFileObject',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+            }
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\SplFileObject',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\SplFileObject',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation downloadZReportPdfAsync
+     *
+     * Download Z-report as PDF
+     *
+     * @param  int  $id  (required)
+     * @param  string|null  $store  Store slug (optional if user has current store or single store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadZReportPdf'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function downloadZReportPdfAsync($id, $store = null, string $contentType = self::contentTypes['downloadZReportPdf'][0])
+    {
+        return $this->downloadZReportPdfAsyncWithHttpInfo($id, $store, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation downloadZReportPdfAsyncWithHttpInfo
+     *
+     * Download Z-report as PDF
+     *
+     * @param  int  $id  (required)
+     * @param  string|null  $store  Store slug (optional if user has current store or single store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadZReportPdf'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function downloadZReportPdfAsyncWithHttpInfo($id, $store = null, string $contentType = self::contentTypes['downloadZReportPdf'][0])
+    {
+        $returnType = '\SplFileObject';
+        $request = $this->downloadZReportPdfRequest($id, $store, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); // stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders(),
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'downloadZReportPdf'
+     *
+     * @param  int  $id  (required)
+     * @param  string|null  $store  Store slug (optional if user has current store or single store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadZReportPdf'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function downloadZReportPdfRequest($id, $store = null, string $contentType = self::contentTypes['downloadZReportPdf'][0])
+    {
+
+        // verify the required parameter 'id' is set
+        if ($id === null || (is_array($id) && count($id) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $id when calling downloadZReportPdf'
+            );
+        }
+
+        $resourcePath = '/pos-sessions/{id}/z-report/pdf';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $store,
+            'store', // param base name
+            'string', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
+
+        // path params
+        if ($id !== null) {
+            $resourcePath = str_replace(
+                '{'.'id'.'}',
+                ObjectSerializer::toPathValue($id),
+                $resourcePath
+            );
+        }
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/pdf', 'application/json'],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem,
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires Bearer (JWT) authentication (access token)
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+
+        return new Request(
+            'GET',
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -764,16 +1992,17 @@ class POSSessionsApi
      *
      * Generate X-report
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateXReport'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateXReport'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GenerateXReport200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GenerateXReport200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function generateXReport($id, string $contentType = self::contentTypes['generateXReport'][0])
     {
-        list($response) = $this->generateXReportWithHttpInfo($id, $contentType);
+        [$response] = $this->generateXReportWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -782,12 +2011,12 @@ class POSSessionsApi
      *
      * Generate X-report
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateXReport'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateXReport'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GenerateXReport200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GenerateXReport200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function generateXReportWithHttpInfo($id, string $contentType = self::contentTypes['generateXReport'][0])
     {
@@ -815,23 +2044,20 @@ class POSSessionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GenerateXReport200Response',
+                        '\OpenAPIClient\Model\GenerateXReport200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -847,7 +2073,7 @@ class POSSessionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GenerateXReport200Response',
+                '\OpenAPIClient\Model\GenerateXReport200Response',
                 $request,
                 $response,
             );
@@ -856,7 +2082,7 @@ class POSSessionsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GenerateXReport200Response',
+                        '\OpenAPIClient\Model\GenerateXReport200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -864,13 +2090,12 @@ class POSSessionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -881,11 +2106,11 @@ class POSSessionsApi
      *
      * Generate X-report
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateXReport'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateXReport'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function generateXReportAsync($id, string $contentType = self::contentTypes['generateXReport'][0])
     {
@@ -902,15 +2127,15 @@ class POSSessionsApi
      *
      * Generate X-report
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateXReport'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateXReport'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function generateXReportAsyncWithHttpInfo($id, string $contentType = self::contentTypes['generateXReport'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GenerateXReport200Response';
+        $returnType = '\OpenAPIClient\Model\GenerateXReport200Response';
         $request = $this->generateXReportRequest($id, $contentType);
 
         return $this->client
@@ -918,7 +2143,7 @@ class POSSessionsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -929,7 +2154,7 @@ class POSSessionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -952,11 +2177,11 @@ class POSSessionsApi
     /**
      * Create request for operation 'generateXReport'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateXReport'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateXReport'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function generateXReportRequest($id, string $contentType = self::contentTypes['generateXReport'][0])
     {
@@ -968,7 +2193,6 @@ class POSSessionsApi
             );
         }
 
-
         $resourcePath = '/pos-sessions/{id}/x-report';
         $formParams = [];
         $queryParams = [];
@@ -976,20 +2200,17 @@ class POSSessionsApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1003,7 +2224,7 @@ class POSSessionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1011,7 +2232,7 @@ class POSSessionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1020,8 +2241,8 @@ class POSSessionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1037,9 +2258,10 @@ class POSSessionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1050,17 +2272,19 @@ class POSSessionsApi
      *
      * Generate Z-report
      *
-     * @param  int $id id (required)
-     * @param  \OpenAPI\Client\Model\GenerateZReportRequest|null $generate_z_report_request generate_z_report_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateZReport'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session. Default false. (optional, default to false)
+     * @param  \OpenAPIClient\Model\GenerateZReportRequest|null  $generate_z_report_request  generate_z_report_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateZReport'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GenerateZReport200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GenerateZReport200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
-    public function generateZReport($id, $generate_z_report_request = null, string $contentType = self::contentTypes['generateZReport'][0])
+    public function generateZReport($id, $include_session_charges = false, $generate_z_report_request = null, string $contentType = self::contentTypes['generateZReport'][0])
     {
-        list($response) = $this->generateZReportWithHttpInfo($id, $generate_z_report_request, $contentType);
+        [$response] = $this->generateZReportWithHttpInfo($id, $include_session_charges, $generate_z_report_request, $contentType);
+
         return $response;
     }
 
@@ -1069,17 +2293,18 @@ class POSSessionsApi
      *
      * Generate Z-report
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\GenerateZReportRequest|null $generate_z_report_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateZReport'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session. Default false. (optional, default to false)
+     * @param  \OpenAPIClient\Model\GenerateZReportRequest|null  $generate_z_report_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateZReport'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GenerateZReport200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GenerateZReport200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
-    public function generateZReportWithHttpInfo($id, $generate_z_report_request = null, string $contentType = self::contentTypes['generateZReport'][0])
+    public function generateZReportWithHttpInfo($id, $include_session_charges = false, $generate_z_report_request = null, string $contentType = self::contentTypes['generateZReport'][0])
     {
-        $request = $this->generateZReportRequest($id, $generate_z_report_request, $contentType);
+        $request = $this->generateZReportRequest($id, $include_session_charges, $generate_z_report_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1103,29 +2328,26 @@ class POSSessionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GenerateZReport200Response',
+                        '\OpenAPIClient\Model\GenerateZReport200Response',
                         $request,
                         $response,
                     );
                 case 400:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1141,7 +2363,7 @@ class POSSessionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GenerateZReport200Response',
+                '\OpenAPIClient\Model\GenerateZReport200Response',
                 $request,
                 $response,
             );
@@ -1150,7 +2372,7 @@ class POSSessionsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GenerateZReport200Response',
+                        '\OpenAPIClient\Model\GenerateZReport200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1158,7 +2380,7 @@ class POSSessionsApi
                 case 400:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1166,13 +2388,12 @@ class POSSessionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1183,16 +2404,17 @@ class POSSessionsApi
      *
      * Generate Z-report
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\GenerateZReportRequest|null $generate_z_report_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateZReport'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session. Default false. (optional, default to false)
+     * @param  \OpenAPIClient\Model\GenerateZReportRequest|null  $generate_z_report_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateZReport'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function generateZReportAsync($id, $generate_z_report_request = null, string $contentType = self::contentTypes['generateZReport'][0])
+    public function generateZReportAsync($id, $include_session_charges = false, $generate_z_report_request = null, string $contentType = self::contentTypes['generateZReport'][0])
     {
-        return $this->generateZReportAsyncWithHttpInfo($id, $generate_z_report_request, $contentType)
+        return $this->generateZReportAsyncWithHttpInfo($id, $include_session_charges, $generate_z_report_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -1205,24 +2427,25 @@ class POSSessionsApi
      *
      * Generate Z-report
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\GenerateZReportRequest|null $generate_z_report_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateZReport'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session. Default false. (optional, default to false)
+     * @param  \OpenAPIClient\Model\GenerateZReportRequest|null  $generate_z_report_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateZReport'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function generateZReportAsyncWithHttpInfo($id, $generate_z_report_request = null, string $contentType = self::contentTypes['generateZReport'][0])
+    public function generateZReportAsyncWithHttpInfo($id, $include_session_charges = false, $generate_z_report_request = null, string $contentType = self::contentTypes['generateZReport'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GenerateZReport200Response';
-        $request = $this->generateZReportRequest($id, $generate_z_report_request, $contentType);
+        $returnType = '\OpenAPIClient\Model\GenerateZReport200Response';
+        $request = $this->generateZReportRequest($id, $include_session_charges, $generate_z_report_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1233,7 +2456,7 @@ class POSSessionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1256,14 +2479,15 @@ class POSSessionsApi
     /**
      * Create request for operation 'generateZReport'
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\GenerateZReportRequest|null $generate_z_report_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateZReport'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session. Default false. (optional, default to false)
+     * @param  \OpenAPIClient\Model\GenerateZReportRequest|null  $generate_z_report_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateZReport'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
-    public function generateZReportRequest($id, $generate_z_report_request = null, string $contentType = self::contentTypes['generateZReport'][0])
+    public function generateZReportRequest($id, $include_session_charges = false, $generate_z_report_request = null, string $contentType = self::contentTypes['generateZReport'][0])
     {
 
         // verify the required parameter 'id' is set
@@ -1273,8 +2497,6 @@ class POSSessionsApi
             );
         }
 
-
-
         $resourcePath = '/pos-sessions/{id}/z-report';
         $formParams = [];
         $queryParams = [];
@@ -1282,20 +2504,27 @@ class POSSessionsApi
         $httpBody = '';
         $multipart = false;
 
-
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $include_session_charges,
+            'include_session_charges', // param base name
+            'boolean', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
 
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1303,7 +2532,7 @@ class POSSessionsApi
         // for model (json/xml)
         if (isset($generate_z_report_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($generate_z_report_request));
             } else {
                 $httpBody = $generate_z_report_request;
@@ -1316,7 +2545,7 @@ class POSSessionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1324,7 +2553,7 @@ class POSSessionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1333,8 +2562,8 @@ class POSSessionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1350,9 +2579,10 @@ class POSSessionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1363,16 +2593,18 @@ class POSSessionsApi
      *
      * Get current open session
      *
-     * @param  int $pos_device_id POS device ID (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentPosSession'] to see the possible values for this operation
+     * @param  int  $pos_device_id  POS device ID (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentPosSession'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\PosSession|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\PosSessionWithCharges|\OpenAPI\Client\Model\ErrorResponse
      */
-    public function getCurrentPosSession($pos_device_id, string $contentType = self::contentTypes['getCurrentPosSession'][0])
+    public function getCurrentPosSession($pos_device_id, $include_session_charges = false, string $contentType = self::contentTypes['getCurrentPosSession'][0])
     {
-        list($response) = $this->getCurrentPosSessionWithHttpInfo($pos_device_id, $contentType);
+        [$response] = $this->getCurrentPosSessionWithHttpInfo($pos_device_id, $include_session_charges, $contentType);
+
         return $response;
     }
 
@@ -1381,16 +2613,17 @@ class POSSessionsApi
      *
      * Get current open session
      *
-     * @param  int $pos_device_id POS device ID (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentPosSession'] to see the possible values for this operation
+     * @param  int  $pos_device_id  POS device ID (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentPosSession'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\PosSession|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\PosSessionWithCharges|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
-    public function getCurrentPosSessionWithHttpInfo($pos_device_id, string $contentType = self::contentTypes['getCurrentPosSession'][0])
+    public function getCurrentPosSessionWithHttpInfo($pos_device_id, $include_session_charges = false, string $contentType = self::contentTypes['getCurrentPosSession'][0])
     {
-        $request = $this->getCurrentPosSessionRequest($pos_device_id, $contentType);
+        $request = $this->getCurrentPosSessionRequest($pos_device_id, $include_session_charges, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1414,23 +2647,20 @@ class POSSessionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\PosSessionWithCharges',
+                        '\OpenAPIClient\Model\PosSession',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1446,7 +2676,7 @@ class POSSessionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\PosSessionWithCharges',
+                '\OpenAPIClient\Model\PosSession',
                 $request,
                 $response,
             );
@@ -1455,7 +2685,7 @@ class POSSessionsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\PosSessionWithCharges',
+                        '\OpenAPIClient\Model\PosSession',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1463,13 +2693,12 @@ class POSSessionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1480,15 +2709,16 @@ class POSSessionsApi
      *
      * Get current open session
      *
-     * @param  int $pos_device_id POS device ID (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentPosSession'] to see the possible values for this operation
+     * @param  int  $pos_device_id  POS device ID (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentPosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function getCurrentPosSessionAsync($pos_device_id, string $contentType = self::contentTypes['getCurrentPosSession'][0])
+    public function getCurrentPosSessionAsync($pos_device_id, $include_session_charges = false, string $contentType = self::contentTypes['getCurrentPosSession'][0])
     {
-        return $this->getCurrentPosSessionAsyncWithHttpInfo($pos_device_id, $contentType)
+        return $this->getCurrentPosSessionAsyncWithHttpInfo($pos_device_id, $include_session_charges, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -1501,23 +2731,24 @@ class POSSessionsApi
      *
      * Get current open session
      *
-     * @param  int $pos_device_id POS device ID (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentPosSession'] to see the possible values for this operation
+     * @param  int  $pos_device_id  POS device ID (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentPosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function getCurrentPosSessionAsyncWithHttpInfo($pos_device_id, string $contentType = self::contentTypes['getCurrentPosSession'][0])
+    public function getCurrentPosSessionAsyncWithHttpInfo($pos_device_id, $include_session_charges = false, string $contentType = self::contentTypes['getCurrentPosSession'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\PosSessionWithCharges';
-        $request = $this->getCurrentPosSessionRequest($pos_device_id, $contentType);
+        $returnType = '\OpenAPIClient\Model\PosSession';
+        $request = $this->getCurrentPosSessionRequest($pos_device_id, $include_session_charges, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1528,7 +2759,7 @@ class POSSessionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1551,13 +2782,14 @@ class POSSessionsApi
     /**
      * Create request for operation 'getCurrentPosSession'
      *
-     * @param  int $pos_device_id POS device ID (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentPosSession'] to see the possible values for this operation
+     * @param  int  $pos_device_id  POS device ID (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentPosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
-    public function getCurrentPosSessionRequest($pos_device_id, string $contentType = self::contentTypes['getCurrentPosSession'][0])
+    public function getCurrentPosSessionRequest($pos_device_id, $include_session_charges = false, string $contentType = self::contentTypes['getCurrentPosSession'][0])
     {
 
         // verify the required parameter 'pos_device_id' is set
@@ -1566,7 +2798,6 @@ class POSSessionsApi
                 'Missing the required parameter $pos_device_id when calling getCurrentPosSession'
             );
         }
-
 
         $resourcePath = '/pos-sessions/current';
         $formParams = [];
@@ -1584,12 +2815,18 @@ class POSSessionsApi
             true, // explode
             true // required
         ) ?? []);
-
-
-
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $include_session_charges,
+            'include_session_charges', // param base name
+            'boolean', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
 
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1603,7 +2840,7 @@ class POSSessionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1611,7 +2848,7 @@ class POSSessionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1620,8 +2857,8 @@ class POSSessionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1637,9 +2874,10 @@ class POSSessionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1650,16 +2888,18 @@ class POSSessionsApi
      *
      * Get POS session
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosSession'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosSession'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetPosSession200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GetPosSession200Response|\OpenAPI\Client\Model\ErrorResponse
      */
-    public function getPosSession($id, string $contentType = self::contentTypes['getPosSession'][0])
+    public function getPosSession($id, $include_session_charges = false, string $contentType = self::contentTypes['getPosSession'][0])
     {
-        list($response) = $this->getPosSessionWithHttpInfo($id, $contentType);
+        [$response] = $this->getPosSessionWithHttpInfo($id, $include_session_charges, $contentType);
+
         return $response;
     }
 
@@ -1668,16 +2908,17 @@ class POSSessionsApi
      *
      * Get POS session
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosSession'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosSession'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetPosSession200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GetPosSession200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
-    public function getPosSessionWithHttpInfo($id, string $contentType = self::contentTypes['getPosSession'][0])
+    public function getPosSessionWithHttpInfo($id, $include_session_charges = false, string $contentType = self::contentTypes['getPosSession'][0])
     {
-        $request = $this->getPosSessionRequest($id, $contentType);
+        $request = $this->getPosSessionRequest($id, $include_session_charges, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1701,23 +2942,20 @@ class POSSessionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GetPosSession200Response',
+                        '\OpenAPIClient\Model\GetPosSession200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1733,7 +2971,7 @@ class POSSessionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GetPosSession200Response',
+                '\OpenAPIClient\Model\GetPosSession200Response',
                 $request,
                 $response,
             );
@@ -1742,7 +2980,7 @@ class POSSessionsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GetPosSession200Response',
+                        '\OpenAPIClient\Model\GetPosSession200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1750,13 +2988,12 @@ class POSSessionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1767,15 +3004,16 @@ class POSSessionsApi
      *
      * Get POS session
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosSession'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function getPosSessionAsync($id, string $contentType = self::contentTypes['getPosSession'][0])
+    public function getPosSessionAsync($id, $include_session_charges = false, string $contentType = self::contentTypes['getPosSession'][0])
     {
-        return $this->getPosSessionAsyncWithHttpInfo($id, $contentType)
+        return $this->getPosSessionAsyncWithHttpInfo($id, $include_session_charges, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -1788,23 +3026,24 @@ class POSSessionsApi
      *
      * Get POS session
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosSession'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function getPosSessionAsyncWithHttpInfo($id, string $contentType = self::contentTypes['getPosSession'][0])
+    public function getPosSessionAsyncWithHttpInfo($id, $include_session_charges = false, string $contentType = self::contentTypes['getPosSession'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GetPosSession200Response';
-        $request = $this->getPosSessionRequest($id, $contentType);
+        $returnType = '\OpenAPIClient\Model\GetPosSession200Response';
+        $request = $this->getPosSessionRequest($id, $include_session_charges, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1815,7 +3054,7 @@ class POSSessionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1838,13 +3077,14 @@ class POSSessionsApi
     /**
      * Create request for operation 'getPosSession'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosSession'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
-    public function getPosSessionRequest($id, string $contentType = self::contentTypes['getPosSession'][0])
+    public function getPosSessionRequest($id, $include_session_charges = false, string $contentType = self::contentTypes['getPosSession'][0])
     {
 
         // verify the required parameter 'id' is set
@@ -1854,7 +3094,6 @@ class POSSessionsApi
             );
         }
 
-
         $resourcePath = '/pos-sessions/{id}';
         $formParams = [];
         $queryParams = [];
@@ -1862,20 +3101,27 @@ class POSSessionsApi
         $httpBody = '';
         $multipart = false;
 
-
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $include_session_charges,
+            'include_session_charges', // param base name
+            'boolean', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
 
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1889,7 +3135,7 @@ class POSSessionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1897,7 +3143,7 @@ class POSSessionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1906,8 +3152,8 @@ class POSSessionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1923,9 +3169,10 @@ class POSSessionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1936,19 +3183,21 @@ class POSSessionsApi
      *
      * List POS sessions
      *
-     * @param  string|null $status Filter by status (open, closed, abandoned) (optional)
-     * @param  \DateTime|null $date Filter by opening date (YYYY-MM-DD) (optional)
-     * @param  int|null $pos_device_id Filter by POS device ID (optional)
-     * @param  int|null $per_page Number of items per page (optional, default to 20)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosSessions'] to see the possible values for this operation
+     * @param  string|null  $status  Filter by status (open, closed, abandoned) (optional)
+     * @param  \DateTime|null  $date  Filter by opening date (YYYY-MM-DD) (optional)
+     * @param  int|null  $pos_device_id  Filter by POS device ID (optional)
+     * @param  int|null  $per_page  Number of items per page (optional, default to 20)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in each session. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosSessions'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ListPosSessions200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ListPosSessions200Response|\OpenAPI\Client\Model\ErrorResponse
      */
-    public function listPosSessions($status = null, $date = null, $pos_device_id = null, $per_page = 20, string $contentType = self::contentTypes['listPosSessions'][0])
+    public function listPosSessions($status = null, $date = null, $pos_device_id = null, $per_page = 20, $include_session_charges = false, string $contentType = self::contentTypes['listPosSessions'][0])
     {
-        list($response) = $this->listPosSessionsWithHttpInfo($status, $date, $pos_device_id, $per_page, $contentType);
+        [$response] = $this->listPosSessionsWithHttpInfo($status, $date, $pos_device_id, $per_page, $include_session_charges, $contentType);
+
         return $response;
     }
 
@@ -1957,19 +3206,20 @@ class POSSessionsApi
      *
      * List POS sessions
      *
-     * @param  string|null $status Filter by status (open, closed, abandoned) (optional)
-     * @param  \DateTime|null $date Filter by opening date (YYYY-MM-DD) (optional)
-     * @param  int|null $pos_device_id Filter by POS device ID (optional)
-     * @param  int|null $per_page Number of items per page (optional, default to 20)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosSessions'] to see the possible values for this operation
+     * @param  string|null  $status  Filter by status (open, closed, abandoned) (optional)
+     * @param  \DateTime|null  $date  Filter by opening date (YYYY-MM-DD) (optional)
+     * @param  int|null  $pos_device_id  Filter by POS device ID (optional)
+     * @param  int|null  $per_page  Number of items per page (optional, default to 20)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in each session. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosSessions'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ListPosSessions200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ListPosSessions200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
-    public function listPosSessionsWithHttpInfo($status = null, $date = null, $pos_device_id = null, $per_page = 20, string $contentType = self::contentTypes['listPosSessions'][0])
+    public function listPosSessionsWithHttpInfo($status = null, $date = null, $pos_device_id = null, $per_page = 20, $include_session_charges = false, string $contentType = self::contentTypes['listPosSessions'][0])
     {
-        $request = $this->listPosSessionsRequest($status, $date, $pos_device_id, $per_page, $contentType);
+        $request = $this->listPosSessionsRequest($status, $date, $pos_device_id, $per_page, $include_session_charges, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1993,23 +3243,20 @@ class POSSessionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ListPosSessions200Response',
+                        '\OpenAPIClient\Model\ListPosSessions200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -2025,7 +3272,7 @@ class POSSessionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ListPosSessions200Response',
+                '\OpenAPIClient\Model\ListPosSessions200Response',
                 $request,
                 $response,
             );
@@ -2034,7 +3281,7 @@ class POSSessionsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ListPosSessions200Response',
+                        '\OpenAPIClient\Model\ListPosSessions200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2042,13 +3289,12 @@ class POSSessionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -2059,18 +3305,19 @@ class POSSessionsApi
      *
      * List POS sessions
      *
-     * @param  string|null $status Filter by status (open, closed, abandoned) (optional)
-     * @param  \DateTime|null $date Filter by opening date (YYYY-MM-DD) (optional)
-     * @param  int|null $pos_device_id Filter by POS device ID (optional)
-     * @param  int|null $per_page Number of items per page (optional, default to 20)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosSessions'] to see the possible values for this operation
+     * @param  string|null  $status  Filter by status (open, closed, abandoned) (optional)
+     * @param  \DateTime|null  $date  Filter by opening date (YYYY-MM-DD) (optional)
+     * @param  int|null  $pos_device_id  Filter by POS device ID (optional)
+     * @param  int|null  $per_page  Number of items per page (optional, default to 20)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in each session. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosSessions'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function listPosSessionsAsync($status = null, $date = null, $pos_device_id = null, $per_page = 20, string $contentType = self::contentTypes['listPosSessions'][0])
+    public function listPosSessionsAsync($status = null, $date = null, $pos_device_id = null, $per_page = 20, $include_session_charges = false, string $contentType = self::contentTypes['listPosSessions'][0])
     {
-        return $this->listPosSessionsAsyncWithHttpInfo($status, $date, $pos_device_id, $per_page, $contentType)
+        return $this->listPosSessionsAsyncWithHttpInfo($status, $date, $pos_device_id, $per_page, $include_session_charges, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -2083,26 +3330,27 @@ class POSSessionsApi
      *
      * List POS sessions
      *
-     * @param  string|null $status Filter by status (open, closed, abandoned) (optional)
-     * @param  \DateTime|null $date Filter by opening date (YYYY-MM-DD) (optional)
-     * @param  int|null $pos_device_id Filter by POS device ID (optional)
-     * @param  int|null $per_page Number of items per page (optional, default to 20)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosSessions'] to see the possible values for this operation
+     * @param  string|null  $status  Filter by status (open, closed, abandoned) (optional)
+     * @param  \DateTime|null  $date  Filter by opening date (YYYY-MM-DD) (optional)
+     * @param  int|null  $pos_device_id  Filter by POS device ID (optional)
+     * @param  int|null  $per_page  Number of items per page (optional, default to 20)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in each session. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosSessions'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function listPosSessionsAsyncWithHttpInfo($status = null, $date = null, $pos_device_id = null, $per_page = 20, string $contentType = self::contentTypes['listPosSessions'][0])
+    public function listPosSessionsAsyncWithHttpInfo($status = null, $date = null, $pos_device_id = null, $per_page = 20, $include_session_charges = false, string $contentType = self::contentTypes['listPosSessions'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ListPosSessions200Response';
-        $request = $this->listPosSessionsRequest($status, $date, $pos_device_id, $per_page, $contentType);
+        $returnType = '\OpenAPIClient\Model\ListPosSessions200Response';
+        $request = $this->listPosSessionsRequest($status, $date, $pos_device_id, $per_page, $include_session_charges, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -2113,7 +3361,7 @@ class POSSessionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -2136,22 +3384,18 @@ class POSSessionsApi
     /**
      * Create request for operation 'listPosSessions'
      *
-     * @param  string|null $status Filter by status (open, closed, abandoned) (optional)
-     * @param  \DateTime|null $date Filter by opening date (YYYY-MM-DD) (optional)
-     * @param  int|null $pos_device_id Filter by POS device ID (optional)
-     * @param  int|null $per_page Number of items per page (optional, default to 20)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosSessions'] to see the possible values for this operation
+     * @param  string|null  $status  Filter by status (open, closed, abandoned) (optional)
+     * @param  \DateTime|null  $date  Filter by opening date (YYYY-MM-DD) (optional)
+     * @param  int|null  $pos_device_id  Filter by POS device ID (optional)
+     * @param  int|null  $per_page  Number of items per page (optional, default to 20)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in each session. Default false to reduce payload size. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosSessions'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
-    public function listPosSessionsRequest($status = null, $date = null, $pos_device_id = null, $per_page = 20, string $contentType = self::contentTypes['listPosSessions'][0])
+    public function listPosSessionsRequest($status = null, $date = null, $pos_device_id = null, $per_page = 20, $include_session_charges = false, string $contentType = self::contentTypes['listPosSessions'][0])
     {
-
-
-
-
-
 
         $resourcePath = '/pos-sessions';
         $formParams = [];
@@ -2196,12 +3440,18 @@ class POSSessionsApi
             true, // explode
             false // required
         ) ?? []);
-
-
-
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $include_session_charges,
+            'include_session_charges', // param base name
+            'boolean', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
 
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -2215,7 +3465,7 @@ class POSSessionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -2223,7 +3473,7 @@ class POSSessionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -2232,8 +3482,8 @@ class POSSessionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -2249,9 +3499,10 @@ class POSSessionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -2262,16 +3513,18 @@ class POSSessionsApi
      *
      * Open POS session
      *
-     * @param  \OpenAPI\Client\Model\OpenPosSessionRequest $open_pos_session_request open_pos_session_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['openPosSession'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\OpenPosSessionRequest  $open_pos_session_request  open_pos_session_request (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session (e.g. on 409 conflict). Default false. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['openPosSession'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\OpenPosSession201Response|\OpenAPIClient\Model\OpenPosSession409Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\OpenPosSession201Response|\OpenAPI\Client\Model\OpenPosSession409Response|\OpenAPI\Client\Model\ErrorResponse
      */
-    public function openPosSession($open_pos_session_request, string $contentType = self::contentTypes['openPosSession'][0])
+    public function openPosSession($open_pos_session_request, $include_session_charges = false, string $contentType = self::contentTypes['openPosSession'][0])
     {
-        list($response) = $this->openPosSessionWithHttpInfo($open_pos_session_request, $contentType);
+        [$response] = $this->openPosSessionWithHttpInfo($open_pos_session_request, $include_session_charges, $contentType);
+
         return $response;
     }
 
@@ -2280,16 +3533,17 @@ class POSSessionsApi
      *
      * Open POS session
      *
-     * @param  \OpenAPI\Client\Model\OpenPosSessionRequest $open_pos_session_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['openPosSession'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\OpenPosSessionRequest  $open_pos_session_request  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session (e.g. on 409 conflict). Default false. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['openPosSession'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\OpenPosSession201Response|\OpenAPIClient\Model\OpenPosSession409Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\OpenPosSession201Response|\OpenAPI\Client\Model\OpenPosSession409Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
-    public function openPosSessionWithHttpInfo($open_pos_session_request, string $contentType = self::contentTypes['openPosSession'][0])
+    public function openPosSessionWithHttpInfo($open_pos_session_request, $include_session_charges = false, string $contentType = self::contentTypes['openPosSession'][0])
     {
-        $request = $this->openPosSessionRequest($open_pos_session_request, $contentType);
+        $request = $this->openPosSessionRequest($open_pos_session_request, $include_session_charges, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -2313,29 +3567,26 @@ class POSSessionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 201:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\OpenPosSession201Response',
+                        '\OpenAPIClient\Model\OpenPosSession201Response',
                         $request,
                         $response,
                     );
                 case 409:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\OpenPosSession409Response',
+                        '\OpenAPIClient\Model\OpenPosSession409Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -2351,7 +3602,7 @@ class POSSessionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\OpenPosSession201Response',
+                '\OpenAPIClient\Model\OpenPosSession201Response',
                 $request,
                 $response,
             );
@@ -2360,7 +3611,7 @@ class POSSessionsApi
                 case 201:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\OpenPosSession201Response',
+                        '\OpenAPIClient\Model\OpenPosSession201Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2368,7 +3619,7 @@ class POSSessionsApi
                 case 409:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\OpenPosSession409Response',
+                        '\OpenAPIClient\Model\OpenPosSession409Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2376,13 +3627,12 @@ class POSSessionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -2393,15 +3643,16 @@ class POSSessionsApi
      *
      * Open POS session
      *
-     * @param  \OpenAPI\Client\Model\OpenPosSessionRequest $open_pos_session_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['openPosSession'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\OpenPosSessionRequest  $open_pos_session_request  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session (e.g. on 409 conflict). Default false. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['openPosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function openPosSessionAsync($open_pos_session_request, string $contentType = self::contentTypes['openPosSession'][0])
+    public function openPosSessionAsync($open_pos_session_request, $include_session_charges = false, string $contentType = self::contentTypes['openPosSession'][0])
     {
-        return $this->openPosSessionAsyncWithHttpInfo($open_pos_session_request, $contentType)
+        return $this->openPosSessionAsyncWithHttpInfo($open_pos_session_request, $include_session_charges, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -2414,23 +3665,24 @@ class POSSessionsApi
      *
      * Open POS session
      *
-     * @param  \OpenAPI\Client\Model\OpenPosSessionRequest $open_pos_session_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['openPosSession'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\OpenPosSessionRequest  $open_pos_session_request  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session (e.g. on 409 conflict). Default false. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['openPosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function openPosSessionAsyncWithHttpInfo($open_pos_session_request, string $contentType = self::contentTypes['openPosSession'][0])
+    public function openPosSessionAsyncWithHttpInfo($open_pos_session_request, $include_session_charges = false, string $contentType = self::contentTypes['openPosSession'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\OpenPosSession201Response';
-        $request = $this->openPosSessionRequest($open_pos_session_request, $contentType);
+        $returnType = '\OpenAPIClient\Model\OpenPosSession201Response';
+        $request = $this->openPosSessionRequest($open_pos_session_request, $include_session_charges, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -2441,7 +3693,7 @@ class POSSessionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -2464,13 +3716,14 @@ class POSSessionsApi
     /**
      * Create request for operation 'openPosSession'
      *
-     * @param  \OpenAPI\Client\Model\OpenPosSessionRequest $open_pos_session_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['openPosSession'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\OpenPosSessionRequest  $open_pos_session_request  (required)
+     * @param  bool|null  $include_session_charges  When true, include full session_charges list in the returned session (e.g. on 409 conflict). Default false. (optional, default to false)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['openPosSession'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
-    public function openPosSessionRequest($open_pos_session_request, string $contentType = self::contentTypes['openPosSession'][0])
+    public function openPosSessionRequest($open_pos_session_request, $include_session_charges = false, string $contentType = self::contentTypes['openPosSession'][0])
     {
 
         // verify the required parameter 'open_pos_session_request' is set
@@ -2480,7 +3733,6 @@ class POSSessionsApi
             );
         }
 
-
         $resourcePath = '/pos-sessions/open';
         $formParams = [];
         $queryParams = [];
@@ -2488,12 +3740,18 @@ class POSSessionsApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $include_session_charges,
+            'include_session_charges', // param base name
+            'boolean', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
 
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -2501,7 +3759,7 @@ class POSSessionsApi
         // for model (json/xml)
         if (isset($open_pos_session_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($open_pos_session_request));
             } else {
                 $httpBody = $open_pos_session_request;
@@ -2514,7 +3772,7 @@ class POSSessionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -2522,7 +3780,7 @@ class POSSessionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -2531,8 +3789,8 @@ class POSSessionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -2548,9 +3806,10 @@ class POSSessionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -2559,16 +3818,17 @@ class POSSessionsApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -2589,7 +3849,7 @@ class POSSessionsApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -2612,7 +3872,7 @@ class POSSessionsApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

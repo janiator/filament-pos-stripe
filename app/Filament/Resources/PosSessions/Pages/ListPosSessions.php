@@ -22,12 +22,12 @@ class ListPosSessions extends ListRecords
     {
         return [
             Action::make('regenerateZReports')
-                ->label('Regenerate Z-Reports')
+                ->label(__('Regenerate Z-Reports'))
                 ->icon(Heroicon::OutlinedArrowPath)
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('Regenerate Z-Reports')
-                ->modalDescription('This will regenerate Z-reports for closed sessions and attempt to find missing data (charges, receipts, events) that may not have been properly linked.')
+                ->modalHeading(__('Regenerate Z-Reports'))
+                ->modalDescription(__('This will regenerate Z-reports for closed sessions and attempt to find missing data (charges, receipts, events) that may not have been properly linked.'))
                 ->visible(function () {
                     // Only show to super admins
                     $user = auth()->user();
@@ -43,7 +43,7 @@ class ListPosSessions extends ListRecords
                 })
                 ->form([
                     Select::make('store_id')
-                        ->label('Store')
+                        ->label(__('Store'))
                         ->options(function () {
                             // Scope to current store for non-super admins, or show all for super admins
                             $tenant = \Filament\Facades\Filament::getTenant();
@@ -69,27 +69,27 @@ class ListPosSessions extends ListRecords
                             // Disable if there's a tenant (locked to current store)
                             return \Filament\Facades\Filament::getTenant() !== null;
                         })
-                        ->placeholder('All stores'),
+                        ->placeholder(__('All stores')),
                     DatePicker::make('from_date')
-                        ->label('From Date')
-                        ->helperText('Only regenerate reports for sessions closed on or after this date')
-                        ->placeholder('All dates'),
+                        ->label(__('From Date'))
+                        ->helperText(__('Only regenerate reports for sessions closed on or after this date'))
+                        ->placeholder(__('All dates')),
                     DatePicker::make('to_date')
-                        ->label('To Date')
-                        ->helperText('Only regenerate reports for sessions closed on or before this date')
-                        ->placeholder('All dates'),
+                        ->label(__('To Date'))
+                        ->helperText(__('Only regenerate reports for sessions closed on or before this date'))
+                        ->placeholder(__('All dates')),
                     TextInput::make('limit')
-                        ->label('Limit')
+                        ->label(__('Limit'))
                         ->numeric()
-                        ->helperText('Maximum number of sessions to process (leave empty for all)')
-                        ->placeholder('No limit'),
+                        ->helperText(__('Maximum number of sessions to process (leave empty for all)'))
+                        ->placeholder(__('No limit')),
                     Toggle::make('find_missing_data')
-                        ->label('Find Missing Data')
-                        ->helperText('Attempt to find and link missing charges, receipts, and events')
+                        ->label(__('Find Missing Data'))
+                        ->helperText(__('Attempt to find and link missing charges, receipts, and events'))
                         ->default(true),
                     Toggle::make('dry_run')
-                        ->label('Dry Run')
-                        ->helperText('Preview what would be done without making changes')
+                        ->label(__('Dry Run'))
+                        ->helperText(__('Preview what would be done without making changes'))
                         ->default(false),
                 ])
                 ->action(function (array $data) {
@@ -100,7 +100,7 @@ class ListPosSessions extends ListRecords
                     // If no store selected and no tenant, show error
                     if (! $storeId) {
                         Notification::make()
-                            ->title('Store Required')
+                            ->title(__('Store Required'))
                             ->body('Please select a store or ensure you are viewing a store context.')
                             ->danger()
                             ->send();
@@ -138,14 +138,14 @@ class ListPosSessions extends ListRecords
                         }
 
                         Notification::make()
-                            ->title('Regeneration completed with errors')
+                            ->title(__('Regeneration completed with errors'))
                             ->body($message)
                             ->warning()
                             ->persistent()
                             ->send();
                     } else {
                         Notification::make()
-                            ->title('Regeneration completed')
+                            ->title(__('Regeneration completed'))
                             ->body($message)
                             ->success()
                             ->send();

@@ -8,6 +8,10 @@ The **checkout** action block should print delivery receipts the same way as pai
 
 **Canonical implementation:** custom action `receiptPrintAfterPosPurchase` in `docs/flutterflow/custom-actions/receipt_print_after_pos_purchase.dart` (same file under the FlutterFlow export `lib/custom_code/actions/`). The FlutterFlow AI workspace can push it and rewire the `checkoutFlow` → `receiptPrint` action block via `dart run dsl/sync_checkout_receipt_print.dart` (sources live in `docs/flutterflow/dsl/`; copy into the workspace `dsl/` after `flutterflow ai init`—see `.cursor/rules/multi-repo-workspace.mdc`). Validate with FlutterFlow MCP `validate` / `run` as you do for other DSL scripts.
 
+## FlutterFlow AI MCP (POSitiv)
+
+In Cursor, the FlutterFlow MCP server for this app is **`user-flutterflow-positiv`** (the **POSitiv** / `p_o_sitiv` FlutterFlow project — not hi-members). Tools such as `inspect`, `validate`, and `run` need your FlutterFlow **project ID** and **FlutterFlow AI API key** on the MCP server (see `.env.example`: `FLUTTERFLOW_POSITIV_PROJECT_ID`, `FLUTTERFLOW_AI_API_KEY`). With those set, agents can push DSL changes to the remote project; otherwise copy custom actions from `docs/flutterflow/custom-actions/` into FlutterFlow manually.
+
 ## Overview
 
 Deferred payments allow you to:
@@ -107,6 +111,17 @@ When creating a deferred purchase, the response will look like:
 
 When the customer returns to pay, you need to complete the payment using a separate endpoint.
 
+### Parked / edited order (optional)
+
+To let staff **change line items or totals** before taking payment (same UX as a normal cart):
+
+1. **Load lines for the cart:** `GET /api/purchases/{charge_id}` returns `purchase.purchase_items` (and discounts/metadata fields) so you can rebuild your in-app cart. Optional helpers: [`fetch_pos_purchase_for_cart_hydration.dart`](custom-actions/fetch_pos_purchase_for_cart_hydration.dart) (`{ success, purchase }` only), or **[`prepare_parked_deferred_purchase.dart`](custom-actions/prepare_parked_deferred_purchase.dart)** which also hydrates **`FFAppState().cart`**, runs **`updateCartTotals()`**, and returns **`cartJson`** for **`completeDeferredPayment`**. Push scripts: `dart run dsl/upsert_fetch_pos_purchase_for_cart_hydration.dart` and `dart run dsl/upsert_prepare_parked_deferred_purchase.dart` from [`positiv_flutterflow_ai/`](../../positiv_flutterflow_ai/) (the fetch upsert also refreshes `completeDeferredPayment` and wires empty `cartJson` on existing call sites so validation passes).
+2. **Edit** in your POS cart UI.
+3. **Stripe:** Create the PaymentIntent only after the cart is final; its amount must equal `cart.total` in minor units (øre).
+4. **Complete:** call `POST /api/purchases/{charge_id}/complete-payment` with the same `cart` JSON shape you use for `POST /api/purchases` (items, `total`, `currency`, discounts, etc.), plus `payment_method_code` and `metadata` (e.g. `payment_intent_id`).
+
+If you **omit** `cart`, the backend keeps the original deferred lines and amount (previous behavior).
+
 ### Step 1: Create Custom Action for Completing Payment
 
 Create a new custom action in FlutterFlow called `completeDeferredPayment`.
@@ -122,101 +137,11 @@ Future<dynamic> completeDeferredPayment(
   String authToken,
   String? paymentIntentId,  // Optional, for Stripe payments
   String? additionalMetadataJson,  // Optional
+  String? cartJson,  // Optional: JSON string of final cart object (same shape as completePosPurchase)
 ) async
 ```
 
-**Custom code (copy from file):**
-```dart
-// FlutterFlow Custom Action: Complete Deferred Payment
-// 
-// This action completes payment for a deferred purchase (payment on pickup).
-// It updates the charge status and generates a sales receipt.
-//
-// Function signature:
-// Future<dynamic> completeDeferredPayment(
-//   int chargeId,
-//   String paymentMethodCode,
-//   String apiBaseUrl,
-//   String authToken,
-//   String? paymentIntentId,  // Optional, for Stripe payments
-//   String? additionalMetadataJson,  // Optional
-// ) async
-
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-
-Future<dynamic> completeDeferredPayment(
-  int chargeId,
-  String paymentMethodCode,
-  String apiBaseUrl,
-  String authToken,
-  String? paymentIntentId,
-  String? additionalMetadataJson,
-) async {
-  try {
-    // Parse additional metadata from JSON string
-    Map<String, dynamic> metadata = {};
-    if (additionalMetadataJson != null && additionalMetadataJson.isNotEmpty) {
-      try {
-        metadata = jsonDecode(additionalMetadataJson) as Map<String, dynamic>;
-      } catch (e) {
-        // If JSON parsing fails, use empty map
-        metadata = {};
-      }
-    }
-    
-    // Add payment intent ID if provided (for Stripe payments)
-    if (paymentIntentId != null && paymentIntentId.isNotEmpty) {
-      metadata['payment_intent_id'] = paymentIntentId;
-    }
-    
-    // Build request body
-    final requestBody = {
-      'payment_method_code': paymentMethodCode,
-      if (metadata.isNotEmpty) 'metadata': metadata,
-    };
-    
-    // Make API request
-    final response = await http.post(
-      Uri.parse('$apiBaseUrl/api/purchases/$chargeId/complete-payment'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $authToken',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode(requestBody),
-    );
-    
-    // Parse response
-    final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-    
-    // Check HTTP status code
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      // Success
-      return {
-        'success': responseData['success'] ?? true,
-        'data': responseData['data'],
-        'message': responseData['message'],
-      };
-    } else {
-      // Error
-      return {
-        'success': false,
-        'message': responseData['message'] ?? 'Payment completion failed',
-        'errors': responseData['errors'],
-        'statusCode': response.statusCode,
-      };
-    }
-  } catch (e) {
-    // Handle exceptions
-    return {
-      'success': false,
-      'message': 'Error completing payment: ${e.toString()}',
-      'error': e.toString(),
-    };
-  }
-}
-```
+**Custom code:** Copy from [`docs/flutterflow/custom-actions/complete_deferred_payment.dart`](custom-actions/complete_deferred_payment.dart) (body-only; no automatic-imports block). In FlutterFlow, paste **only** into the editor region **below** FlutterFlow’s fixed header (`// DO NOT REMOVE OR MODIFY THE CODE ABOVE!`). Do not paste the automatic-imports block—FlutterFlow already provides it; duplicating it breaks the file.
 
 ### Step 2: Configure Parameters in FlutterFlow
 
@@ -230,6 +155,7 @@ Add these parameters to the custom action:
 | `authToken` | `String` | ✅ Yes | Authentication token |
 | `paymentIntentId` | `String` | ❌ No | Stripe payment intent ID (for Stripe payments) |
 | `additionalMetadataJson` | `String` | ❌ No | Additional metadata as JSON string |
+| `cartJson` | `String` | ❌ No | Optional JSON string of the final `cart` object (same shape as `completePosPurchase`); omit for unchanged deferred lines |
 
 ### Step 3: Use in Your FlutterFlow Flow
 
@@ -243,6 +169,7 @@ final result = await completeDeferredPayment(
   authToken: authToken,
   paymentIntentId: null,
   additionalMetadataJson: null,
+  cartJson: null,
 );
 
 if (result['success'] == true) {
@@ -274,6 +201,7 @@ final result = await completeDeferredPayment(
   authToken: authToken,
   paymentIntentId: paymentIntent.id,  // Required for Stripe payments
   additionalMetadataJson: null,
+  cartJson: null,
 );
 ```
 
@@ -387,6 +315,7 @@ final result = await completeDeferredPayment(
   authToken: authToken,
   paymentIntentId: paymentIntentId,  // Required for Stripe payments, null for cash
   additionalMetadataJson: null,  // Optional additional metadata
+  cartJson: jsonEncode(finalCartMap),  // Optional: omit or null if cart unchanged
 );
 
 if (result['success'] == true) {
@@ -418,7 +347,8 @@ Future<dynamic> completeDeferredPayment(
   String authToken,             // Required: Authentication token
   String? paymentIntentId,      // Optional: Required for Stripe payments
   String? additionalMetadataJson, // Optional: Additional metadata as JSON string
-)
+  String? cartJson,             // Optional: Final cart JSON string (parked / edited order)
+) async
 ```
 
 **Parameters:**
@@ -428,6 +358,7 @@ Future<dynamic> completeDeferredPayment(
 - `authToken`: Bearer token for authentication
 - `paymentIntentId`: **Required for Stripe payments** - the payment intent ID from Stripe Terminal or card payment. Set to `null` for cash payments.
 - `additionalMetadataJson`: Optional JSON string with additional metadata (e.g., `jsonEncode({'cashier_name': 'John Doe'})`)
+- `cartJson`: Optional `jsonEncode` of the final cart map (`items`, `total`, `currency`, …). For Stripe, `cart.total` must match the PaymentIntent amount.
 
 **Response Structure:**
 ```dart
@@ -479,6 +410,78 @@ final pendingPurchases = data['purchases'] as List;
 // Filter by customer if needed
 // Filter by date range if needed
 ```
+
+## POSitiv (`pointofsale-xrlz5i`): orders page → parked deferred flow
+
+The FlutterFlow project exposes the **orders** page, the **`pos`** page, the **`deferredPaymentCheckout`** component (optional small dialog), and **`completeDeferredPayment`**. Recommended UX: **hydrate the cart on orders, then navigate to `pos`**, show **which order** is being paid, and complete payment with **`checkoutFlow`** (normal POS) **or** a **conditional** branch that calls **`completeDeferredPayment`** when a deferred resume session is active.
+
+### 1. Custom actions (repo + MCP)
+
+| Action | Role |
+|--------|------|
+| [`prepare_parked_deferred_purchase.dart`](custom-actions/prepare_parked_deferred_purchase.dart) | `GET /api/purchases/{id}`, rebuilds **`FFAppState().cart`**, runs **`updateCartTotals()`**, persists **SharedPreferences** resume context (`chargeId` + display label), returns **`cartJson`**, **`chargeId`**, **`orderDisplayReference`**, etc. Requires **`shared_preferences`** in the FlutterFlow project. |
+| [`get_deferred_resume_context.dart`](custom-actions/get_deferred_resume_context.dart) | Reads prefs; returns **`active`**, **`resumeChargeId`**, **`orderLabel`**, **`bannerText`** (e.g. `Ordre 1-D-000001`) for **pos** UI. |
+| [`serialize_cart_for_complete_deferred.dart`](custom-actions/serialize_cart_for_complete_deferred.dart) | Builds **`cartJson`** from the **current** `FFAppState().cart` (after edits on **pos**) for **`completeDeferredPayment`**. |
+| [`clear_deferred_resume_context.dart`](custom-actions/clear_deferred_resume_context.dart) | Clears resume prefs (also cleared automatically on successful **`completeDeferredPayment`** / **`completePosPurchase`** in the repo copies of those actions). |
+| [`fetch_pos_purchase_for_cart_hydration.dart`](custom-actions/fetch_pos_purchase_for_cart_hydration.dart) | Optional if you only need JSON without hydrating app-state cart. |
+
+Push **`prepareParkedDeferredPurchase`**:
+
+```bash
+cd positiv_flutterflow_ai
+dart run dsl/upsert_prepare_parked_deferred_purchase.dart --project-id pointofsale-xrlz5i
+```
+
+Sync **`completePosPurchase`** (repo `docs/flutterflow/custom-actions/complete_pos_purchase.dart`; blocks accidental new purchase when deferred resume prefs are set):
+
+```bash
+dart run dsl/update_complete_pos_purchase.dart --project-id pointofsale-xrlz5i
+```
+
+Push the **deferred resume helpers** (same as FlutterFlow Positiv MCP **`run`** on `dsl/upsert_deferred_resume_helpers.dart`):
+
+```bash
+dart run dsl/upsert_deferred_resume_helpers.dart --project-id pointofsale-xrlz5i
+```
+
+(Use FlutterFlow MCP **`validate`** / **`run`** with the same file if you prefer.)
+
+### 1b. One-shot DSL (recommended for POSitiv)
+
+From `positiv_flutterflow_ai/`, run:
+
+```bash
+dart run dsl/wire_orders_betaling_prepare_parked.dart --project-id pointofsale-xrlz5i
+```
+
+That script (idempotent) adds **`parkedCartJson`** on **`deferredPaymentCheckout`** if missing, wires **`completeDeferredPayment.cartJson`** to that parameter, inserts a **zero-height clipped container** whose child **Text** is bound to **`parkedCartJson`** (FlutterFlow R1), and replaces the **orders** page **Betaling** button (`Button_svzfzpi5`) with **`prepareParkedDeferredPurchase`** → success check → **Navigate to `pos`**. Re-inspect **orders** / **`pos`** if FlutterFlow regenerates node keys (`Scaffold_6umjp4qm` for **pos** in the script).
+
+**Pos banner + page load (recommended after the above):**
+
+```bash
+dart run dsl/wire_pos_deferred_resume_banner.dart --project-id pointofsale-xrlz5i
+```
+
+That script (idempotent) adds **pos** page state **`deferredResumeBannerText`** / **`deferredResumeBannerActive`**, prepends **On Page Load** → **`getDeferredResumeContext`** → updates those fields from **`$.bannerText`** / **`$.active`**, and appends an **INFO**-colored **Text** banner (`deferredResumeBannerHost`) to the main **Stack** with visibility bound to **`deferredResumeBannerActive`**. Payment branching (normal vs **`completeDeferredPayment`**) still needs **Designer** wiring on **pos** if you want separate pay controls.
+
+### 2. **pos** page — banner and payment branching
+
+1. **On Page Load** + banner: either run **`wire_pos_deferred_resume_banner.dart`** (above) or manually call **`getDeferredResumeContext`** and bind UI to **`bannerText`** / **`active`**.
+2. **Payment / checkout**
+   - **New sale:** unchanged — your existing **`checkoutFlow`** / **`completePosPurchase`** path. Successful **`completePosPurchase`** clears resume prefs (repo `complete_pos_purchase.dart`).
+   - **Deferred resume:** when **`getDeferredResumeContext.active`** (or page state from the banner DSL), use **`serializeCartForCompleteDeferred`** → **`completeDeferredPayment`** with **`chargeId`** = **`resumeChargeId`**, **`cartJson`** from serialize output, same **`apiBaseUrl`** / **`authToken`** / **`paymentIntentId`** / **`paymentMethodCode`** as today. Hide or disable the “new sale” pay control when **`active`**, and vice versa, so staff always use the correct endpoint (**`POST /api/purchases`** vs **`POST …/complete-payment`**).
+   - **Safety net (repo):** if staff still hit **`completePosPurchase`** while resume prefs are set, the action returns **`success: false`**, **`blockedDeferredResume: true`**, **`resumeChargeId`**, **`orderLabel`** — branch in FlutterFlow (e.g. snackbar + open deferred pay) or rely on hiding the wrong button as above.
+3. Optional **“Avbryt henting”**: call **`clearDeferredResumeContext`** and reset the cart if you need to abandon without paying.
+
+### 3. `deferredPaymentCheckout` (small dialog) — optional
+
+If you still open this component from **pos** or elsewhere, keep **`parkedCartJson`** wired as the DSL does: **`completeDeferredPayment.cartJson`** ← component param, plus the hidden **Text** reference for R1.
+
+### 4. Stripe amount
+
+If staff change the cart on **`pos`**, create or update the **PaymentIntent** only **after** cart totals are final so the amount matches **`cart.total`** (øre) sent in **`cartJson`** to **`completeDeferredPayment`**.
+
+---
 
 ## Error Handling
 

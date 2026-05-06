@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**customers** | [**\OpenAPI\Client\Model\Customer[]**](Customer.md) |  | [optional]
+**customers** | [**\OpenAPIClient\Model\Customer[]**](Customer.md) |  | [optional]
 **current_page** | **int** | Current page number (0-based) | [optional]
 **last_page** | **int** | Last page number (0-based) | [optional]
 **per_page** | **int** |  | [optional]

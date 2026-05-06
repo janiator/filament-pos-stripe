@@ -1,18 +1,20 @@
 <?php
+
 /**
  * StoresApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * StoresApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class StoresApi
@@ -73,12 +75,15 @@ class StoresApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'changeCurrentStore' => [
             'application/json',
         ],
         'getCurrentStore' => [
+            'application/json',
+        ],
+        'getMeranoTicketProduct' => [
             'application/json',
         ],
         'getStore' => [
@@ -93,10 +98,7 @@ class StoresApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -104,16 +106,16 @@ class StoresApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -143,16 +145,17 @@ class StoresApi
      *
      * Change current store
      *
-     * @param  \OpenAPI\Client\Model\ChangeCurrentStoreRequest $change_current_store_request change_current_store_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['changeCurrentStore'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\ChangeCurrentStoreRequest  $change_current_store_request  change_current_store_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['changeCurrentStore'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ChangeCurrentStore200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ValidationErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ChangeCurrentStore200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ValidationErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function changeCurrentStore($change_current_store_request, string $contentType = self::contentTypes['changeCurrentStore'][0])
     {
-        list($response) = $this->changeCurrentStoreWithHttpInfo($change_current_store_request, $contentType);
+        [$response] = $this->changeCurrentStoreWithHttpInfo($change_current_store_request, $contentType);
+
         return $response;
     }
 
@@ -161,12 +164,12 @@ class StoresApi
      *
      * Change current store
      *
-     * @param  \OpenAPI\Client\Model\ChangeCurrentStoreRequest $change_current_store_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['changeCurrentStore'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\ChangeCurrentStoreRequest  $change_current_store_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['changeCurrentStore'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ChangeCurrentStore200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ValidationErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ChangeCurrentStore200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ValidationErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function changeCurrentStoreWithHttpInfo($change_current_store_request, string $contentType = self::contentTypes['changeCurrentStore'][0])
     {
@@ -194,41 +197,38 @@ class StoresApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ChangeCurrentStore200Response',
+                        '\OpenAPIClient\Model\ChangeCurrentStore200Response',
                         $request,
                         $response,
                     );
                 case 403:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 422:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ValidationErrorResponse',
+                        '\OpenAPIClient\Model\ValidationErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -244,7 +244,7 @@ class StoresApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ChangeCurrentStore200Response',
+                '\OpenAPIClient\Model\ChangeCurrentStore200Response',
                 $request,
                 $response,
             );
@@ -253,7 +253,7 @@ class StoresApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ChangeCurrentStore200Response',
+                        '\OpenAPIClient\Model\ChangeCurrentStore200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -261,7 +261,7 @@ class StoresApi
                 case 403:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -269,7 +269,7 @@ class StoresApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -277,7 +277,7 @@ class StoresApi
                 case 422:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ValidationErrorResponse',
+                        '\OpenAPIClient\Model\ValidationErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -285,13 +285,12 @@ class StoresApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -302,11 +301,11 @@ class StoresApi
      *
      * Change current store
      *
-     * @param  \OpenAPI\Client\Model\ChangeCurrentStoreRequest $change_current_store_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['changeCurrentStore'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\ChangeCurrentStoreRequest  $change_current_store_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['changeCurrentStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function changeCurrentStoreAsync($change_current_store_request, string $contentType = self::contentTypes['changeCurrentStore'][0])
     {
@@ -323,15 +322,15 @@ class StoresApi
      *
      * Change current store
      *
-     * @param  \OpenAPI\Client\Model\ChangeCurrentStoreRequest $change_current_store_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['changeCurrentStore'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\ChangeCurrentStoreRequest  $change_current_store_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['changeCurrentStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function changeCurrentStoreAsyncWithHttpInfo($change_current_store_request, string $contentType = self::contentTypes['changeCurrentStore'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ChangeCurrentStore200Response';
+        $returnType = '\OpenAPIClient\Model\ChangeCurrentStore200Response';
         $request = $this->changeCurrentStoreRequest($change_current_store_request, $contentType);
 
         return $this->client
@@ -339,7 +338,7 @@ class StoresApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -350,7 +349,7 @@ class StoresApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -373,11 +372,11 @@ class StoresApi
     /**
      * Create request for operation 'changeCurrentStore'
      *
-     * @param  \OpenAPI\Client\Model\ChangeCurrentStoreRequest $change_current_store_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['changeCurrentStore'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\ChangeCurrentStoreRequest  $change_current_store_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['changeCurrentStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function changeCurrentStoreRequest($change_current_store_request, string $contentType = self::contentTypes['changeCurrentStore'][0])
     {
@@ -389,7 +388,6 @@ class StoresApi
             );
         }
 
-
         $resourcePath = '/stores/current';
         $formParams = [];
         $queryParams = [];
@@ -397,12 +395,8 @@ class StoresApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -410,7 +404,7 @@ class StoresApi
         // for model (json/xml)
         if (isset($change_current_store_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($change_current_store_request));
             } else {
                 $httpBody = $change_current_store_request;
@@ -423,7 +417,7 @@ class StoresApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -431,7 +425,7 @@ class StoresApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -440,8 +434,8 @@ class StoresApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -457,9 +451,10 @@ class StoresApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'PUT',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -470,15 +465,16 @@ class StoresApi
      *
      * Get current store
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentStore'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentStore'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetCurrentStore200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GetCurrentStore200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getCurrentStore(string $contentType = self::contentTypes['getCurrentStore'][0])
     {
-        list($response) = $this->getCurrentStoreWithHttpInfo($contentType);
+        [$response] = $this->getCurrentStoreWithHttpInfo($contentType);
+
         return $response;
     }
 
@@ -487,11 +483,11 @@ class StoresApi
      *
      * Get current store
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentStore'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentStore'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetCurrentStore200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GetCurrentStore200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getCurrentStoreWithHttpInfo(string $contentType = self::contentTypes['getCurrentStore'][0])
     {
@@ -519,29 +515,26 @@ class StoresApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GetCurrentStore200Response',
+                        '\OpenAPIClient\Model\GetCurrentStore200Response',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -557,7 +550,7 @@ class StoresApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GetCurrentStore200Response',
+                '\OpenAPIClient\Model\GetCurrentStore200Response',
                 $request,
                 $response,
             );
@@ -566,7 +559,7 @@ class StoresApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GetCurrentStore200Response',
+                        '\OpenAPIClient\Model\GetCurrentStore200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -574,7 +567,7 @@ class StoresApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -582,13 +575,12 @@ class StoresApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -599,10 +591,10 @@ class StoresApi
      *
      * Get current store
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentStore'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getCurrentStoreAsync(string $contentType = self::contentTypes['getCurrentStore'][0])
     {
@@ -619,14 +611,14 @@ class StoresApi
      *
      * Get current store
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentStore'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getCurrentStoreAsyncWithHttpInfo(string $contentType = self::contentTypes['getCurrentStore'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GetCurrentStore200Response';
+        $returnType = '\OpenAPIClient\Model\GetCurrentStore200Response';
         $request = $this->getCurrentStoreRequest($contentType);
 
         return $this->client
@@ -634,7 +626,7 @@ class StoresApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -645,7 +637,7 @@ class StoresApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -668,14 +660,13 @@ class StoresApi
     /**
      * Create request for operation 'getCurrentStore'
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentStore'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getCurrentStoreRequest(string $contentType = self::contentTypes['getCurrentStore'][0])
     {
-
 
         $resourcePath = '/stores/current';
         $formParams = [];
@@ -684,12 +675,8 @@ class StoresApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -703,7 +690,7 @@ class StoresApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -711,7 +698,7 @@ class StoresApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -720,8 +707,8 @@ class StoresApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -737,9 +724,283 @@ class StoresApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation getMeranoTicketProduct
+     *
+     * Get Merano ticket product
+     *
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getMeranoTicketProduct'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetMeranoTicketProduct200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function getMeranoTicketProduct(string $contentType = self::contentTypes['getMeranoTicketProduct'][0])
+    {
+        [$response] = $this->getMeranoTicketProductWithHttpInfo($contentType);
+
+        return $response;
+    }
+
+    /**
+     * Operation getMeranoTicketProductWithHttpInfo
+     *
+     * Get Merano ticket product
+     *
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getMeranoTicketProduct'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetMeranoTicketProduct200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function getMeranoTicketProductWithHttpInfo(string $contentType = self::contentTypes['getMeranoTicketProduct'][0])
+    {
+        $request = $this->getMeranoTicketProductRequest($contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+            switch ($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\GetMeranoTicketProduct200Response',
+                        $request,
+                        $response,
+                    );
+                case 404:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+            }
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\OpenAPIClient\Model\GetMeranoTicketProduct200Response',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\GetMeranoTicketProduct200Response',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 404:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation getMeranoTicketProductAsync
+     *
+     * Get Merano ticket product
+     *
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getMeranoTicketProduct'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function getMeranoTicketProductAsync(string $contentType = self::contentTypes['getMeranoTicketProduct'][0])
+    {
+        return $this->getMeranoTicketProductAsyncWithHttpInfo($contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation getMeranoTicketProductAsyncWithHttpInfo
+     *
+     * Get Merano ticket product
+     *
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getMeranoTicketProduct'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function getMeranoTicketProductAsyncWithHttpInfo(string $contentType = self::contentTypes['getMeranoTicketProduct'][0])
+    {
+        $returnType = '\OpenAPIClient\Model\GetMeranoTicketProduct200Response';
+        $request = $this->getMeranoTicketProductRequest($contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); // stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders(),
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'getMeranoTicketProduct'
+     *
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getMeranoTicketProduct'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function getMeranoTicketProductRequest(string $contentType = self::contentTypes['getMeranoTicketProduct'][0])
+    {
+
+        $resourcePath = '/stores/current/merano-ticket-product';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json'],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem,
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires Bearer (JWT) authentication (access token)
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+
+        return new Request(
+            'GET',
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -750,16 +1011,17 @@ class StoresApi
      *
      * Get store by slug
      *
-     * @param  string $slug Store slug (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getStore'] to see the possible values for this operation
+     * @param  string  $slug  Store slug (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getStore'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetCurrentStore200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GetCurrentStore200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getStore($slug, string $contentType = self::contentTypes['getStore'][0])
     {
-        list($response) = $this->getStoreWithHttpInfo($slug, $contentType);
+        [$response] = $this->getStoreWithHttpInfo($slug, $contentType);
+
         return $response;
     }
 
@@ -768,12 +1030,12 @@ class StoresApi
      *
      * Get store by slug
      *
-     * @param  string $slug Store slug (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getStore'] to see the possible values for this operation
+     * @param  string  $slug  Store slug (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getStore'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetCurrentStore200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GetCurrentStore200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getStoreWithHttpInfo($slug, string $contentType = self::contentTypes['getStore'][0])
     {
@@ -801,35 +1063,32 @@ class StoresApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GetCurrentStore200Response',
+                        '\OpenAPIClient\Model\GetCurrentStore200Response',
                         $request,
                         $response,
                     );
                 case 403:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -845,7 +1104,7 @@ class StoresApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GetCurrentStore200Response',
+                '\OpenAPIClient\Model\GetCurrentStore200Response',
                 $request,
                 $response,
             );
@@ -854,7 +1113,7 @@ class StoresApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GetCurrentStore200Response',
+                        '\OpenAPIClient\Model\GetCurrentStore200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -862,7 +1121,7 @@ class StoresApi
                 case 403:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -870,7 +1129,7 @@ class StoresApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -878,13 +1137,12 @@ class StoresApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -895,11 +1153,11 @@ class StoresApi
      *
      * Get store by slug
      *
-     * @param  string $slug Store slug (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getStore'] to see the possible values for this operation
+     * @param  string  $slug  Store slug (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getStoreAsync($slug, string $contentType = self::contentTypes['getStore'][0])
     {
@@ -916,15 +1174,15 @@ class StoresApi
      *
      * Get store by slug
      *
-     * @param  string $slug Store slug (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getStore'] to see the possible values for this operation
+     * @param  string  $slug  Store slug (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getStoreAsyncWithHttpInfo($slug, string $contentType = self::contentTypes['getStore'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GetCurrentStore200Response';
+        $returnType = '\OpenAPIClient\Model\GetCurrentStore200Response';
         $request = $this->getStoreRequest($slug, $contentType);
 
         return $this->client
@@ -932,7 +1190,7 @@ class StoresApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -943,7 +1201,7 @@ class StoresApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -966,11 +1224,11 @@ class StoresApi
     /**
      * Create request for operation 'getStore'
      *
-     * @param  string $slug Store slug (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getStore'] to see the possible values for this operation
+     * @param  string  $slug  Store slug (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getStoreRequest($slug, string $contentType = self::contentTypes['getStore'][0])
     {
@@ -982,7 +1240,6 @@ class StoresApi
             );
         }
 
-
         $resourcePath = '/stores/{slug}';
         $formParams = [];
         $queryParams = [];
@@ -990,20 +1247,17 @@ class StoresApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($slug !== null) {
             $resourcePath = str_replace(
-                '{' . 'slug' . '}',
+                '{'.'slug'.'}',
                 ObjectSerializer::toPathValue($slug),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1017,7 +1271,7 @@ class StoresApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1025,7 +1279,7 @@ class StoresApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1034,8 +1288,8 @@ class StoresApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1051,9 +1305,10 @@ class StoresApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1064,15 +1319,16 @@ class StoresApi
      *
      * List stores
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listStores'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listStores'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ListStores200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ListStores200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function listStores(string $contentType = self::contentTypes['listStores'][0])
     {
-        list($response) = $this->listStoresWithHttpInfo($contentType);
+        [$response] = $this->listStoresWithHttpInfo($contentType);
+
         return $response;
     }
 
@@ -1081,11 +1337,11 @@ class StoresApi
      *
      * List stores
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listStores'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listStores'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ListStores200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ListStores200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function listStoresWithHttpInfo(string $contentType = self::contentTypes['listStores'][0])
     {
@@ -1113,23 +1369,20 @@ class StoresApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ListStores200Response',
+                        '\OpenAPIClient\Model\ListStores200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1145,7 +1398,7 @@ class StoresApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ListStores200Response',
+                '\OpenAPIClient\Model\ListStores200Response',
                 $request,
                 $response,
             );
@@ -1154,7 +1407,7 @@ class StoresApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ListStores200Response',
+                        '\OpenAPIClient\Model\ListStores200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1162,13 +1415,12 @@ class StoresApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1179,10 +1431,10 @@ class StoresApi
      *
      * List stores
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listStores'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listStores'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listStoresAsync(string $contentType = self::contentTypes['listStores'][0])
     {
@@ -1199,14 +1451,14 @@ class StoresApi
      *
      * List stores
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listStores'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listStores'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listStoresAsyncWithHttpInfo(string $contentType = self::contentTypes['listStores'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ListStores200Response';
+        $returnType = '\OpenAPIClient\Model\ListStores200Response';
         $request = $this->listStoresRequest($contentType);
 
         return $this->client
@@ -1214,7 +1466,7 @@ class StoresApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1225,7 +1477,7 @@ class StoresApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1248,14 +1500,13 @@ class StoresApi
     /**
      * Create request for operation 'listStores'
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listStores'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listStores'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function listStoresRequest(string $contentType = self::contentTypes['listStores'][0])
     {
-
 
         $resourcePath = '/stores';
         $formParams = [];
@@ -1264,12 +1515,8 @@ class StoresApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1283,7 +1530,7 @@ class StoresApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1291,7 +1538,7 @@ class StoresApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1300,8 +1547,8 @@ class StoresApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1317,9 +1564,10 @@ class StoresApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1330,16 +1578,17 @@ class StoresApi
      *
      * Change current store (partial)
      *
-     * @param  \OpenAPI\Client\Model\ChangeCurrentStoreRequest $change_current_store_request change_current_store_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchCurrentStore'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\ChangeCurrentStoreRequest  $change_current_store_request  change_current_store_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchCurrentStore'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ChangeCurrentStore200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ValidationErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ChangeCurrentStore200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ValidationErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function patchCurrentStore($change_current_store_request, string $contentType = self::contentTypes['patchCurrentStore'][0])
     {
-        list($response) = $this->patchCurrentStoreWithHttpInfo($change_current_store_request, $contentType);
+        [$response] = $this->patchCurrentStoreWithHttpInfo($change_current_store_request, $contentType);
+
         return $response;
     }
 
@@ -1348,12 +1597,12 @@ class StoresApi
      *
      * Change current store (partial)
      *
-     * @param  \OpenAPI\Client\Model\ChangeCurrentStoreRequest $change_current_store_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchCurrentStore'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\ChangeCurrentStoreRequest  $change_current_store_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchCurrentStore'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ChangeCurrentStore200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ValidationErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ChangeCurrentStore200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ValidationErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function patchCurrentStoreWithHttpInfo($change_current_store_request, string $contentType = self::contentTypes['patchCurrentStore'][0])
     {
@@ -1381,41 +1630,38 @@ class StoresApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ChangeCurrentStore200Response',
+                        '\OpenAPIClient\Model\ChangeCurrentStore200Response',
                         $request,
                         $response,
                     );
                 case 403:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 422:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ValidationErrorResponse',
+                        '\OpenAPIClient\Model\ValidationErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1431,7 +1677,7 @@ class StoresApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ChangeCurrentStore200Response',
+                '\OpenAPIClient\Model\ChangeCurrentStore200Response',
                 $request,
                 $response,
             );
@@ -1440,7 +1686,7 @@ class StoresApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ChangeCurrentStore200Response',
+                        '\OpenAPIClient\Model\ChangeCurrentStore200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1448,7 +1694,7 @@ class StoresApi
                 case 403:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1456,7 +1702,7 @@ class StoresApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1464,7 +1710,7 @@ class StoresApi
                 case 422:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ValidationErrorResponse',
+                        '\OpenAPIClient\Model\ValidationErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1472,13 +1718,12 @@ class StoresApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1489,11 +1734,11 @@ class StoresApi
      *
      * Change current store (partial)
      *
-     * @param  \OpenAPI\Client\Model\ChangeCurrentStoreRequest $change_current_store_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchCurrentStore'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\ChangeCurrentStoreRequest  $change_current_store_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchCurrentStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function patchCurrentStoreAsync($change_current_store_request, string $contentType = self::contentTypes['patchCurrentStore'][0])
     {
@@ -1510,15 +1755,15 @@ class StoresApi
      *
      * Change current store (partial)
      *
-     * @param  \OpenAPI\Client\Model\ChangeCurrentStoreRequest $change_current_store_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchCurrentStore'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\ChangeCurrentStoreRequest  $change_current_store_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchCurrentStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function patchCurrentStoreAsyncWithHttpInfo($change_current_store_request, string $contentType = self::contentTypes['patchCurrentStore'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ChangeCurrentStore200Response';
+        $returnType = '\OpenAPIClient\Model\ChangeCurrentStore200Response';
         $request = $this->patchCurrentStoreRequest($change_current_store_request, $contentType);
 
         return $this->client
@@ -1526,7 +1771,7 @@ class StoresApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1537,7 +1782,7 @@ class StoresApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1560,11 +1805,11 @@ class StoresApi
     /**
      * Create request for operation 'patchCurrentStore'
      *
-     * @param  \OpenAPI\Client\Model\ChangeCurrentStoreRequest $change_current_store_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchCurrentStore'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\ChangeCurrentStoreRequest  $change_current_store_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchCurrentStore'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function patchCurrentStoreRequest($change_current_store_request, string $contentType = self::contentTypes['patchCurrentStore'][0])
     {
@@ -1576,7 +1821,6 @@ class StoresApi
             );
         }
 
-
         $resourcePath = '/stores/current';
         $formParams = [];
         $queryParams = [];
@@ -1584,12 +1828,8 @@ class StoresApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1597,7 +1837,7 @@ class StoresApi
         // for model (json/xml)
         if (isset($change_current_store_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($change_current_store_request));
             } else {
                 $httpBody = $change_current_store_request;
@@ -1610,7 +1850,7 @@ class StoresApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1618,7 +1858,7 @@ class StoresApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1627,8 +1867,8 @@ class StoresApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1644,9 +1884,10 @@ class StoresApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'PATCH',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1655,16 +1896,17 @@ class StoresApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -1685,7 +1927,7 @@ class StoresApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -1708,7 +1950,7 @@ class StoresApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

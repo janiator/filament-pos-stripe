@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\PowerOfficeSyncRuns;
 
+use App\Filament\Clusters\SettingsCluster;
+use App\Filament\Resources\PowerOfficeIntegrations\PowerOfficeIntegrationResource;
 use App\Filament\Resources\PowerOfficeSyncRuns\Pages\ListPowerOfficeSyncRuns;
 use App\Filament\Resources\PowerOfficeSyncRuns\Tables\PowerOfficeSyncRunsTable;
 use App\Models\PowerOfficeSyncRun;
@@ -15,6 +17,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class PowerOfficeSyncRunResource extends Resource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $model = PowerOfficeSyncRun::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowPath;
@@ -44,6 +48,11 @@ class PowerOfficeSyncRunResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         return false;
+    }
+
+    public static function canAccess(): bool
+    {
+        return PowerOfficeIntegrationResource::canAccess();
     }
 
     public static function getEloquentQuery(): Builder

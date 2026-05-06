@@ -25,16 +25,16 @@ class VerifoneTerminalsRelationManager extends RelationManager
         return $schema
             ->components([
                 TextInput::make('display_name')
-                    ->label('Display name')
+                    ->label(__('Display name'))
                     ->maxLength(255),
 
                 TextInput::make('terminal_identifier')
-                    ->label('Terminal identifier (POIID)')
+                    ->label(__('Terminal identifier (POIID)'))
                     ->required()
                     ->maxLength(255),
 
                 Select::make('pos_device_id')
-                    ->label('Linked POS device')
+                    ->label(__('Linked POS device'))
                     ->relationship(
                         name: 'posDevice',
                         titleAttribute: 'device_name',
@@ -48,22 +48,22 @@ class VerifoneTerminalsRelationManager extends RelationManager
                     ->nullable(),
 
                 TextInput::make('sale_id')
-                    ->label('Sale ID')
+                    ->label(__('Sale ID'))
                     ->maxLength(255)
                     ->nullable(),
 
                 TextInput::make('operator_id')
-                    ->label('Operator ID')
+                    ->label(__('Operator ID'))
                     ->maxLength(255)
                     ->nullable(),
 
                 TextInput::make('site_entity_id')
-                    ->label('Site entity ID')
+                    ->label(__('Site entity ID'))
                     ->maxLength(255)
                     ->nullable(),
 
                 Toggle::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->default(true),
             ]);
     }
@@ -73,28 +73,28 @@ class VerifoneTerminalsRelationManager extends RelationManager
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('display_name')
-                    ->label('Display name')
+                    ->label(__('Display name'))
                     ->searchable()
                     ->sortable()
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
 
                 Tables\Columns\TextColumn::make('terminal_identifier')
-                    ->label('POIID')
+                    ->label(__('POIID'))
                     ->searchable()
                     ->sortable()
                     ->copyable(),
 
                 Tables\Columns\TextColumn::make('posDevice.device_name')
-                    ->label('POS device')
-                    ->placeholder('-'),
+                    ->label(__('POS device'))
+                    ->placeholder(__('-')),
 
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean(),
 
                 Tables\Columns\TextColumn::make('sale_id')
-                    ->label('Sale ID')
-                    ->placeholder('-'),
+                    ->label(__('Sale ID'))
+                    ->placeholder(__('-')),
             ])
             ->headerActions([
                 CreateAction::make()

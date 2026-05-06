@@ -19,21 +19,21 @@ class ConnectedCustomersTable
             ->modifyQueryUsing(fn ($query) => $query->with(['store']))
             ->columns([
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('Name'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
 
                 TextColumn::make('email')
-                    ->label('Email')
+                    ->label(__('Email'))
                     ->searchable()
                     ->sortable()
                     ->icon(\Filament\Support\Icons\Heroicon::OutlinedEnvelope)
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
 
                 TextColumn::make('store.name')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->searchable()
                     ->sortable()
                     ->badge()
@@ -43,33 +43,33 @@ class ConnectedCustomersTable
                         : null),
 
                 TextColumn::make('subscriptions_count')
-                    ->label('Subscriptions')
+                    ->label(__('Subscriptions'))
                     ->counts('subscriptions')
                     ->badge()
                     ->color('info')
                     ->sortable(),
 
                 TextColumn::make('stripe_customer_id')
-                    ->label('Customer ID')
+                    ->label(__('Customer ID'))
                     ->searchable()
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('stripe_account_id')
-                    ->label('Account ID')
+                    ->label(__('Account ID'))
                     ->searchable()
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('stripe_account_id')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->relationship('store', 'name')
                     ->searchable()
                     ->preload(),

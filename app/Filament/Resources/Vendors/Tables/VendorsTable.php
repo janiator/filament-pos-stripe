@@ -17,50 +17,50 @@ class VendorsTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('Name'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
 
                 TextColumn::make('description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->searchable()
                     ->wrap()
                     ->limit(50)
                     ->toggleable(),
 
                 TextColumn::make('contact_email')
-                    ->label('Email')
+                    ->label(__('Email'))
                     ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('contact_phone')
-                    ->label('Phone')
+                    ->label(__('Phone'))
                     ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('products_count')
-                    ->label('Products')
+                    ->label(__('Products'))
                     ->counts('products')
                     ->sortable()
                     ->badge()
                     ->color('info'),
 
                 IconColumn::make('active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->sortable(),
 
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 TernaryFilter::make('active')
-                    ->label('Active')
-                    ->placeholder('All')
+                    ->label(__('Active'))
+                    ->placeholder(__('All'))
                     ->trueLabel('Active only')
                     ->falseLabel('Inactive only'),
             ])

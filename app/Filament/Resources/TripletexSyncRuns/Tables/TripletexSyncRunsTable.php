@@ -20,16 +20,16 @@ class TripletexSyncRunsTable
                 TextColumn::make('id')
                     ->sortable(),
                 TextColumn::make('sync_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->formatStateUsing(fn (TripletexSyncType $state): string => $state->label()),
                 TextColumn::make('pos_session_id')
-                    ->label('Session')
-                    ->placeholder('—')
+                    ->label(__('Session'))
+                    ->placeholder(__('—'))
                     ->sortable(),
                 TextColumn::make('store_stripe_payout_id')
-                    ->label('Payout row')
-                    ->placeholder('—')
+                    ->label(__('Payout row'))
+                    ->placeholder(__('—'))
                     ->sortable(),
                 TextColumn::make('status')
                     ->badge()
@@ -42,21 +42,21 @@ class TripletexSyncRunsTable
                         default => 'gray',
                     }),
                 TextColumn::make('tripletex_voucher_id')
-                    ->label('Voucher')
-                    ->placeholder('—'),
+                    ->label(__('Voucher'))
+                    ->placeholder(__('—')),
                 TextColumn::make('attempts'),
                 TextColumn::make('finished_at')
                     ->dateTime()
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
                 TextColumn::make('error_message')
                     ->limit(40)
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->tooltip(fn ($state): ?string => is_string($state) ? $state : null),
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([
                 Action::make('retry')
-                    ->label('Retry')
+                    ->label(__('Retry'))
                     ->icon('heroicon-o-arrow-path')
                     ->visible(fn ($record): bool => in_array($record->status, [
                         TripletexSyncRunStatus::Failed,
@@ -67,7 +67,7 @@ class TripletexSyncRunsTable
                         if ($record->sync_type === TripletexSyncType::ZReport && $record->pos_session_id) {
                             SyncTripletexZReportJob::dispatch($record->pos_session_id, true);
                             Notification::make()
-                                ->title('Tripletex Z-report retry queued')
+                                ->title(__('Tripletex Z-report retry queued'))
                                 ->success()
                                 ->send();
 
@@ -77,7 +77,7 @@ class TripletexSyncRunsTable
                         if ($record->sync_type === TripletexSyncType::Payout && $record->store_stripe_payout_id) {
                             SyncTripletexPayoutJob::dispatch($record->store_stripe_payout_id, true);
                             Notification::make()
-                                ->title('Tripletex payout retry queued')
+                                ->title(__('Tripletex payout retry queued'))
                                 ->success()
                                 ->send();
 
@@ -85,7 +85,7 @@ class TripletexSyncRunsTable
                         }
 
                         Notification::make()
-                            ->title('Cannot retry this run')
+                            ->title(__('Cannot retry this run'))
                             ->body('Missing session or payout reference.')
                             ->warning()
                             ->send();

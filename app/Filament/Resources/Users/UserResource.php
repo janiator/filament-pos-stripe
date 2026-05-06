@@ -12,6 +12,7 @@ use App\Filament\Resources\Users\Schemas\UserInfolist;
 use App\Filament\Resources\Users\Tables\UsersTable;
 use App\Models\User;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -27,21 +28,7 @@ class UserResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    // Disable tenant scoping - User management is for super admins only
-    protected static ?string $tenantOwnershipRelationshipName = null;
-
-    public static function boot(): void
-    {
-        parent::boot();
-
-        // Disable tenant scoping for user management
-        static::scopeToTenant(false);
-    }
-
-    public static function isScopedToTenant(): bool
-    {
-        return false;
-    }
+    protected static ?string $tenantOwnershipRelationshipName = 'stores';
 
     public static function getNavigationGroup(): ?string
     {
@@ -56,28 +43,35 @@ class UserResource extends Resource
             return false;
         }
 
-        return \Filament\Facades\Filament::getTenant()
+        return Filament::getTenant()
             ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
             : $user->hasRole('super_admin');
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        // Bypass tenant scoping
-        $query = User::query()->withoutGlobalScopes();
+        $query = parent::getEloquentQuery();
 
-        // Super admins can see all users
         $user = auth()->user();
         if (! $user) {
             return $query->whereRaw('1 = 0');
         }
 
-        $isSuperAdmin = \Filament\Facades\Filament::getTenant()
+        $isSuperAdmin = Filament::getTenant()
             ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
             : $user->hasRole('super_admin');
 
         if (! $isSuperAdmin) {
-            return $query->whereRaw('1 = 0'); // Return empty query
+            return $query->whereRaw('1 = 0');
+        }
+
+        try {
+            $tenant = Filament::getTenant();
+            $panel = Filament::getCurrentOrDefaultPanel();
+            if ($tenant && $panel?->hasTenancy() && $tenant->slug === 'visivo-admin') {
+                return $query->withoutGlobalScope($panel->getTenancyScopeName());
+            }
+        } catch (\Throwable) {
         }
 
         return $query;

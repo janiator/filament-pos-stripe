@@ -21,6 +21,11 @@ class WebflowSitesNavigationPage extends Page
 
     protected string $view = 'filament-panels::pages.page';
 
+    public static function canAccess(): bool
+    {
+        return WebflowSiteResource::canAccess();
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
         $tenant = Filament::getTenant();
@@ -28,11 +33,7 @@ class WebflowSitesNavigationPage extends Page
             return false;
         }
 
-        return Addon::query()
-            ->where('store_id', $tenant->getKey())
-            ->where('is_active', true)
-            ->whereIn('type', AddonType::typesWithWebflow())
-            ->exists();
+        return Addon::storeHasActiveAddon($tenant->getKey(), AddonType::WebflowCms);
     }
 
     /**

@@ -2,10 +2,11 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
 use Filament\Pages\Dashboard as BaseDashboard;
+use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Carbon;
 
@@ -13,12 +14,19 @@ class Dashboard extends BaseDashboard
 {
     use HasFiltersForm;
 
+    public static function canAccess(): bool
+    {
+        $user = Filament::auth()->user();
+
+        return $user !== null && $user->can('View:Dashboard');
+    }
+
     public function filtersForm(Schema $schema): Schema
     {
         return $schema
             ->components([
                 Select::make('dateRange')
-                    ->label('Time Range')
+                    ->label(__('Time Range'))
                     ->options([
                         'today' => 'Today',
                         'yesterday' => 'Yesterday',
@@ -39,15 +47,15 @@ class Dashboard extends BaseDashboard
                         }
                     }),
                 DatePicker::make('startDate')
-                    ->label('Start Date')
+                    ->label(__('Start Date'))
                     ->visible(fn ($get) => $get('dateRange') === 'custom')
                     ->live(),
                 DatePicker::make('endDate')
-                    ->label('End Date')
+                    ->label(__('End Date'))
                     ->visible(fn ($get) => $get('dateRange') === 'custom')
                     ->live()
                     ->afterStateUpdated(function ($state, callable $get, callable $set) {
-                        if ($state && !$get('startDate')) {
+                        if ($state && ! $get('startDate')) {
                             $set('startDate', Carbon::parse($state)->subDays(7)->format('Y-m-d'));
                         }
                     }),
@@ -58,11 +66,11 @@ class Dashboard extends BaseDashboard
     {
         $filters = $this->pageFilters ?? [];
         $dateRange = $filters['dateRange'] ?? '7d';
-        
+
         if ($dateRange === 'custom') {
             $startDate = $filters['startDate'] ?? null;
             $endDate = $filters['endDate'] ?? null;
-            
+
             if ($startDate && $endDate) {
                 return [
                     'start' => Carbon::parse($startDate)->startOfDay(),
@@ -75,7 +83,7 @@ class Dashboard extends BaseDashboard
 
         // Convert preset ranges to dates
         // Note: For "Last X Days", we use subDays(X-1) to get exactly X days including today
-        return match($dateRange) {
+        return match ($dateRange) {
             'today' => [
                 'start' => Carbon::today()->startOfDay(),
                 'end' => Carbon::today()->endOfDay(),
@@ -115,7 +123,7 @@ class Dashboard extends BaseDashboard
         };
     }
 
-    public function getColumns(): int | array
+    public function getColumns(): int|array
     {
         return [
             'default' => 1,

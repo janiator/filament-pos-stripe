@@ -39,12 +39,12 @@ class StoreStripeBalanceTransactionInfolist
 
                         TextEntry::make('status')
                             ->label(__('filament.resources.store_stripe_balance_transaction.columns.status'))
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->badge(),
 
                         TextEntry::make('description')
                             ->label(__('filament.resources.store_stripe_balance_transaction.infolist.description'))
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->wrap(),
                     ])
                     ->columns(2),
@@ -54,12 +54,12 @@ class StoreStripeBalanceTransactionInfolist
                         TextEntry::make('stripe_charge_id')
                             ->label(__('filament.resources.store_stripe_balance_transaction.columns.charge_id'))
                             ->copyable()
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->visible(fn ($record) => filled($record->stripe_charge_id)),
 
                         TextEntry::make('store.name')
                             ->label(__('filament.resources.store_stripe_balance_transaction.columns.store'))
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedBuildingStorefront)
                             ->url(fn ($record) => $record->store
                                 ? \App\Filament\Resources\Stores\StoreResource::getUrl('view', ['record' => $record->store])
@@ -75,18 +75,18 @@ class StoreStripeBalanceTransactionInfolist
                             ->icon(Heroicon::OutlinedHashtag),
 
                         TextEntry::make('stripe_account_id')
-                            ->label('Stripe account')
+                            ->label(__('Stripe account'))
                             ->copyable()
                             ->icon(Heroicon::OutlinedIdentification),
 
                         TextEntry::make('available_on')
                             ->label(__('filament.resources.store_stripe_balance_transaction.infolist.available_on'))
                             ->dateTime()
-                            ->placeholder('-'),
+                            ->placeholder(__('-')),
 
                         TextEntry::make('reporting_category')
                             ->label(__('filament.resources.store_stripe_balance_transaction.infolist.reporting_category'))
-                            ->placeholder('-'),
+                            ->placeholder(__('-')),
 
                         TextEntry::make('updated_at')
                             ->label(__('filament.resources.store_stripe_balance_transaction.columns.synced'))

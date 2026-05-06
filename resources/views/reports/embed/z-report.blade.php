@@ -442,14 +442,6 @@
                         {{ number_format($report['total_refunded'] / 100, 2) }} NOK
                     </div>
                 </div>
-                <div style="display: table; width: 100%; margin-top: 5px;">
-                    <div style="display: table-cell; width: 70%; font-weight: 600; color: #111827;">
-                        Netto Beløp:
-                    </div>
-                    <div style="display: table-cell; width: 30%; text-align: right; font-weight: 700; color: #111827; font-size: 11pt;">
-                        {{ number_format(($report['net_amount'] ?? ($report['total_amount'] - $report['total_refunded'])) / 100, 2) }} NOK
-                    </div>
-                </div>
             </div>
         </div>
     @endif

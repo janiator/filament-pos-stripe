@@ -1,4 +1,4 @@
-# OpenAPI\Client\InventoryApi
+# OpenAPIClient\InventoryApi
 
 Inventory management operations
 
@@ -16,7 +16,7 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 ## `adjustInventory()`
 
 ```php
-adjustInventory($variant, $adjust_inventory_request): \OpenAPI\Client\Model\AdjustInventory200Response
+adjustInventory($variant, $adjust_inventory_request): \OpenAPIClient\Model\AdjustInventory200Response
 ```
 
 Adjust inventory
@@ -31,17 +31,17 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\InventoryApi(
+$apiInstance = new OpenAPIClient\Api\InventoryApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $variant = 56; // int
-$adjust_inventory_request = new \OpenAPI\Client\Model\AdjustInventoryRequest(); // \OpenAPI\Client\Model\AdjustInventoryRequest
+$adjust_inventory_request = new \OpenAPIClient\Model\AdjustInventoryRequest(); // \OpenAPIClient\Model\AdjustInventoryRequest
 
 try {
     $result = $apiInstance->adjustInventory($variant, $adjust_inventory_request);
@@ -56,11 +56,11 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **variant** | **int**|  | |
-| **adjust_inventory_request** | [**\OpenAPI\Client\Model\AdjustInventoryRequest**](../Model/AdjustInventoryRequest.md)|  | |
+| **adjust_inventory_request** | [**\OpenAPIClient\Model\AdjustInventoryRequest**](../Model/AdjustInventoryRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\AdjustInventory200Response**](../Model/AdjustInventory200Response.md)
+[**\OpenAPIClient\Model\AdjustInventory200Response**](../Model/AdjustInventory200Response.md)
 
 ### Authorization
 
@@ -78,12 +78,12 @@ try {
 ## `bulkUpdateInventory()`
 
 ```php
-bulkUpdateInventory($bulk_update_inventory_request): \OpenAPI\Client\Model\BulkUpdateInventory200Response
+bulkUpdateInventory($bulk_update_inventory_request): \OpenAPIClient\Model\BulkUpdateInventory200Response
 ```
 
 Bulk update inventory
 
-Update inventory for multiple variants at once
+Set absolute inventory quantity for multiple variants (requires Inventory add-on)
 
 ### Example
 
@@ -93,16 +93,16 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\InventoryApi(
+$apiInstance = new OpenAPIClient\Api\InventoryApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
-$bulk_update_inventory_request = new \OpenAPI\Client\Model\BulkUpdateInventoryRequest(); // \OpenAPI\Client\Model\BulkUpdateInventoryRequest
+$bulk_update_inventory_request = new \OpenAPIClient\Model\BulkUpdateInventoryRequest(); // \OpenAPIClient\Model\BulkUpdateInventoryRequest
 
 try {
     $result = $apiInstance->bulkUpdateInventory($bulk_update_inventory_request);
@@ -116,11 +116,11 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **bulk_update_inventory_request** | [**\OpenAPI\Client\Model\BulkUpdateInventoryRequest**](../Model/BulkUpdateInventoryRequest.md)|  | |
+| **bulk_update_inventory_request** | [**\OpenAPIClient\Model\BulkUpdateInventoryRequest**](../Model/BulkUpdateInventoryRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\BulkUpdateInventory200Response**](../Model/BulkUpdateInventory200Response.md)
+[**\OpenAPIClient\Model\BulkUpdateInventory200Response**](../Model/BulkUpdateInventory200Response.md)
 
 ### Authorization
 
@@ -138,12 +138,12 @@ try {
 ## `getProductInventory()`
 
 ```php
-getProductInventory($product): \OpenAPI\Client\Model\GetProductInventory200Response
+getProductInventory($product): \OpenAPIClient\Model\GetProductInventory200Response
 ```
 
 Get product inventory
 
-Get inventory information for a product and all its variants
+Get inventory information for a product and all its variants. Requires the **Inventory** add-on to be enabled for the store; otherwise returns 403.
 
 ### Example
 
@@ -153,10 +153,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\InventoryApi(
+$apiInstance = new OpenAPIClient\Api\InventoryApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -180,7 +180,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\GetProductInventory200Response**](../Model/GetProductInventory200Response.md)
+[**\OpenAPIClient\Model\GetProductInventory200Response**](../Model/GetProductInventory200Response.md)
 
 ### Authorization
 
@@ -198,7 +198,7 @@ try {
 ## `setInventory()`
 
 ```php
-setInventory($variant, $set_inventory_request): \OpenAPI\Client\Model\SetInventory200Response
+setInventory($variant, $set_inventory_request): \OpenAPIClient\Model\SetInventory200Response
 ```
 
 Set inventory quantity
@@ -213,17 +213,17 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\InventoryApi(
+$apiInstance = new OpenAPIClient\Api\InventoryApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $variant = 56; // int
-$set_inventory_request = new \OpenAPI\Client\Model\SetInventoryRequest(); // \OpenAPI\Client\Model\SetInventoryRequest
+$set_inventory_request = new \OpenAPIClient\Model\SetInventoryRequest(); // \OpenAPIClient\Model\SetInventoryRequest
 
 try {
     $result = $apiInstance->setInventory($variant, $set_inventory_request);
@@ -238,11 +238,11 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **variant** | **int**|  | |
-| **set_inventory_request** | [**\OpenAPI\Client\Model\SetInventoryRequest**](../Model/SetInventoryRequest.md)|  | |
+| **set_inventory_request** | [**\OpenAPIClient\Model\SetInventoryRequest**](../Model/SetInventoryRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\SetInventory200Response**](../Model/SetInventory200Response.md)
+[**\OpenAPIClient\Model\SetInventory200Response**](../Model/SetInventory200Response.md)
 
 ### Authorization
 
@@ -260,7 +260,7 @@ try {
 ## `updateVariantInventory()`
 
 ```php
-updateVariantInventory($variant, $update_variant_inventory_request): \OpenAPI\Client\Model\UpdateVariantInventory200Response
+updateVariantInventory($variant, $update_variant_inventory_request): \OpenAPIClient\Model\UpdateVariantInventory200Response
 ```
 
 Update variant inventory
@@ -275,17 +275,17 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\InventoryApi(
+$apiInstance = new OpenAPIClient\Api\InventoryApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $variant = 56; // int
-$update_variant_inventory_request = new \OpenAPI\Client\Model\UpdateVariantInventoryRequest(); // \OpenAPI\Client\Model\UpdateVariantInventoryRequest
+$update_variant_inventory_request = new \OpenAPIClient\Model\UpdateVariantInventoryRequest(); // \OpenAPIClient\Model\UpdateVariantInventoryRequest
 
 try {
     $result = $apiInstance->updateVariantInventory($variant, $update_variant_inventory_request);
@@ -300,11 +300,11 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **variant** | **int**|  | |
-| **update_variant_inventory_request** | [**\OpenAPI\Client\Model\UpdateVariantInventoryRequest**](../Model/UpdateVariantInventoryRequest.md)|  | [optional] |
+| **update_variant_inventory_request** | [**\OpenAPIClient\Model\UpdateVariantInventoryRequest**](../Model/UpdateVariantInventoryRequest.md)|  | [optional] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\UpdateVariantInventory200Response**](../Model/UpdateVariantInventory200Response.md)
+[**\OpenAPIClient\Model\UpdateVariantInventory200Response**](../Model/UpdateVariantInventory200Response.md)
 
 ### Authorization
 

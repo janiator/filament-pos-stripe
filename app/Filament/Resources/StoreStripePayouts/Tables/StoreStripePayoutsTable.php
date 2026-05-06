@@ -51,7 +51,7 @@ class StoreStripePayoutsTable
                     ->sortable(),
 
                 TextColumn::make('tripletex_reconciliation')
-                    ->label('TX recon')
+                    ->label(__('TX recon'))
                     ->badge()
                     ->visible(fn (): bool => self::isTripletexActivatedForTenant())
                     ->color(fn (?string $state): string => match ($state) {
@@ -76,8 +76,8 @@ class StoreStripePayoutsTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('tripletex_synced')
-                    ->label('TX')
-                    ->tooltip('Tripletex payout voucher status')
+                    ->label(__('TX'))
+                    ->tooltip(__('Tripletex payout voucher status'))
                     ->visible(fn (): bool => self::isTripletexActivatedForTenant())
                     ->getStateUsing(function (StoreStripePayout $record): ?string {
                         if ($record->status !== 'paid') {
@@ -122,7 +122,7 @@ class StoreStripePayoutsTable
                     ->label(__('filament.resources.store_stripe_payout.columns.arrival_date'))
                     ->dateTime()
                     ->sortable()
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
 
                 TextColumn::make('method')
                     ->label(__('filament.resources.store_stripe_payout.columns.method'))
@@ -162,7 +162,7 @@ class StoreStripePayoutsTable
                 TripletexPayoutReconciliationAction::makeTableAction(),
                 TripletexVoucherPreviewAction::makeTableActionForPayout(),
                 Action::make('sync_tripletex')
-                    ->label('Sync Tripletex')
+                    ->label(__('Sync Tripletex'))
                     ->icon('heroicon-o-document-chart-bar')
                     ->color('gray')
                     ->visible(fn (StoreStripePayout $record): bool => self::canSyncPayoutToTripletex($record))
@@ -173,7 +173,7 @@ class StoreStripePayoutsTable
                         ]);
 
                         Notification::make()
-                            ->title('Syncing payout to Tripletex...')
+                            ->title(__('Syncing payout to Tripletex...'))
                             ->body($record->stripe_payout_id)
                             ->info()
                             ->send();
@@ -187,7 +187,7 @@ class StoreStripePayoutsTable
                                 ->first();
                         } catch (\Throwable $e) {
                             Notification::make()
-                                ->title('Tripletex payout sync failed')
+                                ->title(__('Tripletex payout sync failed'))
                                 ->body($e->getMessage())
                                 ->danger()
                                 ->send();
@@ -197,7 +197,7 @@ class StoreStripePayoutsTable
 
                         if ($run?->status === TripletexSyncRunStatus::Skipped) {
                             Notification::make()
-                                ->title('Tripletex payout sync skipped')
+                                ->title(__('Tripletex payout sync skipped'))
                                 ->body($run->error_message ?? 'No voucher was posted.')
                                 ->warning()
                                 ->persistent()
@@ -208,7 +208,7 @@ class StoreStripePayoutsTable
 
                         if (! $ok || $run?->status !== TripletexSyncRunStatus::Success) {
                             Notification::make()
-                                ->title('Tripletex payout sync failed')
+                                ->title(__('Tripletex payout sync failed'))
                                 ->body($run?->error_message ?? 'See Tripletex sync history for details.')
                                 ->danger()
                                 ->persistent()
@@ -218,7 +218,7 @@ class StoreStripePayoutsTable
                         }
 
                         Notification::make()
-                            ->title('Synced payout to Tripletex')
+                            ->title(__('Synced payout to Tripletex'))
                             ->body($run->tripletex_voucher_id ? "Voucher #{$run->tripletex_voucher_id}" : 'Payout voucher posted.')
                             ->success()
                             ->persistent()

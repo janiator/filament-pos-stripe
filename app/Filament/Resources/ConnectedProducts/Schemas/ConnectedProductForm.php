@@ -33,7 +33,7 @@ class ConnectedProductForm
                 // Create form - simple layout
                 // Store field is hidden on create and edit - automatically set from current tenant
                 Select::make('stripe_account_id')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->options(function () {
                         return \App\Models\Store::whereNotNull('stripe_account_id')
                             ->pluck('name', 'stripe_account_id');
@@ -41,7 +41,7 @@ class ConnectedProductForm
                     ->searchable()
                     ->preload()
                     ->required()
-                    ->helperText('The store/connected account this product belongs to')
+                    ->helperText(__('The store/connected account this product belongs to'))
                     ->hiddenOn(['create', 'edit']),
 
                 // Create form - matching edit form structure
@@ -54,10 +54,10 @@ class ConnectedProductForm
                         Group::make()
                             ->schema([
                                 Section::make('Media')
-                                    ->description('Product images and media')
+                                    ->description(__('Product images and media'))
                                     ->schema([
                                         SpatieMediaLibraryFileUpload::make('images')
-                                            ->label('Product Images')
+                                            ->label(__('Product Images'))
                                             ->collection('images')
                                             ->multiple()
                                             ->image()
@@ -72,7 +72,7 @@ class ConnectedProductForm
                                                 '1:1',
                                             ])
                                             ->maxFiles(8)
-                                            ->helperText('Upload product images. These will be synced to Stripe when saved.')
+                                            ->helperText(__('Upload product images. These will be synced to Stripe when saved.'))
                                             ->columnSpanFull(),
                                     ])
                                     ->collapsible()
@@ -89,48 +89,48 @@ class ConnectedProductForm
                             ->schema([
                                 // Product Information Section
                                 Section::make('Product Information')
-                                    ->description('Basic product details')
+                                    ->description(__('Basic product details'))
                                     ->schema([
                                         TextInput::make('name')
-                                            ->label('Product Name')
+                                            ->label(__('Product Name'))
                                             ->required()
                                             ->maxLength(255)
                                             ->columnSpanFull()
-                                            ->helperText('This field will sync to Stripe when saved'),
+                                            ->helperText(__('This field will sync to Stripe when saved')),
 
                                         Textarea::make('description')
-                                            ->label('Description')
+                                            ->label(__('Description'))
                                             ->rows(8)
                                             ->columnSpanFull()
-                                            ->helperText('Product description. This field will sync to Stripe when saved'),
+                                            ->helperText(__('Product description. This field will sync to Stripe when saved')),
 
                                         Grid::make(2)
                                             ->schema([
                                                 Select::make('type')
-                                                    ->label('Product Type')
+                                                    ->label(__('Product Type'))
                                                     ->options([
                                                         'service' => 'Service',
                                                         'good' => 'Good',
                                                     ])
                                                     ->default('service')
-                                                    ->helperText('Product type cannot be changed after creation'),
+                                                    ->helperText(__('Product type cannot be changed after creation')),
 
                                                 Toggle::make('active')
-                                                    ->label('Product Status')
-                                                    ->helperText('Active products are visible in Stripe')
+                                                    ->label(__('Product Status'))
+                                                    ->helperText(__('Active products are visible in Stripe'))
                                                     ->default(true),
                                             ])
                                             ->columnSpanFull(),
 
                                         Select::make('product_type')
-                                            ->label('Product Structure')
+                                            ->label(__('Product Structure'))
                                             ->options([
                                                 'single' => 'Single Product (no variants)',
                                                 'variable' => 'Variable Product (has variants)',
                                                 'auto' => 'Auto-detect from variants',
                                             ])
                                             ->default('auto')
-                                            ->helperText('Single: Only main product in Stripe. Variable: Only variants in Stripe (no main product). Auto: Detected from variant count.')
+                                            ->helperText(__('Single: Only main product in Stripe. Variable: Only variants in Stripe (no main product). Auto: Detected from variant count.'))
                                             ->afterStateUpdated(function ($state, $set, $get) {
                                                 // Store in metadata
                                                 $meta = $get('product_meta') ?? [];
@@ -150,16 +150,16 @@ class ConnectedProductForm
 
                                 // Pricing Section
                                 Section::make('Pricing')
-                                    ->description('Product pricing information')
+                                    ->description(__('Product pricing information'))
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('price')
-                                                    ->label('Price')
+                                                    ->label(__('Price'))
                                                     ->numeric()
                                                     ->step(0.01)
-                                                    ->prefix('kr')
-                                                    ->helperText('Enter the product price. This will create or update the Stripe price automatically.')
+                                                    ->prefix(__('kr'))
+                                                    ->helperText(__('Enter the product price. This will create or update the Stripe price automatically.'))
                                                     ->dehydrateStateUsing(function ($state) {
                                                         // Convert to string format for storage (handle both , and . as decimal)
                                                         if (! $state) {
@@ -171,7 +171,7 @@ class ConnectedProductForm
                                                     }),
 
                                                 Select::make('currency')
-                                                    ->label('Currency')
+                                                    ->label(__('Currency'))
                                                     ->options([
                                                         'nok' => 'NOK (kr)',
                                                         'usd' => 'USD ($)',
@@ -180,16 +180,16 @@ class ConnectedProductForm
                                                         'dkk' => 'DKK',
                                                     ])
                                                     ->default('nok')
-                                                    ->helperText('Currency for this product'),
+                                                    ->helperText(__('Currency for this product')),
                                             ])
                                             ->columnSpanFull(),
 
                                         TextInput::make('compare_at_price_decimal')
-                                            ->label('Compare at Price')
+                                            ->label(__('Compare at Price'))
                                             ->numeric()
                                             ->step(0.01)
-                                            ->prefix('kr')
-                                            ->helperText('Original price before discount (optional). Shows discount percentage if set.')
+                                            ->prefix(__('kr'))
+                                            ->helperText(__('Original price before discount (optional). Shows discount percentage if set.'))
                                             ->dehydrated(false)
                                             ->afterStateUpdated(function ($state, $set) {
                                                 if ($state !== null && $state !== '') {
@@ -200,8 +200,8 @@ class ConnectedProductForm
                                             }),
 
                                         Toggle::make('no_price_in_pos')
-                                            ->label('No Price in POS')
-                                            ->helperText('Enable this to allow custom price input on POS. When enabled, the price field can be left empty and will not be restored from default_price.')
+                                            ->label(__('No Price in POS'))
+                                            ->helperText(__('Enable this to allow custom price input on POS. When enabled, the price field can be left empty and will not be restored from default_price.'))
                                             ->default(false)
                                             ->columnSpanFull(),
 
@@ -225,19 +225,19 @@ class ConnectedProductForm
 
                                 // Shipping Section
                                 Section::make('Shipping')
-                                    ->description('Shipping and fulfillment settings')
+                                    ->description(__('Shipping and fulfillment settings'))
                                     ->schema([
                                         Toggle::make('shippable')
-                                            ->label('This is a physical product')
-                                            ->helperText('Enable if this product requires shipping')
+                                            ->label(__('This is a physical product'))
+                                            ->helperText(__('Enable if this product requires shipping'))
                                             ->default(false)
                                             ->columnSpanFull(),
 
                                         KeyValue::make('package_dimensions')
-                                            ->label('Package Dimensions')
+                                            ->label(__('Package Dimensions'))
                                             ->keyLabel('Dimension')
                                             ->valueLabel('Value')
-                                            ->helperText('Package dimensions for shipping (height, length, weight, width). This field will sync to Stripe when saved.')
+                                            ->helperText(__('Package dimensions for shipping (height, length, weight, width). This field will sync to Stripe when saved.'))
                                             ->columnSpanFull(),
                                     ])
                                     ->collapsible()
@@ -246,10 +246,10 @@ class ConnectedProductForm
 
                                 // Vendor Section
                                 Section::make('Vendor')
-                                    ->description('Assign a vendor to this product')
+                                    ->description(__('Assign a vendor to this product'))
                                     ->schema([
                                         Select::make('vendor_id')
-                                            ->label('Vendor')
+                                            ->label(__('Vendor'))
                                             ->relationship(
                                                 'vendor',
                                                 'name',
@@ -281,36 +281,36 @@ class ConnectedProductForm
                                             )
                                             ->searchable()
                                             ->preload()
-                                            ->helperText('Select the vendor for this product')
-                                            ->placeholder('No vendor')
+                                            ->helperText(__('Select the vendor for this product'))
+                                            ->placeholder(__('No vendor'))
                                             ->hintAction(
                                                 Action::make('createVendor')
-                                                    ->label('Create New Vendor')
+                                                    ->label(__('Create New Vendor'))
                                                     ->icon('heroicon-o-plus')
                                                     ->form([
                                                         TextInput::make('name')
-                                                            ->label('Vendor Name')
+                                                            ->label(__('Vendor Name'))
                                                             ->required()
                                                             ->maxLength(255)
-                                                            ->helperText('The name of the vendor'),
+                                                            ->helperText(__('The name of the vendor')),
                                                         Textarea::make('description')
-                                                            ->label('Description')
+                                                            ->label(__('Description'))
                                                             ->rows(3)
-                                                            ->helperText('Optional description for this vendor'),
+                                                            ->helperText(__('Optional description for this vendor')),
                                                         TextInput::make('contact_email')
-                                                            ->label('Contact Email')
+                                                            ->label(__('Contact Email'))
                                                             ->email()
                                                             ->maxLength(255)
-                                                            ->helperText('Contact email address for this vendor'),
+                                                            ->helperText(__('Contact email address for this vendor')),
                                                         TextInput::make('contact_phone')
-                                                            ->label('Contact Phone')
+                                                            ->label(__('Contact Phone'))
                                                             ->tel()
                                                             ->maxLength(255)
-                                                            ->helperText('Contact phone number for this vendor'),
+                                                            ->helperText(__('Contact phone number for this vendor')),
                                                         Toggle::make('active')
-                                                            ->label('Active')
+                                                            ->label(__('Active'))
                                                             ->default(true)
-                                                            ->helperText('Only active vendors are visible'),
+                                                            ->helperText(__('Only active vendors are visible')),
                                                     ])
                                                     ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set) {
                                                         // Get stripe_account_id from form state
@@ -352,10 +352,10 @@ class ConnectedProductForm
 
                                 // Collections Section
                                 Section::make('Collections')
-                                    ->description('Organize products into collections')
+                                    ->description(__('Organize products into collections'))
                                     ->schema([
                                         CheckboxList::make('collections')
-                                            ->label('Collections')
+                                            ->label(__('Collections'))
                                             ->relationship(
                                                 'collections',
                                                 'name',
@@ -379,14 +379,14 @@ class ConnectedProductForm
                                                 }
                                             )
                                             ->searchable()
-                                            ->helperText('Select collections this product belongs to')
+                                            ->helperText(__('Select collections this product belongs to'))
                                             ->hintAction(
                                                 Action::make('createCollection')
-                                                    ->label('Create New Collection')
+                                                    ->label(__('Create New Collection'))
                                                     ->icon('heroicon-o-plus')
                                                     ->form([
                                                         TextInput::make('name')
-                                                            ->label('Collection Name')
+                                                            ->label(__('Collection Name'))
                                                             ->required()
                                                             ->maxLength(255)
                                                             ->live(onBlur: true)
@@ -396,13 +396,13 @@ class ConnectedProductForm
                                                                 }
                                                             }),
                                                         TextInput::make('handle')
-                                                            ->label('Handle (Slug)')
+                                                            ->label(__('Handle (Slug)'))
                                                             ->maxLength(255)
-                                                            ->helperText('URL-friendly identifier'),
+                                                            ->helperText(__('URL-friendly identifier')),
                                                         RichEditor::make('description')
-                                                            ->label('Description'),
+                                                            ->label(__('Description')),
                                                         Toggle::make('active')
-                                                            ->label('Active')
+                                                            ->label(__('Active'))
                                                             ->default(true),
                                                     ])
                                                     ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set) {
@@ -441,14 +441,14 @@ class ConnectedProductForm
 
                                 // Additional Details Section
                                 Section::make('Additional Details')
-                                    ->description('Additional product information')
+                                    ->description(__('Additional product information'))
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('statement_descriptor')
-                                                    ->label('Statement Descriptor')
+                                                    ->label(__('Statement Descriptor'))
                                                     ->maxLength(22)
-                                                    ->helperText('Appears on customer statements (max 22 characters)'),
+                                                    ->helperText(__('Appears on customer statements (max 22 characters)')),
 
                                             ])
                                             ->columnSpanFull(),
@@ -456,14 +456,14 @@ class ConnectedProductForm
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('product_code')
-                                                    ->label('Product Code (PLU)')
+                                                    ->label(__('Product Code (PLU)'))
                                                     ->maxLength(50)
-                                                    ->helperText('PLU code (BasicType-02)'),
+                                                    ->helperText(__('PLU code (BasicType-02)')),
                                             ])
                                             ->columnSpanFull(),
 
                                         Select::make('quantity_unit_id')
-                                            ->label('Quantity Unit')
+                                            ->label(__('Quantity Unit'))
                                             ->relationship(
                                                 'quantityUnit',
                                                 'name',
@@ -571,27 +571,27 @@ class ConnectedProductForm
 
                                                 return $pieceUnit?->id;
                                             })
-                                            ->helperText('Select the quantity unit for this product (e.g., per piece, per kg, per meter). This determines how the price is calculated. Defaults to Piece (stk).')
-                                            ->placeholder('Select quantity unit')
+                                            ->helperText(__('Select the quantity unit for this product (e.g., per piece, per kg, per meter). This determines how the price is calculated. Defaults to Piece (stk).'))
+                                            ->placeholder(__('Select quantity unit'))
                                             ->hintAction(
                                                 Action::make('createQuantityUnit')
-                                                    ->label('Create New Quantity Unit')
+                                                    ->label(__('Create New Quantity Unit'))
                                                     ->icon('heroicon-o-plus')
                                                     ->form([
                                                         TextInput::make('name')
-                                                            ->label('Name')
+                                                            ->label(__('Name'))
                                                             ->required()
                                                             ->maxLength(255)
-                                                            ->helperText('The name of the quantity unit (e.g., "Piece", "Kilogram")'),
+                                                            ->helperText(__('The name of the quantity unit (e.g., "Piece", "Kilogram")')),
                                                         TextInput::make('symbol')
-                                                            ->label('Symbol')
+                                                            ->label(__('Symbol'))
                                                             ->maxLength(20)
-                                                            ->helperText('The symbol or abbreviation (e.g., "stk", "kg")'),
+                                                            ->helperText(__('The symbol or abbreviation (e.g., "stk", "kg")')),
                                                         RichEditor::make('description')
-                                                            ->label('Description')
-                                                            ->helperText('Optional description for this quantity unit'),
+                                                            ->label(__('Description'))
+                                                            ->helperText(__('Optional description for this quantity unit')),
                                                         Toggle::make('active')
-                                                            ->label('Active')
+                                                            ->label(__('Active'))
                                                             ->default(true),
                                                     ])
                                                     ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set) {
@@ -627,13 +627,13 @@ class ConnectedProductForm
                                                     ->successNotificationTitle('Quantity unit created')
                                             )
                                             ->columnSpanFull()
-                                            ->helperText('Unit label will be automatically set from the quantity unit symbol.')
+                                            ->helperText(__('Unit label will be automatically set from the quantity unit symbol.'))
                                             ->columnSpanFull(),
 
                                         TextInput::make('url')
-                                            ->label('Product URL')
+                                            ->label(__('Product URL'))
                                             ->url()
-                                            ->helperText('Product URL or link')
+                                            ->helperText(__('Product URL or link'))
                                             ->columnSpanFull(),
                                     ])
                                     ->collapsible()
@@ -642,13 +642,13 @@ class ConnectedProductForm
 
                                 // Product Metadata Section (Shopify fields, SEO, etc.)
                                 Section::make('Product Metadata')
-                                    ->description('Additional metadata and Shopify fields. These sync to Stripe as metadata.')
+                                    ->description(__('Additional metadata and Shopify fields. These sync to Stripe as metadata.'))
                                     ->schema([
                                         KeyValue::make('product_meta')
-                                            ->label('Product Metadata')
+                                            ->label(__('Product Metadata'))
                                             ->keyLabel('Key')
                                             ->valueLabel('Value')
-                                            ->helperText('Custom metadata fields. Common Shopify fields: vendor, tags, handle, category. All values sync to Stripe metadata.')
+                                            ->helperText(__('Custom metadata fields. Common Shopify fields: vendor, tags, handle, category. All values sync to Stripe metadata.'))
                                             ->columnSpanFull()
                                             ->addable(true)
                                             ->deletable(true)
@@ -680,9 +680,9 @@ class ConnectedProductForm
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('product_meta.vendor')
-                                                    ->label('Vendor')
+                                                    ->label(__('Vendor'))
                                                     ->maxLength(255)
-                                                    ->helperText('Product vendor/brand name')
+                                                    ->helperText(__('Product vendor/brand name'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -695,9 +695,9 @@ class ConnectedProductForm
                                                     }),
 
                                                 TextInput::make('product_meta.tags')
-                                                    ->label('Tags')
+                                                    ->label(__('Tags'))
                                                     ->maxLength(255)
-                                                    ->helperText('Comma-separated tags (e.g., "Golf, Equipment, Titleist")')
+                                                    ->helperText(__('Comma-separated tags (e.g., "Golf, Equipment, Titleist")'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -714,9 +714,9 @@ class ConnectedProductForm
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('product_meta.handle')
-                                                    ->label('Handle (Slug)')
+                                                    ->label(__('Handle (Slug)'))
                                                     ->maxLength(255)
-                                                    ->helperText('URL-friendly product handle (e.g., "golf-club-set")')
+                                                    ->helperText(__('URL-friendly product handle (e.g., "golf-club-set")'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -729,9 +729,9 @@ class ConnectedProductForm
                                                     }),
 
                                                 TextInput::make('product_meta.category')
-                                                    ->label('Category')
+                                                    ->label(__('Category'))
                                                     ->maxLength(255)
-                                                    ->helperText('Product category (e.g., "Sporting Goods > Golf > Clubs")')
+                                                    ->helperText(__('Product category (e.g., "Sporting Goods > Golf > Clubs")'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -748,9 +748,9 @@ class ConnectedProductForm
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('product_meta.seo_title')
-                                                    ->label('SEO Title')
+                                                    ->label(__('SEO Title'))
                                                     ->maxLength(255)
-                                                    ->helperText('SEO meta title')
+                                                    ->helperText(__('SEO meta title'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -763,10 +763,10 @@ class ConnectedProductForm
                                                     }),
 
                                                 Textarea::make('product_meta.seo_description')
-                                                    ->label('SEO Description')
+                                                    ->label(__('SEO Description'))
                                                     ->maxLength(320)
                                                     ->rows(3)
-                                                    ->helperText('SEO meta description (max 320 characters)')
+                                                    ->helperText(__('SEO meta description (max 320 characters)'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -804,29 +804,29 @@ class ConnectedProductForm
                             ->schema([
                                 // Product Information Section
                                 Section::make('Product Information')
-                                    ->description('Basic product details')
+                                    ->description(__('Basic product details'))
                                     ->schema([
                                         TextInput::make('name')
-                                            ->label('Product Name')
+                                            ->label(__('Product Name'))
                                             ->required()
                                             ->maxLength(255)
                                             ->columnSpanFull()
-                                            ->helperText('This field will sync to Stripe when saved'),
+                                            ->helperText(__('This field will sync to Stripe when saved')),
 
                                         RichEditor::make('description')
-                                            ->label('Description')
+                                            ->label(__('Description'))
                                             ->columnSpanFull()
-                                            ->helperText('Product description. This field will sync to Stripe when saved'),
+                                            ->helperText(__('Product description. This field will sync to Stripe when saved')),
 
                                         Select::make('product_type')
-                                            ->label('Product Structure')
+                                            ->label(__('Product Structure'))
                                             ->options([
                                                 'single' => 'Single Product (no variants)',
                                                 'variable' => 'Variable Product (has variants)',
                                                 'auto' => 'Auto-detect from variants',
                                             ])
                                             ->default('auto')
-                                            ->helperText('Single: Only main product in Stripe. Variable: Only variants in Stripe (no main product). Auto: Detected from variant count.')
+                                            ->helperText(__('Single: Only main product in Stripe. Variable: Only variants in Stripe (no main product). Auto: Detected from variant count.'))
                                             ->formatStateUsing(function ($state, $record) {
                                                 if ($state) {
                                                     return $state;
@@ -863,16 +863,16 @@ class ConnectedProductForm
 
                                 // Pricing Section
                                 Section::make('Pricing')
-                                    ->description('Product pricing information')
+                                    ->description(__('Product pricing information'))
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('price')
-                                                    ->label('Price')
+                                                    ->label(__('Price'))
                                                     ->numeric()
                                                     ->step(0.01)
                                                     ->prefix(fn ($record) => $record && $record->currency ? strtoupper($record->currency) : 'kr')
-                                                    ->helperText('Enter the product price (source of truth). Saving will create or update the Stripe price.')
+                                                    ->helperText(__('Enter the product price (source of truth). Saving will create or update the Stripe price.'))
                                                     ->formatStateUsing(function ($state, $record) {
                                                         // Prefer stored price column (Filament source of truth); fall back to Stripe only when empty
                                                         $stored = $record ? $record->getRawOriginal('price') : null;
@@ -920,7 +920,7 @@ class ConnectedProductForm
                                                     }),
 
                                                 Select::make('currency')
-                                                    ->label('Currency')
+                                                    ->label(__('Currency'))
                                                     ->options([
                                                         'nok' => 'NOK (kr)',
                                                         'usd' => 'USD ($)',
@@ -961,16 +961,16 @@ class ConnectedProductForm
 
                                                         return $state ?: 'nok';
                                                     })
-                                                    ->helperText('Currency for this product'),
+                                                    ->helperText(__('Currency for this product')),
                                             ])
                                             ->columnSpanFull(),
 
                                         TextInput::make('compare_at_price_decimal')
-                                            ->label('Compare at Price')
+                                            ->label(__('Compare at Price'))
                                             ->numeric()
                                             ->step(0.01)
                                             ->prefix(fn ($record) => $record && $record->currency ? strtoupper($record->currency) : 'kr')
-                                            ->helperText('Original price before discount (optional). Shows discount percentage if set.')
+                                            ->helperText(__('Original price before discount (optional). Shows discount percentage if set.'))
                                             ->default(fn ($record) => $record && $record->compare_at_price_amount ? $record->compare_at_price_amount / 100 : null)
                                             ->dehydrated(false)
                                             ->afterStateUpdated(function ($state, $set) {
@@ -982,8 +982,8 @@ class ConnectedProductForm
                                             }),
 
                                         Toggle::make('no_price_in_pos')
-                                            ->label('No Price in POS')
-                                            ->helperText('Enable this to allow custom price input on POS. When enabled, the price field can be left empty and will not be restored from default_price.')
+                                            ->label(__('No Price in POS'))
+                                            ->helperText(__('Enable this to allow custom price input on POS. When enabled, the price field can be left empty and will not be restored from default_price.'))
                                             ->default(false)
                                             ->columnSpanFull(),
 
@@ -1007,19 +1007,19 @@ class ConnectedProductForm
 
                                 // Shipping Section
                                 Section::make('Shipping')
-                                    ->description('Shipping and fulfillment settings')
+                                    ->description(__('Shipping and fulfillment settings'))
                                     ->schema([
                                         Toggle::make('shippable')
-                                            ->label('This is a physical product')
-                                            ->helperText('Enable if this product requires shipping')
+                                            ->label(__('This is a physical product'))
+                                            ->helperText(__('Enable if this product requires shipping'))
                                             ->default(false)
                                             ->columnSpanFull(),
 
                                         KeyValue::make('package_dimensions')
-                                            ->label('Package Dimensions')
+                                            ->label(__('Package Dimensions'))
                                             ->keyLabel('Dimension')
                                             ->valueLabel('Value')
-                                            ->helperText('Package dimensions for shipping (height, length, weight, width). This field will sync to Stripe when saved.')
+                                            ->helperText(__('Package dimensions for shipping (height, length, weight, width). This field will sync to Stripe when saved.'))
                                             ->columnSpanFull(),
                                     ])
                                     ->collapsible()
@@ -1028,14 +1028,14 @@ class ConnectedProductForm
 
                                 // Additional Details Section
                                 Section::make('Additional Details')
-                                    ->description('Additional product information')
+                                    ->description(__('Additional product information'))
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('statement_descriptor')
-                                                    ->label('Statement Descriptor')
+                                                    ->label(__('Statement Descriptor'))
                                                     ->maxLength(22)
-                                                    ->helperText('Appears on customer statements (max 22 characters)'),
+                                                    ->helperText(__('Appears on customer statements (max 22 characters)')),
 
                                             ])
                                             ->columnSpanFull(),
@@ -1043,14 +1043,14 @@ class ConnectedProductForm
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('product_code')
-                                                    ->label('Product Code (PLU)')
+                                                    ->label(__('Product Code (PLU)'))
                                                     ->maxLength(50)
-                                                    ->helperText('PLU code (BasicType-02)'),
+                                                    ->helperText(__('PLU code (BasicType-02)')),
                                             ])
                                             ->columnSpanFull(),
 
                                         Select::make('quantity_unit_id')
-                                            ->label('Quantity Unit')
+                                            ->label(__('Quantity Unit'))
                                             ->relationship(
                                                 'quantityUnit',
                                                 'name',
@@ -1163,28 +1163,28 @@ class ConnectedProductForm
 
                                                 return $pieceUnit?->id;
                                             })
-                                            ->helperText('Select the quantity unit for this product (e.g., per piece, per kg, per meter). This determines how the price is calculated. Defaults to Piece (stk).')
-                                            ->placeholder('Select quantity unit')
+                                            ->helperText(__('Select the quantity unit for this product (e.g., per piece, per kg, per meter). This determines how the price is calculated. Defaults to Piece (stk).'))
+                                            ->placeholder(__('Select quantity unit'))
                                             ->hintAction(
                                                 Action::make('createQuantityUnit')
-                                                    ->label('Create New Quantity Unit')
+                                                    ->label(__('Create New Quantity Unit'))
                                                     ->icon('heroicon-o-plus')
                                                     ->form([
                                                         TextInput::make('name')
-                                                            ->label('Name')
+                                                            ->label(__('Name'))
                                                             ->required()
                                                             ->maxLength(255)
-                                                            ->helperText('The name of the quantity unit (e.g., "Piece", "Kilogram")'),
+                                                            ->helperText(__('The name of the quantity unit (e.g., "Piece", "Kilogram")')),
                                                         TextInput::make('symbol')
-                                                            ->label('Symbol')
+                                                            ->label(__('Symbol'))
                                                             ->maxLength(20)
-                                                            ->helperText('The symbol or abbreviation (e.g., "stk", "kg")'),
+                                                            ->helperText(__('The symbol or abbreviation (e.g., "stk", "kg")')),
                                                         Textarea::make('description')
-                                                            ->label('Description')
+                                                            ->label(__('Description'))
                                                             ->rows(3)
-                                                            ->helperText('Optional description for this quantity unit'),
+                                                            ->helperText(__('Optional description for this quantity unit')),
                                                         Toggle::make('active')
-                                                            ->label('Active')
+                                                            ->label(__('Active'))
                                                             ->default(true),
                                                     ])
                                                     ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
@@ -1220,13 +1220,13 @@ class ConnectedProductForm
                                                     ->successNotificationTitle('Quantity unit created')
                                             )
                                             ->columnSpanFull()
-                                            ->helperText('Unit label will be automatically set from the quantity unit symbol.')
+                                            ->helperText(__('Unit label will be automatically set from the quantity unit symbol.'))
                                             ->columnSpanFull(),
 
                                         TextInput::make('url')
-                                            ->label('Product URL')
+                                            ->label(__('Product URL'))
                                             ->url()
-                                            ->helperText('Product URL or link')
+                                            ->helperText(__('Product URL or link'))
                                             ->columnSpanFull(),
                                     ])
                                     ->collapsible()
@@ -1235,13 +1235,13 @@ class ConnectedProductForm
 
                                 // Product Metadata Section (Shopify fields, SEO, etc.)
                                 Section::make('Product Metadata')
-                                    ->description('Additional metadata and Shopify fields. These sync to Stripe as metadata.')
+                                    ->description(__('Additional metadata and Shopify fields. These sync to Stripe as metadata.'))
                                     ->schema([
                                         KeyValue::make('product_meta')
-                                            ->label('Product Metadata')
+                                            ->label(__('Product Metadata'))
                                             ->keyLabel('Key')
                                             ->valueLabel('Value')
-                                            ->helperText('Custom metadata fields. Common Shopify fields: vendor, tags, handle, category. All values sync to Stripe metadata.')
+                                            ->helperText(__('Custom metadata fields. Common Shopify fields: vendor, tags, handle, category. All values sync to Stripe metadata.'))
                                             ->columnSpanFull()
                                             ->addable(true)
                                             ->deletable(true)
@@ -1273,9 +1273,9 @@ class ConnectedProductForm
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('product_meta.vendor')
-                                                    ->label('Vendor')
+                                                    ->label(__('Vendor'))
                                                     ->maxLength(255)
-                                                    ->helperText('Product vendor/brand name')
+                                                    ->helperText(__('Product vendor/brand name'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -1289,9 +1289,9 @@ class ConnectedProductForm
                                                     ->formatStateUsing(fn ($state, $record) => $record?->product_meta['vendor'] ?? null),
 
                                                 TextInput::make('product_meta.tags')
-                                                    ->label('Tags')
+                                                    ->label(__('Tags'))
                                                     ->maxLength(255)
-                                                    ->helperText('Comma-separated tags (e.g., "Golf, Equipment, Titleist")')
+                                                    ->helperText(__('Comma-separated tags (e.g., "Golf, Equipment, Titleist")'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -1309,9 +1309,9 @@ class ConnectedProductForm
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('product_meta.handle')
-                                                    ->label('Handle (Slug)')
+                                                    ->label(__('Handle (Slug)'))
                                                     ->maxLength(255)
-                                                    ->helperText('URL-friendly product handle (e.g., "golf-club-set")')
+                                                    ->helperText(__('URL-friendly product handle (e.g., "golf-club-set")'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -1325,9 +1325,9 @@ class ConnectedProductForm
                                                     ->formatStateUsing(fn ($state, $record) => $record?->product_meta['handle'] ?? null),
 
                                                 TextInput::make('product_meta.category')
-                                                    ->label('Category')
+                                                    ->label(__('Category'))
                                                     ->maxLength(255)
-                                                    ->helperText('Product category (e.g., "Sporting Goods > Golf > Clubs")')
+                                                    ->helperText(__('Product category (e.g., "Sporting Goods > Golf > Clubs")'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -1345,9 +1345,9 @@ class ConnectedProductForm
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('product_meta.seo_title')
-                                                    ->label('SEO Title')
+                                                    ->label(__('SEO Title'))
                                                     ->maxLength(255)
-                                                    ->helperText('SEO meta title')
+                                                    ->helperText(__('SEO meta title'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -1361,10 +1361,10 @@ class ConnectedProductForm
                                                     ->formatStateUsing(fn ($state, $record) => $record?->product_meta['seo_title'] ?? null),
 
                                                 Textarea::make('product_meta.seo_description')
-                                                    ->label('SEO Description')
+                                                    ->label(__('SEO Description'))
                                                     ->maxLength(320)
                                                     ->rows(3)
-                                                    ->helperText('SEO meta description (max 320 characters)')
+                                                    ->helperText(__('SEO meta description (max 320 characters)'))
                                                     ->dehydrated(false)
                                                     ->afterStateUpdated(function ($state, $set, $get) {
                                                         $meta = $get('product_meta') ?? [];
@@ -1394,20 +1394,20 @@ class ConnectedProductForm
                         Group::make()
                             ->schema([
                                 Section::make('Kanaler')
-                                    ->description('Product images and media')
+                                    ->description(__('Product images and media'))
                                     ->schema([
                                         Toggle::make('active')
-                                            ->label('Product Status')
-                                            ->helperText('Active products are visible in Stripe')
+                                            ->label(__('Product Status'))
+                                            ->helperText(__('Active products are visible in Stripe'))
                                             ->default(true),
                                     ])
                                     ->collapsible()
                                     ->collapsed(false),
                                 Section::make('Media')
-                                    ->description('Product images and media')
+                                    ->description(__('Product images and media'))
                                     ->schema([
                                         SpatieMediaLibraryFileUpload::make('images')
-                                            ->label('Product Images')
+                                            ->label(__('Product Images'))
                                             ->collection('images')
                                             ->multiple()
                                             ->image()
@@ -1422,17 +1422,17 @@ class ConnectedProductForm
                                                 '1:1',
                                             ])
                                             ->maxFiles(8)
-                                            ->helperText('Upload product images. These will be synced to Stripe when saved.')
+                                            ->helperText(__('Upload product images. These will be synced to Stripe when saved.'))
                                             ->columnSpanFull(),
                                     ])
                                     ->collapsible()
                                     ->collapsed(false),
                                 // Collections Section
                                 Section::make('Collections')
-                                    ->description('Organize products into collections')
+                                    ->description(__('Organize products into collections'))
                                     ->schema([
                                         CheckboxList::make('collections')
-                                            ->label('Collections')
+                                            ->label(__('Collections'))
                                             ->relationship(
                                                 'collections',
                                                 'name',
@@ -1456,14 +1456,14 @@ class ConnectedProductForm
                                                 }
                                             )
                                             ->searchable()
-                                            ->helperText('Select collections this product belongs to')
+                                            ->helperText(__('Select collections this product belongs to'))
                                             ->hintAction(
                                                 Action::make('createCollection')
-                                                    ->label('Create New Collection')
+                                                    ->label(__('Create New Collection'))
                                                     ->icon('heroicon-o-plus')
                                                     ->form([
                                                         TextInput::make('name')
-                                                            ->label('Collection Name')
+                                                            ->label(__('Collection Name'))
                                                             ->required()
                                                             ->maxLength(255)
                                                             ->live(onBlur: true)
@@ -1473,14 +1473,14 @@ class ConnectedProductForm
                                                                 }
                                                             }),
                                                         TextInput::make('handle')
-                                                            ->label('Handle (Slug)')
+                                                            ->label(__('Handle (Slug)'))
                                                             ->maxLength(255)
-                                                            ->helperText('URL-friendly identifier'),
+                                                            ->helperText(__('URL-friendly identifier')),
                                                         Textarea::make('description')
-                                                            ->label('Description')
+                                                            ->label(__('Description'))
                                                             ->rows(3),
                                                         Toggle::make('active')
-                                                            ->label('Active')
+                                                            ->label(__('Active'))
                                                             ->default(true),
                                                     ])
                                                     ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
@@ -1518,10 +1518,10 @@ class ConnectedProductForm
 
                                 // Vendor Section
                                 Section::make('Vendor')
-                                    ->description('Assign a vendor to this product')
+                                    ->description(__('Assign a vendor to this product'))
                                     ->schema([
                                         Select::make('vendor_id')
-                                            ->label('Vendor')
+                                            ->label(__('Vendor'))
                                             ->relationship(
                                                 'vendor',
                                                 'name',
@@ -1539,36 +1539,36 @@ class ConnectedProductForm
                                             )
                                             ->searchable()
                                             ->preload()
-                                            ->helperText('Select the vendor for this product')
-                                            ->placeholder('No vendor')
+                                            ->helperText(__('Select the vendor for this product'))
+                                            ->placeholder(__('No vendor'))
                                             ->hintAction(
                                                 Action::make('createVendor')
-                                                    ->label('Create New Vendor')
+                                                    ->label(__('Create New Vendor'))
                                                     ->icon('heroicon-o-plus')
                                                     ->form([
                                                         TextInput::make('name')
-                                                            ->label('Vendor Name')
+                                                            ->label(__('Vendor Name'))
                                                             ->required()
                                                             ->maxLength(255)
-                                                            ->helperText('The name of the vendor'),
+                                                            ->helperText(__('The name of the vendor')),
                                                         Textarea::make('description')
-                                                            ->label('Description')
+                                                            ->label(__('Description'))
                                                             ->rows(3)
-                                                            ->helperText('Optional description for this vendor'),
+                                                            ->helperText(__('Optional description for this vendor')),
                                                         TextInput::make('contact_email')
-                                                            ->label('Contact Email')
+                                                            ->label(__('Contact Email'))
                                                             ->email()
                                                             ->maxLength(255)
-                                                            ->helperText('Contact email address for this vendor'),
+                                                            ->helperText(__('Contact email address for this vendor')),
                                                         TextInput::make('contact_phone')
-                                                            ->label('Contact Phone')
+                                                            ->label(__('Contact Phone'))
                                                             ->tel()
                                                             ->maxLength(255)
-                                                            ->helperText('Contact phone number for this vendor'),
+                                                            ->helperText(__('Contact phone number for this vendor')),
                                                         Toggle::make('active')
-                                                            ->label('Active')
+                                                            ->label(__('Active'))
                                                             ->default(true)
-                                                            ->helperText('Only active vendors are visible'),
+                                                            ->helperText(__('Only active vendors are visible')),
                                                     ])
                                                     ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
                                                         // Get stripe_account_id from product record or form state
@@ -1671,7 +1671,7 @@ class ConnectedProductForm
     private static function buildArticleGroupCodeSelect(): Select
     {
         return Select::make('article_group_code')
-            ->label('Article Group Code (SAF-T)')
+            ->label(__('Article Group Code (SAF-T)'))
             ->options(function (Get $get, $record) {
                 $stripeAccountId = self::resolveStripeAccountId($get, $record);
 
@@ -1699,8 +1699,8 @@ class ConnectedProductForm
             ->searchable()
             ->preload()
             ->default(fn ($record) => $record?->article_group_code ?? '04999')
-            ->helperText('PredefinedBasicID-04: Product category for SAF-T reporting. VAT rate will be set from the selected code.')
-            ->placeholder('Select article group')
+            ->helperText(__('PredefinedBasicID-04: Product category for SAF-T reporting. VAT rate will be set from the selected code.'))
+            ->placeholder(__('Select article group'))
             ->live(onBlur: false)
             ->afterStateUpdated(function ($state, $set) {
                 if ($state) {
@@ -1722,15 +1722,15 @@ class ConnectedProductForm
     private static function buildVatPercentInputForCreate(): TextInput
     {
         return TextInput::make('vat_percent')
-            ->label('VAT Percentage (%)')
+            ->label(__('VAT Percentage (%)'))
             ->numeric()
             ->step(0.01)
             ->minValue(0)
             ->maxValue(100)
-            ->suffix('%')
+            ->suffix(__('%'))
             ->default(25)
-            ->helperText('VAT percentage for this product. Auto-set from article group code (default 04999 = 25%), but can be manually overridden.')
-            ->placeholder('Auto from article group code')
+            ->helperText(__('VAT percentage for this product. Auto-set from article group code (default 04999 = 25%), but can be manually overridden.'))
+            ->placeholder(__('Auto from article group code'))
             ->reactive();
     }
 
@@ -1740,12 +1740,12 @@ class ConnectedProductForm
     private static function buildVatPercentInputForEdit(): TextInput
     {
         return TextInput::make('vat_percent')
-            ->label('VAT Percentage (%)')
+            ->label(__('VAT Percentage (%)'))
             ->numeric()
             ->step(0.01)
             ->minValue(0)
             ->maxValue(100)
-            ->suffix('%')
+            ->suffix(__('%'))
             ->formatStateUsing(function ($state, $record) {
                 if ($state !== null && $state !== '') {
                     return $state;
@@ -1776,8 +1776,8 @@ class ConnectedProductForm
 
                 return null;
             })
-            ->helperText('VAT percentage for this product. Auto-set from article group code, but can be manually overridden.')
-            ->placeholder('Auto from article group code')
+            ->helperText(__('VAT percentage for this product. Auto-set from article group code, but can be manually overridden.'))
+            ->placeholder(__('Auto from article group code'))
             ->reactive();
     }
 }

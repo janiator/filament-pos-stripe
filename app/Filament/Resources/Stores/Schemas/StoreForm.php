@@ -30,10 +30,10 @@ class StoreForm
                         TextInput::make('name')
                             ->required()
                             ->maxLength(255)
-                            ->helperText('This field will sync to Stripe when saved'),
+                            ->helperText(__('This field will sync to Stripe when saved')),
 
                         TextInput::make('email')
-                            ->label('Email')
+                            ->label(__('Email'))
                             ->email()
                             ->required()
                             ->unique(ignoreRecord: true)
@@ -43,24 +43,24 @@ class StoreForm
                                 : 'Email address for the store'),
 
                         TextInput::make('organisasjonsnummer')
-                            ->label('Organisasjonsnummer')
+                            ->label(__('Organisasjonsnummer'))
                             ->maxLength(255)
-                            ->helperText('Organization number (org.nr.) used on receipts'),
+                            ->helperText(__('Organization number (org.nr.) used on receipts')),
 
                         TextInput::make('address')
-                            ->label('Store address')
+                            ->label(__('Store address'))
                             ->maxLength(500)
                             ->columnSpanFull()
-                            ->helperText('Address shown on receipts (e.g. street, postcode and city)'),
+                            ->helperText(__('Address shown on receipts (e.g. street, postcode and city)')),
 
                         TextInput::make('z_report_email')
-                            ->label('Z-Report Email')
+                            ->label(__('Z-Report Email'))
                             ->email()
                             ->maxLength(255)
-                            ->helperText('Email address to automatically receive Z-reports when POS sessions are closed'),
+                            ->helperText(__('Email address to automatically receive Z-reports when POS sessions are closed')),
 
                         FileUpload::make('logo_path')
-                            ->label('Store Logo')
+                            ->label(__('Store Logo'))
                             ->image()
                             ->optimize('webp')
                             ->maxImageWidth(1024)
@@ -77,32 +77,32 @@ class StoreForm
                             ->visibility('public')
                             ->maxSize(5120) // 5MB
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
-                            ->helperText('Upload a logo for this store. The logo will be displayed on receipts. Max 5MB. JPEG, PNG, WebP, and GIF are supported.')
+                            ->helperText(__('Upload a logo for this store. The logo will be displayed on receipts. Max 5MB. JPEG, PNG, WebP, and GIF are supported.'))
                             ->columnSpanFull(),
 
                         TextInput::make('receipt_logo_max_width_dots')
-                            ->label('Receipt logo max width (dots)')
+                            ->label(__('Receipt logo max width (dots)'))
                             ->numeric()
                             ->minValue(1)
                             ->maxValue(576)
                             ->nullable()
-                            ->placeholder('Default: 384')
-                            ->helperText('Optional. Max width of the logo on receipts in printer dots (80mm receipt = 576). Leave empty for system default.'),
+                            ->placeholder(__('Default: 384'))
+                            ->helperText(__('Optional. Max width of the logo on receipts in printer dots (80mm receipt = 576). Leave empty for system default.')),
 
                         TextInput::make('receipt_logo_max_height_dots')
-                            ->label('Receipt logo max height (dots)')
+                            ->label(__('Receipt logo max height (dots)'))
                             ->numeric()
                             ->minValue(1)
                             ->maxValue(400)
                             ->nullable()
-                            ->placeholder('Default: 200')
-                            ->helperText('Optional. Max height of the logo on receipts in printer dots. Leave empty for system default.'),
+                            ->placeholder(__('Default: 200'))
+                            ->helperText(__('Optional. Max height of the logo on receipts in printer dots. Leave empty for system default.')),
                     ]),
 
                 Section::make('Commission Configuration')
                     ->schema([
                         Radio::make('commission_type')
-                            ->label('Commission type')
+                            ->label(__('Commission type'))
                             ->options([
                                 'percentage' => 'Percentage',
                                 'fixed' => 'Fixed (minor units)',
@@ -112,7 +112,7 @@ class StoreForm
                             ->live(),
 
                         TextInput::make('commission_rate')
-                            ->label('Commission rate')
+                            ->label(__('Commission rate'))
                             ->required()
                             ->numeric()
                             ->helperText(function (Get $get) {
@@ -128,8 +128,8 @@ class StoreForm
                 Section::make('Stripe Configuration')
                     ->schema([
                         TextInput::make('stripe_account_id')
-                            ->label('Stripe account ID')
-                            ->helperText('Set automatically after connecting the store to Stripe (e.g. acct_xxx).')
+                            ->label(__('Stripe account ID'))
+                            ->helperText(__('Set automatically after connecting the store to Stripe (e.g. acct_xxx).'))
                             ->disabled()
                             ->dehydrated(false),
                     ])
@@ -139,30 +139,30 @@ class StoreForm
                 Section::make('Terminal Provider Configuration')
                     ->schema([
                         Select::make('default_terminal_provider')
-                            ->label('Default terminal provider')
+                            ->label(__('Default terminal provider'))
                             ->options([
                                 'stripe' => 'Stripe',
                                 'verifone' => 'Verifone',
                             ])
                             ->required()
                             ->default('stripe')
-                            ->helperText('Used by POS clients as default terminal provider when none is explicitly selected.'),
+                            ->helperText(__('Used by POS clients as default terminal provider when none is explicitly selected.')),
 
                         TextInput::make('verifone_api_base_url')
-                            ->label('Verifone API base URL')
+                            ->label(__('Verifone API base URL'))
                             ->nullable()
                             ->url()
-                            ->placeholder('https://domainname.com')
-                            ->helperText('Base URL used for Verifone POS Cloud NEXO requests.'),
+                            ->placeholder(__('https://domainname.com'))
+                            ->helperText(__('Base URL used for Verifone POS Cloud NEXO requests.')),
 
                         TextInput::make('verifone_user_uid')
-                            ->label('Verifone User UID')
+                            ->label(__('Verifone User UID'))
                             ->nullable()
                             ->maxLength(255)
-                            ->helperText('UID used together with API key for Verifone authorization.'),
+                            ->helperText(__('UID used together with API key for Verifone authorization.')),
 
                         TextInput::make('verifone_api_key')
-                            ->label('Verifone API Key')
+                            ->label(__('Verifone API Key'))
                             ->password()
                             ->revealable()
                             ->nullable()
@@ -175,7 +175,7 @@ class StoreForm
                                 : 'Stored encrypted. Leave blank to keep the existing key.'),
 
                         TextInput::make('verifone_encoded_basic_auth')
-                            ->label('Verifone pre-encoded Basic auth')
+                            ->label(__('Verifone pre-encoded Basic auth'))
                             ->password()
                             ->revealable()
                             ->nullable()
@@ -189,34 +189,34 @@ class StoreForm
                                 : 'Optional override. Paste only the base64 token (without "Basic "). When set, this is used instead of User UID + API key. Stored encrypted.'),
 
                         Toggle::make('clear_verifone_encoded_basic_auth')
-                            ->label('Clear saved pre-encoded Basic auth token')
+                            ->label(__('Clear saved pre-encoded Basic auth token'))
                             ->default(false)
                             ->dehydrated(false)
                             ->visible(fn ($record): bool => filled($record?->verifone_encoded_basic_auth))
-                            ->helperText('Enable this when you want to remove the stored override and use Verifone User UID + API key instead.'),
+                            ->helperText(__('Enable this when you want to remove the stored override and use Verifone User UID + API key instead.')),
 
                         TextInput::make('verifone_site_entity_id')
-                            ->label('Verifone Site Entity ID')
+                            ->label(__('Verifone Site Entity ID'))
                             ->nullable()
                             ->maxLength(255)
-                            ->helperText('Required when using parent tokens to scope terminal API calls.'),
+                            ->helperText(__('Required when using parent tokens to scope terminal API calls.')),
 
                         TextInput::make('verifone_sale_id')
-                            ->label('Default Verifone Sale ID')
+                            ->label(__('Default Verifone Sale ID'))
                             ->nullable()
                             ->maxLength(255)
-                            ->helperText('Used as fallback sale ID for Verifone payment and status requests.'),
+                            ->helperText(__('Used as fallback sale ID for Verifone payment and status requests.')),
 
                         TextInput::make('verifone_operator_id')
-                            ->label('Default Verifone Operator ID')
+                            ->label(__('Default Verifone Operator ID'))
                             ->nullable()
                             ->maxLength(255)
-                            ->helperText('Used as fallback operator ID in payment requests.'),
+                            ->helperText(__('Used as fallback operator ID in payment requests.')),
 
                         Toggle::make('verifone_terminal_simulator')
-                            ->label('Use Verifone terminal simulator')
+                            ->label(__('Use Verifone terminal simulator'))
                             ->default(false)
-                            ->helperText('Adds simulator header for Verifone API calls in non-production testing.'),
+                            ->helperText(__('Adds simulator header for Verifone API calls in non-production testing.')),
                     ])
                     ->columns(2)
                     ->collapsible()
@@ -225,14 +225,14 @@ class StoreForm
                 Section::make('Merano Integration')
                     ->schema([
                         TextInput::make('merano_base_url')
-                            ->label('Merano Base URL')
+                            ->label(__('Merano Base URL'))
                             ->url()
                             ->nullable()
-                            ->placeholder('https://merano.example.com')
-                            ->helperText('Merano API base URL without a trailing slash. Only used when the Merano Booking add-on is active.'),
+                            ->placeholder(__('https://merano.example.com'))
+                            ->helperText(__('Merano API base URL without a trailing slash. Only used when the Merano Booking add-on is active.')),
 
                         TextInput::make('merano_pos_api_token')
-                            ->label('Merano POS API Token')
+                            ->label(__('Merano POS API Token'))
                             ->password()
                             ->revealable()
                             ->nullable()
@@ -240,10 +240,10 @@ class StoreForm
                                 $component->state('');
                             })
                             ->dehydrated(fn (?string $state): bool => filled($state))
-                            ->helperText('POS_API_TOKEN from Merano. Stored encrypted. Leave blank to keep the current token.'),
+                            ->helperText(__('POS_API_TOKEN from Merano. Stored encrypted. Leave blank to keep the current token.')),
 
                         Select::make('merano_ticket_connected_product_id')
-                            ->label('Merano ticket product')
+                            ->label(__('Merano ticket product'))
                             ->relationship(
                                 name: 'meranoTicketProduct',
                                 titleAttribute: 'name',
@@ -258,10 +258,10 @@ class StoreForm
                             ->searchable()
                             ->preload()
                             ->nullable()
-                            ->helperText('Product used as the cart line when adding Merano bookings in the POS. Used by the ticket-product API and automatic add-to-cart.'),
+                            ->helperText(__('Product used as the cart line when adding Merano bookings in the POS. Used by the ticket-product API and automatic add-to-cart.')),
 
                         TextInput::make('reports_api_token')
-                            ->label('Merano Reports Token')
+                            ->label(__('Merano Reports Token'))
                             ->password()
                             ->revealable()
                             ->nullable()
@@ -269,7 +269,7 @@ class StoreForm
                                 $component->state('');
                             })
                             ->dehydrated(fn (?string $state): bool => filled($state))
-                            ->helperText('Token Merano uses to pull kiosk-sales reports from this store. Use "Generate Reports Token" in the header to create one.'),
+                            ->helperText(__('Token Merano uses to pull kiosk-sales reports from this store. Use "Generate Reports Token" in the header to create one.')),
                     ])
                     ->columns(2)
                     ->collapsible()

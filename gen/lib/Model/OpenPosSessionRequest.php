@@ -1,19 +1,21 @@
 <?php
+
 /**
  * OpenPosSessionRequest
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,74 +29,78 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * OpenPosSessionRequest Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSerializable
+class OpenPosSessionRequest implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'openPosSession_request';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'pos_device_id' => 'int',
         'opening_balance' => 'int',
         'opening_notes' => 'string',
-        'opening_data' => 'array<string,mixed>'
+        'opening_data' => 'array<string,mixed>',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'pos_device_id' => null,
         'opening_balance' => null,
         'opening_notes' => null,
-        'opening_data' => null
+        'opening_data' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'pos_device_id' => false,
         'opening_balance' => true,
         'opening_notes' => true,
-        'opening_data' => true
+        'opening_data' => true,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -119,8 +125,6 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -130,7 +134,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -140,7 +144,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -149,9 +153,6 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -160,9 +161,6 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -179,7 +177,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'pos_device_id' => 'pos_device_id',
         'opening_balance' => 'opening_balance',
         'opening_notes' => 'opening_notes',
-        'opening_data' => 'opening_data'
+        'opening_data' => 'opening_data',
     ];
 
     /**
@@ -191,7 +189,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'pos_device_id' => 'setPosDeviceId',
         'opening_balance' => 'setOpeningBalance',
         'opening_notes' => 'setOpeningNotes',
-        'opening_data' => 'setOpeningData'
+        'opening_data' => 'setOpeningData',
     ];
 
     /**
@@ -203,7 +201,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'pos_device_id' => 'getPosDeviceId',
         'opening_balance' => 'getOpeningBalance',
         'opening_notes' => 'getOpeningNotes',
-        'opening_data' => 'getOpeningData'
+        'opening_data' => 'getOpeningData',
     ];
 
     /**
@@ -247,7 +245,6 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -258,8 +255,8 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -270,14 +267,12 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -299,11 +294,11 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         if ($this->container['pos_device_id'] === null) {
             $invalidProperties[] = "'pos_device_id' can't be null";
         }
-        if (!is_null($this->container['opening_balance']) && ($this->container['opening_balance'] < 0)) {
+        if (! is_null($this->container['opening_balance']) && ($this->container['opening_balance'] < 0)) {
             $invalidProperties[] = "invalid value for 'opening_balance', must be bigger than or equal to 0.";
         }
 
-        if (!is_null($this->container['opening_notes']) && (mb_strlen($this->container['opening_notes']) > 1000)) {
+        if (! is_null($this->container['opening_notes']) && (mb_strlen($this->container['opening_notes']) > 1000)) {
             $invalidProperties[] = "invalid value for 'opening_notes', the character length must be smaller than or equal to 1000.";
         }
 
@@ -321,7 +316,6 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets pos_device_id
      *
@@ -335,8 +329,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets pos_device_id
      *
-     * @param int $pos_device_id POS device ID
-     *
+     * @param  int  $pos_device_id  POS device ID
      * @return self
      */
     public function setPosDeviceId($pos_device_id)
@@ -362,8 +355,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets opening_balance
      *
-     * @param int|null $opening_balance Opening cash balance in øre
-     *
+     * @param  int|null  $opening_balance  Opening cash balance in øre
      * @return self
      */
     public function setOpeningBalance($opening_balance)
@@ -373,13 +365,13 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('opening_balance', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
         }
 
-        if (!is_null($opening_balance) && ($opening_balance < 0)) {
+        if (! is_null($opening_balance) && ($opening_balance < 0)) {
             throw new \InvalidArgumentException('invalid value for $opening_balance when calling OpenPosSessionRequest., must be bigger than or equal to 0.');
         }
 
@@ -401,8 +393,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets opening_notes
      *
-     * @param string|null $opening_notes Free-text notes for session opening (e.g., shift information, initial observations, cashier notes). Human-readable text field for cashiers/managers to document session start.
-     *
+     * @param  string|null  $opening_notes  Free-text notes for session opening (e.g., shift information, initial observations, cashier notes). Human-readable text field for cashiers/managers to document session start.
      * @return self
      */
     public function setOpeningNotes($opening_notes)
@@ -412,12 +403,12 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('opening_notes', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
         }
-        if (!is_null($opening_notes) && (mb_strlen($opening_notes) > 1000)) {
+        if (! is_null($opening_notes) && (mb_strlen($opening_notes) > 1000)) {
             throw new \InvalidArgumentException('invalid length for $opening_notes when calling OpenPosSessionRequest., must be smaller than or equal to 1000.');
         }
 
@@ -439,8 +430,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets opening_data
      *
-     * @param array<string,mixed>|null $opening_data Additional opening metadata (device info, app version, location, etc.). Flexible object for storing any additional session opening data.
-     *
+     * @param  array<string,mixed>|null  $opening_data  Additional opening metadata (device info, app version, location, etc.). Flexible object for storing any additional session opening data.
      * @return self
      */
     public function setOpeningData($opening_data)
@@ -450,7 +440,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('opening_data', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -459,12 +449,11 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -474,8 +463,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -487,10 +475,8 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -504,9 +490,7 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -515,15 +499,16 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -549,5 +534,3 @@ class OpenPosSessionRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

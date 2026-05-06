@@ -535,3 +535,51 @@ test('purchase with cart note stores note on charge and on sales receipt data', 
     expect($receipt)->not->toBeNull()
         ->and($receipt->receipt_data['order_note'])->toBe('Ring kunden før levering');
 });
+
+test('get purchase maps purchase_note from metadata cart_note when note is absent', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_meta_cart_note']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+    ]);
+
+    $charge = ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'status' => 'pending',
+        'paid' => false,
+        'metadata' => [
+            'items' => [
+                [
+                    'product_id' => (string) $product->id,
+                    'product_name' => 'Test',
+                    'quantity' => 1,
+                    'unit_price' => 1000,
+                    'discount_amount' => 0,
+                ],
+            ],
+            'subtotal' => 1000,
+            'total_discounts' => 0,
+            'total_tax' => 200,
+            'total' => 1000,
+            'cart_note' => 'Henting fredag',
+        ],
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $this->getJson("/api/purchases/{$charge->id}")
+        ->assertOk()
+        ->assertJsonPath('purchase.purchase_note', 'Henting fredag');
+});

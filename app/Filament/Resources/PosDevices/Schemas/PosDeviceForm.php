@@ -20,18 +20,18 @@ class PosDeviceForm
                 Section::make('Device Information')
                     ->schema([
                         TextInput::make('device_name')
-                            ->label('Device Name')
+                            ->label(__('Device Name'))
                             ->required()
                             ->maxLength(255),
 
                         TextInput::make('device_identifier')
-                            ->label('Device Identifier')
+                            ->label(__('Device Identifier'))
                             ->required()
                             ->maxLength(255)
-                            ->helperText('From the device (Android may repeat across devices). Identity per store is device name.'),
+                            ->helperText(__('From the device (Android may repeat across devices). Identity per store is device name.')),
 
                         Select::make('platform')
-                            ->label('Platform')
+                            ->label(__('Platform'))
                             ->options([
                                 'ios' => 'iOS',
                                 'android' => 'Android',
@@ -40,7 +40,7 @@ class PosDeviceForm
                             ->native(false),
 
                         Select::make('device_status')
-                            ->label('Status')
+                            ->label(__('Status'))
                             ->options([
                                 'active' => 'Active',
                                 'inactive' => 'Inactive',
@@ -52,7 +52,7 @@ class PosDeviceForm
                             ->native(false),
 
                         Select::make('default_printer_id')
-                            ->label('Default Receipt Printer')
+                            ->label(__('Default Receipt Printer'))
                             ->relationship(
                                 'defaultPrinter',
                                 'name',
@@ -68,31 +68,31 @@ class PosDeviceForm
                             ->searchable()
                             ->preload()
                             ->nullable()
-                            ->helperText('Select the default receipt printer for this POS device'),
+                            ->helperText(__('Select the default receipt printer for this POS device')),
 
                         Toggle::make('cash_drawer_enabled')
-                            ->label('Cash drawer enabled')
+                            ->label(__('Cash drawer enabled'))
                             ->default(true)
-                            ->helperText('When off, only non-cash transactions are allowed on this device'),
+                            ->helperText(__('When off, only non-cash transactions are allowed on this device')),
 
                         Toggle::make('has_integrated_drawer')
-                            ->label('Has integrated drawer')
+                            ->label(__('Has integrated drawer'))
                             ->default(false)
-                            ->helperText('When on, this device has a built-in cash drawer (e.g. Stripe Terminal S700)'),
+                            ->helperText(__('When on, this device has a built-in cash drawer (e.g. Stripe Terminal S700)')),
 
                         Toggle::make('booking_enabled')
-                            ->label('Booking enabled')
+                            ->label(__('Booking enabled'))
                             ->default(false)
-                            ->helperText('When on, this device can sell Merano event tickets if the store has the Merano Booking add-on enabled.'),
+                            ->helperText(__('When on, this device can sell Merano event tickets if the store has the Merano Booking add-on enabled.')),
 
                         Toggle::make('auto_print_receipt')
-                            ->label('Auto-print receipt')
+                            ->label(__('Auto-print receipt'))
                             ->default(true)
-                            ->helperText('When on, receipts are auto-printed after purchase; when off, printing is optional in the POS app.'),
+                            ->helperText(__('When on, receipts are auto-printed after purchase; when off, printing is optional in the POS app.')),
 
                         Select::make('terminal_location_id')
-                            ->label('Terminal Location')
-                            ->helperText('Stripe Terminal location for this device.')
+                            ->label(__('Terminal Location'))
+                            ->helperText(__('Stripe Terminal location for this device.'))
                             ->relationship(
                                 'terminalLocation',
                                 'display_name',
@@ -114,58 +114,58 @@ class PosDeviceForm
                 Section::make('Device Details')
                     ->schema([
                         TextInput::make('device_model')
-                            ->label('Model')
+                            ->label(__('Model'))
                             ->maxLength(255),
 
                         TextInput::make('device_brand')
-                            ->label('Brand')
+                            ->label(__('Brand'))
                             ->maxLength(255)
                             ->visible(fn ($get) => $get('platform') === 'android'),
 
                         TextInput::make('device_manufacturer')
-                            ->label('Manufacturer')
+                            ->label(__('Manufacturer'))
                             ->maxLength(255)
                             ->visible(fn ($get) => $get('platform') === 'android'),
 
                         TextInput::make('device_product')
-                            ->label('Product')
+                            ->label(__('Product'))
                             ->maxLength(255)
                             ->visible(fn ($get) => $get('platform') === 'android'),
 
                         TextInput::make('device_hardware')
-                            ->label('Hardware')
+                            ->label(__('Hardware'))
                             ->maxLength(255)
                             ->visible(fn ($get) => $get('platform') === 'android'),
 
                         TextInput::make('machine_identifier')
-                            ->label('Machine Identifier')
+                            ->label(__('Machine Identifier'))
                             ->maxLength(255)
                             ->visible(fn ($get) => $get('platform') === 'ios')
-                            ->helperText('iOS: utsname.machine (e.g., "iPad13,1")'),
+                            ->helperText(__('iOS: utsname.machine (e.g., "iPad13,1")')),
 
                         TextInput::make('system_name')
-                            ->label('System Name')
+                            ->label(__('System Name'))
                             ->maxLength(255)
                             ->visible(fn ($get) => $get('platform') === 'ios')
-                            ->helperText('iOS: systemName'),
+                            ->helperText(__('iOS: systemName')),
 
                         TextInput::make('system_version')
-                            ->label('System Version')
+                            ->label(__('System Version'))
                             ->maxLength(255),
 
                         TextInput::make('vendor_identifier')
-                            ->label('Vendor Identifier')
+                            ->label(__('Vendor Identifier'))
                             ->maxLength(255)
                             ->visible(fn ($get) => $get('platform') === 'ios')
-                            ->helperText('iOS: identifierForVendor'),
+                            ->helperText(__('iOS: identifierForVendor')),
 
                         TextInput::make('android_id')
-                            ->label('Android ID')
+                            ->label(__('Android ID'))
                             ->maxLength(255)
                             ->visible(fn ($get) => $get('platform') === 'android'),
 
                         TextInput::make('serial_number')
-                            ->label('Serial Number')
+                            ->label(__('Serial Number'))
                             ->maxLength(255),
                     ])
                     ->columns(2)
@@ -174,15 +174,15 @@ class PosDeviceForm
                 Section::make('Status & Metadata')
                     ->schema([
                         DateTimePicker::make('last_seen_at')
-                            ->label('Last Seen At')
+                            ->label(__('Last Seen At'))
                             ->displayFormat('Y-m-d H:i:s')
                             ->timezone('UTC'),
 
                         KeyValue::make('device_metadata')
-                            ->label('Device Metadata')
+                            ->label(__('Device Metadata'))
                             ->keyLabel('Key')
                             ->valueLabel('Value')
-                            ->helperText('Additional device information (battery, storage, etc.)'),
+                            ->helperText(__('Additional device information (battery, storage, etc.)')),
                     ])
                     ->columns(1)
                     ->collapsible(),

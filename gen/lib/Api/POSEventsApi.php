@@ -1,18 +1,20 @@
 <?php
+
 /**
  * POSEventsApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * POSEventsApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class POSEventsApi
@@ -73,7 +75,7 @@ class POSEventsApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'createPosEvent' => [
             'application/json',
@@ -87,10 +89,7 @@ class POSEventsApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -98,16 +97,16 @@ class POSEventsApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -137,16 +136,17 @@ class POSEventsApi
      *
      * Create POS event
      *
-     * @param  \OpenAPI\Client\Model\CreatePosEventRequest $create_pos_event_request create_pos_event_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createPosEvent'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreatePosEventRequest  $create_pos_event_request  create_pos_event_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createPosEvent'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CreatePosEvent201Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\CreatePosEvent201Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function createPosEvent($create_pos_event_request, string $contentType = self::contentTypes['createPosEvent'][0])
     {
-        list($response) = $this->createPosEventWithHttpInfo($create_pos_event_request, $contentType);
+        [$response] = $this->createPosEventWithHttpInfo($create_pos_event_request, $contentType);
+
         return $response;
     }
 
@@ -155,12 +155,12 @@ class POSEventsApi
      *
      * Create POS event
      *
-     * @param  \OpenAPI\Client\Model\CreatePosEventRequest $create_pos_event_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createPosEvent'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreatePosEventRequest  $create_pos_event_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createPosEvent'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CreatePosEvent201Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\CreatePosEvent201Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function createPosEventWithHttpInfo($create_pos_event_request, string $contentType = self::contentTypes['createPosEvent'][0])
     {
@@ -188,23 +188,20 @@ class POSEventsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 201:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CreatePosEvent201Response',
+                        '\OpenAPIClient\Model\CreatePosEvent201Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -220,7 +217,7 @@ class POSEventsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\CreatePosEvent201Response',
+                '\OpenAPIClient\Model\CreatePosEvent201Response',
                 $request,
                 $response,
             );
@@ -229,7 +226,7 @@ class POSEventsApi
                 case 201:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CreatePosEvent201Response',
+                        '\OpenAPIClient\Model\CreatePosEvent201Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -237,13 +234,12 @@ class POSEventsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -254,11 +250,11 @@ class POSEventsApi
      *
      * Create POS event
      *
-     * @param  \OpenAPI\Client\Model\CreatePosEventRequest $create_pos_event_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createPosEvent'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreatePosEventRequest  $create_pos_event_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createPosEvent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createPosEventAsync($create_pos_event_request, string $contentType = self::contentTypes['createPosEvent'][0])
     {
@@ -275,15 +271,15 @@ class POSEventsApi
      *
      * Create POS event
      *
-     * @param  \OpenAPI\Client\Model\CreatePosEventRequest $create_pos_event_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createPosEvent'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreatePosEventRequest  $create_pos_event_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createPosEvent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createPosEventAsyncWithHttpInfo($create_pos_event_request, string $contentType = self::contentTypes['createPosEvent'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\CreatePosEvent201Response';
+        $returnType = '\OpenAPIClient\Model\CreatePosEvent201Response';
         $request = $this->createPosEventRequest($create_pos_event_request, $contentType);
 
         return $this->client
@@ -291,7 +287,7 @@ class POSEventsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -302,7 +298,7 @@ class POSEventsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -325,11 +321,11 @@ class POSEventsApi
     /**
      * Create request for operation 'createPosEvent'
      *
-     * @param  \OpenAPI\Client\Model\CreatePosEventRequest $create_pos_event_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createPosEvent'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreatePosEventRequest  $create_pos_event_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createPosEvent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function createPosEventRequest($create_pos_event_request, string $contentType = self::contentTypes['createPosEvent'][0])
     {
@@ -341,7 +337,6 @@ class POSEventsApi
             );
         }
 
-
         $resourcePath = '/pos-events';
         $formParams = [];
         $queryParams = [];
@@ -349,12 +344,8 @@ class POSEventsApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -362,7 +353,7 @@ class POSEventsApi
         // for model (json/xml)
         if (isset($create_pos_event_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($create_pos_event_request));
             } else {
                 $httpBody = $create_pos_event_request;
@@ -375,7 +366,7 @@ class POSEventsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -383,7 +374,7 @@ class POSEventsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -392,8 +383,8 @@ class POSEventsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -409,9 +400,10 @@ class POSEventsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -422,16 +414,17 @@ class POSEventsApi
      *
      * Get POS event
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosEvent'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosEvent'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetPosEvent200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GetPosEvent200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getPosEvent($id, string $contentType = self::contentTypes['getPosEvent'][0])
     {
-        list($response) = $this->getPosEventWithHttpInfo($id, $contentType);
+        [$response] = $this->getPosEventWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -440,12 +433,12 @@ class POSEventsApi
      *
      * Get POS event
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosEvent'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosEvent'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetPosEvent200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GetPosEvent200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getPosEventWithHttpInfo($id, string $contentType = self::contentTypes['getPosEvent'][0])
     {
@@ -473,23 +466,20 @@ class POSEventsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GetPosEvent200Response',
+                        '\OpenAPIClient\Model\GetPosEvent200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -505,7 +495,7 @@ class POSEventsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GetPosEvent200Response',
+                '\OpenAPIClient\Model\GetPosEvent200Response',
                 $request,
                 $response,
             );
@@ -514,7 +504,7 @@ class POSEventsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GetPosEvent200Response',
+                        '\OpenAPIClient\Model\GetPosEvent200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -522,13 +512,12 @@ class POSEventsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -539,11 +528,11 @@ class POSEventsApi
      *
      * Get POS event
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosEvent'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosEvent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getPosEventAsync($id, string $contentType = self::contentTypes['getPosEvent'][0])
     {
@@ -560,15 +549,15 @@ class POSEventsApi
      *
      * Get POS event
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosEvent'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosEvent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getPosEventAsyncWithHttpInfo($id, string $contentType = self::contentTypes['getPosEvent'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GetPosEvent200Response';
+        $returnType = '\OpenAPIClient\Model\GetPosEvent200Response';
         $request = $this->getPosEventRequest($id, $contentType);
 
         return $this->client
@@ -576,7 +565,7 @@ class POSEventsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -587,7 +576,7 @@ class POSEventsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -610,11 +599,11 @@ class POSEventsApi
     /**
      * Create request for operation 'getPosEvent'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosEvent'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosEvent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getPosEventRequest($id, string $contentType = self::contentTypes['getPosEvent'][0])
     {
@@ -626,7 +615,6 @@ class POSEventsApi
             );
         }
 
-
         $resourcePath = '/pos-events/{id}';
         $formParams = [];
         $queryParams = [];
@@ -634,20 +622,17 @@ class POSEventsApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -661,7 +646,7 @@ class POSEventsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -669,7 +654,7 @@ class POSEventsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -678,8 +663,8 @@ class POSEventsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -695,9 +680,10 @@ class POSEventsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -708,22 +694,23 @@ class POSEventsApi
      *
      * List POS events
      *
-     * @param  string|null $event_code Filter by event code (e.g., 13012, 13020) (optional)
-     * @param  string|null $event_type Filter by event type (optional)
-     * @param  int|null $pos_session_id Filter by POS session ID (optional)
-     * @param  \DateTime|null $from_date Filter from date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $to_date Filter to date (YYYY-MM-DD) (optional)
-     * @param  int|null $per_page Number of items per page (optional, default to 50)
-     * @param  bool|null $nullinnslag Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them. (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosEvents'] to see the possible values for this operation
+     * @param  string|null  $event_code  Filter by event code (e.g., 13012, 13020) (optional)
+     * @param  string|null  $event_type  Filter by event type (optional)
+     * @param  int|null  $pos_session_id  Filter by POS session ID (optional)
+     * @param  \DateTime|null  $from_date  Filter from date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $to_date  Filter to date (YYYY-MM-DD) (optional)
+     * @param  int|null  $per_page  Number of items per page (optional, default to 50)
+     * @param  bool|null  $nullinnslag  Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them. (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosEvents'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ListPosEvents200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ListPosEvents200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function listPosEvents($event_code = null, $event_type = null, $pos_session_id = null, $from_date = null, $to_date = null, $per_page = 50, $nullinnslag = null, string $contentType = self::contentTypes['listPosEvents'][0])
     {
-        list($response) = $this->listPosEventsWithHttpInfo($event_code, $event_type, $pos_session_id, $from_date, $to_date, $per_page, $nullinnslag, $contentType);
+        [$response] = $this->listPosEventsWithHttpInfo($event_code, $event_type, $pos_session_id, $from_date, $to_date, $per_page, $nullinnslag, $contentType);
+
         return $response;
     }
 
@@ -732,18 +719,18 @@ class POSEventsApi
      *
      * List POS events
      *
-     * @param  string|null $event_code Filter by event code (e.g., 13012, 13020) (optional)
-     * @param  string|null $event_type Filter by event type (optional)
-     * @param  int|null $pos_session_id Filter by POS session ID (optional)
-     * @param  \DateTime|null $from_date Filter from date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $to_date Filter to date (YYYY-MM-DD) (optional)
-     * @param  int|null $per_page Number of items per page (optional, default to 50)
-     * @param  bool|null $nullinnslag Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them. (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosEvents'] to see the possible values for this operation
+     * @param  string|null  $event_code  Filter by event code (e.g., 13012, 13020) (optional)
+     * @param  string|null  $event_type  Filter by event type (optional)
+     * @param  int|null  $pos_session_id  Filter by POS session ID (optional)
+     * @param  \DateTime|null  $from_date  Filter from date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $to_date  Filter to date (YYYY-MM-DD) (optional)
+     * @param  int|null  $per_page  Number of items per page (optional, default to 50)
+     * @param  bool|null  $nullinnslag  Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them. (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosEvents'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ListPosEvents200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ListPosEvents200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function listPosEventsWithHttpInfo($event_code = null, $event_type = null, $pos_session_id = null, $from_date = null, $to_date = null, $per_page = 50, $nullinnslag = null, string $contentType = self::contentTypes['listPosEvents'][0])
     {
@@ -771,23 +758,20 @@ class POSEventsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ListPosEvents200Response',
+                        '\OpenAPIClient\Model\ListPosEvents200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -803,7 +787,7 @@ class POSEventsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ListPosEvents200Response',
+                '\OpenAPIClient\Model\ListPosEvents200Response',
                 $request,
                 $response,
             );
@@ -812,7 +796,7 @@ class POSEventsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ListPosEvents200Response',
+                        '\OpenAPIClient\Model\ListPosEvents200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -820,13 +804,12 @@ class POSEventsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -837,17 +820,17 @@ class POSEventsApi
      *
      * List POS events
      *
-     * @param  string|null $event_code Filter by event code (e.g., 13012, 13020) (optional)
-     * @param  string|null $event_type Filter by event type (optional)
-     * @param  int|null $pos_session_id Filter by POS session ID (optional)
-     * @param  \DateTime|null $from_date Filter from date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $to_date Filter to date (YYYY-MM-DD) (optional)
-     * @param  int|null $per_page Number of items per page (optional, default to 50)
-     * @param  bool|null $nullinnslag Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them. (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosEvents'] to see the possible values for this operation
+     * @param  string|null  $event_code  Filter by event code (e.g., 13012, 13020) (optional)
+     * @param  string|null  $event_type  Filter by event type (optional)
+     * @param  int|null  $pos_session_id  Filter by POS session ID (optional)
+     * @param  \DateTime|null  $from_date  Filter from date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $to_date  Filter to date (YYYY-MM-DD) (optional)
+     * @param  int|null  $per_page  Number of items per page (optional, default to 50)
+     * @param  bool|null  $nullinnslag  Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them. (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosEvents'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listPosEventsAsync($event_code = null, $event_type = null, $pos_session_id = null, $from_date = null, $to_date = null, $per_page = 50, $nullinnslag = null, string $contentType = self::contentTypes['listPosEvents'][0])
     {
@@ -864,21 +847,21 @@ class POSEventsApi
      *
      * List POS events
      *
-     * @param  string|null $event_code Filter by event code (e.g., 13012, 13020) (optional)
-     * @param  string|null $event_type Filter by event type (optional)
-     * @param  int|null $pos_session_id Filter by POS session ID (optional)
-     * @param  \DateTime|null $from_date Filter from date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $to_date Filter to date (YYYY-MM-DD) (optional)
-     * @param  int|null $per_page Number of items per page (optional, default to 50)
-     * @param  bool|null $nullinnslag Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them. (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosEvents'] to see the possible values for this operation
+     * @param  string|null  $event_code  Filter by event code (e.g., 13012, 13020) (optional)
+     * @param  string|null  $event_type  Filter by event type (optional)
+     * @param  int|null  $pos_session_id  Filter by POS session ID (optional)
+     * @param  \DateTime|null  $from_date  Filter from date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $to_date  Filter to date (YYYY-MM-DD) (optional)
+     * @param  int|null  $per_page  Number of items per page (optional, default to 50)
+     * @param  bool|null  $nullinnslag  Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them. (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosEvents'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listPosEventsAsyncWithHttpInfo($event_code = null, $event_type = null, $pos_session_id = null, $from_date = null, $to_date = null, $per_page = 50, $nullinnslag = null, string $contentType = self::contentTypes['listPosEvents'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ListPosEvents200Response';
+        $returnType = '\OpenAPIClient\Model\ListPosEvents200Response';
         $request = $this->listPosEventsRequest($event_code, $event_type, $pos_session_id, $from_date, $to_date, $per_page, $nullinnslag, $contentType);
 
         return $this->client
@@ -886,7 +869,7 @@ class POSEventsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -897,7 +880,7 @@ class POSEventsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -920,28 +903,20 @@ class POSEventsApi
     /**
      * Create request for operation 'listPosEvents'
      *
-     * @param  string|null $event_code Filter by event code (e.g., 13012, 13020) (optional)
-     * @param  string|null $event_type Filter by event type (optional)
-     * @param  int|null $pos_session_id Filter by POS session ID (optional)
-     * @param  \DateTime|null $from_date Filter from date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $to_date Filter to date (YYYY-MM-DD) (optional)
-     * @param  int|null $per_page Number of items per page (optional, default to 50)
-     * @param  bool|null $nullinnslag Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them. (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosEvents'] to see the possible values for this operation
+     * @param  string|null  $event_code  Filter by event code (e.g., 13012, 13020) (optional)
+     * @param  string|null  $event_type  Filter by event type (optional)
+     * @param  int|null  $pos_session_id  Filter by POS session ID (optional)
+     * @param  \DateTime|null  $from_date  Filter from date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $to_date  Filter to date (YYYY-MM-DD) (optional)
+     * @param  int|null  $per_page  Number of items per page (optional, default to 50)
+     * @param  bool|null  $nullinnslag  Filter by nullinnslag (drawer open without sale). Only applies to cash drawer events (13005). Use true to get only nullinnslag events, false to exclude them. (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosEvents'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function listPosEventsRequest($event_code = null, $event_type = null, $pos_session_id = null, $from_date = null, $to_date = null, $per_page = 50, $nullinnslag = null, string $contentType = self::contentTypes['listPosEvents'][0])
     {
-
-
-
-
-
-
-
-
 
         $resourcePath = '/pos-events';
         $formParams = [];
@@ -1014,11 +989,8 @@ class POSEventsApi
             false // required
         ) ?? []);
 
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1032,7 +1004,7 @@ class POSEventsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1040,7 +1012,7 @@ class POSEventsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1049,8 +1021,8 @@ class POSEventsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1066,9 +1038,10 @@ class POSEventsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1077,16 +1050,17 @@ class POSEventsApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -1107,7 +1081,7 @@ class POSEventsApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -1130,7 +1104,7 @@ class POSEventsApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

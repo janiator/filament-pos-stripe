@@ -23,7 +23,7 @@ class EditStore extends EditRecord
         return [
             ViewAction::make(),
             Action::make('testMeranoConnection')
-                ->label('Test Merano Connection')
+                ->label(__('Test Merano Connection'))
                 ->icon('heroicon-o-signal')
                 ->color('gray')
                 ->visible(fn (): bool => StoreForm::supportsMeranoConfiguration()
@@ -45,12 +45,12 @@ class EditStore extends EditRecord
                     $notification->send();
                 }),
             Action::make('generateReportsToken')
-                ->label('Generate Reports Token')
+                ->label(__('Generate Reports Token'))
                 ->icon(Heroicon::OutlinedKey)
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('Generate Reports API Token')
-                ->modalDescription('This will replace the current reports token. Copy the new token and configure it in Merano under Settings → POS Rapporter.')
+                ->modalHeading(__('Generate Reports API Token'))
+                ->modalDescription(__('This will replace the current reports token. Copy the new token and configure it in Merano under Settings → POS Rapporter.'))
                 ->visible(fn (): bool => StoreForm::supportsMeranoConfiguration()
                     && Addon::storeHasActiveAddon($this->record->id, AddonType::MeranoBooking))
                 ->action(function (): void {
@@ -58,14 +58,14 @@ class EditStore extends EditRecord
                     $this->record->update(['reports_api_token' => $token]);
 
                     Notification::make()
-                        ->title('Reports token generated')
+                        ->title(__('Reports token generated'))
                         ->body($token)
                         ->success()
                         ->duration(30000)
                         ->send();
                 }),
             Action::make('showReportsToken')
-                ->label('Show Reports Token')
+                ->label(__('Show Reports Token'))
                 ->icon(Heroicon::OutlinedEye)
                 ->color('gray')
                 ->visible(fn (): bool => StoreForm::supportsMeranoConfiguration()
@@ -73,7 +73,7 @@ class EditStore extends EditRecord
                     && filled($this->record->reports_api_token))
                 ->action(function (): void {
                     Notification::make()
-                        ->title('Current Reports Token')
+                        ->title(__('Current Reports Token'))
                         ->body($this->record->reports_api_token)
                         ->success()
                         ->duration(20000)

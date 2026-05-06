@@ -24,18 +24,18 @@ class VerifoneTerminalPaymentsRelationManager extends RelationManager
             ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('service_id')
-                    ->label('Service ID')
+                    ->label(__('Service ID'))
                     ->searchable()
                     ->copyable(),
 
                 Tables\Columns\TextColumn::make('terminal.terminal_identifier')
-                    ->label('POIID')
-                    ->placeholder('-')
+                    ->label(__('POIID'))
+                    ->placeholder(__('-'))
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('status')
@@ -48,7 +48,7 @@ class VerifoneTerminalPaymentsRelationManager extends RelationManager
                     ]),
 
                 Tables\Columns\TextColumn::make('amount_minor')
-                    ->label('Amount')
+                    ->label(__('Amount'))
                     ->formatStateUsing(function ($state, $record): string {
                         $currency = strtoupper((string) ($record->currency ?? 'NOK'));
                         $amount = number_format(((int) $state) / 100, 2, '.', '');
@@ -57,27 +57,27 @@ class VerifoneTerminalPaymentsRelationManager extends RelationManager
                     }),
 
                 Tables\Columns\TextColumn::make('provider_payment_reference')
-                    ->label('Payment reference')
-                    ->placeholder('-')
+                    ->label(__('Payment reference'))
+                    ->placeholder(__('-'))
                     ->copyable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('provider_transaction_id')
-                    ->label('Transaction ID')
-                    ->placeholder('-')
+                    ->label(__('Transaction ID'))
+                    ->placeholder(__('-'))
                     ->copyable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('completed_at')
-                    ->label('Completed')
+                    ->label(__('Completed'))
                     ->dateTime()
-                    ->placeholder('-')
+                    ->placeholder(__('-'))
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('failed_at')
-                    ->label('Failed')
+                    ->label(__('Failed'))
                     ->dateTime()
-                    ->placeholder('-')
+                    ->placeholder(__('-'))
                     ->toggleable(),
             ])
             ->actions([])

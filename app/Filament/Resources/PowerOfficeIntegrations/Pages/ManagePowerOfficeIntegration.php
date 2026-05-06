@@ -125,21 +125,21 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             ->statePath('data')
             ->components([
                 Section::make('Sync')
-                    ->description('Turn off to stop all Z-report posting to PowerOffice (automatic and manual).')
+                    ->description(__('Turn off to stop all Z-report posting to PowerOffice (automatic and manual).'))
                     ->schema([
                         Toggle::make('sync_enabled')
-                            ->label('PowerOffice sync enabled')
+                            ->label(__('PowerOffice sync enabled'))
                             ->default(true),
                         Toggle::make('auto_sync_on_z_report')
-                            ->label('Sync automatically when a Z-report is generated')
+                            ->label(__('Sync automatically when a Z-report is generated'))
                             ->default(true)
                             ->visible(fn (Get $get): bool => (bool) $get('sync_enabled')),
                     ]),
                 Section::make('Connection')
-                    ->description('You are signed in to PowerOffice Go for this store. Use “Connect / reconnect” in the header if you need to approve the integration again.')
+                    ->description(__('You are signed in to PowerOffice Go for this store. Use “Connect / reconnect” in the header if you need to approve the integration again.'))
                     ->schema([
                         Select::make('environment')
-                            ->label('PowerOffice environment')
+                            ->label(__('PowerOffice environment'))
                             ->options(collect(PowerOfficeEnvironment::cases())->mapWithKeys(
                                 fn (PowerOfficeEnvironment $e): array => [$e->value => $e->label()]
                             ))
@@ -149,7 +149,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                 Section::make('Accounting')
                     ->schema([
                         Select::make('mapping_basis')
-                            ->label('How to split ledger lines')
+                            ->label(__('How to split ledger lines'))
                             ->options(collect(PowerOfficeMappingBasis::cases())->mapWithKeys(
                                 fn (PowerOfficeMappingBasis $b): array => [$b->value => $b->label()]
                             ))
@@ -157,7 +157,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                             ->live()
                             ->native(false),
                         Section::make('Revenue account by VAT rate')
-                            ->description('Only rates you expect on Z-reports need a number. Each rate posts net sales to its own revenue account.')
+                            ->description(__('Only rates you expect on Z-reports need a number. Each rate posts net sales to its own revenue account.'))
                             ->visible(fn (Get $get): bool => $get('mapping_basis') === PowerOfficeMappingBasis::Vat->value)
                             ->columns(1)
                             ->schema(collect(PowerOfficeStandardVatRates::options())
@@ -167,34 +167,34 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                                 ->values()
                                 ->all()),
                         Section::make('VAT, tips, rounding, and payment fallbacks')
-                            ->description('Output VAT, tips, and rounding always use these. Cash / card here are only used when **Ledger routing → Debit accounts per payment method** is empty or the Z-report has no `by_payment_method_net` (then net cash vs card uses these two accounts). PSP-style fees use **Ledger routing → Payment fees**, not a single field here.')
+                            ->description(__('Output VAT, tips, and rounding always use these. Cash / card here are only used when **Ledger routing → Debit accounts per payment method** is empty or the Z-report has no `by_payment_method_net` (then net cash vs card uses these two accounts). PSP-style fees use **Ledger routing → Payment fees**, not a single field here.'))
                             ->visible(fn (Get $get): bool => $get('mapping_basis') === PowerOfficeMappingBasis::Vat->value)
                             ->columns(2)
                             ->schema([
                                 TextInput::make('ledger_shared_vat_account_no')
-                                    ->label('VAT account (output VAT)')
+                                    ->label(__('VAT account (output VAT)'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_shared_tips_account_no')
-                                    ->label('Tips account')
+                                    ->label(__('Tips account'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_shared_cash_account_no')
-                                    ->label('Cash account (fallback)')
-                                    ->helperText('Overridden by Ledger routing → cash when that field is set and the Z-report has per-method net amounts.')
+                                    ->label(__('Cash account (fallback)'))
+                                    ->helperText(__('Overridden by Ledger routing → cash when that field is set and the Z-report has per-method net amounts.'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_shared_card_clearing_account_no')
-                                    ->label('Card / clearing account (fallback)')
-                                    ->helperText('Overridden by Ledger routing per-method accounts when set; also used for aggregated “electronic” net when not split by method.')
+                                    ->label(__('Card / clearing account (fallback)'))
+                                    ->helperText(__('Overridden by Ledger routing per-method accounts when set; also used for aggregated “electronic” net when not split by method.'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_shared_rounding_account_no')
-                                    ->label('Rounding account')
+                                    ->label(__('Rounding account'))
                                     ->maxLength(64),
                             ]),
                         Repeater::make('mappings')
-                            ->label('Account numbers per line')
+                            ->label(__('Account numbers per line'))
                             ->visible(fn (Get $get): bool => $get('mapping_basis') !== PowerOfficeMappingBasis::Vat->value)
                             ->schema([
                                 Select::make('basis_key')
-                                    ->label('Line')
+                                    ->label(__('Line'))
                                     ->options(function (Get $get): array {
                                         $raw = $get('../../mapping_basis');
                                         $basis = PowerOfficeMappingBasis::tryFrom((string) $raw)
@@ -206,33 +206,33 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                                     ->searchable()
                                     ->native(false),
                                 TextInput::make('basis_label')
-                                    ->label('Description')
+                                    ->label(__('Description'))
                                     ->maxLength(255),
                                 TextInput::make('sales_account_no')
-                                    ->label('Sales / revenue account')
+                                    ->label(__('Sales / revenue account'))
                                     ->required()
                                     ->maxLength(64),
                                 TextInput::make('vat_account_no')
-                                    ->label('VAT account')
+                                    ->label(__('VAT account'))
                                     ->maxLength(64),
                                 TextInput::make('tips_account_no')
-                                    ->label('Tips account')
+                                    ->label(__('Tips account'))
                                     ->maxLength(64),
                                 TextInput::make('cash_account_no')
-                                    ->label('Cash account')
+                                    ->label(__('Cash account'))
                                     ->maxLength(64),
                                 TextInput::make('card_clearing_account_no')
-                                    ->label('Card / clearing account')
+                                    ->label(__('Card / clearing account'))
                                     ->maxLength(64),
                                 TextInput::make('fees_account_no')
-                                    ->label('Fees account (optional)')
-                                    ->helperText('Not used by Z-report PowerOffice sync. Configure PSP fees under Ledger routing → Payment fees.')
+                                    ->label(__('Fees account (optional)'))
+                                    ->helperText(__('Not used by Z-report PowerOffice sync. Configure PSP fees under Ledger routing → Payment fees.'))
                                     ->maxLength(64),
                                 TextInput::make('rounding_account_no')
-                                    ->label('Rounding account')
+                                    ->label(__('Rounding account'))
                                     ->maxLength(64),
                                 Toggle::make('is_active')
-                                    ->label('Active')
+                                    ->label(__('Active'))
                                     ->default(true),
                             ])
                             ->addActionLabel('Add line')
@@ -241,70 +241,70 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                             ->columnSpanFull(),
                     ]),
                 Section::make('Ledger routing (payments & settlement)')
-                    ->description('Optional PowerOffice account numbers for payment-type debits (like PSP scripts: cash, card terminal, Vipps, etc.), default revenue when a collection/vendor line is missing, gift-card liability, and paired fee/payout postings when the Z-report includes those amounts.')
+                    ->description(__('Optional PowerOffice account numbers for payment-type debits (like PSP scripts: cash, card terminal, Vipps, etc.), default revenue when a collection/vendor line is missing, gift-card liability, and paired fee/payout postings when the Z-report includes those amounts.'))
                     ->schema([
                         TextInput::make('ledger_default_sales_account_no')
-                            ->label('Default sales / revenue account (fallback)')
-                            ->helperText('Used for product collection or vendor split when no mapping exists for that collection or vendor (e.g. newly added categories).')
+                            ->label(__('Default sales / revenue account (fallback)'))
+                            ->helperText(__('Used for product collection or vendor split when no mapping exists for that collection or vendor (e.g. newly added categories).'))
                             ->visible(fn (Get $get): bool => in_array($get('mapping_basis'), [
                                 PowerOfficeMappingBasis::Category->value,
                                 PowerOfficeMappingBasis::Vendor->value,
                             ], true))
                             ->maxLength(64),
                         Section::make('Debit accounts per payment method (Z-report net)')
-                            ->description('Matches POS charge payment_method values. Used when the Z-report includes by_payment_method_net (new sessions). Falls back to aggregated cash vs card if not present.')
+                            ->description(__('Matches POS charge payment_method values. Used when the Z-report includes by_payment_method_net (new sessions). Falls back to aggregated cash vs card if not present.'))
                             ->columns(2)
                             ->schema([
                                 TextInput::make('ledger_payment_debit_cash')
-                                    ->label('cash')
+                                    ->label(__('cash'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_payment_debit_card_present')
-                                    ->label('card_present')
+                                    ->label(__('card_present'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_payment_debit_card')
-                                    ->label('card')
+                                    ->label(__('card'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_payment_debit_vipps')
-                                    ->label('vipps')
+                                    ->label(__('vipps'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_payment_debit_mobile')
-                                    ->label('mobile')
+                                    ->label(__('mobile'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_payment_debit_gift_token')
-                                    ->label('gift_token (or other codes)')
+                                    ->label(__('gift_token (or other codes)'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_payment_debit_default')
-                                    ->label('Default (any other method)')
+                                    ->label(__('Default (any other method)'))
                                     ->maxLength(64),
                             ]),
                         TextInput::make('ledger_giftcard_liability_account_no')
-                            ->label('Gift card liability account')
-                            ->helperText('Used when the Z-report includes gift_card_sales_minor.')
+                            ->label(__('Gift card liability account'))
+                            ->helperText(__('Used when the Z-report includes gift_card_sales_minor.'))
                             ->maxLength(64),
                         TextInput::make('ledger_interim_liquid_account_no')
-                            ->label('Interim / PSP liquid account (reference)')
-                            ->helperText('Optional note field: often the same account you use as the “credit” side for fees and payouts below (Stripe/Zettle balance before bank payout).')
+                            ->label(__('Interim / PSP liquid account (reference)'))
+                            ->helperText(__('Optional note field: often the same account you use as the “credit” side for fees and payouts below (Stripe/Zettle balance before bank payout).'))
                             ->maxLength(64),
                         Section::make('Payment fees (paired posting)')
-                            ->description('If the Z-report includes stripe_fees_minor, posts credit to settlement account and debit to expense (same pattern as Zettle PAYMENT_FEE lines).')
+                            ->description(__('If the Z-report includes stripe_fees_minor, posts credit to settlement account and debit to expense (same pattern as Zettle PAYMENT_FEE lines).'))
                             ->columns(2)
                             ->schema([
                                 TextInput::make('ledger_fee_credit_account_no')
-                                    ->label('Fee settlement account (credit)')
+                                    ->label(__('Fee settlement account (credit)'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_fee_debit_account_no')
-                                    ->label('Fee expense account (debit)')
+                                    ->label(__('Fee expense account (debit)'))
                                     ->maxLength(64),
                             ]),
                         Section::make('Payout to bank (paired posting)')
-                            ->description('If the Z-report includes payout_to_bank_minor, posts credit from settlement and debit to bank.')
+                            ->description(__('If the Z-report includes payout_to_bank_minor, posts credit from settlement and debit to bank.'))
                             ->columns(2)
                             ->schema([
                                 TextInput::make('ledger_payout_credit_account_no')
-                                    ->label('Payout settlement account (credit)')
+                                    ->label(__('Payout settlement account (credit)'))
                                     ->maxLength(64),
                                 TextInput::make('ledger_payout_debit_bank_account_no')
-                                    ->label('Bank account (debit)')
+                                    ->label(__('Bank account (debit)'))
                                     ->maxLength(64),
                             ]),
                     ])
@@ -382,7 +382,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
         $this->persistLedgerSettingsFromForm($data);
 
         Notification::make()
-            ->title('Saved')
+            ->title(__('Saved'))
             ->success()
             ->send();
     }
@@ -636,7 +636,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
     {
         return [
             Action::make('save')
-                ->label('Save')
+                ->label(__('Save'))
                 ->submit('saveSettings'),
         ];
     }
@@ -655,16 +655,16 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
     {
         return [
             Action::make('refreshConnection')
-                ->label('Refresh status')
+                ->label(__('Refresh status'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->visible(fn (): bool => $this->shouldShowSettings())
                 ->action(function (): void {
                     $this->integration?->refresh();
-                    Notification::make()->title('Status updated')->success()->send();
+                    Notification::make()->title(__('Status updated'))->success()->send();
                 }),
             Action::make('startOnboarding')
-                ->label('Connect / reconnect PowerOffice')
+                ->label(__('Connect / reconnect PowerOffice'))
                 ->icon('heroicon-o-arrow-top-right-on-square')
                 ->color('primary')
                 ->visible(fn (): bool => $this->shouldShowSettings())
@@ -672,7 +672,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                     $this->runStartOnboarding($onboarding);
                 }),
             Action::make('syncLatestZReport')
-                ->label('Queue latest Z-report sync')
+                ->label(__('Queue latest Z-report sync'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->visible(fn (): bool => $this->shouldShowSettings() && $this->integration?->sync_enabled)
@@ -693,7 +693,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             $this->integration?->refresh();
             if (! $this->integration?->isConnected()) {
                 Notification::make()
-                    ->title('Connect PowerOffice first')
+                    ->title(__('Connect PowerOffice first'))
                     ->body('Use the button below to sign in to PowerOffice Go, then click Next.')
                     ->warning()
                     ->send();
@@ -708,7 +708,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
         if ($this->wizardStep === 2) {
             if (PowerOfficeMappingBasis::tryFrom($this->wizardMappingBasis) === null) {
                 Notification::make()
-                    ->title('Choose how to split lines')
+                    ->title(__('Choose how to split lines'))
                     ->warning()
                     ->send();
 
@@ -743,7 +743,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             );
             if (! $hasAnySales) {
                 Notification::make()
-                    ->title('Sales account required')
+                    ->title(__('Sales account required'))
                     ->body('Enter at least one sales/revenue account for the VAT rates you use.')
                     ->warning()
                     ->send();
@@ -754,7 +754,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             foreach ($this->wizardMappingRows as $row) {
                 if (trim((string) ($row['sales_account_no'] ?? '')) === '') {
                     Notification::make()
-                        ->title('Sales account required')
+                        ->title(__('Sales account required'))
                         ->body('Enter a sales/revenue account for each row (you can use the same number for all).')
                         ->warning()
                         ->send();
@@ -806,7 +806,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
         $this->saveMappingsFromRepeater($rows);
 
         Notification::make()
-            ->title('Setup complete')
+            ->title(__('Setup complete'))
             ->success()
             ->send();
 
@@ -829,7 +829,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             $url = $onboarding->initiate($store, $this->integration);
         } catch (\Throwable $e) {
             Notification::make()
-                ->title('Onboarding failed')
+                ->title(__('Onboarding failed'))
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
@@ -838,7 +838,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
         }
 
         Notification::make()
-            ->title('Continue in PowerOffice')
+            ->title(__('Continue in PowerOffice'))
             ->body('Complete activation in the new window, then return here and refresh or click Next.')
             ->success()
             ->send();
@@ -861,7 +861,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
 
         if (! $session) {
             Notification::make()
-                ->title('No closed sessions')
+                ->title(__('No closed sessions'))
                 ->warning()
                 ->send();
 
@@ -871,7 +871,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
         SyncPowerOfficeZReportJob::dispatch($session->id, true);
 
         Notification::make()
-            ->title('Sync queued')
+            ->title(__('Sync queued'))
             ->body('Session '.$session->session_number)
             ->success()
             ->send();

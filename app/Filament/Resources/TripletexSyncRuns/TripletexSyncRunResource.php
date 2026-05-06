@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\TripletexSyncRuns;
 
+use App\Filament\Clusters\SettingsCluster;
+use App\Filament\Resources\TripletexIntegrations\TripletexIntegrationResource;
 use App\Filament\Resources\TripletexSyncRuns\Pages\ListTripletexSyncRuns;
 use App\Filament\Resources\TripletexSyncRuns\Tables\TripletexSyncRunsTable;
 use App\Models\TripletexSyncRun;
@@ -15,6 +17,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class TripletexSyncRunResource extends Resource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $model = TripletexSyncRun::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowPath;
@@ -44,6 +48,11 @@ class TripletexSyncRunResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         return false;
+    }
+
+    public static function canAccess(): bool
+    {
+        return TripletexIntegrationResource::canAccess();
     }
 
     public static function getEloquentQuery(): Builder

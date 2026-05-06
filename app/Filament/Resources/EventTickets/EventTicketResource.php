@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\EventTickets;
 
 use App\Actions\EventTickets\MapWebflowItemToEventTicketData;
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\EventTickets\Pages\CreateEventTicket;
 use App\Filament\Resources\EventTickets\Pages\EditEventTicket;
@@ -24,6 +25,8 @@ use Positiv\FilamentWebflow\Support\WebflowFieldData;
 class EventTicketResource extends Resource
 {
     use HasTenantScopedQuery;
+
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = EventTicket::class;
 
@@ -77,7 +80,7 @@ class EventTicketResource extends Resource
         return $schema->components([
             \Filament\Schemas\Components\Section::make('Webflow')->schema([
                 \Filament\Forms\Components\Select::make('webflow_item_id')
-                    ->label('Webflow CMS item')
+                    ->label(__('Webflow CMS item'))
                     ->required()
                     ->live()
                     ->relationship(
@@ -129,7 +132,7 @@ class EventTicketResource extends Resource
                             }
                         }
                     }),
-            ])->description('Select the Webflow CMS item for this event. Event details and ticket options below are shown once linked.'),
+            ])->description(__('Select the Webflow CMS item for this event. Event details and ticket options below are shown once linked.')),
             \Filament\Schemas\Components\Section::make('Event details')
                 ->visible(fn (Get $get) => filled($get('webflow_item_id')))
                 ->schema([
@@ -146,7 +149,7 @@ class EventTicketResource extends Resource
                 ->schema([
                     \Filament\Forms\Components\TextInput::make('ticket_1_label')->default('Billett 1')->maxLength(255),
                     \Filament\Forms\Components\Select::make('ticket_1_payment_link_mode')
-                        ->label('Payment link')
+                        ->label(__('Payment link'))
                         ->options([
                             'existing' => 'Use existing payment link',
                             'new' => 'Create new payment link',
@@ -155,7 +158,7 @@ class EventTicketResource extends Resource
                         ->live()
                         ->dehydrated(false),
                     \Filament\Forms\Components\Select::make('ticket_1_payment_link_id')
-                        ->label('Existing payment link')
+                        ->label(__('Existing payment link'))
                         ->options(fn () => static::paymentLinkOptionsForTenant())
                         ->searchable()
                         ->visible(fn (Get $get) => $get('ticket_1_payment_link_mode') === 'existing')
@@ -169,23 +172,23 @@ class EventTicketResource extends Resource
                             }
                         }),
                     \Filament\Forms\Components\TextInput::make('ticket_1_new_label')
-                        ->label('New payment link: label')
+                        ->label(__('New payment link: label'))
                         ->maxLength(255)
                         ->visible(fn (Get $get) => $get('ticket_1_payment_link_mode') === 'new')
                         ->dehydrated(false),
                     \Filament\Forms\Components\TextInput::make('ticket_1_new_price_nok')
-                        ->label('New payment link: price (NOK)')
+                        ->label(__('New payment link: price (NOK)'))
                         ->numeric()
                         ->minValue(0.01)
                         ->step(0.01)
                         ->visible(fn (Get $get) => $get('ticket_1_payment_link_mode') === 'new')
                         ->dehydrated(false),
                     \Filament\Forms\Components\TextInput::make('ticket_1_available')
-                        ->label('Max to sell')
+                        ->label(__('Max to sell'))
                         ->numeric()
                         ->minValue(0),
                     \Filament\Forms\Components\TextInput::make('ticket_1_sold')
-                        ->label('Amount sold')
+                        ->label(__('Amount sold'))
                         ->numeric()
                         ->default(0)
                         ->disabled()
@@ -196,14 +199,14 @@ class EventTicketResource extends Resource
                 ->visible(fn (Get $get) => filled($get('webflow_item_id')))
                 ->schema([
                     \Filament\Forms\Components\Toggle::make('ticket_2_enabled')
-                        ->label('Enable ticket 2')
+                        ->label(__('Enable ticket 2'))
                         ->default(true)
                         ->live()
                         ->dehydrated(false),
                     \Filament\Forms\Components\TextInput::make('ticket_2_label')->maxLength(255)
                         ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled')),
                     \Filament\Forms\Components\Select::make('ticket_2_payment_link_mode')
-                        ->label('Payment link')
+                        ->label(__('Payment link'))
                         ->options([
                             'existing' => 'Use existing payment link',
                             'new' => 'Create new payment link',
@@ -213,7 +216,7 @@ class EventTicketResource extends Resource
                         ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled'))
                         ->dehydrated(false),
                     \Filament\Forms\Components\Select::make('ticket_2_payment_link_id')
-                        ->label('Existing payment link')
+                        ->label(__('Existing payment link'))
                         ->options(fn () => static::paymentLinkOptionsForTenant())
                         ->searchable()
                         ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled') && $get('ticket_2_payment_link_mode') === 'existing')
@@ -227,24 +230,24 @@ class EventTicketResource extends Resource
                             }
                         }),
                     \Filament\Forms\Components\TextInput::make('ticket_2_new_label')
-                        ->label('New payment link: label')
+                        ->label(__('New payment link: label'))
                         ->maxLength(255)
                         ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled') && $get('ticket_2_payment_link_mode') === 'new')
                         ->dehydrated(false),
                     \Filament\Forms\Components\TextInput::make('ticket_2_new_price_nok')
-                        ->label('New payment link: price (NOK)')
+                        ->label(__('New payment link: price (NOK)'))
                         ->numeric()
                         ->minValue(0.01)
                         ->step(0.01)
                         ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled') && $get('ticket_2_payment_link_mode') === 'new')
                         ->dehydrated(false),
                     \Filament\Forms\Components\TextInput::make('ticket_2_available')
-                        ->label('Max to sell')
+                        ->label(__('Max to sell'))
                         ->numeric()
                         ->minValue(0)
                         ->visible(fn (Get $get) => (bool) $get('ticket_2_enabled')),
                     \Filament\Forms\Components\TextInput::make('ticket_2_sold')
-                        ->label('Amount sold')
+                        ->label(__('Amount sold'))
                         ->numeric()
                         ->default(0)
                         ->disabled()
@@ -265,14 +268,14 @@ class EventTicketResource extends Resource
             ->columns([
                 \Filament\Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
                 \Filament\Tables\Columns\TextColumn::make('event_date')->dateTime()->sortable(),
-                \Filament\Tables\Columns\TextColumn::make('ticket_1_sold')->label('T1 sold')->suffix(fn ($record) => $record->ticket_1_available ? ' / '.$record->ticket_1_available : ''),
-                \Filament\Tables\Columns\TextColumn::make('ticket_2_sold')->label('T2 sold')->suffix(fn ($record) => $record->ticket_2_available ? ' / '.$record->ticket_2_available : ''),
-                \Filament\Tables\Columns\IconColumn::make('is_sold_out')->label('Sold out')->boolean(),
+                \Filament\Tables\Columns\TextColumn::make('ticket_1_sold')->label(__('T1 sold'))->suffix(fn ($record) => $record->ticket_1_available ? ' / '.$record->ticket_1_available : ''),
+                \Filament\Tables\Columns\TextColumn::make('ticket_2_sold')->label(__('T2 sold'))->suffix(fn ($record) => $record->ticket_2_available ? ' / '.$record->ticket_2_available : ''),
+                \Filament\Tables\Columns\IconColumn::make('is_sold_out')->label(__('Sold out'))->boolean(),
                 \Filament\Tables\Columns\IconColumn::make('is_archived')->boolean(),
             ])
             ->defaultSort('event_date', 'desc')
-            ->emptyStateHeading('No events yet')
-            ->emptyStateDescription('Create one by linking a Webflow CMS item (Create button) or sync existing events from Webflow (Sync from Webflow). Make sure you have pulled your events collection under Webflow CMS first.')
+            ->emptyStateHeading(__('No events yet'))
+            ->emptyStateDescription(__('Create one by linking a Webflow CMS item (Create button) or sync existing events from Webflow (Sync from Webflow). Make sure you have pulled your events collection under Webflow CMS first.'))
             ->filters([])
             ->actions([
                 \Filament\Actions\EditAction::make(),

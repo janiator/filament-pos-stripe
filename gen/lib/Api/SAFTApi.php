@@ -1,18 +1,20 @@
 <?php
+
 /**
  * SAFTApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * SAFTApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class SAFTApi
@@ -73,7 +75,7 @@ class SAFTApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'downloadSafT' => [
             'application/json',
@@ -87,10 +89,7 @@ class SAFTApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -98,16 +97,16 @@ class SAFTApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -137,16 +136,17 @@ class SAFTApi
      *
      * Download SAF-T file
      *
-     * @param  string $filename filename (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['downloadSafT'] to see the possible values for this operation
+     * @param  string  $filename  filename (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadSafT'] to see the possible values for this operation
+     * @return \SplFileObject|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \SplFileObject|\OpenAPI\Client\Model\ErrorResponse
      */
     public function downloadSafT($filename, string $contentType = self::contentTypes['downloadSafT'][0])
     {
-        list($response) = $this->downloadSafTWithHttpInfo($filename, $contentType);
+        [$response] = $this->downloadSafTWithHttpInfo($filename, $contentType);
+
         return $response;
     }
 
@@ -155,12 +155,12 @@ class SAFTApi
      *
      * Download SAF-T file
      *
-     * @param  string $filename (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['downloadSafT'] to see the possible values for this operation
+     * @param  string  $filename  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadSafT'] to see the possible values for this operation
+     * @return array of \SplFileObject|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \SplFileObject|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function downloadSafTWithHttpInfo($filename, string $contentType = self::contentTypes['downloadSafT'][0])
     {
@@ -188,8 +188,7 @@ class SAFTApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
                         '\SplFileObject',
@@ -198,13 +197,11 @@ class SAFTApi
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -237,13 +234,12 @@ class SAFTApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -254,11 +250,11 @@ class SAFTApi
      *
      * Download SAF-T file
      *
-     * @param  string $filename (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['downloadSafT'] to see the possible values for this operation
+     * @param  string  $filename  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadSafT'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function downloadSafTAsync($filename, string $contentType = self::contentTypes['downloadSafT'][0])
     {
@@ -275,11 +271,11 @@ class SAFTApi
      *
      * Download SAF-T file
      *
-     * @param  string $filename (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['downloadSafT'] to see the possible values for this operation
+     * @param  string  $filename  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadSafT'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function downloadSafTAsyncWithHttpInfo($filename, string $contentType = self::contentTypes['downloadSafT'][0])
     {
@@ -291,7 +287,7 @@ class SAFTApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -302,7 +298,7 @@ class SAFTApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -325,11 +321,11 @@ class SAFTApi
     /**
      * Create request for operation 'downloadSafT'
      *
-     * @param  string $filename (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['downloadSafT'] to see the possible values for this operation
+     * @param  string  $filename  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['downloadSafT'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function downloadSafTRequest($filename, string $contentType = self::contentTypes['downloadSafT'][0])
     {
@@ -341,7 +337,6 @@ class SAFTApi
             );
         }
 
-
         $resourcePath = '/saf-t/download/{filename}';
         $formParams = [];
         $queryParams = [];
@@ -349,20 +344,17 @@ class SAFTApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($filename !== null) {
             $resourcePath = str_replace(
-                '{' . 'filename' . '}',
+                '{'.'filename'.'}',
                 ObjectSerializer::toPathValue($filename),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/xml', 'application/json', ],
+            ['application/xml', 'application/json'],
             $contentType,
             $multipart
         );
@@ -376,7 +368,7 @@ class SAFTApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -384,7 +376,7 @@ class SAFTApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -393,8 +385,8 @@ class SAFTApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -410,9 +402,10 @@ class SAFTApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -423,16 +416,17 @@ class SAFTApi
      *
      * Generate SAF-T file
      *
-     * @param  \OpenAPI\Client\Model\GenerateSafTRequest $generate_saf_t_request generate_saf_t_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateSafT'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\GenerateSafTRequest  $generate_saf_t_request  generate_saf_t_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateSafT'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GenerateSafT201Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GenerateSafT201Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function generateSafT($generate_saf_t_request, string $contentType = self::contentTypes['generateSafT'][0])
     {
-        list($response) = $this->generateSafTWithHttpInfo($generate_saf_t_request, $contentType);
+        [$response] = $this->generateSafTWithHttpInfo($generate_saf_t_request, $contentType);
+
         return $response;
     }
 
@@ -441,12 +435,12 @@ class SAFTApi
      *
      * Generate SAF-T file
      *
-     * @param  \OpenAPI\Client\Model\GenerateSafTRequest $generate_saf_t_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateSafT'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\GenerateSafTRequest  $generate_saf_t_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateSafT'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GenerateSafT201Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GenerateSafT201Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function generateSafTWithHttpInfo($generate_saf_t_request, string $contentType = self::contentTypes['generateSafT'][0])
     {
@@ -474,23 +468,20 @@ class SAFTApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 201:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GenerateSafT201Response',
+                        '\OpenAPIClient\Model\GenerateSafT201Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -506,7 +497,7 @@ class SAFTApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GenerateSafT201Response',
+                '\OpenAPIClient\Model\GenerateSafT201Response',
                 $request,
                 $response,
             );
@@ -515,7 +506,7 @@ class SAFTApi
                 case 201:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GenerateSafT201Response',
+                        '\OpenAPIClient\Model\GenerateSafT201Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -523,13 +514,12 @@ class SAFTApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -540,11 +530,11 @@ class SAFTApi
      *
      * Generate SAF-T file
      *
-     * @param  \OpenAPI\Client\Model\GenerateSafTRequest $generate_saf_t_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateSafT'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\GenerateSafTRequest  $generate_saf_t_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateSafT'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function generateSafTAsync($generate_saf_t_request, string $contentType = self::contentTypes['generateSafT'][0])
     {
@@ -561,15 +551,15 @@ class SAFTApi
      *
      * Generate SAF-T file
      *
-     * @param  \OpenAPI\Client\Model\GenerateSafTRequest $generate_saf_t_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateSafT'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\GenerateSafTRequest  $generate_saf_t_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateSafT'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function generateSafTAsyncWithHttpInfo($generate_saf_t_request, string $contentType = self::contentTypes['generateSafT'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GenerateSafT201Response';
+        $returnType = '\OpenAPIClient\Model\GenerateSafT201Response';
         $request = $this->generateSafTRequest($generate_saf_t_request, $contentType);
 
         return $this->client
@@ -577,7 +567,7 @@ class SAFTApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -588,7 +578,7 @@ class SAFTApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -611,11 +601,11 @@ class SAFTApi
     /**
      * Create request for operation 'generateSafT'
      *
-     * @param  \OpenAPI\Client\Model\GenerateSafTRequest $generate_saf_t_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['generateSafT'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\GenerateSafTRequest  $generate_saf_t_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['generateSafT'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function generateSafTRequest($generate_saf_t_request, string $contentType = self::contentTypes['generateSafT'][0])
     {
@@ -627,7 +617,6 @@ class SAFTApi
             );
         }
 
-
         $resourcePath = '/saf-t/generate';
         $formParams = [];
         $queryParams = [];
@@ -635,12 +624,8 @@ class SAFTApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -648,7 +633,7 @@ class SAFTApi
         // for model (json/xml)
         if (isset($generate_saf_t_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($generate_saf_t_request));
             } else {
                 $httpBody = $generate_saf_t_request;
@@ -661,7 +646,7 @@ class SAFTApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -669,7 +654,7 @@ class SAFTApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -678,8 +663,8 @@ class SAFTApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -695,9 +680,10 @@ class SAFTApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -708,17 +694,18 @@ class SAFTApi
      *
      * Get SAF-T XML content
      *
-     * @param  \DateTime $from_date Start date (YYYY-MM-DD) (required)
-     * @param  \DateTime $to_date End date (YYYY-MM-DD) (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getSafTContent'] to see the possible values for this operation
+     * @param  \DateTime  $from_date  Start date (YYYY-MM-DD) (required)
+     * @param  \DateTime  $to_date  End date (YYYY-MM-DD) (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getSafTContent'] to see the possible values for this operation
+     * @return string|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return string|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getSafTContent($from_date, $to_date, string $contentType = self::contentTypes['getSafTContent'][0])
     {
-        list($response) = $this->getSafTContentWithHttpInfo($from_date, $to_date, $contentType);
+        [$response] = $this->getSafTContentWithHttpInfo($from_date, $to_date, $contentType);
+
         return $response;
     }
 
@@ -727,13 +714,13 @@ class SAFTApi
      *
      * Get SAF-T XML content
      *
-     * @param  \DateTime $from_date Start date (YYYY-MM-DD) (required)
-     * @param  \DateTime $to_date End date (YYYY-MM-DD) (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getSafTContent'] to see the possible values for this operation
+     * @param  \DateTime  $from_date  Start date (YYYY-MM-DD) (required)
+     * @param  \DateTime  $to_date  End date (YYYY-MM-DD) (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getSafTContent'] to see the possible values for this operation
+     * @return array of string|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of string|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getSafTContentWithHttpInfo($from_date, $to_date, string $contentType = self::contentTypes['getSafTContent'][0])
     {
@@ -761,8 +748,7 @@ class SAFTApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
                         'string',
@@ -771,13 +757,11 @@ class SAFTApi
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -810,13 +794,12 @@ class SAFTApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -827,12 +810,12 @@ class SAFTApi
      *
      * Get SAF-T XML content
      *
-     * @param  \DateTime $from_date Start date (YYYY-MM-DD) (required)
-     * @param  \DateTime $to_date End date (YYYY-MM-DD) (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getSafTContent'] to see the possible values for this operation
+     * @param  \DateTime  $from_date  Start date (YYYY-MM-DD) (required)
+     * @param  \DateTime  $to_date  End date (YYYY-MM-DD) (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getSafTContent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getSafTContentAsync($from_date, $to_date, string $contentType = self::contentTypes['getSafTContent'][0])
     {
@@ -849,12 +832,12 @@ class SAFTApi
      *
      * Get SAF-T XML content
      *
-     * @param  \DateTime $from_date Start date (YYYY-MM-DD) (required)
-     * @param  \DateTime $to_date End date (YYYY-MM-DD) (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getSafTContent'] to see the possible values for this operation
+     * @param  \DateTime  $from_date  Start date (YYYY-MM-DD) (required)
+     * @param  \DateTime  $to_date  End date (YYYY-MM-DD) (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getSafTContent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getSafTContentAsyncWithHttpInfo($from_date, $to_date, string $contentType = self::contentTypes['getSafTContent'][0])
     {
@@ -866,7 +849,7 @@ class SAFTApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -877,7 +860,7 @@ class SAFTApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -900,12 +883,12 @@ class SAFTApi
     /**
      * Create request for operation 'getSafTContent'
      *
-     * @param  \DateTime $from_date Start date (YYYY-MM-DD) (required)
-     * @param  \DateTime $to_date End date (YYYY-MM-DD) (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getSafTContent'] to see the possible values for this operation
+     * @param  \DateTime  $from_date  Start date (YYYY-MM-DD) (required)
+     * @param  \DateTime  $to_date  End date (YYYY-MM-DD) (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getSafTContent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getSafTContentRequest($from_date, $to_date, string $contentType = self::contentTypes['getSafTContent'][0])
     {
@@ -923,7 +906,6 @@ class SAFTApi
                 'Missing the required parameter $to_date when calling getSafTContent'
             );
         }
-
 
         $resourcePath = '/saf-t/content';
         $formParams = [];
@@ -951,11 +933,8 @@ class SAFTApi
             true // required
         ) ?? []);
 
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/xml', 'application/json', ],
+            ['application/xml', 'application/json'],
             $contentType,
             $multipart
         );
@@ -969,7 +948,7 @@ class SAFTApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -977,7 +956,7 @@ class SAFTApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -986,8 +965,8 @@ class SAFTApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1003,9 +982,10 @@ class SAFTApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1014,16 +994,17 @@ class SAFTApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -1044,7 +1025,7 @@ class SAFTApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -1067,7 +1048,7 @@ class SAFTApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

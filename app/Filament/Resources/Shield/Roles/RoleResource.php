@@ -40,20 +40,11 @@ class RoleResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    // Disable tenant scoping for this resource
-    protected static ?string $tenantOwnershipRelationshipName = null;
-
-    public static function scopeEloquentQueryToTenant(\Illuminate\Database\Eloquent\Builder $query, ?\Illuminate\Database\Eloquent\Model $tenant = null): \Illuminate\Database\Eloquent\Builder
-    {
-        // Don't scope to tenant - roles are global
-        return $query;
-    }
-
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-    {
-        // Don't scope to tenant - roles are global
-        return parent::getEloquentQuery();
-    }
+    /**
+     * Roles are global (Spatie Role has no store relationship). Filament panel
+     * tenancy must not register the tenant global scope or creation observers.
+     */
+    protected static bool $isScopedToTenant = false;
 
     public static function form(Schema $schema): Schema
     {

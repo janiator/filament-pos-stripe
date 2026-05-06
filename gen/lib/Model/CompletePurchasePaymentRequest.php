@@ -1,19 +1,21 @@
 <?php
+
 /**
  * CompletePurchasePaymentRequest
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,74 +29,81 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * CompletePurchasePaymentRequest Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \JsonSerializable
+class CompletePurchasePaymentRequest implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'completePurchasePayment_request';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'payment_method_code' => 'string',
         'pos_session_id' => 'int',
         'pos_device_id' => 'int',
-        'metadata' => 'array<string,mixed>'
+        'metadata' => 'array<string,mixed>',
+        'cart' => '\OpenAPIClient\Model\PurchaseCart',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'payment_method_code' => null,
         'pos_session_id' => null,
         'pos_device_id' => null,
-        'metadata' => null
+        'metadata' => null,
+        'cart' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'payment_method_code' => false,
         'pos_session_id' => true,
         'pos_device_id' => true,
-        'metadata' => false
+        'metadata' => false,
+        'cart' => true,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -119,8 +128,6 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -130,7 +137,7 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -140,7 +147,7 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -149,9 +156,6 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -160,9 +164,6 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -179,7 +180,8 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
         'payment_method_code' => 'payment_method_code',
         'pos_session_id' => 'pos_session_id',
         'pos_device_id' => 'pos_device_id',
-        'metadata' => 'metadata'
+        'metadata' => 'metadata',
+        'cart' => 'cart',
     ];
 
     /**
@@ -191,7 +193,8 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
         'payment_method_code' => 'setPaymentMethodCode',
         'pos_session_id' => 'setPosSessionId',
         'pos_device_id' => 'setPosDeviceId',
-        'metadata' => 'setMetadata'
+        'metadata' => 'setMetadata',
+        'cart' => 'setCart',
     ];
 
     /**
@@ -203,7 +206,8 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
         'payment_method_code' => 'getPaymentMethodCode',
         'pos_session_id' => 'getPosSessionId',
         'pos_device_id' => 'getPosDeviceId',
-        'metadata' => 'getMetadata'
+        'metadata' => 'getMetadata',
+        'cart' => 'getCart',
     ];
 
     /**
@@ -247,7 +251,6 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -258,8 +261,8 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -267,17 +270,16 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
         $this->setIfExists('pos_session_id', $data ?? [], null);
         $this->setIfExists('pos_device_id', $data ?? [], null);
         $this->setIfExists('metadata', $data ?? [], null);
+        $this->setIfExists('cart', $data ?? [], null);
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -299,6 +301,7 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
         if ($this->container['payment_method_code'] === null) {
             $invalidProperties[] = "'payment_method_code' can't be null";
         }
+
         return $invalidProperties;
     }
 
@@ -313,7 +316,6 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets payment_method_code
      *
@@ -327,8 +329,7 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets payment_method_code
      *
-     * @param string $payment_method_code Code of the payment method (e.g., \"cash\", \"card\", \"card_present\")
-     *
+     * @param  string  $payment_method_code  Code of the payment method (e.g., \"cash\", \"card\", \"card_present\")
      * @return self
      */
     public function setPaymentMethodCode($payment_method_code)
@@ -354,8 +355,7 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets pos_session_id
      *
-     * @param int|null $pos_session_id Optional POS session ID to use for completing the payment.  If not provided, the system will: 1. Use the current active session for the provided pos_device_id (if pos_device_id is provided) 2. Fall back to the original session from when the deferred payment was created This allows completing deferred payments on different devices/sessions (e.g., customer returns to a different register). The session must be open and belong to the same store as the charge. **Compliance:** For proper audit trail, it's recommended to provide pos_device_id to use the current active session.
-     *
+     * @param  int|null  $pos_session_id  Optional POS session ID to use for completing the payment. If not provided, the system will: 1. Use the current active session for the provided pos_device_id (if pos_device_id is provided) 2. Fall back to the original session from when the deferred payment was created This allows completing deferred payments on different devices/sessions (e.g., customer returns to a different register). The session must be open and belong to the same store as the charge. **Compliance:** For proper audit trail, it's recommended to provide pos_device_id to use the current active session.
      * @return self
      */
     public function setPosSessionId($pos_session_id)
@@ -365,7 +365,7 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('pos_session_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -388,8 +388,7 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets pos_device_id
      *
-     * @param int|null $pos_device_id Optional POS device ID. If provided and pos_session_id is not provided,  the system will automatically use the current active open session for this device. This ensures compliance by defaulting to the session the user is currently signed in to. **Compliance:** Recommended to provide this parameter to ensure proper tracking and audit trail.
-     *
+     * @param  int|null  $pos_device_id  Optional POS device ID. If provided and pos_session_id is not provided, the system will automatically use the current active open session for this device. This ensures compliance by defaulting to the session the user is currently signed in to. **Compliance:** Recommended to provide this parameter to ensure proper tracking and audit trail.
      * @return self
      */
     public function setPosDeviceId($pos_device_id)
@@ -399,7 +398,7 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('pos_device_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -422,8 +421,7 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets metadata
      *
-     * @param array<string,mixed>|null $metadata Payment-specific metadata (e.g., payment_intent_id for Stripe)
-     *
+     * @param  array<string,mixed>|null  $metadata  Payment-specific metadata (e.g., payment_intent_id for Stripe)
      * @return self
      */
     public function setMetadata($metadata)
@@ -435,12 +433,44 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
 
         return $this;
     }
+
+    /**
+     * Gets cart
+     *
+     * @return \OpenAPIClient\Model\PurchaseCart|null
+     */
+    public function getCart()
+    {
+        return $this->container['cart'];
+    }
+
+    /**
+     * Sets cart
+     *
+     * @param  \OpenAPIClient\Model\PurchaseCart|null  $cart  Final cart when the customer edits the deferred order before payment (optional). Same schema as the `cart` object on `POST /api/purchases`. Not allowed unless the charge is a deferred pending purchase. When omitted, the original deferred lines and amount are unchanged.
+     * @return self
+     */
+    public function setCart($cart)
+    {
+        if (is_null($cart)) {
+            array_push($this->openAPINullablesSetToNull, 'cart');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('cart', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['cart'] = $cart;
+
+        return $this;
+    }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -450,8 +480,7 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -463,10 +492,8 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -480,9 +507,7 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -491,15 +516,16 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -525,5 +551,3 @@ class CompletePurchasePaymentRequest implements ModelInterface, ArrayAccess, \Js
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

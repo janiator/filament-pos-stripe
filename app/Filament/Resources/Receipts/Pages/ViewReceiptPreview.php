@@ -48,7 +48,7 @@ class ViewReceiptPreview extends ViewRecord
     {
         return [
             Action::make('download_xml')
-                ->label('Download XML')
+                ->label(__('Download XML'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->url(route('receipts.xml.simple', ['id' => $this->record->id]))
                 ->openUrlInNewTab()

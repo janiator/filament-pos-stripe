@@ -1,18 +1,20 @@
 <?php
+
 /**
  * AuthenticationApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * AuthenticationApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class AuthenticationApi
@@ -73,7 +75,7 @@ class AuthenticationApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'getCurrentUser' => [
             'application/json',
@@ -90,10 +92,7 @@ class AuthenticationApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -101,16 +100,16 @@ class AuthenticationApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -140,15 +139,16 @@ class AuthenticationApi
      *
      * Get current user
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentUser'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentUser'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\UserResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\UserResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getCurrentUser(string $contentType = self::contentTypes['getCurrentUser'][0])
     {
-        list($response) = $this->getCurrentUserWithHttpInfo($contentType);
+        [$response] = $this->getCurrentUserWithHttpInfo($contentType);
+
         return $response;
     }
 
@@ -157,11 +157,11 @@ class AuthenticationApi
      *
      * Get current user
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentUser'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentUser'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\UserResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\UserResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getCurrentUserWithHttpInfo(string $contentType = self::contentTypes['getCurrentUser'][0])
     {
@@ -189,23 +189,20 @@ class AuthenticationApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\UserResponse',
+                        '\OpenAPIClient\Model\UserResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -221,7 +218,7 @@ class AuthenticationApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\UserResponse',
+                '\OpenAPIClient\Model\UserResponse',
                 $request,
                 $response,
             );
@@ -230,7 +227,7 @@ class AuthenticationApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\UserResponse',
+                        '\OpenAPIClient\Model\UserResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -238,13 +235,12 @@ class AuthenticationApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -255,10 +251,10 @@ class AuthenticationApi
      *
      * Get current user
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentUser'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentUser'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getCurrentUserAsync(string $contentType = self::contentTypes['getCurrentUser'][0])
     {
@@ -275,14 +271,14 @@ class AuthenticationApi
      *
      * Get current user
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentUser'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentUser'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getCurrentUserAsyncWithHttpInfo(string $contentType = self::contentTypes['getCurrentUser'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\UserResponse';
+        $returnType = '\OpenAPIClient\Model\UserResponse';
         $request = $this->getCurrentUserRequest($contentType);
 
         return $this->client
@@ -290,7 +286,7 @@ class AuthenticationApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -301,7 +297,7 @@ class AuthenticationApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -324,14 +320,13 @@ class AuthenticationApi
     /**
      * Create request for operation 'getCurrentUser'
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCurrentUser'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCurrentUser'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getCurrentUserRequest(string $contentType = self::contentTypes['getCurrentUser'][0])
     {
-
 
         $resourcePath = '/auth/me';
         $formParams = [];
@@ -340,12 +335,8 @@ class AuthenticationApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -359,7 +350,7 @@ class AuthenticationApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -367,7 +358,7 @@ class AuthenticationApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -376,8 +367,8 @@ class AuthenticationApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -393,9 +384,10 @@ class AuthenticationApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -406,16 +398,17 @@ class AuthenticationApi
      *
      * Login user
      *
-     * @param  \OpenAPI\Client\Model\LoginRequest $login_request login_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['login'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\LoginRequest  $login_request  login_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['login'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\LoginResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\LoginResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function login($login_request, string $contentType = self::contentTypes['login'][0])
     {
-        list($response) = $this->loginWithHttpInfo($login_request, $contentType);
+        [$response] = $this->loginWithHttpInfo($login_request, $contentType);
+
         return $response;
     }
 
@@ -424,12 +417,12 @@ class AuthenticationApi
      *
      * Login user
      *
-     * @param  \OpenAPI\Client\Model\LoginRequest $login_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['login'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\LoginRequest  $login_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['login'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\LoginResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\LoginResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function loginWithHttpInfo($login_request, string $contentType = self::contentTypes['login'][0])
     {
@@ -457,23 +450,20 @@ class AuthenticationApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\LoginResponse',
+                        '\OpenAPIClient\Model\LoginResponse',
                         $request,
                         $response,
                     );
                 case 422:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -489,7 +479,7 @@ class AuthenticationApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\LoginResponse',
+                '\OpenAPIClient\Model\LoginResponse',
                 $request,
                 $response,
             );
@@ -498,7 +488,7 @@ class AuthenticationApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\LoginResponse',
+                        '\OpenAPIClient\Model\LoginResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -506,13 +496,12 @@ class AuthenticationApi
                 case 422:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -523,11 +512,11 @@ class AuthenticationApi
      *
      * Login user
      *
-     * @param  \OpenAPI\Client\Model\LoginRequest $login_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['login'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\LoginRequest  $login_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['login'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function loginAsync($login_request, string $contentType = self::contentTypes['login'][0])
     {
@@ -544,15 +533,15 @@ class AuthenticationApi
      *
      * Login user
      *
-     * @param  \OpenAPI\Client\Model\LoginRequest $login_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['login'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\LoginRequest  $login_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['login'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function loginAsyncWithHttpInfo($login_request, string $contentType = self::contentTypes['login'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\LoginResponse';
+        $returnType = '\OpenAPIClient\Model\LoginResponse';
         $request = $this->loginRequest($login_request, $contentType);
 
         return $this->client
@@ -560,7 +549,7 @@ class AuthenticationApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -571,7 +560,7 @@ class AuthenticationApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -594,11 +583,11 @@ class AuthenticationApi
     /**
      * Create request for operation 'login'
      *
-     * @param  \OpenAPI\Client\Model\LoginRequest $login_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['login'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\LoginRequest  $login_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['login'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function loginRequest($login_request, string $contentType = self::contentTypes['login'][0])
     {
@@ -610,7 +599,6 @@ class AuthenticationApi
             );
         }
 
-
         $resourcePath = '/auth/login';
         $formParams = [];
         $queryParams = [];
@@ -618,12 +606,8 @@ class AuthenticationApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -631,7 +615,7 @@ class AuthenticationApi
         // for model (json/xml)
         if (isset($login_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($login_request));
             } else {
                 $httpBody = $login_request;
@@ -644,7 +628,7 @@ class AuthenticationApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -652,14 +636,13 @@ class AuthenticationApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
             }
         }
-
 
         $defaultHeaders = [];
         if ($this->config->getUserAgent()) {
@@ -674,9 +657,10 @@ class AuthenticationApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -687,15 +671,16 @@ class AuthenticationApi
      *
      * Logout user
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logout'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logout'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\Logout200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\Logout200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function logout(string $contentType = self::contentTypes['logout'][0])
     {
-        list($response) = $this->logoutWithHttpInfo($contentType);
+        [$response] = $this->logoutWithHttpInfo($contentType);
+
         return $response;
     }
 
@@ -704,11 +689,11 @@ class AuthenticationApi
      *
      * Logout user
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logout'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logout'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\Logout200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\Logout200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function logoutWithHttpInfo(string $contentType = self::contentTypes['logout'][0])
     {
@@ -736,23 +721,20 @@ class AuthenticationApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\Logout200Response',
+                        '\OpenAPIClient\Model\Logout200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -768,7 +750,7 @@ class AuthenticationApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\Logout200Response',
+                '\OpenAPIClient\Model\Logout200Response',
                 $request,
                 $response,
             );
@@ -777,7 +759,7 @@ class AuthenticationApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\Logout200Response',
+                        '\OpenAPIClient\Model\Logout200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -785,13 +767,12 @@ class AuthenticationApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -802,10 +783,10 @@ class AuthenticationApi
      *
      * Logout user
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logout'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logout'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function logoutAsync(string $contentType = self::contentTypes['logout'][0])
     {
@@ -822,14 +803,14 @@ class AuthenticationApi
      *
      * Logout user
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logout'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logout'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function logoutAsyncWithHttpInfo(string $contentType = self::contentTypes['logout'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\Logout200Response';
+        $returnType = '\OpenAPIClient\Model\Logout200Response';
         $request = $this->logoutRequest($contentType);
 
         return $this->client
@@ -837,7 +818,7 @@ class AuthenticationApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -848,7 +829,7 @@ class AuthenticationApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -871,14 +852,13 @@ class AuthenticationApi
     /**
      * Create request for operation 'logout'
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logout'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logout'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function logoutRequest(string $contentType = self::contentTypes['logout'][0])
     {
-
 
         $resourcePath = '/auth/logout';
         $formParams = [];
@@ -887,12 +867,8 @@ class AuthenticationApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -906,7 +882,7 @@ class AuthenticationApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -914,7 +890,7 @@ class AuthenticationApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -923,8 +899,8 @@ class AuthenticationApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -940,9 +916,10 @@ class AuthenticationApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -953,15 +930,16 @@ class AuthenticationApi
      *
      * Logout from all devices
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logoutAll'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logoutAll'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\LogoutAll200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\LogoutAll200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function logoutAll(string $contentType = self::contentTypes['logoutAll'][0])
     {
-        list($response) = $this->logoutAllWithHttpInfo($contentType);
+        [$response] = $this->logoutAllWithHttpInfo($contentType);
+
         return $response;
     }
 
@@ -970,11 +948,11 @@ class AuthenticationApi
      *
      * Logout from all devices
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logoutAll'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logoutAll'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\LogoutAll200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\LogoutAll200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function logoutAllWithHttpInfo(string $contentType = self::contentTypes['logoutAll'][0])
     {
@@ -1002,23 +980,20 @@ class AuthenticationApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\LogoutAll200Response',
+                        '\OpenAPIClient\Model\LogoutAll200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1034,7 +1009,7 @@ class AuthenticationApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\LogoutAll200Response',
+                '\OpenAPIClient\Model\LogoutAll200Response',
                 $request,
                 $response,
             );
@@ -1043,7 +1018,7 @@ class AuthenticationApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\LogoutAll200Response',
+                        '\OpenAPIClient\Model\LogoutAll200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1051,13 +1026,12 @@ class AuthenticationApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1068,10 +1042,10 @@ class AuthenticationApi
      *
      * Logout from all devices
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logoutAll'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logoutAll'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function logoutAllAsync(string $contentType = self::contentTypes['logoutAll'][0])
     {
@@ -1088,14 +1062,14 @@ class AuthenticationApi
      *
      * Logout from all devices
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logoutAll'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logoutAll'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function logoutAllAsyncWithHttpInfo(string $contentType = self::contentTypes['logoutAll'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\LogoutAll200Response';
+        $returnType = '\OpenAPIClient\Model\LogoutAll200Response';
         $request = $this->logoutAllRequest($contentType);
 
         return $this->client
@@ -1103,7 +1077,7 @@ class AuthenticationApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1114,7 +1088,7 @@ class AuthenticationApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1137,14 +1111,13 @@ class AuthenticationApi
     /**
      * Create request for operation 'logoutAll'
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logoutAll'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logoutAll'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function logoutAllRequest(string $contentType = self::contentTypes['logoutAll'][0])
     {
-
 
         $resourcePath = '/auth/logout-all';
         $formParams = [];
@@ -1153,12 +1126,8 @@ class AuthenticationApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1172,7 +1141,7 @@ class AuthenticationApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1180,7 +1149,7 @@ class AuthenticationApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1189,8 +1158,8 @@ class AuthenticationApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1206,9 +1175,10 @@ class AuthenticationApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1217,16 +1187,17 @@ class AuthenticationApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -1247,7 +1218,7 @@ class AuthenticationApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -1270,7 +1241,7 @@ class AuthenticationApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

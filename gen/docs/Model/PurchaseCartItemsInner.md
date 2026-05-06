@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **variant_id** | **int** |  | [optional]
 **quantity** | **float** | Quantity of this item (supports decimals for continuous units like meters, kilograms) |
 **unit_price** | **int** | Price per unit in minor units (øre) |
-**description** | **string** | Custom description for diverse products or products without price. This will be used on receipts instead of the product name. Useful for items like \&quot;Various items\&quot;, \&quot;Custom service\&quot;, etc. | [optional]
+**description** | **string** | Optional line note for this cart line. When it differs from the product (or variant) title, it is stored separately and printed on the receipt under the product name. If there is no resolvable product title, this value is used as the receipt line title. | [optional]
 **discount_amount** | **int** | Discount amount per unit in minor units | [optional] [default to 0]
 **tax_rate** | **float** | Tax rate (e.g., 0.25 for 25%) | [optional] [default to 0]
 **tax_inclusive** | **bool** | Whether price includes tax | [optional] [default to true]

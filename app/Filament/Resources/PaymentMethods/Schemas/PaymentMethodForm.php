@@ -18,7 +18,7 @@ class PaymentMethodForm
         return $schema
             ->components([
                 Select::make('store_id')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->relationship('store', 'name')
                     ->required()
                     ->disabled(fn ($record) => $record !== null) // Can't change store after creation
@@ -35,12 +35,12 @@ class PaymentMethodForm
                         }
                     }),
                 TextInput::make('name')
-                    ->label('Display Name')
+                    ->label(__('Display Name'))
                     ->required()
                     ->maxLength(255)
-                    ->placeholder('e.g., Kontant, Kort, Mobile Pay'),
+                    ->placeholder(__('e.g., Kontant, Kort, Mobile Pay')),
                 TextInput::make('code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->required()
                     ->maxLength(255)
                     ->unique(
@@ -59,8 +59,8 @@ class PaymentMethodForm
                             return $rule;
                         }
                     )
-                    ->placeholder('e.g., cash, card, mobile')
-                    ->helperText('Internal code used to identify this payment method')
+                    ->placeholder(__('e.g., cash, card, mobile'))
+                    ->helperText(__('Internal code used to identify this payment method'))
                     ->live(onBlur: true)
                     ->afterStateUpdated(function ($state, $set, $get) {
                         // Auto-fill SAF-T codes when code or provider_method changes
@@ -73,7 +73,7 @@ class PaymentMethodForm
                         }
                     }),
                 Select::make('provider')
-                    ->label('Provider')
+                    ->label(__('Provider'))
                     ->options([
                         'stripe' => 'Stripe',
                         'verifone' => 'Verifone',
@@ -85,7 +85,7 @@ class PaymentMethodForm
                     ->live()
                     ->afterStateUpdated(fn ($state, $set) => $set('provider_method', null)),
                 Select::make('provider_method')
-                    ->label('Provider Method')
+                    ->label(__('Provider Method'))
                     ->options(function ($get) {
                         $provider = $get('provider');
                         if ($provider === 'stripe') {
@@ -119,15 +119,15 @@ class PaymentMethodForm
                         }
                     }),
                 Toggle::make('enabled')
-                    ->label('Enabled')
+                    ->label(__('Enabled'))
                     ->default(true)
-                    ->helperText('Disable to hide this payment method from POS'),
+                    ->helperText(__('Disable to hide this payment method from POS')),
                 Toggle::make('pos_suitable')
-                    ->label('POS Suitable')
+                    ->label(__('POS Suitable'))
                     ->default(true)
-                    ->helperText('Enable if this payment method is suitable for physical POS. Disable for online-only methods (e.g., online card payments).'),
+                    ->helperText(__('Enable if this payment method is suitable for physical POS. Disable for online-only methods (e.g., online card payments).')),
                 Select::make('posDevices')
-                    ->label('Available on devices')
+                    ->label(__('Available on devices'))
                     ->relationship(
                         name: 'posDevices',
                         titleAttribute: 'device_name',
@@ -143,28 +143,28 @@ class PaymentMethodForm
                     ->multiple()
                     ->searchable()
                     ->preload()
-                    ->helperText('Leave empty to make this payment method available on all devices. Select specific devices to restrict availability.')
+                    ->helperText(__('Leave empty to make this payment method available on all devices. Select specific devices to restrict availability.'))
                     ->columnSpanFull(),
                 TextInput::make('sort_order')
-                    ->label('Sort Order')
+                    ->label(__('Sort Order'))
                     ->numeric()
                     ->default(0)
-                    ->helperText('Lower numbers appear first in the payment method list'),
+                    ->helperText(__('Lower numbers appear first in the payment method list')),
                 TextInput::make('minimum_amount_kroner')
-                    ->label('Minimum amount (kr)')
+                    ->label(__('Minimum amount (kr)'))
                     ->numeric()
                     ->minValue(0)
                     ->integer()
                     ->nullable()
-                    ->helperText('Minimum payment in whole kroner (e.g. 50 for 50 kr). Leave empty for no minimum.'),
+                    ->helperText(__('Minimum payment in whole kroner (e.g. 50 for 50 kr). Leave empty for no minimum.')),
                 Select::make('saf_t_payment_code')
-                    ->label('SAF-T Payment Code')
+                    ->label(__('SAF-T Payment Code'))
                     ->options(\App\Services\SafTCodeMapper::getPaymentCodes())
                     ->searchable()
-                    ->helperText('PredefinedBasicID-12 code for SAF-T compliance. Auto-filled based on payment method code, but can be overridden.')
+                    ->helperText(__('PredefinedBasicID-12 code for SAF-T compliance. Auto-filled based on payment method code, but can be overridden.'))
                     ->required(),
                 Select::make('saf_t_event_code')
-                    ->label('SAF-T Event Code')
+                    ->label(__('SAF-T Event Code'))
                     ->options([
                         '13016' => '13016 - Cash payment (Kontantbetaling)',
                         '13017' => '13017 - Card payment (Kortbetaling)',
@@ -172,19 +172,19 @@ class PaymentMethodForm
                         '13019' => '13019 - Other payment method (Annen betalingsmåte)',
                     ])
                     ->searchable()
-                    ->helperText('PredefinedBasicID-13 code for SAF-T compliance. Auto-filled based on payment method code, but can be overridden.')
+                    ->helperText(__('PredefinedBasicID-13 code for SAF-T compliance. Auto-filled based on payment method code, but can be overridden.'))
                     ->required(),
                 Textarea::make('description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->rows(3)
                     ->maxLength(65535)
                     ->columnSpanFull(),
                 Grid::make(2)
                     ->schema([
                         ColorPicker::make('background_color')
-                            ->label('Background Color')
+                            ->label(__('Background Color'))
                             ->rgba()
-                            ->helperText('Accent background color for the payment method button (supports #RRGGBBAA or rgba format)')
+                            ->helperText(__('Accent background color for the payment method button (supports #RRGGBBAA or rgba format)'))
                             ->default('rgba(76, 75, 57, 0.94)')
                             ->rules([
                                 'nullable',
@@ -248,9 +248,9 @@ class PaymentMethodForm
                                 return $state;
                             }),
                         ColorPicker::make('icon_color')
-                            ->label('Icon Color')
+                            ->label(__('Icon Color'))
                             ->rgba()
-                            ->helperText('Color for the payment method icon (supports #RRGGBB or rgba format)')
+                            ->helperText(__('Color for the payment method icon (supports #RRGGBB or rgba format)'))
                             ->default('rgba(39, 43, 61, 1.0)')
                             ->rules([
                                 'nullable',

@@ -62,7 +62,8 @@ enum AddonType: string
     }
 
     /**
-     * Addon type slugs that allow linking Webflow sites.
+     * Addon type slugs that allow linking Webflow sites (add-ons page, cleanup, shared data).
+     * Filament "Webflow CMS" navigation requires {@see self::WebflowCms} only.
      *
      * @return array<string>
      */

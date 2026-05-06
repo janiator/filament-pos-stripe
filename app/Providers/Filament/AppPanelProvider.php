@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Enums\AddonType;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Plugins\AppWorkflowsPlugin;
 use App\Filament\Resources\ProductDeclarations\ProductDeclarationResource;
 use App\Filament\Resources\Shield\Roles\RoleResource;
 use App\Filament\Resources\Stores\StoreResource;
@@ -17,7 +18,6 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -29,7 +29,6 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Leek\FilamentWorkflows\Resources\WorkflowResource;
 use Positiv\FilamentWebflow\WebflowPlugin;
 
 class AppPanelProvider extends PanelProvider
@@ -59,13 +58,12 @@ class AppPanelProvider extends PanelProvider
 
         if (class_exists(\Leek\FilamentWorkflows\WorkflowsPlugin::class)) {
             $panel = $panel->plugin(
-                \Leek\FilamentWorkflows\WorkflowsPlugin::make()
+                AppWorkflowsPlugin::make()
                     ->navigationGroup(__('filament.navigation_groups.settings'))
-                    ->navigation(false)
             );
         }
 
-        $panel = $panel->plugin(WebflowPlugin::make()->navigationGroup('Webflow CMS'));
+        $panel = $panel->plugin(WebflowPlugin::make()->navigationGroup(__('Webflow CMS')));
 
         return $panel
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
@@ -99,18 +97,7 @@ class AppPanelProvider extends PanelProvider
                 __('filament.navigation_groups.settings'),
                 __('filament.navigation_groups.system'),
                 __('filament.navigation_groups.administration'),
-                'Webflow CMS',
-                'PowerOffice',
-                'Tripletex',
-            ])
-            ->navigationItems([
-                NavigationItem::make('Workflows')
-                    ->label('Workflows')
-                    ->url(fn () => WorkflowResource::getUrl('index'))
-                    ->icon('heroicon-o-arrow-path')
-                    ->group(__('filament.navigation_groups.settings'))
-                    ->sort(0)
-                    ->visible(fn () => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Workflows)),
+                __('Webflow CMS'),
             ])
             ->tenantMenuItems([
                 'profile' => fn (Action $action): Action => $action
@@ -121,10 +108,11 @@ class AppPanelProvider extends PanelProvider
             ])
             ->userMenuItems([
                 Action::make('productDeclaration')
-                    ->label('Produktfråsegn')
+                    ->label(__('Product declaration'))
                     ->url(fn (): string => ProductDeclarationResource::getUrl('index'))
                     ->icon(Heroicon::OutlinedDocumentText)
-                    ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Pos)),
+                    ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Pos)
+                        && ProductDeclarationResource::canViewAny()),
             ]);
     }
 }

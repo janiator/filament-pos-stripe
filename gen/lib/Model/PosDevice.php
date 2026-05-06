@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PosDevice
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,63 +29,75 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * PosDevice Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
+class PosDevice implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'PosDevice';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'device_identifier' => 'string',
         'device_name' => 'string',
         'platform' => 'string',
-        'device_info' => '\OpenAPI\Client\Model\PosDeviceDeviceInfo',
-        'system_info' => '\OpenAPI\Client\Model\PosDeviceSystemInfo',
-        'identifiers' => '\OpenAPI\Client\Model\PosDeviceIdentifiers',
+        'device_info' => '\OpenAPIClient\Model\PosDeviceDeviceInfo',
+        'system_info' => '\OpenAPIClient\Model\PosDeviceSystemInfo',
+        'identifiers' => '\OpenAPIClient\Model\PosDeviceIdentifiers',
         'device_status' => 'string',
         'last_seen_at' => '\DateTime',
         'device_metadata' => 'array<string,mixed>',
+        'cash_drawer_enabled' => 'bool',
+        'has_integrated_drawer' => 'bool',
+        'booking_enabled' => 'bool',
+        'inventory_enabled' => 'bool',
+        'auto_print_receipt' => 'bool',
+        'available_actions' => 'string[]',
+        'terminal_location_id' => 'int',
         'terminal_locations_count' => 'int',
-        'terminal_locations' => '\OpenAPI\Client\Model\PosDeviceTerminalLocationsInner[]',
+        'terminal_locations' => '\OpenAPIClient\Model\PosDeviceTerminalLocationsInner[]',
         'receipt_printers_count' => 'int',
         'default_printer_id' => 'int',
-        'receipt_printers' => '\OpenAPI\Client\Model\PosDeviceReceiptPrintersInner[]',
+        'last_connected' => '\OpenAPIClient\Model\PosDeviceLastConnected',
+        'receipt_printers' => '\OpenAPIClient\Model\PosDeviceReceiptPrintersInner[]',
         'created_at' => '\DateTime',
-        'updated_at' => '\DateTime'
+        'updated_at' => '\DateTime',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'device_identifier' => null,
@@ -95,20 +109,28 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         'device_status' => null,
         'last_seen_at' => 'date-time',
         'device_metadata' => null,
+        'cash_drawer_enabled' => null,
+        'has_integrated_drawer' => null,
+        'booking_enabled' => null,
+        'inventory_enabled' => null,
+        'auto_print_receipt' => null,
+        'available_actions' => null,
+        'terminal_location_id' => null,
         'terminal_locations_count' => null,
         'terminal_locations' => null,
         'receipt_printers_count' => null,
         'default_printer_id' => null,
+        'last_connected' => null,
         'receipt_printers' => null,
         'created_at' => 'date-time',
-        'updated_at' => 'date-time'
+        'updated_at' => 'date-time',
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'device_identifier' => false,
@@ -120,20 +142,28 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         'device_status' => false,
         'last_seen_at' => true,
         'device_metadata' => true,
+        'cash_drawer_enabled' => false,
+        'has_integrated_drawer' => false,
+        'booking_enabled' => false,
+        'inventory_enabled' => false,
+        'auto_print_receipt' => false,
+        'available_actions' => false,
+        'terminal_location_id' => true,
         'terminal_locations_count' => false,
         'terminal_locations' => false,
         'receipt_printers_count' => false,
         'default_printer_id' => true,
+        'last_connected' => true,
         'receipt_printers' => false,
         'created_at' => false,
-        'updated_at' => false
+        'updated_at' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -158,8 +188,6 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -169,7 +197,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -179,7 +207,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -188,9 +216,6 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -199,9 +224,6 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -225,13 +247,21 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         'device_status' => 'device_status',
         'last_seen_at' => 'last_seen_at',
         'device_metadata' => 'device_metadata',
+        'cash_drawer_enabled' => 'cash_drawer_enabled',
+        'has_integrated_drawer' => 'has_integrated_drawer',
+        'booking_enabled' => 'booking_enabled',
+        'inventory_enabled' => 'inventory_enabled',
+        'auto_print_receipt' => 'auto_print_receipt',
+        'available_actions' => 'available_actions',
+        'terminal_location_id' => 'terminal_location_id',
         'terminal_locations_count' => 'terminal_locations_count',
         'terminal_locations' => 'terminal_locations',
         'receipt_printers_count' => 'receipt_printers_count',
         'default_printer_id' => 'default_printer_id',
+        'last_connected' => 'last_connected',
         'receipt_printers' => 'receipt_printers',
         'created_at' => 'created_at',
-        'updated_at' => 'updated_at'
+        'updated_at' => 'updated_at',
     ];
 
     /**
@@ -250,13 +280,21 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         'device_status' => 'setDeviceStatus',
         'last_seen_at' => 'setLastSeenAt',
         'device_metadata' => 'setDeviceMetadata',
+        'cash_drawer_enabled' => 'setCashDrawerEnabled',
+        'has_integrated_drawer' => 'setHasIntegratedDrawer',
+        'booking_enabled' => 'setBookingEnabled',
+        'inventory_enabled' => 'setInventoryEnabled',
+        'auto_print_receipt' => 'setAutoPrintReceipt',
+        'available_actions' => 'setAvailableActions',
+        'terminal_location_id' => 'setTerminalLocationId',
         'terminal_locations_count' => 'setTerminalLocationsCount',
         'terminal_locations' => 'setTerminalLocations',
         'receipt_printers_count' => 'setReceiptPrintersCount',
         'default_printer_id' => 'setDefaultPrinterId',
+        'last_connected' => 'setLastConnected',
         'receipt_printers' => 'setReceiptPrinters',
         'created_at' => 'setCreatedAt',
-        'updated_at' => 'setUpdatedAt'
+        'updated_at' => 'setUpdatedAt',
     ];
 
     /**
@@ -275,13 +313,21 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         'device_status' => 'getDeviceStatus',
         'last_seen_at' => 'getLastSeenAt',
         'device_metadata' => 'getDeviceMetadata',
+        'cash_drawer_enabled' => 'getCashDrawerEnabled',
+        'has_integrated_drawer' => 'getHasIntegratedDrawer',
+        'booking_enabled' => 'getBookingEnabled',
+        'inventory_enabled' => 'getInventoryEnabled',
+        'auto_print_receipt' => 'getAutoPrintReceipt',
+        'available_actions' => 'getAvailableActions',
+        'terminal_location_id' => 'getTerminalLocationId',
         'terminal_locations_count' => 'getTerminalLocationsCount',
         'terminal_locations' => 'getTerminalLocations',
         'receipt_printers_count' => 'getReceiptPrintersCount',
         'default_printer_id' => 'getDefaultPrinterId',
+        'last_connected' => 'getLastConnected',
         'receipt_printers' => 'getReceiptPrinters',
         'created_at' => 'getCreatedAt',
-        'updated_at' => 'getUpdatedAt'
+        'updated_at' => 'getUpdatedAt',
     ];
 
     /**
@@ -326,11 +372,20 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     public const PLATFORM_IOS = 'ios';
+
     public const PLATFORM_ANDROID = 'android';
+
     public const DEVICE_STATUS_ACTIVE = 'active';
+
     public const DEVICE_STATUS_INACTIVE = 'inactive';
+
     public const DEVICE_STATUS_MAINTENANCE = 'maintenance';
+
     public const DEVICE_STATUS_OFFLINE = 'offline';
+
+    public const AVAILABLE_ACTIONS_CASH_DRAWER = 'cash_drawer';
+
+    public const AVAILABLE_ACTIONS_BOOKING = 'booking';
 
     /**
      * Gets allowable values of the enum
@@ -361,6 +416,19 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     /**
+     * Gets allowable values of the enum
+     *
+     * @return string[]
+     */
+    public function getAvailableActionsAllowableValues()
+    {
+        return [
+            self::AVAILABLE_ACTIONS_CASH_DRAWER,
+            self::AVAILABLE_ACTIONS_BOOKING,
+        ];
+    }
+
+    /**
      * Associative array for storing property values
      *
      * @var mixed[]
@@ -370,8 +438,8 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -385,24 +453,30 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         $this->setIfExists('device_status', $data ?? [], null);
         $this->setIfExists('last_seen_at', $data ?? [], null);
         $this->setIfExists('device_metadata', $data ?? [], null);
+        $this->setIfExists('cash_drawer_enabled', $data ?? [], true);
+        $this->setIfExists('has_integrated_drawer', $data ?? [], false);
+        $this->setIfExists('booking_enabled', $data ?? [], false);
+        $this->setIfExists('inventory_enabled', $data ?? [], false);
+        $this->setIfExists('auto_print_receipt', $data ?? [], true);
+        $this->setIfExists('available_actions', $data ?? [], null);
+        $this->setIfExists('terminal_location_id', $data ?? [], null);
         $this->setIfExists('terminal_locations_count', $data ?? [], null);
         $this->setIfExists('terminal_locations', $data ?? [], null);
         $this->setIfExists('receipt_printers_count', $data ?? [], null);
         $this->setIfExists('default_printer_id', $data ?? [], null);
+        $this->setIfExists('last_connected', $data ?? [], null);
         $this->setIfExists('receipt_printers', $data ?? [], null);
         $this->setIfExists('created_at', $data ?? [], null);
         $this->setIfExists('updated_at', $data ?? [], null);
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -422,7 +496,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         $invalidProperties = [];
 
         $allowedValues = $this->getPlatformAllowableValues();
-        if (!is_null($this->container['platform']) && !in_array($this->container['platform'], $allowedValues, true)) {
+        if (! is_null($this->container['platform']) && ! in_array($this->container['platform'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'platform', must be one of '%s'",
                 $this->container['platform'],
@@ -431,12 +505,16 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         }
 
         $allowedValues = $this->getDeviceStatusAllowableValues();
-        if (!is_null($this->container['device_status']) && !in_array($this->container['device_status'], $allowedValues, true)) {
+        if (! is_null($this->container['device_status']) && ! in_array($this->container['device_status'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'device_status', must be one of '%s'",
                 $this->container['device_status'],
                 implode("', '", $allowedValues)
             );
+        }
+
+        if (! is_null($this->container['terminal_locations']) && (count($this->container['terminal_locations']) > 1)) {
+            $invalidProperties[] = "invalid value for 'terminal_locations', number of items must be less than or equal to 1.";
         }
 
         return $invalidProperties;
@@ -453,7 +531,6 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -467,8 +544,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets id
      *
-     * @param int|null $id id
-     *
+     * @param  int|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -494,8 +570,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets device_identifier
      *
-     * @param string|null $device_identifier Unique device identifier (iOS: identifierForVendor, Android: androidId)
-     *
+     * @param  string|null  $device_identifier  Device identifier from the device (Android may not be unique). Device identity per store is device_name.
      * @return self
      */
     public function setDeviceIdentifier($device_identifier)
@@ -521,8 +596,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets device_name
      *
-     * @param string|null $device_name device_name
-     *
+     * @param  string|null  $device_name  Human-readable name, unique per store; used for registration matching.
      * @return self
      */
     public function setDeviceName($device_name)
@@ -548,8 +622,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets platform
      *
-     * @param string|null $platform platform
-     *
+     * @param  string|null  $platform  platform
      * @return self
      */
     public function setPlatform($platform)
@@ -558,7 +631,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
             throw new \InvalidArgumentException('non-nullable platform cannot be null');
         }
         $allowedValues = $this->getPlatformAllowableValues();
-        if (!in_array($platform, $allowedValues, true)) {
+        if (! in_array($platform, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'platform', must be one of '%s'",
@@ -575,7 +648,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets device_info
      *
-     * @return \OpenAPI\Client\Model\PosDeviceDeviceInfo|null
+     * @return \OpenAPIClient\Model\PosDeviceDeviceInfo|null
      */
     public function getDeviceInfo()
     {
@@ -585,8 +658,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets device_info
      *
-     * @param \OpenAPI\Client\Model\PosDeviceDeviceInfo|null $device_info device_info
-     *
+     * @param  \OpenAPIClient\Model\PosDeviceDeviceInfo|null  $device_info  device_info
      * @return self
      */
     public function setDeviceInfo($device_info)
@@ -602,7 +674,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets system_info
      *
-     * @return \OpenAPI\Client\Model\PosDeviceSystemInfo|null
+     * @return \OpenAPIClient\Model\PosDeviceSystemInfo|null
      */
     public function getSystemInfo()
     {
@@ -612,8 +684,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets system_info
      *
-     * @param \OpenAPI\Client\Model\PosDeviceSystemInfo|null $system_info system_info
-     *
+     * @param  \OpenAPIClient\Model\PosDeviceSystemInfo|null  $system_info  system_info
      * @return self
      */
     public function setSystemInfo($system_info)
@@ -629,7 +700,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets identifiers
      *
-     * @return \OpenAPI\Client\Model\PosDeviceIdentifiers|null
+     * @return \OpenAPIClient\Model\PosDeviceIdentifiers|null
      */
     public function getIdentifiers()
     {
@@ -639,8 +710,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets identifiers
      *
-     * @param \OpenAPI\Client\Model\PosDeviceIdentifiers|null $identifiers identifiers
-     *
+     * @param  \OpenAPIClient\Model\PosDeviceIdentifiers|null  $identifiers  identifiers
      * @return self
      */
     public function setIdentifiers($identifiers)
@@ -666,8 +736,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets device_status
      *
-     * @param string|null $device_status device_status
-     *
+     * @param  string|null  $device_status  device_status
      * @return self
      */
     public function setDeviceStatus($device_status)
@@ -676,7 +745,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
             throw new \InvalidArgumentException('non-nullable device_status cannot be null');
         }
         $allowedValues = $this->getDeviceStatusAllowableValues();
-        if (!in_array($device_status, $allowedValues, true)) {
+        if (! in_array($device_status, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'device_status', must be one of '%s'",
@@ -703,8 +772,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets last_seen_at
      *
-     * @param \DateTime|null $last_seen_at last_seen_at
-     *
+     * @param  \DateTime|null  $last_seen_at  last_seen_at
      * @return self
      */
     public function setLastSeenAt($last_seen_at)
@@ -714,7 +782,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('last_seen_at', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -737,8 +805,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets device_metadata
      *
-     * @param array<string,mixed>|null $device_metadata Additional device metadata
-     *
+     * @param  array<string,mixed>|null  $device_metadata  Additional device metadata
      * @return self
      */
     public function setDeviceMetadata($device_metadata)
@@ -748,12 +815,210 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('device_metadata', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
         }
         $this->container['device_metadata'] = $device_metadata;
+
+        return $this;
+    }
+
+    /**
+     * Gets cash_drawer_enabled
+     *
+     * @return bool|null
+     */
+    public function getCashDrawerEnabled()
+    {
+        return $this->container['cash_drawer_enabled'];
+    }
+
+    /**
+     * Sets cash_drawer_enabled
+     *
+     * @param  bool|null  $cash_drawer_enabled  When false, only non-cash transactions are allowed on this device (cash drawer disabled)
+     * @return self
+     */
+    public function setCashDrawerEnabled($cash_drawer_enabled)
+    {
+        if (is_null($cash_drawer_enabled)) {
+            throw new \InvalidArgumentException('non-nullable cash_drawer_enabled cannot be null');
+        }
+        $this->container['cash_drawer_enabled'] = $cash_drawer_enabled;
+
+        return $this;
+    }
+
+    /**
+     * Gets has_integrated_drawer
+     *
+     * @return bool|null
+     */
+    public function getHasIntegratedDrawer()
+    {
+        return $this->container['has_integrated_drawer'];
+    }
+
+    /**
+     * Sets has_integrated_drawer
+     *
+     * @param  bool|null  $has_integrated_drawer  When true, this device has a built-in cash drawer (e.g. Stripe Terminal S700)
+     * @return self
+     */
+    public function setHasIntegratedDrawer($has_integrated_drawer)
+    {
+        if (is_null($has_integrated_drawer)) {
+            throw new \InvalidArgumentException('non-nullable has_integrated_drawer cannot be null');
+        }
+        $this->container['has_integrated_drawer'] = $has_integrated_drawer;
+
+        return $this;
+    }
+
+    /**
+     * Gets booking_enabled
+     *
+     * @return bool|null
+     */
+    public function getBookingEnabled()
+    {
+        return $this->container['booking_enabled'];
+    }
+
+    /**
+     * Sets booking_enabled
+     *
+     * @param  bool|null  $booking_enabled  When true, booking actions may be enabled for this device if the store has the Merano Booking add-on active
+     * @return self
+     */
+    public function setBookingEnabled($booking_enabled)
+    {
+        if (is_null($booking_enabled)) {
+            throw new \InvalidArgumentException('non-nullable booking_enabled cannot be null');
+        }
+        $this->container['booking_enabled'] = $booking_enabled;
+
+        return $this;
+    }
+
+    /**
+     * Gets inventory_enabled
+     *
+     * @return bool|null
+     */
+    public function getInventoryEnabled()
+    {
+        return $this->container['inventory_enabled'];
+    }
+
+    /**
+     * Sets inventory_enabled
+     *
+     * @param  bool|null  $inventory_enabled  When true, the store has the Inventory add-on active; the app may show stock levels and must send variant_id on cart lines for tracked variants
+     * @return self
+     */
+    public function setInventoryEnabled($inventory_enabled)
+    {
+        if (is_null($inventory_enabled)) {
+            throw new \InvalidArgumentException('non-nullable inventory_enabled cannot be null');
+        }
+        $this->container['inventory_enabled'] = $inventory_enabled;
+
+        return $this;
+    }
+
+    /**
+     * Gets auto_print_receipt
+     *
+     * @return bool|null
+     */
+    public function getAutoPrintReceipt()
+    {
+        return $this->container['auto_print_receipt'];
+    }
+
+    /**
+     * Sets auto_print_receipt
+     *
+     * @param  bool|null  $auto_print_receipt  When true, receipts are auto-printed after purchase; when false, printing is optional in the frontend
+     * @return self
+     */
+    public function setAutoPrintReceipt($auto_print_receipt)
+    {
+        if (is_null($auto_print_receipt)) {
+            throw new \InvalidArgumentException('non-nullable auto_print_receipt cannot be null');
+        }
+        $this->container['auto_print_receipt'] = $auto_print_receipt;
+
+        return $this;
+    }
+
+    /**
+     * Gets available_actions
+     *
+     * @return string[]|null
+     */
+    public function getAvailableActions()
+    {
+        return $this->container['available_actions'];
+    }
+
+    /**
+     * Sets available_actions
+     *
+     * @param  string[]|null  $available_actions  Action keys the frontend should use for capability gating on the active device
+     * @return self
+     */
+    public function setAvailableActions($available_actions)
+    {
+        if (is_null($available_actions)) {
+            throw new \InvalidArgumentException('non-nullable available_actions cannot be null');
+        }
+        $allowedValues = $this->getAvailableActionsAllowableValues();
+        if (array_diff($available_actions, $allowedValues)) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    "Invalid value for 'available_actions', must be one of '%s'",
+                    implode("', '", $allowedValues)
+                )
+            );
+        }
+        $this->container['available_actions'] = $available_actions;
+
+        return $this;
+    }
+
+    /**
+     * Gets terminal_location_id
+     *
+     * @return int|null
+     */
+    public function getTerminalLocationId()
+    {
+        return $this->container['terminal_location_id'];
+    }
+
+    /**
+     * Sets terminal_location_id
+     *
+     * @param  int|null  $terminal_location_id  ID of the single terminal location assigned to this device (each POS device has at most one)
+     * @return self
+     */
+    public function setTerminalLocationId($terminal_location_id)
+    {
+        if (is_null($terminal_location_id)) {
+            array_push($this->openAPINullablesSetToNull, 'terminal_location_id');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('terminal_location_id', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['terminal_location_id'] = $terminal_location_id;
 
         return $this;
     }
@@ -771,8 +1036,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets terminal_locations_count
      *
-     * @param int|null $terminal_locations_count terminal_locations_count
-     *
+     * @param  int|null  $terminal_locations_count  Number of terminal locations (0 or 1; each device has at most one)
      * @return self
      */
     public function setTerminalLocationsCount($terminal_locations_count)
@@ -788,7 +1052,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets terminal_locations
      *
-     * @return \OpenAPI\Client\Model\PosDeviceTerminalLocationsInner[]|null
+     * @return \OpenAPIClient\Model\PosDeviceTerminalLocationsInner[]|null
      */
     public function getTerminalLocations()
     {
@@ -798,14 +1062,17 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets terminal_locations
      *
-     * @param \OpenAPI\Client\Model\PosDeviceTerminalLocationsInner[]|null $terminal_locations terminal_locations
-     *
+     * @param  \OpenAPIClient\Model\PosDeviceTerminalLocationsInner[]|null  $terminal_locations  Terminal location(s) assigned to this device (at most one)
      * @return self
      */
     public function setTerminalLocations($terminal_locations)
     {
         if (is_null($terminal_locations)) {
             throw new \InvalidArgumentException('non-nullable terminal_locations cannot be null');
+        }
+
+        if ((count($terminal_locations) > 1)) {
+            throw new \InvalidArgumentException('invalid value for $terminal_locations when calling PosDevice., number of items must be less than or equal to 1.');
         }
         $this->container['terminal_locations'] = $terminal_locations;
 
@@ -825,8 +1092,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets receipt_printers_count
      *
-     * @param int|null $receipt_printers_count Number of receipt printers attached to this device
-     *
+     * @param  int|null  $receipt_printers_count  Number of receipt printers attached to this device
      * @return self
      */
     public function setReceiptPrintersCount($receipt_printers_count)
@@ -852,8 +1118,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets default_printer_id
      *
-     * @param int|null $default_printer_id ID of the default receipt printer for this POS device (set via Filament admin)
-     *
+     * @param  int|null  $default_printer_id  ID of the default receipt printer for this POS device (set via Filament admin)
      * @return self
      */
     public function setDefaultPrinterId($default_printer_id)
@@ -863,7 +1128,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('default_printer_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -874,9 +1139,42 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     /**
+     * Gets last_connected
+     *
+     * @return \OpenAPIClient\Model\PosDeviceLastConnected|null
+     */
+    public function getLastConnected()
+    {
+        return $this->container['last_connected'];
+    }
+
+    /**
+     * Sets last_connected
+     *
+     * @param  \OpenAPIClient\Model\PosDeviceLastConnected|null  $last_connected  last_connected
+     * @return self
+     */
+    public function setLastConnected($last_connected)
+    {
+        if (is_null($last_connected)) {
+            array_push($this->openAPINullablesSetToNull, 'last_connected');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('last_connected', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['last_connected'] = $last_connected;
+
+        return $this;
+    }
+
+    /**
      * Gets receipt_printers
      *
-     * @return \OpenAPI\Client\Model\PosDeviceReceiptPrintersInner[]|null
+     * @return \OpenAPIClient\Model\PosDeviceReceiptPrintersInner[]|null
      */
     public function getReceiptPrinters()
     {
@@ -886,8 +1184,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets receipt_printers
      *
-     * @param \OpenAPI\Client\Model\PosDeviceReceiptPrintersInner[]|null $receipt_printers List of receipt printers attached to this POS device
-     *
+     * @param  \OpenAPIClient\Model\PosDeviceReceiptPrintersInner[]|null  $receipt_printers  List of receipt printers attached to this POS device
      * @return self
      */
     public function setReceiptPrinters($receipt_printers)
@@ -913,8 +1210,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets created_at
      *
-     * @param \DateTime|null $created_at created_at
-     *
+     * @param  \DateTime|null  $created_at  created_at
      * @return self
      */
     public function setCreatedAt($created_at)
@@ -940,8 +1236,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets updated_at
      *
-     * @param \DateTime|null $updated_at updated_at
-     *
+     * @param  \DateTime|null  $updated_at  updated_at
      * @return self
      */
     public function setUpdatedAt($updated_at)
@@ -953,12 +1248,11 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -968,8 +1262,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -981,10 +1274,8 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -998,9 +1289,7 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -1009,15 +1298,16 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -1043,5 +1333,3 @@ class PosDevice implements ModelInterface, ArrayAccess, \JsonSerializable
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

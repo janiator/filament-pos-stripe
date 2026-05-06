@@ -1,19 +1,21 @@
 <?php
+
 /**
  * CreateTerminalPaymentIntent201Response
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,75 +29,80 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * CreateTerminalPaymentIntent201Response Class Doc Comment
  *
  * @category Class
+ *
  * @description Stripe PaymentIntent object
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAccess, \JsonSerializable
+class CreateTerminalPaymentIntent201Response implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'createTerminalPaymentIntent_201_response';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'string',
         'amount' => 'int',
         'currency' => 'string',
-        'status' => 'string'
+        'status' => 'string',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'amount' => null,
         'currency' => null,
-        'status' => null
+        'status' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'amount' => false,
         'currency' => false,
-        'status' => false
+        'status' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -120,8 +127,6 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -131,7 +136,7 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -141,7 +146,7 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -150,9 +155,6 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -161,9 +163,6 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -180,7 +179,7 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
         'id' => 'id',
         'amount' => 'amount',
         'currency' => 'currency',
-        'status' => 'status'
+        'status' => 'status',
     ];
 
     /**
@@ -192,7 +191,7 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
         'id' => 'setId',
         'amount' => 'setAmount',
         'currency' => 'setCurrency',
-        'status' => 'setStatus'
+        'status' => 'setStatus',
     ];
 
     /**
@@ -204,7 +203,7 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
         'id' => 'getId',
         'amount' => 'getAmount',
         'currency' => 'getCurrency',
-        'status' => 'getStatus'
+        'status' => 'getStatus',
     ];
 
     /**
@@ -248,7 +247,6 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -259,8 +257,8 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -271,14 +269,12 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -311,7 +307,6 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -325,8 +320,7 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
     /**
      * Sets id
      *
-     * @param string|null $id id
-     *
+     * @param  string|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -352,8 +346,7 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
     /**
      * Sets amount
      *
-     * @param int|null $amount amount
-     *
+     * @param  int|null  $amount  amount
      * @return self
      */
     public function setAmount($amount)
@@ -379,8 +372,7 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
     /**
      * Sets currency
      *
-     * @param string|null $currency currency
-     *
+     * @param  string|null  $currency  currency
      * @return self
      */
     public function setCurrency($currency)
@@ -406,8 +398,7 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
     /**
      * Sets status
      *
-     * @param string|null $status status
-     *
+     * @param  string|null  $status  status
      * @return self
      */
     public function setStatus($status)
@@ -419,12 +410,11 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -434,8 +424,7 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -447,10 +436,8 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -464,9 +451,7 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -475,15 +460,16 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -509,5 +495,3 @@ class CreateTerminalPaymentIntent201Response implements ModelInterface, ArrayAcc
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

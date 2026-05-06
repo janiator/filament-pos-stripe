@@ -23,7 +23,7 @@ class PowerOfficeAccountMappingForm
                 Section::make('Basis')
                     ->schema([
                         Select::make('basis_type')
-                            ->label('Basis type')
+                            ->label(__('Basis type'))
                             ->options(collect(PowerOfficeMappingBasis::cases())->mapWithKeys(
                                 fn (PowerOfficeMappingBasis $b) => [$b->value => $b->label()]
                             ))
@@ -37,38 +37,38 @@ class PowerOfficeAccountMappingForm
                                 return $integration?->mapping_basis->value;
                             }),
                         Select::make('basis_key')
-                            ->label('Basis key')
+                            ->label(__('Basis key'))
                             ->required()
                             ->searchable()
                             ->options(fn (): array => self::basisKeyOptions())
-                            ->helperText('Must match values from your Z-report (e.g. payment method code, vendor id, VAT rate, or product collection id — use 0 for uncategorized).'),
+                            ->helperText(__('Must match values from your Z-report (e.g. payment method code, vendor id, VAT rate, or product collection id — use 0 for uncategorized).')),
                         TextInput::make('basis_label')
                             ->maxLength(255),
                     ]),
                 Section::make('Ledger accounts (PowerOffice account numbers)')
                     ->schema([
                         TextInput::make('sales_account_no')
-                            ->label('Sales / revenue account')
+                            ->label(__('Sales / revenue account'))
                             ->required()
                             ->maxLength(64),
                         TextInput::make('vat_account_no')
-                            ->label('VAT account')
+                            ->label(__('VAT account'))
                             ->maxLength(64),
                         TextInput::make('tips_account_no')
-                            ->label('Tips account')
+                            ->label(__('Tips account'))
                             ->maxLength(64),
                         TextInput::make('cash_account_no')
-                            ->label('Cash clearing account')
+                            ->label(__('Cash clearing account'))
                             ->maxLength(64),
                         TextInput::make('card_clearing_account_no')
-                            ->label('Card / clearing account')
+                            ->label(__('Card / clearing account'))
                             ->maxLength(64),
                         TextInput::make('fees_account_no')
-                            ->label('Fees account (optional)')
-                            ->helperText('Not used by Z-report PowerOffice sync. Use store PowerOffice → Ledger routing → Payment fees for PSP fees.')
+                            ->label(__('Fees account (optional)'))
+                            ->helperText(__('Not used by Z-report PowerOffice sync. Use store PowerOffice → Ledger routing → Payment fees for PSP fees.'))
                             ->maxLength(64),
                         TextInput::make('rounding_account_no')
-                            ->label('Rounding account')
+                            ->label(__('Rounding account'))
                             ->maxLength(64),
                         Toggle::make('is_active')
                             ->default(true),

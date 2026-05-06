@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PaymentMethod
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * PaymentMethod Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
+class PaymentMethod implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'PaymentMethod';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'store_id' => 'int',
@@ -67,22 +71,26 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         'enabled' => 'bool',
         'pos_suitable' => 'bool',
         'sort_order' => 'int',
+        'minimum_amount_ore' => 'int',
+        'pos_device_ids' => 'int[]',
         'background_color' => 'string',
         'icon_color' => 'string',
         'saf_t_payment_code' => 'string',
         'saf_t_event_code' => 'string',
         'description' => 'string',
         'created_at' => '\DateTime',
-        'updated_at' => '\DateTime'
+        'updated_at' => '\DateTime',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'store_id' => null,
@@ -93,20 +101,22 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         'enabled' => null,
         'pos_suitable' => null,
         'sort_order' => null,
+        'minimum_amount_ore' => null,
+        'pos_device_ids' => null,
         'background_color' => null,
         'icon_color' => null,
         'saf_t_payment_code' => null,
         'saf_t_event_code' => null,
         'description' => null,
         'created_at' => 'date-time',
-        'updated_at' => 'date-time'
+        'updated_at' => 'date-time',
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'store_id' => false,
@@ -117,20 +127,22 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         'enabled' => false,
         'pos_suitable' => false,
         'sort_order' => false,
+        'minimum_amount_ore' => true,
+        'pos_device_ids' => false,
         'background_color' => true,
         'icon_color' => true,
         'saf_t_payment_code' => true,
         'saf_t_event_code' => true,
         'description' => true,
         'created_at' => false,
-        'updated_at' => false
+        'updated_at' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -155,8 +167,6 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -166,7 +176,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -176,7 +186,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -185,9 +195,6 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -196,9 +203,6 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -221,13 +225,15 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         'enabled' => 'enabled',
         'pos_suitable' => 'pos_suitable',
         'sort_order' => 'sort_order',
+        'minimum_amount_ore' => 'minimum_amount_ore',
+        'pos_device_ids' => 'pos_device_ids',
         'background_color' => 'background_color',
         'icon_color' => 'icon_color',
         'saf_t_payment_code' => 'saf_t_payment_code',
         'saf_t_event_code' => 'saf_t_event_code',
         'description' => 'description',
         'created_at' => 'created_at',
-        'updated_at' => 'updated_at'
+        'updated_at' => 'updated_at',
     ];
 
     /**
@@ -245,13 +251,15 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         'enabled' => 'setEnabled',
         'pos_suitable' => 'setPosSuitable',
         'sort_order' => 'setSortOrder',
+        'minimum_amount_ore' => 'setMinimumAmountOre',
+        'pos_device_ids' => 'setPosDeviceIds',
         'background_color' => 'setBackgroundColor',
         'icon_color' => 'setIconColor',
         'saf_t_payment_code' => 'setSafTPaymentCode',
         'saf_t_event_code' => 'setSafTEventCode',
         'description' => 'setDescription',
         'created_at' => 'setCreatedAt',
-        'updated_at' => 'setUpdatedAt'
+        'updated_at' => 'setUpdatedAt',
     ];
 
     /**
@@ -269,13 +277,15 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         'enabled' => 'getEnabled',
         'pos_suitable' => 'getPosSuitable',
         'sort_order' => 'getSortOrder',
+        'minimum_amount_ore' => 'getMinimumAmountOre',
+        'pos_device_ids' => 'getPosDeviceIds',
         'background_color' => 'getBackgroundColor',
         'icon_color' => 'getIconColor',
         'saf_t_payment_code' => 'getSafTPaymentCode',
         'saf_t_event_code' => 'getSafTEventCode',
         'description' => 'getDescription',
         'created_at' => 'getCreatedAt',
-        'updated_at' => 'getUpdatedAt'
+        'updated_at' => 'getUpdatedAt',
     ];
 
     /**
@@ -320,7 +330,9 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     public const PROVIDER_STRIPE = 'stripe';
+
     public const PROVIDER_CASH = 'cash';
+
     public const PROVIDER_OTHER = 'other';
 
     /**
@@ -347,8 +359,8 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -361,6 +373,8 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         $this->setIfExists('enabled', $data ?? [], null);
         $this->setIfExists('pos_suitable', $data ?? [], null);
         $this->setIfExists('sort_order', $data ?? [], null);
+        $this->setIfExists('minimum_amount_ore', $data ?? [], null);
+        $this->setIfExists('pos_device_ids', $data ?? [], null);
         $this->setIfExists('background_color', $data ?? [], null);
         $this->setIfExists('icon_color', $data ?? [], null);
         $this->setIfExists('saf_t_payment_code', $data ?? [], null);
@@ -371,14 +385,12 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -398,7 +410,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         $invalidProperties = [];
 
         $allowedValues = $this->getProviderAllowableValues();
-        if (!is_null($this->container['provider']) && !in_array($this->container['provider'], $allowedValues, true)) {
+        if (! is_null($this->container['provider']) && ! in_array($this->container['provider'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'provider', must be one of '%s'",
                 $this->container['provider'],
@@ -420,7 +432,6 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -434,8 +445,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets id
      *
-     * @param int|null $id id
-     *
+     * @param  int|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -461,8 +471,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets store_id
      *
-     * @param int|null $store_id store_id
-     *
+     * @param  int|null  $store_id  store_id
      * @return self
      */
     public function setStoreId($store_id)
@@ -488,8 +497,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets name
      *
-     * @param string|null $name Display name
-     *
+     * @param  string|null  $name  Display name
      * @return self
      */
     public function setName($name)
@@ -515,8 +523,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets code
      *
-     * @param string|null $code Internal code
-     *
+     * @param  string|null  $code  Internal code
      * @return self
      */
     public function setCode($code)
@@ -542,8 +549,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets provider
      *
-     * @param string|null $provider provider
-     *
+     * @param  string|null  $provider  provider
      * @return self
      */
     public function setProvider($provider)
@@ -552,7 +558,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
             throw new \InvalidArgumentException('non-nullable provider cannot be null');
         }
         $allowedValues = $this->getProviderAllowableValues();
-        if (!in_array($provider, $allowedValues, true)) {
+        if (! in_array($provider, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'provider', must be one of '%s'",
@@ -579,8 +585,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets provider_method
      *
-     * @param string|null $provider_method Provider-specific method (e.g., \"card_present\" for Stripe)
-     *
+     * @param  string|null  $provider_method  Provider-specific method (e.g., \"card_present\" for Stripe)
      * @return self
      */
     public function setProviderMethod($provider_method)
@@ -590,7 +595,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('provider_method', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -613,8 +618,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets enabled
      *
-     * @param bool|null $enabled enabled
-     *
+     * @param  bool|null  $enabled  enabled
      * @return self
      */
     public function setEnabled($enabled)
@@ -640,8 +644,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets pos_suitable
      *
-     * @param bool|null $pos_suitable Whether this payment method is suitable for physical POS
-     *
+     * @param  bool|null  $pos_suitable  Whether this payment method is suitable for physical POS
      * @return self
      */
     public function setPosSuitable($pos_suitable)
@@ -667,8 +670,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets sort_order
      *
-     * @param int|null $sort_order sort_order
-     *
+     * @param  int|null  $sort_order  sort_order
      * @return self
      */
     public function setSortOrder($sort_order)
@@ -677,6 +679,65 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
             throw new \InvalidArgumentException('non-nullable sort_order cannot be null');
         }
         $this->container['sort_order'] = $sort_order;
+
+        return $this;
+    }
+
+    /**
+     * Gets minimum_amount_ore
+     *
+     * @return int|null
+     */
+    public function getMinimumAmountOre()
+    {
+        return $this->container['minimum_amount_ore'];
+    }
+
+    /**
+     * Sets minimum_amount_ore
+     *
+     * @param  int|null  $minimum_amount_ore  Minimum payment amount in øre (e.g. 5000 for 50 kr). Null means no minimum.
+     * @return self
+     */
+    public function setMinimumAmountOre($minimum_amount_ore)
+    {
+        if (is_null($minimum_amount_ore)) {
+            array_push($this->openAPINullablesSetToNull, 'minimum_amount_ore');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('minimum_amount_ore', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['minimum_amount_ore'] = $minimum_amount_ore;
+
+        return $this;
+    }
+
+    /**
+     * Gets pos_device_ids
+     *
+     * @return int[]|null
+     */
+    public function getPosDeviceIds()
+    {
+        return $this->container['pos_device_ids'];
+    }
+
+    /**
+     * Sets pos_device_ids
+     *
+     * @param  int[]|null  $pos_device_ids  When non-empty, this payment method is only available on these POS device IDs. When empty, available on all devices.
+     * @return self
+     */
+    public function setPosDeviceIds($pos_device_ids)
+    {
+        if (is_null($pos_device_ids)) {
+            throw new \InvalidArgumentException('non-nullable pos_device_ids cannot be null');
+        }
+        $this->container['pos_device_ids'] = $pos_device_ids;
 
         return $this;
     }
@@ -694,8 +755,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets background_color
      *
-     * @param string|null $background_color Accent background color for the payment method button (CSS hex format with alpha at end, e.g.,
-     *
+     * @param  string|null  $background_color  Accent background color for the payment method button (CSS hex format with alpha at end, e.g.,
      * @return self
      */
     public function setBackgroundColor($background_color)
@@ -705,7 +765,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('background_color', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -728,8 +788,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets icon_color
      *
-     * @param string|null $icon_color Color for the payment method icon (hex, e.g.,
-     *
+     * @param  string|null  $icon_color  Color for the payment method icon (hex, e.g.,
      * @return self
      */
     public function setIconColor($icon_color)
@@ -739,7 +798,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('icon_color', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -762,8 +821,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets saf_t_payment_code
      *
-     * @param string|null $saf_t_payment_code SAF-T payment code (PredefinedBasicID-12)
-     *
+     * @param  string|null  $saf_t_payment_code  SAF-T payment code (PredefinedBasicID-12)
      * @return self
      */
     public function setSafTPaymentCode($saf_t_payment_code)
@@ -773,7 +831,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('saf_t_payment_code', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -796,8 +854,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets saf_t_event_code
      *
-     * @param string|null $saf_t_event_code SAF-T event code (PredefinedBasicID-13)
-     *
+     * @param  string|null  $saf_t_event_code  SAF-T event code (PredefinedBasicID-13)
      * @return self
      */
     public function setSafTEventCode($saf_t_event_code)
@@ -807,7 +864,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('saf_t_event_code', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -830,8 +887,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets description
      *
-     * @param string|null $description description
-     *
+     * @param  string|null  $description  description
      * @return self
      */
     public function setDescription($description)
@@ -841,7 +897,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('description', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -864,8 +920,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets created_at
      *
-     * @param \DateTime|null $created_at created_at
-     *
+     * @param  \DateTime|null  $created_at  created_at
      * @return self
      */
     public function setCreatedAt($created_at)
@@ -891,8 +946,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets updated_at
      *
-     * @param \DateTime|null $updated_at updated_at
-     *
+     * @param  \DateTime|null  $updated_at  updated_at
      * @return self
      */
     public function setUpdatedAt($updated_at)
@@ -904,12 +958,11 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -919,8 +972,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -932,10 +984,8 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -949,9 +999,7 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -960,15 +1008,16 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -994,5 +1043,3 @@ class PaymentMethod implements ModelInterface, ArrayAccess, \JsonSerializable
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

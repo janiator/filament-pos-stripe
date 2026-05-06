@@ -12,6 +12,7 @@ Name | Type | Description | Notes
 **purchase_item_product_image_url** | **string** | Product image URL (signed URL for security) | [optional]
 **purchase_item_unit_price** | **int** | Price per unit in øre | [optional]
 **purchase_item_quantity** | **float** | Quantity purchased (supports decimals for continuous units like meters, kilograms) | [optional]
+**purchase_item_line_total_ore** | **int** | Line total in øre after item-level and proportional cart-level discounts (matches charged amount split across lines; use for refunds when cart discounts apply) | [optional]
 **purchase_item_original_price** | **int** | Original price before discount in øre | [optional]
 **purchase_item_discount_amount** | **int** | Discount amount per unit in øre | [optional]
 **purchase_item_discount_reason** | **string** | Reason for discount | [optional]

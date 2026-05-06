@@ -19,17 +19,17 @@ class PaymentMethodsTable
             ->modifyQueryUsing(fn ($query) => $query->with('posDevices'))
             ->columns([
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('Name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->searchable()
                     ->sortable()
                     ->badge()
                     ->color('gray'),
                 TextColumn::make('provider')
-                    ->label('Provider')
+                    ->label(__('Provider'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'stripe' => 'success',
@@ -40,26 +40,26 @@ class PaymentMethodsTable
                     })
                     ->sortable(),
                 TextColumn::make('provider_method')
-                    ->label('Provider Method')
+                    ->label(__('Provider Method'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 ToggleColumn::make('enabled')
-                    ->label('Enabled')
+                    ->label(__('Enabled'))
                     ->sortable(),
                 ToggleColumn::make('pos_suitable')
-                    ->label('POS Suitable')
+                    ->label(__('POS Suitable'))
                     ->sortable(),
                 TextColumn::make('sort_order')
-                    ->label('Sort Order')
+                    ->label(__('Sort Order'))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('minimum_amount_kroner')
-                    ->label('Min amount (kr)')
+                    ->label(__('Min amount (kr)'))
                     ->sortable()
                     ->formatStateUsing(fn ($state) => $state !== null ? $state.' kr' : '—')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('posDevices.device_name')
-                    ->label('Devices')
+                    ->label(__('Devices'))
                     ->formatStateUsing(function (PaymentMethod $record) {
                         $devices = $record->posDevices;
                         if ($devices->isEmpty()) {
@@ -70,17 +70,17 @@ class PaymentMethodsTable
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('saf_t_payment_code')
-                    ->label('SAF-T Payment Code')
+                    ->label(__('SAF-T Payment Code'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('provider')
-                    ->label('Provider')
+                    ->label(__('Provider'))
                     ->options([
                         'stripe' => 'Stripe',
                         'verifone' => 'Verifone',
@@ -88,13 +88,13 @@ class PaymentMethodsTable
                         'other' => 'Other',
                     ]),
                 SelectFilter::make('enabled')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->options([
                         '1' => 'Enabled',
                         '0' => 'Disabled',
                     ]),
                 SelectFilter::make('pos_suitable')
-                    ->label('POS Suitable')
+                    ->label(__('POS Suitable'))
                     ->options([
                         '1' => 'POS Suitable',
                         '0' => 'Online Only',

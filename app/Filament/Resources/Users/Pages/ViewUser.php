@@ -14,7 +14,9 @@ class ViewUser extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Impersonate::make()->record($this->getRecord()),
+            Impersonate::make()
+                ->record($this->getRecord())
+                ->redirectTo(fn (): string => $this->getRecord()->impersonationRedirectUrl()),
             EditAction::make(),
         ];
     }

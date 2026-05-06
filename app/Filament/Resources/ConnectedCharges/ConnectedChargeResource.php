@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\ConnectedCharges;
 
+use App\Filament\Clusters\SettingsCluster;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ConnectedCharges\Pages\CreateConnectedCharge;
 use App\Filament\Resources\ConnectedCharges\Pages\EditConnectedCharge;
 use App\Filament\Resources\ConnectedCharges\Pages\ListConnectedCharges;
@@ -9,7 +11,6 @@ use App\Filament\Resources\ConnectedCharges\Pages\ViewConnectedCharge;
 use App\Filament\Resources\ConnectedCharges\Schemas\ConnectedChargeForm;
 use App\Filament\Resources\ConnectedCharges\Schemas\ConnectedChargeInfolist;
 use App\Filament\Resources\ConnectedCharges\Tables\ConnectedChargesTable;
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedCharge;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -21,6 +22,8 @@ class ConnectedChargeResource extends Resource
 {
     use HasTenantScopedQuery;
 
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $model = ConnectedCharge::class;
 
     // Disable automatic tenant scoping - we'll handle it manually via trait
@@ -29,7 +32,7 @@ class ConnectedChargeResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         try {
             $tenant = \Filament\Facades\Filament::getTenant();
             if ($tenant && $tenant->slug !== 'visivo-admin' && $tenant->stripe_account_id) {
@@ -39,7 +42,7 @@ class ConnectedChargeResource extends Resource
         } catch (\Throwable $e) {
             // Fallback if Filament facade not available
         }
-        
+
         return $query;
     }
 
@@ -72,7 +75,8 @@ class ConnectedChargeResource extends Resource
         if (! $record) {
             return null;
         }
-        return $record->formatted_amount . ' - ' . ($record->description ?? $record->stripe_charge_id);
+
+        return $record->formatted_amount.' - '.($record->description ?? $record->stripe_charge_id);
     }
 
     public static function form(Schema $schema): Schema

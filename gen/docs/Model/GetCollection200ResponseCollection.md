@@ -15,6 +15,6 @@ Name | Type | Description | Notes
 **metadata** | **array<string,mixed>** |  | [optional]
 **created_at** | **\DateTime** |  | [optional]
 **updated_at** | **\DateTime** |  | [optional]
-**products** | [**\OpenAPI\Client\Model\Product[]**](Product.md) |  | [optional]
+**products** | [**\OpenAPIClient\Model\Product[]**](Product.md) |  | [optional]
 
 [[Back to Model list]](../../README.md#models) [[Back to API list]](../../README.md#endpoints) [[Back to README]](../../README.md)

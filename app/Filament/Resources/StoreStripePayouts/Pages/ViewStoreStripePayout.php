@@ -27,13 +27,13 @@ class ViewStoreStripePayout extends ViewRecord
     {
         return [
             Action::make('preview_tripletex_voucher')
-                ->label('Preview Tripletex voucher')
+                ->label(__('Preview Tripletex voucher'))
                 ->icon(Heroicon::OutlinedEye)
                 ->color('gray')
                 ->visible(fn (): bool => TripletexVoucherPreviewAction::canPreviewPayout($this->record))
                 ->slideOver()
-                ->modalHeading('Tripletex voucher preview')
-                ->modalDescription('Ledger lines for this Stripe payout. Turn on account resolution to call Tripletex and include the exact JSON for POST /ledger/voucher.')
+                ->modalHeading(__('Tripletex voucher preview'))
+                ->modalDescription(__('Ledger lines for this Stripe payout. Turn on account resolution to call Tripletex and include the exact JSON for POST /ledger/voucher.'))
                 ->modalWidth('4xl')
                 ->fillForm(fn (): array => [
                     'resolve_tripletex_accounts' => false,
@@ -44,8 +44,8 @@ class ViewStoreStripePayout extends ViewRecord
                 ])
                 ->form([
                     Toggle::make('resolve_tripletex_accounts')
-                        ->label('Resolve Tripletex account IDs (calls Tripletex API)')
-                        ->helperText('Creates a short-lived session token and resolves each ledger account number used in the voucher.')
+                        ->label(__('Resolve Tripletex account IDs (calls Tripletex API)'))
+                        ->helperText(__('Creates a short-lived session token and resolves each ledger account number used in the voucher.'))
                         ->default(false)
                         ->live()
                         ->afterStateUpdated(function ($state, Set $set): void {
@@ -53,7 +53,7 @@ class ViewStoreStripePayout extends ViewRecord
                             $set('preview_json', json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
                         }),
                     Textarea::make('preview_json')
-                        ->label('Preview JSON')
+                        ->label(__('Preview JSON'))
                         ->rows(28)
                         ->readOnly()
                         ->columnSpanFull()
@@ -62,13 +62,13 @@ class ViewStoreStripePayout extends ViewRecord
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Close'),
             Action::make('sync_tripletex')
-                ->label('Sync Tripletex')
+                ->label(__('Sync Tripletex'))
                 ->icon('heroicon-o-document-chart-bar')
                 ->color('gray')
                 ->visible(fn (): bool => $this->canSyncToTripletex())
                 ->action(function (): void {
                     Notification::make()
-                        ->title('Syncing payout to Tripletex...')
+                        ->title(__('Syncing payout to Tripletex...'))
                         ->body($this->record->stripe_payout_id)
                         ->info()
                         ->send();
@@ -82,7 +82,7 @@ class ViewStoreStripePayout extends ViewRecord
                             ->first();
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Tripletex payout sync failed')
+                            ->title(__('Tripletex payout sync failed'))
                             ->body($e->getMessage())
                             ->danger()
                             ->send();
@@ -92,7 +92,7 @@ class ViewStoreStripePayout extends ViewRecord
 
                     if ($run?->status === TripletexSyncRunStatus::Skipped) {
                         Notification::make()
-                            ->title('Tripletex payout sync skipped')
+                            ->title(__('Tripletex payout sync skipped'))
                             ->body($run->error_message ?? 'No voucher was posted.')
                             ->warning()
                             ->persistent()
@@ -103,7 +103,7 @@ class ViewStoreStripePayout extends ViewRecord
 
                     if (! $ok || $run?->status !== TripletexSyncRunStatus::Success) {
                         Notification::make()
-                            ->title('Tripletex payout sync failed')
+                            ->title(__('Tripletex payout sync failed'))
                             ->body($run?->error_message ?? 'See Tripletex sync history for details.')
                             ->danger()
                             ->persistent()
@@ -113,7 +113,7 @@ class ViewStoreStripePayout extends ViewRecord
                     }
 
                     Notification::make()
-                        ->title('Synced payout to Tripletex')
+                        ->title(__('Synced payout to Tripletex'))
                         ->body($run->tripletex_voucher_id ? "Voucher #{$run->tripletex_voucher_id}" : 'Payout voucher posted.')
                         ->success()
                         ->persistent()

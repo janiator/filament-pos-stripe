@@ -1,4 +1,4 @@
-# OpenAPI\Client\CollectionsApi
+# OpenAPIClient\CollectionsApi
 
 Product collections/categories management
 
@@ -13,7 +13,7 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 ## `getCollection()`
 
 ```php
-getCollection($id): \OpenAPI\Client\Model\GetCollection200Response
+getCollection($id): \OpenAPIClient\Model\GetCollection200Response
 ```
 
 Get collection
@@ -28,10 +28,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\CollectionsApi(
+$apiInstance = new OpenAPIClient\Api\CollectionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -55,7 +55,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\GetCollection200Response**](../Model/GetCollection200Response.md)
+[**\OpenAPIClient\Model\GetCollection200Response**](../Model/GetCollection200Response.md)
 
 ### Authorization
 
@@ -73,7 +73,7 @@ try {
 ## `listCollections()`
 
 ```php
-listCollections($search, $active, $per_page): \OpenAPI\Client\Model\ListCollections200Response
+listCollections($search, $active, $per_page): \OpenAPIClient\Model\ListCollections200Response
 ```
 
 List collections
@@ -88,10 +88,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\CollectionsApi(
+$apiInstance = new OpenAPIClient\Api\CollectionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -119,7 +119,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\ListCollections200Response**](../Model/ListCollections200Response.md)
+[**\OpenAPIClient\Model\ListCollections200Response**](../Model/ListCollections200Response.md)
 
 ### Authorization
 

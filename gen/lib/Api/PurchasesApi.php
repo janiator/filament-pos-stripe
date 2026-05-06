@@ -1,18 +1,20 @@
 <?php
+
 /**
  * PurchasesApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * PurchasesApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class PurchasesApi
@@ -73,7 +75,7 @@ class PurchasesApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'cancelPurchase' => [
             'application/json',
@@ -88,6 +90,9 @@ class PurchasesApi
             'application/json',
         ],
         'getPurchase' => [
+            'application/json',
+        ],
+        'listKioskSalesReport' => [
             'application/json',
         ],
         'listPurchases' => [
@@ -105,10 +110,7 @@ class PurchasesApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -116,16 +118,16 @@ class PurchasesApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -155,17 +157,18 @@ class PurchasesApi
      *
      * Cancel a pending purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\CancelPurchaseRequest|null $cancel_purchase_request cancel_purchase_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['cancelPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\CancelPurchaseRequest|null  $cancel_purchase_request  cancel_purchase_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cancelPurchase'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CancelPurchase200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\CancelPurchase422Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\CancelPurchase200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\CancelPurchase422Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function cancelPurchase($id, $cancel_purchase_request = null, string $contentType = self::contentTypes['cancelPurchase'][0])
     {
-        list($response) = $this->cancelPurchaseWithHttpInfo($id, $cancel_purchase_request, $contentType);
+        [$response] = $this->cancelPurchaseWithHttpInfo($id, $cancel_purchase_request, $contentType);
+
         return $response;
     }
 
@@ -174,13 +177,13 @@ class PurchasesApi
      *
      * Cancel a pending purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\CancelPurchaseRequest|null $cancel_purchase_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['cancelPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\CancelPurchaseRequest|null  $cancel_purchase_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cancelPurchase'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CancelPurchase200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\CancelPurchase422Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\CancelPurchase200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\CancelPurchase422Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function cancelPurchaseWithHttpInfo($id, $cancel_purchase_request = null, string $contentType = self::contentTypes['cancelPurchase'][0])
     {
@@ -208,47 +211,44 @@ class PurchasesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CancelPurchase200Response',
+                        '\OpenAPIClient\Model\CancelPurchase200Response',
                         $request,
                         $response,
                     );
                 case 400:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 422:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CancelPurchase422Response',
+                        '\OpenAPIClient\Model\CancelPurchase422Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 403:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -264,7 +264,7 @@ class PurchasesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\CancelPurchase200Response',
+                '\OpenAPIClient\Model\CancelPurchase200Response',
                 $request,
                 $response,
             );
@@ -273,7 +273,7 @@ class PurchasesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CancelPurchase200Response',
+                        '\OpenAPIClient\Model\CancelPurchase200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -281,7 +281,7 @@ class PurchasesApi
                 case 400:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -289,7 +289,7 @@ class PurchasesApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -297,7 +297,7 @@ class PurchasesApi
                 case 422:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CancelPurchase422Response',
+                        '\OpenAPIClient\Model\CancelPurchase422Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -305,7 +305,7 @@ class PurchasesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -313,13 +313,12 @@ class PurchasesApi
                 case 403:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -330,12 +329,12 @@ class PurchasesApi
      *
      * Cancel a pending purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\CancelPurchaseRequest|null $cancel_purchase_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['cancelPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\CancelPurchaseRequest|null  $cancel_purchase_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cancelPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function cancelPurchaseAsync($id, $cancel_purchase_request = null, string $contentType = self::contentTypes['cancelPurchase'][0])
     {
@@ -352,16 +351,16 @@ class PurchasesApi
      *
      * Cancel a pending purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\CancelPurchaseRequest|null $cancel_purchase_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['cancelPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\CancelPurchaseRequest|null  $cancel_purchase_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cancelPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function cancelPurchaseAsyncWithHttpInfo($id, $cancel_purchase_request = null, string $contentType = self::contentTypes['cancelPurchase'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\CancelPurchase200Response';
+        $returnType = '\OpenAPIClient\Model\CancelPurchase200Response';
         $request = $this->cancelPurchaseRequest($id, $cancel_purchase_request, $contentType);
 
         return $this->client
@@ -369,7 +368,7 @@ class PurchasesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -380,7 +379,7 @@ class PurchasesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -403,12 +402,12 @@ class PurchasesApi
     /**
      * Create request for operation 'cancelPurchase'
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\CancelPurchaseRequest|null $cancel_purchase_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['cancelPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\CancelPurchaseRequest|null  $cancel_purchase_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['cancelPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function cancelPurchaseRequest($id, $cancel_purchase_request = null, string $contentType = self::contentTypes['cancelPurchase'][0])
     {
@@ -420,8 +419,6 @@ class PurchasesApi
             );
         }
 
-
-
         $resourcePath = '/purchases/{id}/cancel';
         $formParams = [];
         $queryParams = [];
@@ -429,20 +426,17 @@ class PurchasesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -450,7 +444,7 @@ class PurchasesApi
         // for model (json/xml)
         if (isset($cancel_purchase_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($cancel_purchase_request));
             } else {
                 $httpBody = $cancel_purchase_request;
@@ -463,7 +457,7 @@ class PurchasesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -471,7 +465,7 @@ class PurchasesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -480,8 +474,8 @@ class PurchasesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -497,9 +491,10 @@ class PurchasesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -510,17 +505,18 @@ class PurchasesApi
      *
      * Complete payment for deferred purchase
      *
-     * @param  int $id Purchase (charge) ID (required)
-     * @param  \OpenAPI\Client\Model\CompletePurchasePaymentRequest $complete_purchase_payment_request complete_purchase_payment_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['completePurchasePayment'] to see the possible values for this operation
+     * @param  int  $id  Purchase (charge) ID (required)
+     * @param  \OpenAPIClient\Model\CompletePurchasePaymentRequest  $complete_purchase_payment_request  complete_purchase_payment_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['completePurchasePayment'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CompletePurchasePayment200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\CompletePurchasePayment422Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\CompletePurchasePayment200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\CompletePurchasePayment422Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function completePurchasePayment($id, $complete_purchase_payment_request, string $contentType = self::contentTypes['completePurchasePayment'][0])
     {
-        list($response) = $this->completePurchasePaymentWithHttpInfo($id, $complete_purchase_payment_request, $contentType);
+        [$response] = $this->completePurchasePaymentWithHttpInfo($id, $complete_purchase_payment_request, $contentType);
+
         return $response;
     }
 
@@ -529,13 +525,13 @@ class PurchasesApi
      *
      * Complete payment for deferred purchase
      *
-     * @param  int $id Purchase (charge) ID (required)
-     * @param  \OpenAPI\Client\Model\CompletePurchasePaymentRequest $complete_purchase_payment_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['completePurchasePayment'] to see the possible values for this operation
+     * @param  int  $id  Purchase (charge) ID (required)
+     * @param  \OpenAPIClient\Model\CompletePurchasePaymentRequest  $complete_purchase_payment_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['completePurchasePayment'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CompletePurchasePayment200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\CompletePurchasePayment422Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\CompletePurchasePayment200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\CompletePurchasePayment422Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function completePurchasePaymentWithHttpInfo($id, $complete_purchase_payment_request, string $contentType = self::contentTypes['completePurchasePayment'][0])
     {
@@ -563,47 +559,44 @@ class PurchasesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CompletePurchasePayment200Response',
+                        '\OpenAPIClient\Model\CompletePurchasePayment200Response',
                         $request,
                         $response,
                     );
                 case 400:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 422:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CompletePurchasePayment422Response',
+                        '\OpenAPIClient\Model\CompletePurchasePayment422Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 403:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -619,7 +612,7 @@ class PurchasesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\CompletePurchasePayment200Response',
+                '\OpenAPIClient\Model\CompletePurchasePayment200Response',
                 $request,
                 $response,
             );
@@ -628,7 +621,7 @@ class PurchasesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CompletePurchasePayment200Response',
+                        '\OpenAPIClient\Model\CompletePurchasePayment200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -636,7 +629,7 @@ class PurchasesApi
                 case 400:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -644,7 +637,7 @@ class PurchasesApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -652,7 +645,7 @@ class PurchasesApi
                 case 422:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CompletePurchasePayment422Response',
+                        '\OpenAPIClient\Model\CompletePurchasePayment422Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -660,7 +653,7 @@ class PurchasesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -668,13 +661,12 @@ class PurchasesApi
                 case 403:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -685,12 +677,12 @@ class PurchasesApi
      *
      * Complete payment for deferred purchase
      *
-     * @param  int $id Purchase (charge) ID (required)
-     * @param  \OpenAPI\Client\Model\CompletePurchasePaymentRequest $complete_purchase_payment_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['completePurchasePayment'] to see the possible values for this operation
+     * @param  int  $id  Purchase (charge) ID (required)
+     * @param  \OpenAPIClient\Model\CompletePurchasePaymentRequest  $complete_purchase_payment_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['completePurchasePayment'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function completePurchasePaymentAsync($id, $complete_purchase_payment_request, string $contentType = self::contentTypes['completePurchasePayment'][0])
     {
@@ -707,16 +699,16 @@ class PurchasesApi
      *
      * Complete payment for deferred purchase
      *
-     * @param  int $id Purchase (charge) ID (required)
-     * @param  \OpenAPI\Client\Model\CompletePurchasePaymentRequest $complete_purchase_payment_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['completePurchasePayment'] to see the possible values for this operation
+     * @param  int  $id  Purchase (charge) ID (required)
+     * @param  \OpenAPIClient\Model\CompletePurchasePaymentRequest  $complete_purchase_payment_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['completePurchasePayment'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function completePurchasePaymentAsyncWithHttpInfo($id, $complete_purchase_payment_request, string $contentType = self::contentTypes['completePurchasePayment'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\CompletePurchasePayment200Response';
+        $returnType = '\OpenAPIClient\Model\CompletePurchasePayment200Response';
         $request = $this->completePurchasePaymentRequest($id, $complete_purchase_payment_request, $contentType);
 
         return $this->client
@@ -724,7 +716,7 @@ class PurchasesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -735,7 +727,7 @@ class PurchasesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -758,12 +750,12 @@ class PurchasesApi
     /**
      * Create request for operation 'completePurchasePayment'
      *
-     * @param  int $id Purchase (charge) ID (required)
-     * @param  \OpenAPI\Client\Model\CompletePurchasePaymentRequest $complete_purchase_payment_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['completePurchasePayment'] to see the possible values for this operation
+     * @param  int  $id  Purchase (charge) ID (required)
+     * @param  \OpenAPIClient\Model\CompletePurchasePaymentRequest  $complete_purchase_payment_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['completePurchasePayment'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function completePurchasePaymentRequest($id, $complete_purchase_payment_request, string $contentType = self::contentTypes['completePurchasePayment'][0])
     {
@@ -782,7 +774,6 @@ class PurchasesApi
             );
         }
 
-
         $resourcePath = '/purchases/{id}/complete-payment';
         $formParams = [];
         $queryParams = [];
@@ -790,20 +781,17 @@ class PurchasesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -811,7 +799,7 @@ class PurchasesApi
         // for model (json/xml)
         if (isset($complete_purchase_payment_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($complete_purchase_payment_request));
             } else {
                 $httpBody = $complete_purchase_payment_request;
@@ -824,7 +812,7 @@ class PurchasesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -832,7 +820,7 @@ class PurchasesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -841,8 +829,8 @@ class PurchasesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -858,9 +846,10 @@ class PurchasesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -871,16 +860,17 @@ class PurchasesApi
      *
      * Complete purchase (single or split payment)
      *
-     * @param  \OpenAPI\Client\Model\CreatePurchaseRequest $create_purchase_request create_purchase_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createPurchase'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreatePurchaseRequest  $create_purchase_request  create_purchase_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createPurchase'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CreatePurchase201Response|\OpenAPIClient\Model\CreatePurchase422Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\CreatePurchase201Response|\OpenAPI\Client\Model\CreatePurchase422Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function createPurchase($create_purchase_request, string $contentType = self::contentTypes['createPurchase'][0])
     {
-        list($response) = $this->createPurchaseWithHttpInfo($create_purchase_request, $contentType);
+        [$response] = $this->createPurchaseWithHttpInfo($create_purchase_request, $contentType);
+
         return $response;
     }
 
@@ -889,12 +879,12 @@ class PurchasesApi
      *
      * Complete purchase (single or split payment)
      *
-     * @param  \OpenAPI\Client\Model\CreatePurchaseRequest $create_purchase_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createPurchase'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreatePurchaseRequest  $create_purchase_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createPurchase'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CreatePurchase201Response|\OpenAPIClient\Model\CreatePurchase422Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\CreatePurchase201Response|\OpenAPI\Client\Model\CreatePurchase422Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function createPurchaseWithHttpInfo($create_purchase_request, string $contentType = self::contentTypes['createPurchase'][0])
     {
@@ -922,47 +912,44 @@ class PurchasesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 201:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CreatePurchase201Response',
+                        '\OpenAPIClient\Model\CreatePurchase201Response',
                         $request,
                         $response,
                     );
                 case 422:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CreatePurchase422Response',
+                        '\OpenAPIClient\Model\CreatePurchase422Response',
                         $request,
                         $response,
                     );
                 case 403:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 500:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -978,7 +965,7 @@ class PurchasesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\CreatePurchase201Response',
+                '\OpenAPIClient\Model\CreatePurchase201Response',
                 $request,
                 $response,
             );
@@ -987,7 +974,7 @@ class PurchasesApi
                 case 201:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CreatePurchase201Response',
+                        '\OpenAPIClient\Model\CreatePurchase201Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -995,7 +982,7 @@ class PurchasesApi
                 case 422:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CreatePurchase422Response',
+                        '\OpenAPIClient\Model\CreatePurchase422Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1003,7 +990,7 @@ class PurchasesApi
                 case 403:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1011,7 +998,7 @@ class PurchasesApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1019,7 +1006,7 @@ class PurchasesApi
                 case 500:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1027,13 +1014,12 @@ class PurchasesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1044,11 +1030,11 @@ class PurchasesApi
      *
      * Complete purchase (single or split payment)
      *
-     * @param  \OpenAPI\Client\Model\CreatePurchaseRequest $create_purchase_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createPurchase'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreatePurchaseRequest  $create_purchase_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createPurchaseAsync($create_purchase_request, string $contentType = self::contentTypes['createPurchase'][0])
     {
@@ -1065,15 +1051,15 @@ class PurchasesApi
      *
      * Complete purchase (single or split payment)
      *
-     * @param  \OpenAPI\Client\Model\CreatePurchaseRequest $create_purchase_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createPurchase'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreatePurchaseRequest  $create_purchase_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createPurchaseAsyncWithHttpInfo($create_purchase_request, string $contentType = self::contentTypes['createPurchase'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\CreatePurchase201Response';
+        $returnType = '\OpenAPIClient\Model\CreatePurchase201Response';
         $request = $this->createPurchaseRequest($create_purchase_request, $contentType);
 
         return $this->client
@@ -1081,7 +1067,7 @@ class PurchasesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1092,7 +1078,7 @@ class PurchasesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1115,11 +1101,11 @@ class PurchasesApi
     /**
      * Create request for operation 'createPurchase'
      *
-     * @param  \OpenAPI\Client\Model\CreatePurchaseRequest $create_purchase_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createPurchase'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreatePurchaseRequest  $create_purchase_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function createPurchaseRequest($create_purchase_request, string $contentType = self::contentTypes['createPurchase'][0])
     {
@@ -1131,7 +1117,6 @@ class PurchasesApi
             );
         }
 
-
         $resourcePath = '/purchases';
         $formParams = [];
         $queryParams = [];
@@ -1139,12 +1124,8 @@ class PurchasesApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1152,7 +1133,7 @@ class PurchasesApi
         // for model (json/xml)
         if (isset($create_purchase_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($create_purchase_request));
             } else {
                 $httpBody = $create_purchase_request;
@@ -1165,7 +1146,7 @@ class PurchasesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1173,7 +1154,7 @@ class PurchasesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1182,8 +1163,8 @@ class PurchasesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1199,9 +1180,10 @@ class PurchasesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1212,15 +1194,18 @@ class PurchasesApi
      *
      * Get available payment methods
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPaymentMethods'] to see the possible values for this operation
+     * @param  int|null  $pos_device_id  When provided and the device has cash drawer disabled, cash methods are excluded from the response (optional)
+     * @param  bool|null  $pos_only  If true (default), only POS-suitable payment methods are returned (optional, default to true)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPaymentMethods'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetPaymentMethods200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GetPaymentMethods200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
-    public function getPaymentMethods(string $contentType = self::contentTypes['getPaymentMethods'][0])
+    public function getPaymentMethods($pos_device_id = null, $pos_only = true, string $contentType = self::contentTypes['getPaymentMethods'][0])
     {
-        list($response) = $this->getPaymentMethodsWithHttpInfo($contentType);
+        [$response] = $this->getPaymentMethodsWithHttpInfo($pos_device_id, $pos_only, $contentType);
+
         return $response;
     }
 
@@ -1229,15 +1214,17 @@ class PurchasesApi
      *
      * Get available payment methods
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPaymentMethods'] to see the possible values for this operation
+     * @param  int|null  $pos_device_id  When provided and the device has cash drawer disabled, cash methods are excluded from the response (optional)
+     * @param  bool|null  $pos_only  If true (default), only POS-suitable payment methods are returned (optional, default to true)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPaymentMethods'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetPaymentMethods200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GetPaymentMethods200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
-    public function getPaymentMethodsWithHttpInfo(string $contentType = self::contentTypes['getPaymentMethods'][0])
+    public function getPaymentMethodsWithHttpInfo($pos_device_id = null, $pos_only = true, string $contentType = self::contentTypes['getPaymentMethods'][0])
     {
-        $request = $this->getPaymentMethodsRequest($contentType);
+        $request = $this->getPaymentMethodsRequest($pos_device_id, $pos_only, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1261,29 +1248,26 @@ class PurchasesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GetPaymentMethods200Response',
+                        '\OpenAPIClient\Model\GetPaymentMethods200Response',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1299,7 +1283,7 @@ class PurchasesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GetPaymentMethods200Response',
+                '\OpenAPIClient\Model\GetPaymentMethods200Response',
                 $request,
                 $response,
             );
@@ -1308,7 +1292,7 @@ class PurchasesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GetPaymentMethods200Response',
+                        '\OpenAPIClient\Model\GetPaymentMethods200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1316,7 +1300,7 @@ class PurchasesApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1324,13 +1308,12 @@ class PurchasesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1341,14 +1324,16 @@ class PurchasesApi
      *
      * Get available payment methods
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPaymentMethods'] to see the possible values for this operation
+     * @param  int|null  $pos_device_id  When provided and the device has cash drawer disabled, cash methods are excluded from the response (optional)
+     * @param  bool|null  $pos_only  If true (default), only POS-suitable payment methods are returned (optional, default to true)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPaymentMethods'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function getPaymentMethodsAsync(string $contentType = self::contentTypes['getPaymentMethods'][0])
+    public function getPaymentMethodsAsync($pos_device_id = null, $pos_only = true, string $contentType = self::contentTypes['getPaymentMethods'][0])
     {
-        return $this->getPaymentMethodsAsyncWithHttpInfo($contentType)
+        return $this->getPaymentMethodsAsyncWithHttpInfo($pos_device_id, $pos_only, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -1361,22 +1346,24 @@ class PurchasesApi
      *
      * Get available payment methods
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPaymentMethods'] to see the possible values for this operation
+     * @param  int|null  $pos_device_id  When provided and the device has cash drawer disabled, cash methods are excluded from the response (optional)
+     * @param  bool|null  $pos_only  If true (default), only POS-suitable payment methods are returned (optional, default to true)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPaymentMethods'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function getPaymentMethodsAsyncWithHttpInfo(string $contentType = self::contentTypes['getPaymentMethods'][0])
+    public function getPaymentMethodsAsyncWithHttpInfo($pos_device_id = null, $pos_only = true, string $contentType = self::contentTypes['getPaymentMethods'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GetPaymentMethods200Response';
-        $request = $this->getPaymentMethodsRequest($contentType);
+        $returnType = '\OpenAPIClient\Model\GetPaymentMethods200Response';
+        $request = $this->getPaymentMethodsRequest($pos_device_id, $pos_only, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1387,7 +1374,7 @@ class PurchasesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1410,14 +1397,15 @@ class PurchasesApi
     /**
      * Create request for operation 'getPaymentMethods'
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPaymentMethods'] to see the possible values for this operation
+     * @param  int|null  $pos_device_id  When provided and the device has cash drawer disabled, cash methods are excluded from the response (optional)
+     * @param  bool|null  $pos_only  If true (default), only POS-suitable payment methods are returned (optional, default to true)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPaymentMethods'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
-    public function getPaymentMethodsRequest(string $contentType = self::contentTypes['getPaymentMethods'][0])
+    public function getPaymentMethodsRequest($pos_device_id = null, $pos_only = true, string $contentType = self::contentTypes['getPaymentMethods'][0])
     {
-
 
         $resourcePath = '/purchases/payment-methods';
         $formParams = [];
@@ -1426,12 +1414,27 @@ class PurchasesApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $pos_device_id,
+            'pos_device_id', // param base name
+            'integer', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $pos_only,
+            'pos_only', // param base name
+            'boolean', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
 
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1445,7 +1448,7 @@ class PurchasesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1453,7 +1456,7 @@ class PurchasesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1462,8 +1465,8 @@ class PurchasesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1479,9 +1482,10 @@ class PurchasesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1492,16 +1496,17 @@ class PurchasesApi
      *
      * Get purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPurchase'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetPurchase200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GetPurchase200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getPurchase($id, string $contentType = self::contentTypes['getPurchase'][0])
     {
-        list($response) = $this->getPurchaseWithHttpInfo($id, $contentType);
+        [$response] = $this->getPurchaseWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -1510,12 +1515,12 @@ class PurchasesApi
      *
      * Get purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPurchase'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetPurchase200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GetPurchase200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getPurchaseWithHttpInfo($id, string $contentType = self::contentTypes['getPurchase'][0])
     {
@@ -1543,29 +1548,26 @@ class PurchasesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GetPurchase200Response',
+                        '\OpenAPIClient\Model\GetPurchase200Response',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1581,7 +1583,7 @@ class PurchasesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GetPurchase200Response',
+                '\OpenAPIClient\Model\GetPurchase200Response',
                 $request,
                 $response,
             );
@@ -1590,7 +1592,7 @@ class PurchasesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GetPurchase200Response',
+                        '\OpenAPIClient\Model\GetPurchase200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1598,7 +1600,7 @@ class PurchasesApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1606,13 +1608,12 @@ class PurchasesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1623,11 +1624,11 @@ class PurchasesApi
      *
      * Get purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getPurchaseAsync($id, string $contentType = self::contentTypes['getPurchase'][0])
     {
@@ -1644,15 +1645,15 @@ class PurchasesApi
      *
      * Get purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getPurchaseAsyncWithHttpInfo($id, string $contentType = self::contentTypes['getPurchase'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GetPurchase200Response';
+        $returnType = '\OpenAPIClient\Model\GetPurchase200Response';
         $request = $this->getPurchaseRequest($id, $contentType);
 
         return $this->client
@@ -1660,7 +1661,7 @@ class PurchasesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1671,7 +1672,7 @@ class PurchasesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1694,11 +1695,11 @@ class PurchasesApi
     /**
      * Create request for operation 'getPurchase'
      *
-     * @param  int $id Purchase ID (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getPurchaseRequest($id, string $contentType = self::contentTypes['getPurchase'][0])
     {
@@ -1710,7 +1711,6 @@ class PurchasesApi
             );
         }
 
-
         $resourcePath = '/purchases/{id}';
         $formParams = [];
         $queryParams = [];
@@ -1718,20 +1718,17 @@ class PurchasesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1745,7 +1742,7 @@ class PurchasesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1753,7 +1750,7 @@ class PurchasesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1762,8 +1759,8 @@ class PurchasesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1779,65 +1776,57 @@ class PurchasesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
     }
 
     /**
-     * Operation listPurchases
+     * Operation listKioskSalesReport
      *
-     * List purchases
+     * List kiosk sales for reporting
      *
-     * @param  int|null $pos_session_id Filter by POS session ID (optional)
-     * @param  string|null $status Filter by charge status (optional)
-     * @param  string|null $payment_method Filter by payment method (optional)
-     * @param  int|null $customer_id Filter by customer database ID (integer) (optional)
-     * @param  \DateTime|null $from_date Filter purchases created from this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $to_date Filter purchases created until this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $paid_from_date Filter purchases paid from this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $paid_to_date Filter purchases paid until this date (YYYY-MM-DD) (optional)
-     * @param  string|null $search Freetext search term that searches across multiple purchase fields: - Purchase ID (exact match for numeric IDs) - Stripe charge ID - Description - Transaction code and payment code - Article group code - Customer name, email, phone, or Stripe customer ID - Receipt number - Purchase items (purchase_items) - searches in:   * Item names, product names, descriptions   * Product codes and article group codes   * SKUs and barcodes   * Item IDs (purchase_item_id)   * Product IDs and variant IDs (if search term is numeric)   * Product names via product relationships (from purchase_item_product_id or product_id)   * Variant SKUs, barcodes, and option values via variant relationships (from purchase_item_variant_id or variant_id) (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 20)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPurchases'] to see the possible values for this operation
+     * @param  \DateTime  $from_datetime  Start of reporting window (ISO 8601) (required)
+     * @param  \DateTime  $to_datetime  End of reporting window (ISO 8601) (required)
+     * @param  \DateTime|null  $updated_since  Optional incremental sync filter on purchase updated_at (optional)
+     * @param  int|null  $cursor  Exclusive cursor based on purchase ID (optional, default to 0)
+     * @param  int|null  $limit  Max rows to return (1-500) (optional, default to 200)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listKioskSalesReport'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\KioskSalesReportResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ListPurchases200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
-    public function listPurchases($pos_session_id = null, $status = null, $payment_method = null, $customer_id = null, $from_date = null, $to_date = null, $paid_from_date = null, $paid_to_date = null, $search = null, $per_page = 20, string $contentType = self::contentTypes['listPurchases'][0])
+    public function listKioskSalesReport($from_datetime, $to_datetime, $updated_since = null, $cursor = 0, $limit = 200, string $contentType = self::contentTypes['listKioskSalesReport'][0])
     {
-        list($response) = $this->listPurchasesWithHttpInfo($pos_session_id, $status, $payment_method, $customer_id, $from_date, $to_date, $paid_from_date, $paid_to_date, $search, $per_page, $contentType);
+        [$response] = $this->listKioskSalesReportWithHttpInfo($from_datetime, $to_datetime, $updated_since, $cursor, $limit, $contentType);
+
         return $response;
     }
 
     /**
-     * Operation listPurchasesWithHttpInfo
+     * Operation listKioskSalesReportWithHttpInfo
      *
-     * List purchases
+     * List kiosk sales for reporting
      *
-     * @param  int|null $pos_session_id Filter by POS session ID (optional)
-     * @param  string|null $status Filter by charge status (optional)
-     * @param  string|null $payment_method Filter by payment method (optional)
-     * @param  int|null $customer_id Filter by customer database ID (integer) (optional)
-     * @param  \DateTime|null $from_date Filter purchases created from this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $to_date Filter purchases created until this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $paid_from_date Filter purchases paid from this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $paid_to_date Filter purchases paid until this date (YYYY-MM-DD) (optional)
-     * @param  string|null $search Freetext search term that searches across multiple purchase fields: - Purchase ID (exact match for numeric IDs) - Stripe charge ID - Description - Transaction code and payment code - Article group code - Customer name, email, phone, or Stripe customer ID - Receipt number - Purchase items (purchase_items) - searches in:   * Item names, product names, descriptions   * Product codes and article group codes   * SKUs and barcodes   * Item IDs (purchase_item_id)   * Product IDs and variant IDs (if search term is numeric)   * Product names via product relationships (from purchase_item_product_id or product_id)   * Variant SKUs, barcodes, and option values via variant relationships (from purchase_item_variant_id or variant_id) (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 20)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPurchases'] to see the possible values for this operation
+     * @param  \DateTime  $from_datetime  Start of reporting window (ISO 8601) (required)
+     * @param  \DateTime  $to_datetime  End of reporting window (ISO 8601) (required)
+     * @param  \DateTime|null  $updated_since  Optional incremental sync filter on purchase updated_at (optional)
+     * @param  int|null  $cursor  Exclusive cursor based on purchase ID (optional, default to 0)
+     * @param  int|null  $limit  Max rows to return (1-500) (optional, default to 200)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listKioskSalesReport'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\KioskSalesReportResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ListPurchases200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
-    public function listPurchasesWithHttpInfo($pos_session_id = null, $status = null, $payment_method = null, $customer_id = null, $from_date = null, $to_date = null, $paid_from_date = null, $paid_to_date = null, $search = null, $per_page = 20, string $contentType = self::contentTypes['listPurchases'][0])
+    public function listKioskSalesReportWithHttpInfo($from_datetime, $to_datetime, $updated_since = null, $cursor = 0, $limit = 200, string $contentType = self::contentTypes['listKioskSalesReport'][0])
     {
-        $request = $this->listPurchasesRequest($pos_session_id, $status, $payment_method, $customer_id, $from_date, $to_date, $paid_from_date, $paid_to_date, $search, $per_page, $contentType);
+        $request = $this->listKioskSalesReportRequest($from_datetime, $to_datetime, $updated_since, $cursor, $limit, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1861,29 +1850,32 @@ class PurchasesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ListPurchases200Response',
+                        '\OpenAPIClient\Model\KioskSalesReportResponse',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+                case 422:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1899,7 +1891,7 @@ class PurchasesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ListPurchases200Response',
+                '\OpenAPIClient\Model\KioskSalesReportResponse',
                 $request,
                 $response,
             );
@@ -1908,7 +1900,7 @@ class PurchasesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ListPurchases200Response',
+                        '\OpenAPIClient\Model\KioskSalesReportResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1916,7 +1908,15 @@ class PurchasesApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 422:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1924,13 +1924,393 @@ class PurchasesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation listKioskSalesReportAsync
+     *
+     * List kiosk sales for reporting
+     *
+     * @param  \DateTime  $from_datetime  Start of reporting window (ISO 8601) (required)
+     * @param  \DateTime  $to_datetime  End of reporting window (ISO 8601) (required)
+     * @param  \DateTime|null  $updated_since  Optional incremental sync filter on purchase updated_at (optional)
+     * @param  int|null  $cursor  Exclusive cursor based on purchase ID (optional, default to 0)
+     * @param  int|null  $limit  Max rows to return (1-500) (optional, default to 200)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listKioskSalesReport'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function listKioskSalesReportAsync($from_datetime, $to_datetime, $updated_since = null, $cursor = 0, $limit = 200, string $contentType = self::contentTypes['listKioskSalesReport'][0])
+    {
+        return $this->listKioskSalesReportAsyncWithHttpInfo($from_datetime, $to_datetime, $updated_since, $cursor, $limit, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation listKioskSalesReportAsyncWithHttpInfo
+     *
+     * List kiosk sales for reporting
+     *
+     * @param  \DateTime  $from_datetime  Start of reporting window (ISO 8601) (required)
+     * @param  \DateTime  $to_datetime  End of reporting window (ISO 8601) (required)
+     * @param  \DateTime|null  $updated_since  Optional incremental sync filter on purchase updated_at (optional)
+     * @param  int|null  $cursor  Exclusive cursor based on purchase ID (optional, default to 0)
+     * @param  int|null  $limit  Max rows to return (1-500) (optional, default to 200)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listKioskSalesReport'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function listKioskSalesReportAsyncWithHttpInfo($from_datetime, $to_datetime, $updated_since = null, $cursor = 0, $limit = 200, string $contentType = self::contentTypes['listKioskSalesReport'][0])
+    {
+        $returnType = '\OpenAPIClient\Model\KioskSalesReportResponse';
+        $request = $this->listKioskSalesReportRequest($from_datetime, $to_datetime, $updated_since, $cursor, $limit, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); // stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders(),
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'listKioskSalesReport'
+     *
+     * @param  \DateTime  $from_datetime  Start of reporting window (ISO 8601) (required)
+     * @param  \DateTime  $to_datetime  End of reporting window (ISO 8601) (required)
+     * @param  \DateTime|null  $updated_since  Optional incremental sync filter on purchase updated_at (optional)
+     * @param  int|null  $cursor  Exclusive cursor based on purchase ID (optional, default to 0)
+     * @param  int|null  $limit  Max rows to return (1-500) (optional, default to 200)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listKioskSalesReport'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function listKioskSalesReportRequest($from_datetime, $to_datetime, $updated_since = null, $cursor = 0, $limit = 200, string $contentType = self::contentTypes['listKioskSalesReport'][0])
+    {
+
+        // verify the required parameter 'from_datetime' is set
+        if ($from_datetime === null || (is_array($from_datetime) && count($from_datetime) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $from_datetime when calling listKioskSalesReport'
+            );
+        }
+
+        // verify the required parameter 'to_datetime' is set
+        if ($to_datetime === null || (is_array($to_datetime) && count($to_datetime) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $to_datetime when calling listKioskSalesReport'
+            );
+        }
+
+        if ($cursor !== null && $cursor < 0) {
+            throw new \InvalidArgumentException('invalid value for "$cursor" when calling PurchasesApi.listKioskSalesReport, must be bigger than or equal to 0.');
+        }
+
+        if ($limit !== null && $limit > 500) {
+            throw new \InvalidArgumentException('invalid value for "$limit" when calling PurchasesApi.listKioskSalesReport, must be smaller than or equal to 500.');
+        }
+        if ($limit !== null && $limit < 1) {
+            throw new \InvalidArgumentException('invalid value for "$limit" when calling PurchasesApi.listKioskSalesReport, must be bigger than or equal to 1.');
+        }
+
+        $resourcePath = '/reports/kiosk-sales';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $from_datetime,
+            'from_datetime', // param base name
+            'string', // openApiType
+            'form', // style
+            true, // explode
+            true // required
+        ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $to_datetime,
+            'to_datetime', // param base name
+            'string', // openApiType
+            'form', // style
+            true, // explode
+            true // required
+        ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $updated_since,
+            'updated_since', // param base name
+            'string', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $cursor,
+            'cursor', // param base name
+            'integer', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $limit,
+            'limit', // param base name
+            'integer', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json'],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem,
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires Bearer (JWT) authentication (access token)
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+
+        return new Request(
+            'GET',
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation listPurchases
+     *
+     * List purchases
+     *
+     * @param  int|null  $pos_session_id  Filter by POS session ID (optional)
+     * @param  string|null  $status  Filter by charge status (optional)
+     * @param  string|null  $payment_method  Filter by payment method (optional)
+     * @param  int|null  $customer_id  Filter by customer database ID (integer) (optional)
+     * @param  \DateTime|null  $from_date  Filter purchases created from this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $to_date  Filter purchases created until this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $paid_from_date  Filter purchases paid from this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $paid_to_date  Filter purchases paid until this date (YYYY-MM-DD) (optional)
+     * @param  string|null  $search  Freetext search term that searches across multiple purchase fields: - Purchase ID (exact match for numeric IDs) - Stripe charge ID - Description - Transaction code and payment code - Article group code - Customer name, email, phone, or Stripe customer ID - Receipt number - Purchase items (purchase_items) - searches in:   * Item names, product names, descriptions   * Product codes and article group codes   * SKUs and barcodes   * Item IDs (purchase_item_id)   * Product IDs and variant IDs (if search term is numeric)   * Product names via product relationships (from purchase_item_product_id or product_id)   * Variant SKUs, barcodes, and option values via variant relationships (from purchase_item_variant_id or variant_id) (optional)
+     * @param  int|null  $page  Page number (0-based; 0 &#x3D; first page). Used by FlutterFlow infinite scroll. (optional, default to 0)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 20)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPurchases'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ListPurchases200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function listPurchases($pos_session_id = null, $status = null, $payment_method = null, $customer_id = null, $from_date = null, $to_date = null, $paid_from_date = null, $paid_to_date = null, $search = null, $page = 0, $per_page = 20, string $contentType = self::contentTypes['listPurchases'][0])
+    {
+        [$response] = $this->listPurchasesWithHttpInfo($pos_session_id, $status, $payment_method, $customer_id, $from_date, $to_date, $paid_from_date, $paid_to_date, $search, $page, $per_page, $contentType);
+
+        return $response;
+    }
+
+    /**
+     * Operation listPurchasesWithHttpInfo
+     *
+     * List purchases
+     *
+     * @param  int|null  $pos_session_id  Filter by POS session ID (optional)
+     * @param  string|null  $status  Filter by charge status (optional)
+     * @param  string|null  $payment_method  Filter by payment method (optional)
+     * @param  int|null  $customer_id  Filter by customer database ID (integer) (optional)
+     * @param  \DateTime|null  $from_date  Filter purchases created from this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $to_date  Filter purchases created until this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $paid_from_date  Filter purchases paid from this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $paid_to_date  Filter purchases paid until this date (YYYY-MM-DD) (optional)
+     * @param  string|null  $search  Freetext search term that searches across multiple purchase fields: - Purchase ID (exact match for numeric IDs) - Stripe charge ID - Description - Transaction code and payment code - Article group code - Customer name, email, phone, or Stripe customer ID - Receipt number - Purchase items (purchase_items) - searches in:   * Item names, product names, descriptions   * Product codes and article group codes   * SKUs and barcodes   * Item IDs (purchase_item_id)   * Product IDs and variant IDs (if search term is numeric)   * Product names via product relationships (from purchase_item_product_id or product_id)   * Variant SKUs, barcodes, and option values via variant relationships (from purchase_item_variant_id or variant_id) (optional)
+     * @param  int|null  $page  Page number (0-based; 0 &#x3D; first page). Used by FlutterFlow infinite scroll. (optional, default to 0)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 20)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPurchases'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ListPurchases200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function listPurchasesWithHttpInfo($pos_session_id = null, $status = null, $payment_method = null, $customer_id = null, $from_date = null, $to_date = null, $paid_from_date = null, $paid_to_date = null, $search = null, $page = 0, $per_page = 20, string $contentType = self::contentTypes['listPurchases'][0])
+    {
+        $request = $this->listPurchasesRequest($pos_session_id, $status, $payment_method, $customer_id, $from_date, $to_date, $paid_from_date, $paid_to_date, $search, $page, $per_page, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+            switch ($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ListPurchases200Response',
+                        $request,
+                        $response,
+                    );
+                case 404:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+            }
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\OpenAPIClient\Model\ListPurchases200Response',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ListPurchases200Response',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 404:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
 
             throw $e;
         }
@@ -1941,24 +2321,25 @@ class PurchasesApi
      *
      * List purchases
      *
-     * @param  int|null $pos_session_id Filter by POS session ID (optional)
-     * @param  string|null $status Filter by charge status (optional)
-     * @param  string|null $payment_method Filter by payment method (optional)
-     * @param  int|null $customer_id Filter by customer database ID (integer) (optional)
-     * @param  \DateTime|null $from_date Filter purchases created from this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $to_date Filter purchases created until this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $paid_from_date Filter purchases paid from this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $paid_to_date Filter purchases paid until this date (YYYY-MM-DD) (optional)
-     * @param  string|null $search Freetext search term that searches across multiple purchase fields: - Purchase ID (exact match for numeric IDs) - Stripe charge ID - Description - Transaction code and payment code - Article group code - Customer name, email, phone, or Stripe customer ID - Receipt number - Purchase items (purchase_items) - searches in:   * Item names, product names, descriptions   * Product codes and article group codes   * SKUs and barcodes   * Item IDs (purchase_item_id)   * Product IDs and variant IDs (if search term is numeric)   * Product names via product relationships (from purchase_item_product_id or product_id)   * Variant SKUs, barcodes, and option values via variant relationships (from purchase_item_variant_id or variant_id) (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 20)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPurchases'] to see the possible values for this operation
+     * @param  int|null  $pos_session_id  Filter by POS session ID (optional)
+     * @param  string|null  $status  Filter by charge status (optional)
+     * @param  string|null  $payment_method  Filter by payment method (optional)
+     * @param  int|null  $customer_id  Filter by customer database ID (integer) (optional)
+     * @param  \DateTime|null  $from_date  Filter purchases created from this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $to_date  Filter purchases created until this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $paid_from_date  Filter purchases paid from this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $paid_to_date  Filter purchases paid until this date (YYYY-MM-DD) (optional)
+     * @param  string|null  $search  Freetext search term that searches across multiple purchase fields: - Purchase ID (exact match for numeric IDs) - Stripe charge ID - Description - Transaction code and payment code - Article group code - Customer name, email, phone, or Stripe customer ID - Receipt number - Purchase items (purchase_items) - searches in:   * Item names, product names, descriptions   * Product codes and article group codes   * SKUs and barcodes   * Item IDs (purchase_item_id)   * Product IDs and variant IDs (if search term is numeric)   * Product names via product relationships (from purchase_item_product_id or product_id)   * Variant SKUs, barcodes, and option values via variant relationships (from purchase_item_variant_id or variant_id) (optional)
+     * @param  int|null  $page  Page number (0-based; 0 &#x3D; first page). Used by FlutterFlow infinite scroll. (optional, default to 0)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 20)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPurchases'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function listPurchasesAsync($pos_session_id = null, $status = null, $payment_method = null, $customer_id = null, $from_date = null, $to_date = null, $paid_from_date = null, $paid_to_date = null, $search = null, $per_page = 20, string $contentType = self::contentTypes['listPurchases'][0])
+    public function listPurchasesAsync($pos_session_id = null, $status = null, $payment_method = null, $customer_id = null, $from_date = null, $to_date = null, $paid_from_date = null, $paid_to_date = null, $search = null, $page = 0, $per_page = 20, string $contentType = self::contentTypes['listPurchases'][0])
     {
-        return $this->listPurchasesAsyncWithHttpInfo($pos_session_id, $status, $payment_method, $customer_id, $from_date, $to_date, $paid_from_date, $paid_to_date, $search, $per_page, $contentType)
+        return $this->listPurchasesAsyncWithHttpInfo($pos_session_id, $status, $payment_method, $customer_id, $from_date, $to_date, $paid_from_date, $paid_to_date, $search, $page, $per_page, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -1971,32 +2352,33 @@ class PurchasesApi
      *
      * List purchases
      *
-     * @param  int|null $pos_session_id Filter by POS session ID (optional)
-     * @param  string|null $status Filter by charge status (optional)
-     * @param  string|null $payment_method Filter by payment method (optional)
-     * @param  int|null $customer_id Filter by customer database ID (integer) (optional)
-     * @param  \DateTime|null $from_date Filter purchases created from this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $to_date Filter purchases created until this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $paid_from_date Filter purchases paid from this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $paid_to_date Filter purchases paid until this date (YYYY-MM-DD) (optional)
-     * @param  string|null $search Freetext search term that searches across multiple purchase fields: - Purchase ID (exact match for numeric IDs) - Stripe charge ID - Description - Transaction code and payment code - Article group code - Customer name, email, phone, or Stripe customer ID - Receipt number - Purchase items (purchase_items) - searches in:   * Item names, product names, descriptions   * Product codes and article group codes   * SKUs and barcodes   * Item IDs (purchase_item_id)   * Product IDs and variant IDs (if search term is numeric)   * Product names via product relationships (from purchase_item_product_id or product_id)   * Variant SKUs, barcodes, and option values via variant relationships (from purchase_item_variant_id or variant_id) (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 20)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPurchases'] to see the possible values for this operation
+     * @param  int|null  $pos_session_id  Filter by POS session ID (optional)
+     * @param  string|null  $status  Filter by charge status (optional)
+     * @param  string|null  $payment_method  Filter by payment method (optional)
+     * @param  int|null  $customer_id  Filter by customer database ID (integer) (optional)
+     * @param  \DateTime|null  $from_date  Filter purchases created from this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $to_date  Filter purchases created until this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $paid_from_date  Filter purchases paid from this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $paid_to_date  Filter purchases paid until this date (YYYY-MM-DD) (optional)
+     * @param  string|null  $search  Freetext search term that searches across multiple purchase fields: - Purchase ID (exact match for numeric IDs) - Stripe charge ID - Description - Transaction code and payment code - Article group code - Customer name, email, phone, or Stripe customer ID - Receipt number - Purchase items (purchase_items) - searches in:   * Item names, product names, descriptions   * Product codes and article group codes   * SKUs and barcodes   * Item IDs (purchase_item_id)   * Product IDs and variant IDs (if search term is numeric)   * Product names via product relationships (from purchase_item_product_id or product_id)   * Variant SKUs, barcodes, and option values via variant relationships (from purchase_item_variant_id or variant_id) (optional)
+     * @param  int|null  $page  Page number (0-based; 0 &#x3D; first page). Used by FlutterFlow infinite scroll. (optional, default to 0)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 20)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPurchases'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function listPurchasesAsyncWithHttpInfo($pos_session_id = null, $status = null, $payment_method = null, $customer_id = null, $from_date = null, $to_date = null, $paid_from_date = null, $paid_to_date = null, $search = null, $per_page = 20, string $contentType = self::contentTypes['listPurchases'][0])
+    public function listPurchasesAsyncWithHttpInfo($pos_session_id = null, $status = null, $payment_method = null, $customer_id = null, $from_date = null, $to_date = null, $paid_from_date = null, $paid_to_date = null, $search = null, $page = 0, $per_page = 20, string $contentType = self::contentTypes['listPurchases'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ListPurchases200Response';
-        $request = $this->listPurchasesRequest($pos_session_id, $status, $payment_method, $customer_id, $from_date, $to_date, $paid_from_date, $paid_to_date, $search, $per_page, $contentType);
+        $returnType = '\OpenAPIClient\Model\ListPurchases200Response';
+        $request = $this->listPurchasesRequest($pos_session_id, $status, $payment_method, $customer_id, $from_date, $to_date, $paid_from_date, $paid_to_date, $search, $page, $per_page, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -2007,7 +2389,7 @@ class PurchasesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -2030,37 +2412,32 @@ class PurchasesApi
     /**
      * Create request for operation 'listPurchases'
      *
-     * @param  int|null $pos_session_id Filter by POS session ID (optional)
-     * @param  string|null $status Filter by charge status (optional)
-     * @param  string|null $payment_method Filter by payment method (optional)
-     * @param  int|null $customer_id Filter by customer database ID (integer) (optional)
-     * @param  \DateTime|null $from_date Filter purchases created from this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $to_date Filter purchases created until this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $paid_from_date Filter purchases paid from this date (YYYY-MM-DD) (optional)
-     * @param  \DateTime|null $paid_to_date Filter purchases paid until this date (YYYY-MM-DD) (optional)
-     * @param  string|null $search Freetext search term that searches across multiple purchase fields: - Purchase ID (exact match for numeric IDs) - Stripe charge ID - Description - Transaction code and payment code - Article group code - Customer name, email, phone, or Stripe customer ID - Receipt number - Purchase items (purchase_items) - searches in:   * Item names, product names, descriptions   * Product codes and article group codes   * SKUs and barcodes   * Item IDs (purchase_item_id)   * Product IDs and variant IDs (if search term is numeric)   * Product names via product relationships (from purchase_item_product_id or product_id)   * Variant SKUs, barcodes, and option values via variant relationships (from purchase_item_variant_id or variant_id) (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 20)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPurchases'] to see the possible values for this operation
+     * @param  int|null  $pos_session_id  Filter by POS session ID (optional)
+     * @param  string|null  $status  Filter by charge status (optional)
+     * @param  string|null  $payment_method  Filter by payment method (optional)
+     * @param  int|null  $customer_id  Filter by customer database ID (integer) (optional)
+     * @param  \DateTime|null  $from_date  Filter purchases created from this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $to_date  Filter purchases created until this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $paid_from_date  Filter purchases paid from this date (YYYY-MM-DD) (optional)
+     * @param  \DateTime|null  $paid_to_date  Filter purchases paid until this date (YYYY-MM-DD) (optional)
+     * @param  string|null  $search  Freetext search term that searches across multiple purchase fields: - Purchase ID (exact match for numeric IDs) - Stripe charge ID - Description - Transaction code and payment code - Article group code - Customer name, email, phone, or Stripe customer ID - Receipt number - Purchase items (purchase_items) - searches in:   * Item names, product names, descriptions   * Product codes and article group codes   * SKUs and barcodes   * Item IDs (purchase_item_id)   * Product IDs and variant IDs (if search term is numeric)   * Product names via product relationships (from purchase_item_product_id or product_id)   * Variant SKUs, barcodes, and option values via variant relationships (from purchase_item_variant_id or variant_id) (optional)
+     * @param  int|null  $page  Page number (0-based; 0 &#x3D; first page). Used by FlutterFlow infinite scroll. (optional, default to 0)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 20)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPurchases'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
-    public function listPurchasesRequest($pos_session_id = null, $status = null, $payment_method = null, $customer_id = null, $from_date = null, $to_date = null, $paid_from_date = null, $paid_to_date = null, $search = null, $per_page = 20, string $contentType = self::contentTypes['listPurchases'][0])
+    public function listPurchasesRequest($pos_session_id = null, $status = null, $payment_method = null, $customer_id = null, $from_date = null, $to_date = null, $paid_from_date = null, $paid_to_date = null, $search = null, $page = 0, $per_page = 20, string $contentType = self::contentTypes['listPurchases'][0])
     {
 
-
-
-
-
-
-
-
-
+        if ($page !== null && $page < 0) {
+            throw new \InvalidArgumentException('invalid value for "$page" when calling PurchasesApi.listPurchases, must be bigger than or equal to 0.');
+        }
 
         if ($per_page !== null && $per_page > 100) {
             throw new \InvalidArgumentException('invalid value for "$per_page" when calling PurchasesApi.listPurchases, must be smaller than or equal to 100.');
         }
-        
 
         $resourcePath = '/purchases';
         $formParams = [];
@@ -2152,6 +2529,15 @@ class PurchasesApi
         ) ?? []);
         // query params
         $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $page,
+            'page', // param base name
+            'integer', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
             $per_page,
             'per_page', // param base name
             'integer', // openApiType
@@ -2160,11 +2546,8 @@ class PurchasesApi
             false // required
         ) ?? []);
 
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -2178,7 +2561,7 @@ class PurchasesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -2186,7 +2569,7 @@ class PurchasesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -2195,8 +2578,8 @@ class PurchasesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -2212,9 +2595,10 @@ class PurchasesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -2225,17 +2609,18 @@ class PurchasesApi
      *
      * Refund a purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\RefundPurchaseRequest|null $refund_purchase_request refund_purchase_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['refundPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\RefundPurchaseRequest|null  $refund_purchase_request  refund_purchase_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['refundPurchase'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\RefundPurchase200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\RefundPurchase422Response|\OpenAPIClient\Model\RefundPurchase500Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\RefundPurchase200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\RefundPurchase422Response|\OpenAPI\Client\Model\RefundPurchase500Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function refundPurchase($id, $refund_purchase_request = null, string $contentType = self::contentTypes['refundPurchase'][0])
     {
-        list($response) = $this->refundPurchaseWithHttpInfo($id, $refund_purchase_request, $contentType);
+        [$response] = $this->refundPurchaseWithHttpInfo($id, $refund_purchase_request, $contentType);
+
         return $response;
     }
 
@@ -2244,13 +2629,13 @@ class PurchasesApi
      *
      * Refund a purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\RefundPurchaseRequest|null $refund_purchase_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['refundPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\RefundPurchaseRequest|null  $refund_purchase_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['refundPurchase'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\RefundPurchase200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\RefundPurchase422Response|\OpenAPIClient\Model\RefundPurchase500Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\RefundPurchase200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\RefundPurchase422Response|\OpenAPI\Client\Model\RefundPurchase500Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function refundPurchaseWithHttpInfo($id, $refund_purchase_request = null, string $contentType = self::contentTypes['refundPurchase'][0])
     {
@@ -2278,53 +2663,50 @@ class PurchasesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\RefundPurchase200Response',
+                        '\OpenAPIClient\Model\RefundPurchase200Response',
                         $request,
                         $response,
                     );
                 case 400:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 422:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\RefundPurchase422Response',
+                        '\OpenAPIClient\Model\RefundPurchase422Response',
                         $request,
                         $response,
                     );
                 case 500:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\RefundPurchase500Response',
+                        '\OpenAPIClient\Model\RefundPurchase500Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 403:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -2340,7 +2722,7 @@ class PurchasesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\RefundPurchase200Response',
+                '\OpenAPIClient\Model\RefundPurchase200Response',
                 $request,
                 $response,
             );
@@ -2349,7 +2731,7 @@ class PurchasesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\RefundPurchase200Response',
+                        '\OpenAPIClient\Model\RefundPurchase200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2357,7 +2739,7 @@ class PurchasesApi
                 case 400:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2365,7 +2747,7 @@ class PurchasesApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2373,7 +2755,7 @@ class PurchasesApi
                 case 422:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\RefundPurchase422Response',
+                        '\OpenAPIClient\Model\RefundPurchase422Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2381,7 +2763,7 @@ class PurchasesApi
                 case 500:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\RefundPurchase500Response',
+                        '\OpenAPIClient\Model\RefundPurchase500Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2389,7 +2771,7 @@ class PurchasesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2397,13 +2779,12 @@ class PurchasesApi
                 case 403:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -2414,12 +2795,12 @@ class PurchasesApi
      *
      * Refund a purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\RefundPurchaseRequest|null $refund_purchase_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['refundPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\RefundPurchaseRequest|null  $refund_purchase_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['refundPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function refundPurchaseAsync($id, $refund_purchase_request = null, string $contentType = self::contentTypes['refundPurchase'][0])
     {
@@ -2436,16 +2817,16 @@ class PurchasesApi
      *
      * Refund a purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\RefundPurchaseRequest|null $refund_purchase_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['refundPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\RefundPurchaseRequest|null  $refund_purchase_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['refundPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function refundPurchaseAsyncWithHttpInfo($id, $refund_purchase_request = null, string $contentType = self::contentTypes['refundPurchase'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\RefundPurchase200Response';
+        $returnType = '\OpenAPIClient\Model\RefundPurchase200Response';
         $request = $this->refundPurchaseRequest($id, $refund_purchase_request, $contentType);
 
         return $this->client
@@ -2453,7 +2834,7 @@ class PurchasesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -2464,7 +2845,7 @@ class PurchasesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -2487,12 +2868,12 @@ class PurchasesApi
     /**
      * Create request for operation 'refundPurchase'
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\RefundPurchaseRequest|null $refund_purchase_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['refundPurchase'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\RefundPurchaseRequest|null  $refund_purchase_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['refundPurchase'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function refundPurchaseRequest($id, $refund_purchase_request = null, string $contentType = self::contentTypes['refundPurchase'][0])
     {
@@ -2504,8 +2885,6 @@ class PurchasesApi
             );
         }
 
-
-
         $resourcePath = '/purchases/{id}/refund';
         $formParams = [];
         $queryParams = [];
@@ -2513,20 +2892,17 @@ class PurchasesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -2534,7 +2910,7 @@ class PurchasesApi
         // for model (json/xml)
         if (isset($refund_purchase_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($refund_purchase_request));
             } else {
                 $httpBody = $refund_purchase_request;
@@ -2547,7 +2923,7 @@ class PurchasesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -2555,7 +2931,7 @@ class PurchasesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -2564,8 +2940,8 @@ class PurchasesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -2581,9 +2957,10 @@ class PurchasesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -2594,17 +2971,18 @@ class PurchasesApi
      *
      * Register or update customer for purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\UpdatePurchaseCustomerRequest $update_purchase_customer_request update_purchase_customer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomer'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\UpdatePurchaseCustomerRequest  $update_purchase_customer_request  update_purchase_customer_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomer'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\UpdatePurchaseCustomer200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\CompletePurchasePayment422Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\UpdatePurchaseCustomer200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\CompletePurchasePayment422Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function updatePurchaseCustomer($id, $update_purchase_customer_request, string $contentType = self::contentTypes['updatePurchaseCustomer'][0])
     {
-        list($response) = $this->updatePurchaseCustomerWithHttpInfo($id, $update_purchase_customer_request, $contentType);
+        [$response] = $this->updatePurchaseCustomerWithHttpInfo($id, $update_purchase_customer_request, $contentType);
+
         return $response;
     }
 
@@ -2613,13 +2991,13 @@ class PurchasesApi
      *
      * Register or update customer for purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\UpdatePurchaseCustomerRequest $update_purchase_customer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomer'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\UpdatePurchaseCustomerRequest  $update_purchase_customer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomer'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\UpdatePurchaseCustomer200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\CompletePurchasePayment422Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\UpdatePurchaseCustomer200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\CompletePurchasePayment422Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function updatePurchaseCustomerWithHttpInfo($id, $update_purchase_customer_request, string $contentType = self::contentTypes['updatePurchaseCustomer'][0])
     {
@@ -2647,41 +3025,38 @@ class PurchasesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\UpdatePurchaseCustomer200Response',
+                        '\OpenAPIClient\Model\UpdatePurchaseCustomer200Response',
                         $request,
                         $response,
                     );
                 case 400:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 422:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CompletePurchasePayment422Response',
+                        '\OpenAPIClient\Model\CompletePurchasePayment422Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -2697,7 +3072,7 @@ class PurchasesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\UpdatePurchaseCustomer200Response',
+                '\OpenAPIClient\Model\UpdatePurchaseCustomer200Response',
                 $request,
                 $response,
             );
@@ -2706,7 +3081,7 @@ class PurchasesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\UpdatePurchaseCustomer200Response',
+                        '\OpenAPIClient\Model\UpdatePurchaseCustomer200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2714,7 +3089,7 @@ class PurchasesApi
                 case 400:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2722,7 +3097,7 @@ class PurchasesApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2730,7 +3105,7 @@ class PurchasesApi
                 case 422:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CompletePurchasePayment422Response',
+                        '\OpenAPIClient\Model\CompletePurchasePayment422Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2738,13 +3113,12 @@ class PurchasesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -2755,12 +3129,12 @@ class PurchasesApi
      *
      * Register or update customer for purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\UpdatePurchaseCustomerRequest $update_purchase_customer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomer'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\UpdatePurchaseCustomerRequest  $update_purchase_customer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updatePurchaseCustomerAsync($id, $update_purchase_customer_request, string $contentType = self::contentTypes['updatePurchaseCustomer'][0])
     {
@@ -2777,16 +3151,16 @@ class PurchasesApi
      *
      * Register or update customer for purchase
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\UpdatePurchaseCustomerRequest $update_purchase_customer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomer'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\UpdatePurchaseCustomerRequest  $update_purchase_customer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updatePurchaseCustomerAsyncWithHttpInfo($id, $update_purchase_customer_request, string $contentType = self::contentTypes['updatePurchaseCustomer'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\UpdatePurchaseCustomer200Response';
+        $returnType = '\OpenAPIClient\Model\UpdatePurchaseCustomer200Response';
         $request = $this->updatePurchaseCustomerRequest($id, $update_purchase_customer_request, $contentType);
 
         return $this->client
@@ -2794,7 +3168,7 @@ class PurchasesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -2805,7 +3179,7 @@ class PurchasesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -2828,12 +3202,12 @@ class PurchasesApi
     /**
      * Create request for operation 'updatePurchaseCustomer'
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\UpdatePurchaseCustomerRequest $update_purchase_customer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomer'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\UpdatePurchaseCustomerRequest  $update_purchase_customer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function updatePurchaseCustomerRequest($id, $update_purchase_customer_request, string $contentType = self::contentTypes['updatePurchaseCustomer'][0])
     {
@@ -2852,7 +3226,6 @@ class PurchasesApi
             );
         }
 
-
         $resourcePath = '/purchases/{id}/customer';
         $formParams = [];
         $queryParams = [];
@@ -2860,20 +3233,17 @@ class PurchasesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -2881,7 +3251,7 @@ class PurchasesApi
         // for model (json/xml)
         if (isset($update_purchase_customer_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($update_purchase_customer_request));
             } else {
                 $httpBody = $update_purchase_customer_request;
@@ -2894,7 +3264,7 @@ class PurchasesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -2902,7 +3272,7 @@ class PurchasesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -2911,8 +3281,8 @@ class PurchasesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -2928,9 +3298,10 @@ class PurchasesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'PUT',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -2941,17 +3312,18 @@ class PurchasesApi
      *
      * Register or update customer for purchase (PATCH)
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\UpdatePurchaseCustomerRequest $update_purchase_customer_request update_purchase_customer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomerPatch'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\UpdatePurchaseCustomerRequest  $update_purchase_customer_request  update_purchase_customer_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomerPatch'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\UpdatePurchaseCustomer200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\UpdatePurchaseCustomer200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function updatePurchaseCustomerPatch($id, $update_purchase_customer_request, string $contentType = self::contentTypes['updatePurchaseCustomerPatch'][0])
     {
-        list($response) = $this->updatePurchaseCustomerPatchWithHttpInfo($id, $update_purchase_customer_request, $contentType);
+        [$response] = $this->updatePurchaseCustomerPatchWithHttpInfo($id, $update_purchase_customer_request, $contentType);
+
         return $response;
     }
 
@@ -2960,13 +3332,13 @@ class PurchasesApi
      *
      * Register or update customer for purchase (PATCH)
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\UpdatePurchaseCustomerRequest $update_purchase_customer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomerPatch'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\UpdatePurchaseCustomerRequest  $update_purchase_customer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomerPatch'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\UpdatePurchaseCustomer200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\UpdatePurchaseCustomer200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function updatePurchaseCustomerPatchWithHttpInfo($id, $update_purchase_customer_request, string $contentType = self::contentTypes['updatePurchaseCustomerPatch'][0])
     {
@@ -2994,23 +3366,20 @@ class PurchasesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\UpdatePurchaseCustomer200Response',
+                        '\OpenAPIClient\Model\UpdatePurchaseCustomer200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -3026,7 +3395,7 @@ class PurchasesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\UpdatePurchaseCustomer200Response',
+                '\OpenAPIClient\Model\UpdatePurchaseCustomer200Response',
                 $request,
                 $response,
             );
@@ -3035,7 +3404,7 @@ class PurchasesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\UpdatePurchaseCustomer200Response',
+                        '\OpenAPIClient\Model\UpdatePurchaseCustomer200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -3043,13 +3412,12 @@ class PurchasesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -3060,12 +3428,12 @@ class PurchasesApi
      *
      * Register or update customer for purchase (PATCH)
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\UpdatePurchaseCustomerRequest $update_purchase_customer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomerPatch'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\UpdatePurchaseCustomerRequest  $update_purchase_customer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomerPatch'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updatePurchaseCustomerPatchAsync($id, $update_purchase_customer_request, string $contentType = self::contentTypes['updatePurchaseCustomerPatch'][0])
     {
@@ -3082,16 +3450,16 @@ class PurchasesApi
      *
      * Register or update customer for purchase (PATCH)
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\UpdatePurchaseCustomerRequest $update_purchase_customer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomerPatch'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\UpdatePurchaseCustomerRequest  $update_purchase_customer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomerPatch'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updatePurchaseCustomerPatchAsyncWithHttpInfo($id, $update_purchase_customer_request, string $contentType = self::contentTypes['updatePurchaseCustomerPatch'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\UpdatePurchaseCustomer200Response';
+        $returnType = '\OpenAPIClient\Model\UpdatePurchaseCustomer200Response';
         $request = $this->updatePurchaseCustomerPatchRequest($id, $update_purchase_customer_request, $contentType);
 
         return $this->client
@@ -3099,7 +3467,7 @@ class PurchasesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -3110,7 +3478,7 @@ class PurchasesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -3133,12 +3501,12 @@ class PurchasesApi
     /**
      * Create request for operation 'updatePurchaseCustomerPatch'
      *
-     * @param  int $id Purchase ID (required)
-     * @param  \OpenAPI\Client\Model\UpdatePurchaseCustomerRequest $update_purchase_customer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomerPatch'] to see the possible values for this operation
+     * @param  int  $id  Purchase ID (required)
+     * @param  \OpenAPIClient\Model\UpdatePurchaseCustomerRequest  $update_purchase_customer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePurchaseCustomerPatch'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function updatePurchaseCustomerPatchRequest($id, $update_purchase_customer_request, string $contentType = self::contentTypes['updatePurchaseCustomerPatch'][0])
     {
@@ -3157,7 +3525,6 @@ class PurchasesApi
             );
         }
 
-
         $resourcePath = '/purchases/{id}/customer';
         $formParams = [];
         $queryParams = [];
@@ -3165,20 +3532,17 @@ class PurchasesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -3186,7 +3550,7 @@ class PurchasesApi
         // for model (json/xml)
         if (isset($update_purchase_customer_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($update_purchase_customer_request));
             } else {
                 $httpBody = $update_purchase_customer_request;
@@ -3199,7 +3563,7 @@ class PurchasesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -3207,7 +3571,7 @@ class PurchasesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -3216,8 +3580,8 @@ class PurchasesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -3233,9 +3597,10 @@ class PurchasesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'PATCH',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -3244,16 +3609,17 @@ class PurchasesApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -3274,7 +3640,7 @@ class PurchasesApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -3297,7 +3663,7 @@ class PurchasesApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

@@ -21,7 +21,7 @@ Name | Type | Description | Notes
 **use_job_id** | **bool** |  | [optional]
 **printer_metadata** | **array<string,mixed>** |  | [optional]
 **last_used_at** | **\DateTime** |  | [optional]
-**pos_device** | [**\OpenAPI\Client\Model\PosSessionSessionDevice**](PosSessionSessionDevice.md) |  | [optional]
+**pos_device** | [**\OpenAPIClient\Model\PosSessionSessionDevice**](PosSessionSessionDevice.md) |  | [optional]
 **epos_url** | **string** | ePOS-Print service URL (for network printers) | [optional]
 **created_at** | **\DateTime** |  | [optional]
 **updated_at** | **\DateTime** |  | [optional]

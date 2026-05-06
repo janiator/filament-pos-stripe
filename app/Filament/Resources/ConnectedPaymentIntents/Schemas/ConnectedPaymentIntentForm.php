@@ -13,56 +13,56 @@ class ConnectedPaymentIntentForm
             ->components([
                 // Read-only fields - payment intents are created via API, not manually
                 TextInput::make('stripe_id')
-                    ->label('Payment Intent ID')
+                    ->label(__('Payment Intent ID'))
                     ->disabled()
                     ->dehydrated(false),
 
                 TextInput::make('formatted_amount')
-                    ->label('Amount')
+                    ->label(__('Amount'))
                     ->disabled()
                     ->dehydrated(false),
 
                 TextInput::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->disabled()
                     ->dehydrated(false),
 
                 TextInput::make('capture_method')
-                    ->label('Capture Method')
+                    ->label(__('Capture Method'))
                     ->disabled()
                     ->dehydrated(false)
                     ->formatStateUsing(fn ($state) => ucfirst($state)),
 
                 TextInput::make('confirmation_method')
-                    ->label('Confirmation Method')
+                    ->label(__('Confirmation Method'))
                     ->disabled()
                     ->dehydrated(false)
                     ->formatStateUsing(fn ($state) => ucfirst($state)),
 
                 TextInput::make('description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->disabled()
                     ->dehydrated(false),
 
                 TextInput::make('receipt_email')
-                    ->label('Receipt Email')
+                    ->label(__('Receipt Email'))
                     ->disabled()
                     ->dehydrated(false),
 
                 TextInput::make('succeeded_at')
-                    ->label('Succeeded At')
+                    ->label(__('Succeeded At'))
                     ->disabled()
                     ->dehydrated(false)
                     ->formatStateUsing(fn ($state) => $state ? $state->format('Y-m-d H:i:s') : '-'),
 
                 TextInput::make('canceled_at')
-                    ->label('Canceled At')
+                    ->label(__('Canceled At'))
                     ->disabled()
                     ->dehydrated(false)
                     ->formatStateUsing(fn ($state) => $state ? $state->format('Y-m-d H:i:s') : '-'),
 
                 TextInput::make('cancellation_reason')
-                    ->label('Cancellation Reason')
+                    ->label(__('Cancellation Reason'))
                     ->disabled()
                     ->dehydrated(false)
                     ->visible(fn ($record) => $record && $record->canceled_at),

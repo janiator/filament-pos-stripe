@@ -22,7 +22,7 @@ class ConnectedPaymentIntentsTable
             })
             ->columns([
                 TextColumn::make('formatted_amount')
-                    ->label('Amount')
+                    ->label(__('Amount'))
                     ->badge()
                     ->color('success')
                     ->weight('bold')
@@ -31,7 +31,7 @@ class ConnectedPaymentIntentsTable
                     }),
 
                 TextColumn::make('customer.name')
-                    ->label('Customer')
+                    ->label(__('Customer'))
                     ->searchable()
                     ->sortable()
                     ->placeholder(fn ($record) => $record->customer?->email ?? $record->stripe_customer_id ?? 'Unknown')
@@ -39,7 +39,7 @@ class ConnectedPaymentIntentsTable
                     ->wrap(),
 
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->colors([
                         'success' => 'succeeded',
@@ -50,21 +50,21 @@ class ConnectedPaymentIntentsTable
                     ->sortable(),
 
                 TextColumn::make('capture_method')
-                    ->label('Capture Method')
+                    ->label(__('Capture Method'))
                     ->badge()
                     ->formatStateUsing(fn ($state) => ucfirst($state))
                     ->color(fn ($state) => $state === 'automatic' ? 'info' : 'gray')
                     ->sortable(),
 
                 TextColumn::make('description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->searchable()
                     ->wrap()
                     ->limit(50)
                     ->toggleable(),
 
                 TextColumn::make('store.name')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->searchable()
                     ->sortable()
                     ->badge()
@@ -72,27 +72,27 @@ class ConnectedPaymentIntentsTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('stripe_id')
-                    ->label('Payment Intent ID')
+                    ->label(__('Payment Intent ID'))
                     ->searchable()
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('succeeded_at')
-                    ->label('Succeeded At')
+                    ->label(__('Succeeded At'))
                     ->dateTime()
                     ->sortable()
-                    ->placeholder('-')
+                    ->placeholder(__('-'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->options([
                         'requires_payment_method' => 'Requires Payment Method',
                         'requires_confirmation' => 'Requires Confirmation',
@@ -104,7 +104,7 @@ class ConnectedPaymentIntentsTable
                     ]),
 
                 SelectFilter::make('capture_method')
-                    ->label('Capture Method')
+                    ->label(__('Capture Method'))
                     ->options([
                         'automatic' => 'Automatic',
                         'manual' => 'Manual',

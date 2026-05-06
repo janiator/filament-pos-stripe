@@ -1,19 +1,21 @@
 <?php
+
 /**
  * Receipt
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * Receipt Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
+class Receipt implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'Receipt';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'store_id' => 'int',
@@ -69,20 +73,22 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         'printed' => 'bool',
         'printed_at' => '\DateTime',
         'reprint_count' => 'int',
-        'pos_session' => '\OpenAPI\Client\Model\LogApplicationStart200ResponseCurrentSession',
-        'charge' => '\OpenAPI\Client\Model\ReceiptCharge',
-        'user' => '\OpenAPI\Client\Model\PosSessionSessionUser',
+        'pos_session' => '\OpenAPIClient\Model\LogApplicationStart200ResponseCurrentSession',
+        'charge' => '\OpenAPIClient\Model\ReceiptCharge',
+        'user' => '\OpenAPIClient\Model\PosSessionSessionUser',
         'created_at' => '\DateTime',
-        'updated_at' => '\DateTime'
+        'updated_at' => '\DateTime',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'store_id' => null,
@@ -99,14 +105,14 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         'charge' => null,
         'user' => null,
         'created_at' => 'date-time',
-        'updated_at' => 'date-time'
+        'updated_at' => 'date-time',
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'store_id' => false,
@@ -123,14 +129,14 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         'charge' => true,
         'user' => true,
         'created_at' => false,
-        'updated_at' => false
+        'updated_at' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -155,8 +161,6 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -166,7 +170,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -176,7 +180,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -185,9 +189,6 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -196,9 +197,6 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -227,7 +225,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         'charge' => 'charge',
         'user' => 'user',
         'created_at' => 'created_at',
-        'updated_at' => 'updated_at'
+        'updated_at' => 'updated_at',
     ];
 
     /**
@@ -251,7 +249,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         'charge' => 'setCharge',
         'user' => 'setUser',
         'created_at' => 'setCreatedAt',
-        'updated_at' => 'setUpdatedAt'
+        'updated_at' => 'setUpdatedAt',
     ];
 
     /**
@@ -275,7 +273,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         'charge' => 'getCharge',
         'user' => 'getUser',
         'created_at' => 'getCreatedAt',
-        'updated_at' => 'getUpdatedAt'
+        'updated_at' => 'getUpdatedAt',
     ];
 
     /**
@@ -320,12 +318,19 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     public const RECEIPT_TYPE_SALES = 'sales';
+
     public const RECEIPT_TYPE__RETURN = 'return';
+
     public const RECEIPT_TYPE_COPY = 'copy';
+
     public const RECEIPT_TYPE_STEB = 'steb';
+
     public const RECEIPT_TYPE_PROVISIONAL = 'provisional';
+
     public const RECEIPT_TYPE_TRAINING = 'training';
+
     public const RECEIPT_TYPE_DELIVERY = 'delivery';
+
     public const RECEIPT_TYPE_CORRECTION = 'correction';
 
     /**
@@ -357,8 +362,8 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -381,14 +386,12 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -408,7 +411,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         $invalidProperties = [];
 
         $allowedValues = $this->getReceiptTypeAllowableValues();
-        if (!is_null($this->container['receipt_type']) && !in_array($this->container['receipt_type'], $allowedValues, true)) {
+        if (! is_null($this->container['receipt_type']) && ! in_array($this->container['receipt_type'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'receipt_type', must be one of '%s'",
                 $this->container['receipt_type'],
@@ -430,7 +433,6 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -444,8 +446,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets id
      *
-     * @param int|null $id id
-     *
+     * @param  int|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -471,8 +472,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets store_id
      *
-     * @param int|null $store_id store_id
-     *
+     * @param  int|null  $store_id  store_id
      * @return self
      */
     public function setStoreId($store_id)
@@ -498,8 +498,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets pos_session_id
      *
-     * @param int|null $pos_session_id pos_session_id
-     *
+     * @param  int|null  $pos_session_id  pos_session_id
      * @return self
      */
     public function setPosSessionId($pos_session_id)
@@ -509,7 +508,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('pos_session_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -532,8 +531,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets charge_id
      *
-     * @param int|null $charge_id charge_id
-     *
+     * @param  int|null  $charge_id  charge_id
      * @return self
      */
     public function setChargeId($charge_id)
@@ -543,7 +541,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('charge_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -566,8 +564,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets user_id
      *
-     * @param int|null $user_id user_id
-     *
+     * @param  int|null  $user_id  user_id
      * @return self
      */
     public function setUserId($user_id)
@@ -577,7 +574,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('user_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -600,8 +597,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets receipt_number
      *
-     * @param string|null $receipt_number receipt_number
-     *
+     * @param  string|null  $receipt_number  receipt_number
      * @return self
      */
     public function setReceiptNumber($receipt_number)
@@ -627,8 +623,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets receipt_type
      *
-     * @param string|null $receipt_type receipt_type
-     *
+     * @param  string|null  $receipt_type  receipt_type
      * @return self
      */
     public function setReceiptType($receipt_type)
@@ -637,7 +632,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
             throw new \InvalidArgumentException('non-nullable receipt_type cannot be null');
         }
         $allowedValues = $this->getReceiptTypeAllowableValues();
-        if (!in_array($receipt_type, $allowedValues, true)) {
+        if (! in_array($receipt_type, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'receipt_type', must be one of '%s'",
@@ -664,8 +659,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets receipt_data
      *
-     * @param array<string,mixed>|null $receipt_data Receipt data (store info, items, totals, etc.)
-     *
+     * @param  array<string,mixed>|null  $receipt_data  Receipt data (store info, items, totals, etc.)
      * @return self
      */
     public function setReceiptData($receipt_data)
@@ -691,8 +685,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets printed
      *
-     * @param bool|null $printed printed
-     *
+     * @param  bool|null  $printed  printed
      * @return self
      */
     public function setPrinted($printed)
@@ -718,8 +711,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets printed_at
      *
-     * @param \DateTime|null $printed_at printed_at
-     *
+     * @param  \DateTime|null  $printed_at  printed_at
      * @return self
      */
     public function setPrintedAt($printed_at)
@@ -729,7 +721,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('printed_at', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -752,8 +744,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets reprint_count
      *
-     * @param int|null $reprint_count reprint_count
-     *
+     * @param  int|null  $reprint_count  reprint_count
      * @return self
      */
     public function setReprintCount($reprint_count)
@@ -769,7 +760,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets pos_session
      *
-     * @return \OpenAPI\Client\Model\LogApplicationStart200ResponseCurrentSession|null
+     * @return \OpenAPIClient\Model\LogApplicationStart200ResponseCurrentSession|null
      */
     public function getPosSession()
     {
@@ -779,8 +770,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets pos_session
      *
-     * @param \OpenAPI\Client\Model\LogApplicationStart200ResponseCurrentSession|null $pos_session pos_session
-     *
+     * @param  \OpenAPIClient\Model\LogApplicationStart200ResponseCurrentSession|null  $pos_session  pos_session
      * @return self
      */
     public function setPosSession($pos_session)
@@ -790,7 +780,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('pos_session', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -803,7 +793,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets charge
      *
-     * @return \OpenAPI\Client\Model\ReceiptCharge|null
+     * @return \OpenAPIClient\Model\ReceiptCharge|null
      */
     public function getCharge()
     {
@@ -813,8 +803,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets charge
      *
-     * @param \OpenAPI\Client\Model\ReceiptCharge|null $charge charge
-     *
+     * @param  \OpenAPIClient\Model\ReceiptCharge|null  $charge  charge
      * @return self
      */
     public function setCharge($charge)
@@ -824,7 +813,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('charge', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -837,7 +826,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets user
      *
-     * @return \OpenAPI\Client\Model\PosSessionSessionUser|null
+     * @return \OpenAPIClient\Model\PosSessionSessionUser|null
      */
     public function getUser()
     {
@@ -847,8 +836,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets user
      *
-     * @param \OpenAPI\Client\Model\PosSessionSessionUser|null $user user
-     *
+     * @param  \OpenAPIClient\Model\PosSessionSessionUser|null  $user  user
      * @return self
      */
     public function setUser($user)
@@ -858,7 +846,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('user', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -881,8 +869,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets created_at
      *
-     * @param \DateTime|null $created_at created_at
-     *
+     * @param  \DateTime|null  $created_at  created_at
      * @return self
      */
     public function setCreatedAt($created_at)
@@ -908,8 +895,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets updated_at
      *
-     * @param \DateTime|null $updated_at updated_at
-     *
+     * @param  \DateTime|null  $updated_at  updated_at
      * @return self
      */
     public function setUpdatedAt($updated_at)
@@ -921,12 +907,11 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -936,8 +921,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -949,10 +933,8 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -966,9 +948,7 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -977,15 +957,16 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -1011,5 +992,3 @@ class Receipt implements ModelInterface, ArrayAccess, \JsonSerializable
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

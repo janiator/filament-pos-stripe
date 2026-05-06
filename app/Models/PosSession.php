@@ -144,13 +144,19 @@ class PosSession extends Model
     /**
      * Calculate expected cash from charges, opening balance, and cash movements.
      * Withdrawals reduce expected cash; deposits increase it.
+     *
+     * Cash sales net of refunds: partial and full cash refunds reduce expected cash
+     * (same net as X/Z `net_cash_amount`). Includes `refunded` rows so fully refunded
+     * cash sales do not leave phantom cash in the drawer expectation.
      */
     public function calculateExpectedCash(): int
     {
-        $cashFromTransactions = $this->charges()
-            ->where('status', 'succeeded')
+        $cashFromTransactions = (int) $this->charges()
+            ->whereIn('status', ['succeeded', 'refunded'])
             ->where('payment_method', 'cash')
-            ->sum('amount') ?? 0;
+            ->where('paid', true)
+            ->get()
+            ->sum(fn (ConnectedCharge $charge): int => max(0, (int) $charge->amount - (int) ($charge->amount_refunded ?? 0)));
 
         $base = ($this->opening_balance ?? 0) + $cashFromTransactions;
 

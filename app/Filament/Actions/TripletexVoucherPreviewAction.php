@@ -24,12 +24,12 @@ final class TripletexVoucherPreviewAction
     public static function makeTableActionForZReport(): Action
     {
         return Action::make('preview_tripletex_voucher')
-            ->label('Preview Tripletex voucher')
+            ->label(__('Preview Tripletex voucher'))
             ->icon(Heroicon::OutlinedEye)
             ->color('gray')
             ->slideOver()
-            ->modalHeading('Tripletex voucher preview')
-            ->modalDescription('Ledger lines for this session’s Z-report. Turn on account resolution to call Tripletex and include the exact JSON for POST /ledger/voucher.')
+            ->modalHeading(__('Tripletex voucher preview'))
+            ->modalDescription(__('Ledger lines for this session’s Z-report. Turn on account resolution to call Tripletex and include the exact JSON for POST /ledger/voucher.'))
             ->modalWidth('4xl')
             ->visible(fn (PosSession $record): bool => self::canPreviewZReport($record))
             ->fillForm(fn (PosSession $record): array => [
@@ -55,12 +55,12 @@ final class TripletexVoucherPreviewAction
     public static function makeTableActionForPayout(): Action
     {
         return Action::make('preview_tripletex_voucher')
-            ->label('Preview Tripletex voucher')
+            ->label(__('Preview Tripletex voucher'))
             ->icon(Heroicon::OutlinedEye)
             ->color('gray')
             ->slideOver()
-            ->modalHeading('Tripletex voucher preview')
-            ->modalDescription('Ledger lines for this Stripe payout. Turn on account resolution to call Tripletex and include the exact JSON for POST /ledger/voucher.')
+            ->modalHeading(__('Tripletex voucher preview'))
+            ->modalDescription(__('Ledger lines for this Stripe payout. Turn on account resolution to call Tripletex and include the exact JSON for POST /ledger/voucher.'))
             ->modalWidth('4xl')
             ->visible(fn (StoreStripePayout $record): bool => self::canPreviewPayout($record))
             ->fillForm(fn (StoreStripePayout $record): array => [
@@ -92,8 +92,8 @@ final class TripletexVoucherPreviewAction
         return [
             Hidden::make('_record_id'),
             Toggle::make('resolve_tripletex_accounts')
-                ->label('Resolve Tripletex account IDs (calls Tripletex API)')
-                ->helperText('Creates a short-lived session token and resolves each ledger account number used in the voucher.')
+                ->label(__('Resolve Tripletex account IDs (calls Tripletex API)'))
+                ->helperText(__('Creates a short-lived session token and resolves each ledger account number used in the voucher.'))
                 ->default(false)
                 ->live()
                 ->afterStateUpdated(function ($state, Set $set, Get $get) use ($resolveUsing): void {
@@ -101,7 +101,7 @@ final class TripletexVoucherPreviewAction
                     $set('preview_json', $json);
                 }),
             Textarea::make('preview_json')
-                ->label('Preview JSON')
+                ->label(__('Preview JSON'))
                 ->rows(28)
                 ->readOnly()
                 ->columnSpanFull()

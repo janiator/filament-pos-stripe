@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PowerOfficeIntegrations;
 
 use App\Enums\AddonType;
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\PowerOfficeIntegrations\Pages\ManagePowerOfficeIntegration;
 use App\Filament\Resources\PowerOfficeIntegrations\Schemas\PowerOfficeIntegrationForm;
 use App\Filament\Resources\PowerOfficeIntegrations\Tables\PowerOfficeIntegrationsTable;
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class PowerOfficeIntegrationResource extends Resource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $model = PowerOfficeIntegration::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;
@@ -52,7 +55,11 @@ class PowerOfficeIntegrationResource extends Resource
      */
     public static function canAccess(): bool
     {
-        return Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::PowerOfficeGo);
+        if (! Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::PowerOfficeGo)) {
+            return false;
+        }
+
+        return parent::canAccess();
     }
 
     public static function getEloquentQuery(): Builder

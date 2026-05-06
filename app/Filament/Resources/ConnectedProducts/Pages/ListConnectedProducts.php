@@ -26,11 +26,11 @@ class ListConnectedProducts extends ListRecords
     {
         return [
             Action::make('import-shopify')
-                ->label('Import from Shopify CSV')
+                ->label(__('Import from Shopify CSV'))
                 ->icon('heroicon-o-arrow-up-tray')
                 ->url(ConnectedProductResource::getUrl('import-shopify-csv')),
             Action::make('import-zip')
-                ->label('Import from ZIP')
+                ->label(__('Import from ZIP'))
                 ->icon('heroicon-o-archive-box')
                 ->url(ConnectedProductResource::getUrl('import-products-zip')),
             CreateAction::make(),

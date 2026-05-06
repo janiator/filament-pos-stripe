@@ -1,19 +1,3 @@
-// FlutterFlow Custom Action: Update Cart Totals (with per-product tax calculation)
-// This version calculates tax based on each product's tax code/rate
-
-// Automatic FlutterFlow imports
-import '/backend/schema/structs/index.dart';
-import '/backend/schema/enums/enums.dart';
-import '/backend/supabase/supabase.dart';
-import '/actions/actions.dart' as action_blocks;
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import 'index.dart'; // Imports other custom actions
-import '/flutter_flow/custom_functions.dart'; // Imports custom functions
-import 'package:flutter/material.dart';
-// Begin custom action code
-// DO NOT REMOVE OR MODIFY THE CODE ABOVE!
-
 /// Get tax percentage from tax code
 /// Maps tax codes to tax percentages
 /// Returns default 25% if code is not recognized

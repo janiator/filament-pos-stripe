@@ -118,7 +118,7 @@ class OnboardStore extends Page implements HasForms
 
             Notification::make()
                 ->success()
-                ->title('Store onboarded successfully')
+                ->title(__('Store onboarded successfully'))
                 ->body("Store '{$store->name}' has been set up and is ready to use.")
                 ->send();
 
@@ -130,7 +130,7 @@ class OnboardStore extends Page implements HasForms
 
             Notification::make()
                 ->danger()
-                ->title('Failed to onboard store')
+                ->title(__('Failed to onboard store'))
                 ->body($e->getMessage())
                 ->send();
 
@@ -241,14 +241,14 @@ class OnboardStore extends Page implements HasForms
     {
         return [
             Action::make('completeSetup')
-                ->label('Complete Setup')
+                ->label(__('Complete Setup'))
                 ->color('success')
                 ->size('lg')
                 ->action('completeSetup')
                 ->requiresConfirmation()
-                ->modalHeading('Complete Store Onboarding')
-                ->modalDescription('Are you sure you want to complete the store setup? This will create the store with all configured settings.')
-                ->modalSubmitActionLabel('Yes, Complete Setup'),
+                ->modalHeading(__('Complete Store Onboarding'))
+                ->modalDescription(__('Are you sure you want to complete the store setup? This will create the store with all configured settings.'))
+                ->modalSubmitActionLabel(__('Yes, Complete Setup')),
         ];
     }
 

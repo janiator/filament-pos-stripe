@@ -15,12 +15,12 @@ final class TripletexPayoutReconciliationAction
     public static function makeTableAction(): Action
     {
         return Action::make('tripletex_payout_reconciliation')
-            ->label('Reconcile')
+            ->label(__('Reconcile'))
             ->icon('heroicon-o-scale')
             ->color('gray')
             ->slideOver()
-            ->modalHeading('Tripletex payout reconciliation')
-            ->modalDescription('Compares Stripe mirror totals to the last successful Tripletex payout voucher stored on the sync run (read-only).')
+            ->modalHeading(__('Tripletex payout reconciliation'))
+            ->modalDescription(__('Compares Stripe mirror totals to the last successful Tripletex payout voucher stored on the sync run (read-only).'))
             ->modalWidth('3xl')
             ->visible(fn (StoreStripePayout $record): bool => self::visibleForRecord($record))
             ->fillForm(fn (StoreStripePayout $record): array => [
@@ -28,7 +28,7 @@ final class TripletexPayoutReconciliationAction
             ])
             ->form([
                 Textarea::make('report_json')
-                    ->label('Reconciliation report')
+                    ->label(__('Reconciliation report'))
                     ->rows(26)
                     ->readOnly()
                     ->columnSpanFull()

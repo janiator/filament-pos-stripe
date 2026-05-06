@@ -1,17 +1,3 @@
-// Automatic FlutterFlow imports
-import '/backend/schema/structs/index.dart';
-import '/backend/schema/enums/enums.dart';
-import '/backend/supabase/supabase.dart';
-import '/actions/actions.dart' as action_blocks;
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import '/custom_code/actions/index.dart'; // Imports other custom actions
-import '/flutter_flow/custom_functions.dart'; // Imports custom functions
-import 'package:flutter/material.dart';
-
-// Begin custom action code
-// DO NOT REMOVE OR MODIFY THE CODE ABOVE!
-
 // FlutterFlow Custom Action: Complete Deferred Payment Purchase
 // 
 // This action completes payment for a purchase that was created with deferred payment
@@ -29,6 +15,7 @@ import 'package:flutter/material.dart';
 // - Cash payments (no payment intent required)
 // - Stripe card payments (requires payment_intent_id)
 // - Other Stripe payment methods (requires payment_intent_id)
+// - Optional final cart JSON (same shape as completePosPurchase cart) for parked / edited deferred orders
 //
 // Compliance: Automatically uses current active POS device/session from app state
 // to ensure proper audit trail and session tracking.
@@ -37,6 +24,20 @@ import 'package:flutter/material.dart';
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+const String kPositivDeferredResumeChargeIdKey =
+    'positiv_deferred_resume_charge_id';
+const String kPositivDeferredResumeOrderLabelKey =
+    'positiv_deferred_resume_order_label';
+
+Future<void> _clearPositivDeferredResumePrefs() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(kPositivDeferredResumeChargeIdKey);
+    await prefs.remove(kPositivDeferredResumeOrderLabelKey);
+  } catch (_) {}
+}
 
 Future<dynamic> completeDeferredPayment(
   int chargeId,
@@ -45,6 +46,7 @@ Future<dynamic> completeDeferredPayment(
   String authToken,
   String? paymentIntentId,
   String? additionalMetadataJson,
+  String? cartJson,
 ) async {
   try {
     // Parse additional metadata from JSON string
@@ -87,6 +89,26 @@ Future<dynamic> completeDeferredPayment(
         'success': false,
         'message': 'Payment method code is required',
       };
+    }
+
+    Map<String, dynamic>? cart;
+    if (cartJson != null && cartJson.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cartJson);
+        if (decoded is Map<String, dynamic>) {
+          cart = decoded;
+        } else {
+          return {
+            'success': false,
+            'message': 'cartJson must decode to a JSON object',
+          };
+        }
+      } catch (e) {
+        return {
+          'success': false,
+          'message': 'Invalid cartJson: ${e.toString()}',
+        };
+      }
     }
 
     // Build metadata object
@@ -144,6 +166,7 @@ Future<dynamic> completeDeferredPayment(
       // OR add pos_session_id if device ID not available but session ID is
       if (posDeviceId == null && posSessionId != null) 'pos_session_id': posSessionId,
       if (metadata.isNotEmpty) 'metadata': metadata,
+      if (cart != null) 'cart': cart,
     };
     
     // Make API request
@@ -162,6 +185,10 @@ Future<dynamic> completeDeferredPayment(
     
     // Check HTTP status code
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      final ok = responseData['success'] != false;
+      if (ok) {
+        await _clearPositivDeferredResumePrefs();
+      }
       // Success
       // The response will have:
       // - charge.status = "succeeded" (changed from "pending")

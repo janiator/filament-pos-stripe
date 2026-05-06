@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Stripe\StripeClient;
 use Throwable;
 
@@ -101,6 +102,25 @@ class PurchaseService
         }
 
         // If we can't resolve it, return null
+        return null;
+    }
+
+    /**
+     * Whole-order note from API cart payload (`note` or legacy `cart_note`).
+     */
+    protected function wholeOrderNoteFromCartData(array $cartData): ?string
+    {
+        foreach (['note', 'cart_note'] as $key) {
+            $raw = $cartData[$key] ?? null;
+            if ($raw === null || $raw === '') {
+                continue;
+            }
+            $s = is_string($raw) ? trim($raw) : trim((string) $raw);
+            if ($s !== '') {
+                return $s;
+            }
+        }
+
         return null;
     }
 
@@ -255,7 +275,7 @@ class PurchaseService
                 'total_discounts' => $cartData['total_discounts'] ?? 0,
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
-                'note' => $cartData['note'] ?? null,
+                'note' => $this->wholeOrderNoteFromCartData($cartData),
             ], $metadata),
         ]);
 
@@ -394,7 +414,7 @@ class PurchaseService
                     'total_discounts' => $cartData['total_discounts'] ?? 0,
                     'total_tax' => $cartData['total_tax'] ?? 0,
                     'total' => $amount,
-                    'note' => $cartData['note'] ?? null,
+                    'note' => $this->wholeOrderNoteFromCartData($cartData),
                 ], $metadata),
             ]);
         } else {
@@ -415,7 +435,7 @@ class PurchaseService
                         'total_discounts' => $cartData['total_discounts'] ?? 0,
                         'total_tax' => $cartData['total_tax'] ?? 0,
                         'total' => $amount,
-                        'note' => $cartData['note'] ?? null,
+                        'note' => $this->wholeOrderNoteFromCartData($cartData),
                     ],
                     $metadata
                 ),
@@ -480,7 +500,7 @@ class PurchaseService
                 'total_discounts' => $cartData['total_discounts'] ?? 0,
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
-                'note' => $cartData['note'] ?? null,
+                'note' => $this->wholeOrderNoteFromCartData($cartData),
             ], $metadata),
         ]);
 
@@ -541,7 +561,7 @@ class PurchaseService
                 'total_discounts' => $cartData['total_discounts'] ?? 0,
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
-                'note' => $cartData['note'] ?? null,
+                'note' => $this->wholeOrderNoteFromCartData($cartData),
                 'gift_card_code' => $giftCardCode,
             ], $metadata),
         ]);
@@ -607,7 +627,7 @@ class PurchaseService
                 'total_discounts' => $cartData['total_discounts'] ?? 0,
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
-                'note' => $cartData['note'] ?? null,
+                'note' => $this->wholeOrderNoteFromCartData($cartData),
                 'deferred_payment' => true,
                 'deferred_reason' => $metadata['deferred_reason'] ?? 'Payment on pickup',
             ], $metadata),
@@ -620,12 +640,128 @@ class PurchaseService
     }
 
     /**
+     * Replace cart lines and amount on a pending deferred charge before payment capture.
+     *
+     * @param  array<string, mixed>  $cartData
+     * @param  array<string, mixed>  $paymentData
+     *
+     * @throws \Exception
+     */
+    protected function applyFinalCartToPendingDeferredCharge(
+        ConnectedCharge $charge,
+        Store $store,
+        array $cartData,
+        PaymentMethod $paymentMethod,
+        array $paymentData
+    ): void {
+        $metadata = is_array($charge->metadata) ? $charge->metadata : [];
+
+        $isDeferred = ($metadata['deferred_payment'] ?? false) === true
+            || in_array($charge->payment_method, ['deferred', 'pay_later'], true);
+
+        if (! $isDeferred) {
+            throw ValidationException::withMessages([
+                'cart' => ['Cart revision is only allowed for deferred (pending) purchases'],
+            ]);
+        }
+
+        $oldItems = isset($metadata['items']) && is_array($metadata['items']) ? $metadata['items'] : [];
+
+        if ($paymentMethod->provider === 'stripe') {
+            $paymentIntentId = $paymentData['payment_intent_id'] ?? null;
+            if (! $paymentIntentId) {
+                throw ValidationException::withMessages([
+                    'metadata.payment_intent_id' => ['Payment intent ID is required for Stripe payments'],
+                ]);
+            }
+
+            $stripe = $this->getStripeClient();
+            $paymentIntent = $stripe->paymentIntents->retrieve(
+                $paymentIntentId,
+                [],
+                ['stripe_account' => $store->stripe_account_id]
+            );
+
+            if ($paymentIntent->status !== 'succeeded') {
+                throw ValidationException::withMessages([
+                    'metadata.payment_intent_id' => ['Payment intent is not succeeded'],
+                ]);
+            }
+
+            $piAmount = (int) $paymentIntent->amount;
+            $cartTotal = (int) ($cartData['total'] ?? 0);
+            if ($piAmount !== $cartTotal) {
+                throw ValidationException::withMessages([
+                    'cart.total' => ["Cart total ({$cartTotal}) does not match PaymentIntent amount ({$piAmount})"],
+                ]);
+            }
+
+            $cartCurrency = strtolower((string) ($cartData['currency'] ?? $charge->currency ?? 'nok'));
+            $piCurrency = strtolower((string) $paymentIntent->currency);
+            if ($cartCurrency !== $piCurrency) {
+                throw ValidationException::withMessages([
+                    'cart.currency' => ["Cart currency ({$cartCurrency}) does not match PaymentIntent currency ({$piCurrency})"],
+                ]);
+            }
+        }
+
+        $newItemsInput = $cartData['items'] ?? [];
+        if (! is_array($newItemsInput) || $newItemsInput === []) {
+            throw ValidationException::withMessages([
+                'cart.items' => ['Cart items are required when cart is provided'],
+            ]);
+        }
+
+        app(InventoryLedgerService::class)->applyDeferredCompletionInventoryDelta(
+            $store,
+            $charge,
+            $oldItems,
+            $newItemsInput
+        );
+
+        $enrichedItems = $this->enrichCartItemsWithProductSnapshots(
+            $newItemsInput,
+            $store->stripe_account_id
+        );
+
+        $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id);
+
+        $newMetadata = array_merge($metadata, [
+            'items' => $enrichedItems,
+            'discounts' => $cartData['discounts'] ?? [],
+            'subtotal' => $cartData['subtotal'] ?? ($metadata['subtotal'] ?? 0),
+            'total_discounts' => $cartData['total_discounts'] ?? ($metadata['total_discounts'] ?? 0),
+            'total_tax' => $cartData['total_tax'] ?? ($metadata['total_tax'] ?? 0),
+            'total' => (int) $cartData['total'],
+            'note' => $this->wholeOrderNoteFromCartData($cartData) ?? ($metadata['note'] ?? null),
+            'tip_amount' => $cartData['tip_amount'] ?? ($metadata['tip_amount'] ?? 0),
+        ]);
+
+        if (array_key_exists('customer_id', $cartData)) {
+            $newMetadata['customer_id'] = $cartData['customer_id'];
+        }
+
+        if (array_key_exists('customer_name', $cartData)) {
+            $newMetadata['customer_name'] = $cartData['customer_name'];
+        }
+
+        $charge->update([
+            'amount' => (int) $cartData['total'],
+            'currency' => strtolower((string) ($cartData['currency'] ?? $charge->currency ?? 'nok')),
+            'stripe_customer_id' => $stripeCustomerId ?? $charge->stripe_customer_id,
+            'tip_amount' => (int) ($cartData['tip_amount'] ?? $charge->tip_amount ?? 0),
+            'metadata' => $newMetadata,
+        ]);
+    }
+
+    /**
      * Complete a deferred payment
      * Updates the charge status and generates a sales receipt
      *
      * @param  array  $paymentData  Additional payment data (e.g., payment_intent_id for Stripe)
      * @param  PosSession|null  $posSession  Optional POS session to use. If not provided, uses the charge's original session.
      *                                       This allows completing deferred payments on different devices/sessions.
+     * @param  array<string, mixed>|null  $cartData  Final cart when completing a parked / edited deferred order (optional)
      *
      * @throws \Exception
      */
@@ -633,7 +769,8 @@ class PurchaseService
         ConnectedCharge $charge,
         PaymentMethod $paymentMethod,
         array $paymentData = [],
-        ?PosSession $posSession = null
+        ?PosSession $posSession = null,
+        ?array $cartData = null
     ): array {
         DB::beginTransaction();
 
@@ -674,6 +811,17 @@ class PurchaseService
             if ($charge->pos_session_id !== $posSession->id) {
                 $charge->pos_session_id = $posSession->id;
                 $charge->save();
+            }
+
+            if ($cartData !== null) {
+                $this->applyFinalCartToPendingDeferredCharge(
+                    $charge,
+                    $store,
+                    $cartData,
+                    $paymentMethod,
+                    $paymentData
+                );
+                $charge->refresh();
             }
 
             // Process payment based on provider

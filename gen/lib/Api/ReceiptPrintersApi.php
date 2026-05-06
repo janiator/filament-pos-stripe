@@ -1,18 +1,20 @@
 <?php
+
 /**
  * ReceiptPrintersApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * ReceiptPrintersApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class ReceiptPrintersApi
@@ -73,7 +75,7 @@ class ReceiptPrintersApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'createReceiptPrinter' => [
             'application/json',
@@ -102,10 +104,7 @@ class ReceiptPrintersApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -113,16 +112,16 @@ class ReceiptPrintersApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -152,16 +151,17 @@ class ReceiptPrintersApi
      *
      * Create receipt printer
      *
-     * @param  \OpenAPI\Client\Model\CreateReceiptPrinterRequest $create_receipt_printer_request create_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createReceiptPrinter'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateReceiptPrinterRequest  $create_receipt_printer_request  create_receipt_printer_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createReceiptPrinter'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CreateReceiptPrinter201Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\CreateReceiptPrinter201Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function createReceiptPrinter($create_receipt_printer_request, string $contentType = self::contentTypes['createReceiptPrinter'][0])
     {
-        list($response) = $this->createReceiptPrinterWithHttpInfo($create_receipt_printer_request, $contentType);
+        [$response] = $this->createReceiptPrinterWithHttpInfo($create_receipt_printer_request, $contentType);
+
         return $response;
     }
 
@@ -170,12 +170,12 @@ class ReceiptPrintersApi
      *
      * Create receipt printer
      *
-     * @param  \OpenAPI\Client\Model\CreateReceiptPrinterRequest $create_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createReceiptPrinter'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateReceiptPrinterRequest  $create_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createReceiptPrinter'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CreateReceiptPrinter201Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\CreateReceiptPrinter201Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function createReceiptPrinterWithHttpInfo($create_receipt_printer_request, string $contentType = self::contentTypes['createReceiptPrinter'][0])
     {
@@ -203,23 +203,20 @@ class ReceiptPrintersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 201:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CreateReceiptPrinter201Response',
+                        '\OpenAPIClient\Model\CreateReceiptPrinter201Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -235,7 +232,7 @@ class ReceiptPrintersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\CreateReceiptPrinter201Response',
+                '\OpenAPIClient\Model\CreateReceiptPrinter201Response',
                 $request,
                 $response,
             );
@@ -244,7 +241,7 @@ class ReceiptPrintersApi
                 case 201:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CreateReceiptPrinter201Response',
+                        '\OpenAPIClient\Model\CreateReceiptPrinter201Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -252,13 +249,12 @@ class ReceiptPrintersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -269,11 +265,11 @@ class ReceiptPrintersApi
      *
      * Create receipt printer
      *
-     * @param  \OpenAPI\Client\Model\CreateReceiptPrinterRequest $create_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createReceiptPrinter'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateReceiptPrinterRequest  $create_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createReceiptPrinterAsync($create_receipt_printer_request, string $contentType = self::contentTypes['createReceiptPrinter'][0])
     {
@@ -290,15 +286,15 @@ class ReceiptPrintersApi
      *
      * Create receipt printer
      *
-     * @param  \OpenAPI\Client\Model\CreateReceiptPrinterRequest $create_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createReceiptPrinter'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateReceiptPrinterRequest  $create_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createReceiptPrinterAsyncWithHttpInfo($create_receipt_printer_request, string $contentType = self::contentTypes['createReceiptPrinter'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\CreateReceiptPrinter201Response';
+        $returnType = '\OpenAPIClient\Model\CreateReceiptPrinter201Response';
         $request = $this->createReceiptPrinterRequest($create_receipt_printer_request, $contentType);
 
         return $this->client
@@ -306,7 +302,7 @@ class ReceiptPrintersApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -317,7 +313,7 @@ class ReceiptPrintersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -340,11 +336,11 @@ class ReceiptPrintersApi
     /**
      * Create request for operation 'createReceiptPrinter'
      *
-     * @param  \OpenAPI\Client\Model\CreateReceiptPrinterRequest $create_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createReceiptPrinter'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateReceiptPrinterRequest  $create_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function createReceiptPrinterRequest($create_receipt_printer_request, string $contentType = self::contentTypes['createReceiptPrinter'][0])
     {
@@ -356,7 +352,6 @@ class ReceiptPrintersApi
             );
         }
 
-
         $resourcePath = '/receipt-printers';
         $formParams = [];
         $queryParams = [];
@@ -364,12 +359,8 @@ class ReceiptPrintersApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -377,7 +368,7 @@ class ReceiptPrintersApi
         // for model (json/xml)
         if (isset($create_receipt_printer_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($create_receipt_printer_request));
             } else {
                 $httpBody = $create_receipt_printer_request;
@@ -390,7 +381,7 @@ class ReceiptPrintersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -398,7 +389,7 @@ class ReceiptPrintersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -407,8 +398,8 @@ class ReceiptPrintersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -424,9 +415,10 @@ class ReceiptPrintersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -437,16 +429,17 @@ class ReceiptPrintersApi
      *
      * Delete receipt printer
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['deleteReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['deleteReceiptPrinter'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\DeleteReceiptPrinter200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\DeleteReceiptPrinter200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function deleteReceiptPrinter($id, string $contentType = self::contentTypes['deleteReceiptPrinter'][0])
     {
-        list($response) = $this->deleteReceiptPrinterWithHttpInfo($id, $contentType);
+        [$response] = $this->deleteReceiptPrinterWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -455,12 +448,12 @@ class ReceiptPrintersApi
      *
      * Delete receipt printer
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['deleteReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['deleteReceiptPrinter'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\DeleteReceiptPrinter200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\DeleteReceiptPrinter200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function deleteReceiptPrinterWithHttpInfo($id, string $contentType = self::contentTypes['deleteReceiptPrinter'][0])
     {
@@ -488,23 +481,20 @@ class ReceiptPrintersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\DeleteReceiptPrinter200Response',
+                        '\OpenAPIClient\Model\DeleteReceiptPrinter200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -520,7 +510,7 @@ class ReceiptPrintersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\DeleteReceiptPrinter200Response',
+                '\OpenAPIClient\Model\DeleteReceiptPrinter200Response',
                 $request,
                 $response,
             );
@@ -529,7 +519,7 @@ class ReceiptPrintersApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\DeleteReceiptPrinter200Response',
+                        '\OpenAPIClient\Model\DeleteReceiptPrinter200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -537,13 +527,12 @@ class ReceiptPrintersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -554,11 +543,11 @@ class ReceiptPrintersApi
      *
      * Delete receipt printer
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['deleteReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['deleteReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function deleteReceiptPrinterAsync($id, string $contentType = self::contentTypes['deleteReceiptPrinter'][0])
     {
@@ -575,15 +564,15 @@ class ReceiptPrintersApi
      *
      * Delete receipt printer
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['deleteReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['deleteReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function deleteReceiptPrinterAsyncWithHttpInfo($id, string $contentType = self::contentTypes['deleteReceiptPrinter'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\DeleteReceiptPrinter200Response';
+        $returnType = '\OpenAPIClient\Model\DeleteReceiptPrinter200Response';
         $request = $this->deleteReceiptPrinterRequest($id, $contentType);
 
         return $this->client
@@ -591,7 +580,7 @@ class ReceiptPrintersApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -602,7 +591,7 @@ class ReceiptPrintersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -625,11 +614,11 @@ class ReceiptPrintersApi
     /**
      * Create request for operation 'deleteReceiptPrinter'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['deleteReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['deleteReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function deleteReceiptPrinterRequest($id, string $contentType = self::contentTypes['deleteReceiptPrinter'][0])
     {
@@ -641,7 +630,6 @@ class ReceiptPrintersApi
             );
         }
 
-
         $resourcePath = '/receipt-printers/{id}';
         $formParams = [];
         $queryParams = [];
@@ -649,20 +637,17 @@ class ReceiptPrintersApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -676,7 +661,7 @@ class ReceiptPrintersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -684,7 +669,7 @@ class ReceiptPrintersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -693,8 +678,8 @@ class ReceiptPrintersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -710,9 +695,10 @@ class ReceiptPrintersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'DELETE',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -723,16 +709,17 @@ class ReceiptPrintersApi
      *
      * Get receipt printer
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getReceiptPrinter'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetReceiptPrinter200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GetReceiptPrinter200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getReceiptPrinter($id, string $contentType = self::contentTypes['getReceiptPrinter'][0])
     {
-        list($response) = $this->getReceiptPrinterWithHttpInfo($id, $contentType);
+        [$response] = $this->getReceiptPrinterWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -741,12 +728,12 @@ class ReceiptPrintersApi
      *
      * Get receipt printer
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getReceiptPrinter'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetReceiptPrinter200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GetReceiptPrinter200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getReceiptPrinterWithHttpInfo($id, string $contentType = self::contentTypes['getReceiptPrinter'][0])
     {
@@ -774,23 +761,20 @@ class ReceiptPrintersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GetReceiptPrinter200Response',
+                        '\OpenAPIClient\Model\GetReceiptPrinter200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -806,7 +790,7 @@ class ReceiptPrintersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GetReceiptPrinter200Response',
+                '\OpenAPIClient\Model\GetReceiptPrinter200Response',
                 $request,
                 $response,
             );
@@ -815,7 +799,7 @@ class ReceiptPrintersApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GetReceiptPrinter200Response',
+                        '\OpenAPIClient\Model\GetReceiptPrinter200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -823,13 +807,12 @@ class ReceiptPrintersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -840,11 +823,11 @@ class ReceiptPrintersApi
      *
      * Get receipt printer
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getReceiptPrinterAsync($id, string $contentType = self::contentTypes['getReceiptPrinter'][0])
     {
@@ -861,15 +844,15 @@ class ReceiptPrintersApi
      *
      * Get receipt printer
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getReceiptPrinterAsyncWithHttpInfo($id, string $contentType = self::contentTypes['getReceiptPrinter'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GetReceiptPrinter200Response';
+        $returnType = '\OpenAPIClient\Model\GetReceiptPrinter200Response';
         $request = $this->getReceiptPrinterRequest($id, $contentType);
 
         return $this->client
@@ -877,7 +860,7 @@ class ReceiptPrintersApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -888,7 +871,7 @@ class ReceiptPrintersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -911,11 +894,11 @@ class ReceiptPrintersApi
     /**
      * Create request for operation 'getReceiptPrinter'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getReceiptPrinterRequest($id, string $contentType = self::contentTypes['getReceiptPrinter'][0])
     {
@@ -927,7 +910,6 @@ class ReceiptPrintersApi
             );
         }
 
-
         $resourcePath = '/receipt-printers/{id}';
         $formParams = [];
         $queryParams = [];
@@ -935,20 +917,17 @@ class ReceiptPrintersApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -962,7 +941,7 @@ class ReceiptPrintersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -970,7 +949,7 @@ class ReceiptPrintersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -979,8 +958,8 @@ class ReceiptPrintersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -996,9 +975,10 @@ class ReceiptPrintersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1009,15 +989,16 @@ class ReceiptPrintersApi
      *
      * List receipt printers
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listReceiptPrinters'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listReceiptPrinters'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ListReceiptPrinters200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ListReceiptPrinters200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function listReceiptPrinters(string $contentType = self::contentTypes['listReceiptPrinters'][0])
     {
-        list($response) = $this->listReceiptPrintersWithHttpInfo($contentType);
+        [$response] = $this->listReceiptPrintersWithHttpInfo($contentType);
+
         return $response;
     }
 
@@ -1026,11 +1007,11 @@ class ReceiptPrintersApi
      *
      * List receipt printers
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listReceiptPrinters'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listReceiptPrinters'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ListReceiptPrinters200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ListReceiptPrinters200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function listReceiptPrintersWithHttpInfo(string $contentType = self::contentTypes['listReceiptPrinters'][0])
     {
@@ -1058,23 +1039,20 @@ class ReceiptPrintersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ListReceiptPrinters200Response',
+                        '\OpenAPIClient\Model\ListReceiptPrinters200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1090,7 +1068,7 @@ class ReceiptPrintersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ListReceiptPrinters200Response',
+                '\OpenAPIClient\Model\ListReceiptPrinters200Response',
                 $request,
                 $response,
             );
@@ -1099,7 +1077,7 @@ class ReceiptPrintersApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ListReceiptPrinters200Response',
+                        '\OpenAPIClient\Model\ListReceiptPrinters200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1107,13 +1085,12 @@ class ReceiptPrintersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1124,10 +1101,10 @@ class ReceiptPrintersApi
      *
      * List receipt printers
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listReceiptPrinters'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listReceiptPrinters'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listReceiptPrintersAsync(string $contentType = self::contentTypes['listReceiptPrinters'][0])
     {
@@ -1144,14 +1121,14 @@ class ReceiptPrintersApi
      *
      * List receipt printers
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listReceiptPrinters'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listReceiptPrinters'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listReceiptPrintersAsyncWithHttpInfo(string $contentType = self::contentTypes['listReceiptPrinters'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ListReceiptPrinters200Response';
+        $returnType = '\OpenAPIClient\Model\ListReceiptPrinters200Response';
         $request = $this->listReceiptPrintersRequest($contentType);
 
         return $this->client
@@ -1159,7 +1136,7 @@ class ReceiptPrintersApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1170,7 +1147,7 @@ class ReceiptPrintersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1193,14 +1170,13 @@ class ReceiptPrintersApi
     /**
      * Create request for operation 'listReceiptPrinters'
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listReceiptPrinters'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listReceiptPrinters'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function listReceiptPrintersRequest(string $contentType = self::contentTypes['listReceiptPrinters'][0])
     {
-
 
         $resourcePath = '/receipt-printers';
         $formParams = [];
@@ -1209,12 +1185,8 @@ class ReceiptPrintersApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1228,7 +1200,7 @@ class ReceiptPrintersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1236,7 +1208,7 @@ class ReceiptPrintersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1245,8 +1217,8 @@ class ReceiptPrintersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1262,9 +1234,10 @@ class ReceiptPrintersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1275,17 +1248,18 @@ class ReceiptPrintersApi
      *
      * Update receipt printer (partial)
      *
-     * @param  int $id id (required)
-     * @param  \OpenAPI\Client\Model\PatchReceiptPrinterRequest $patch_receipt_printer_request patch_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  \OpenAPIClient\Model\PatchReceiptPrinterRequest  $patch_receipt_printer_request  patch_receipt_printer_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchReceiptPrinter'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\UpdateReceiptPrinter200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\UpdateReceiptPrinter200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function patchReceiptPrinter($id, $patch_receipt_printer_request, string $contentType = self::contentTypes['patchReceiptPrinter'][0])
     {
-        list($response) = $this->patchReceiptPrinterWithHttpInfo($id, $patch_receipt_printer_request, $contentType);
+        [$response] = $this->patchReceiptPrinterWithHttpInfo($id, $patch_receipt_printer_request, $contentType);
+
         return $response;
     }
 
@@ -1294,13 +1268,13 @@ class ReceiptPrintersApi
      *
      * Update receipt printer (partial)
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\PatchReceiptPrinterRequest $patch_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\PatchReceiptPrinterRequest  $patch_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchReceiptPrinter'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\UpdateReceiptPrinter200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\UpdateReceiptPrinter200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function patchReceiptPrinterWithHttpInfo($id, $patch_receipt_printer_request, string $contentType = self::contentTypes['patchReceiptPrinter'][0])
     {
@@ -1328,23 +1302,20 @@ class ReceiptPrintersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\UpdateReceiptPrinter200Response',
+                        '\OpenAPIClient\Model\UpdateReceiptPrinter200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1360,7 +1331,7 @@ class ReceiptPrintersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\UpdateReceiptPrinter200Response',
+                '\OpenAPIClient\Model\UpdateReceiptPrinter200Response',
                 $request,
                 $response,
             );
@@ -1369,7 +1340,7 @@ class ReceiptPrintersApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\UpdateReceiptPrinter200Response',
+                        '\OpenAPIClient\Model\UpdateReceiptPrinter200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1377,13 +1348,12 @@ class ReceiptPrintersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1394,12 +1364,12 @@ class ReceiptPrintersApi
      *
      * Update receipt printer (partial)
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\PatchReceiptPrinterRequest $patch_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\PatchReceiptPrinterRequest  $patch_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function patchReceiptPrinterAsync($id, $patch_receipt_printer_request, string $contentType = self::contentTypes['patchReceiptPrinter'][0])
     {
@@ -1416,16 +1386,16 @@ class ReceiptPrintersApi
      *
      * Update receipt printer (partial)
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\PatchReceiptPrinterRequest $patch_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\PatchReceiptPrinterRequest  $patch_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function patchReceiptPrinterAsyncWithHttpInfo($id, $patch_receipt_printer_request, string $contentType = self::contentTypes['patchReceiptPrinter'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\UpdateReceiptPrinter200Response';
+        $returnType = '\OpenAPIClient\Model\UpdateReceiptPrinter200Response';
         $request = $this->patchReceiptPrinterRequest($id, $patch_receipt_printer_request, $contentType);
 
         return $this->client
@@ -1433,7 +1403,7 @@ class ReceiptPrintersApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1444,7 +1414,7 @@ class ReceiptPrintersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1467,12 +1437,12 @@ class ReceiptPrintersApi
     /**
      * Create request for operation 'patchReceiptPrinter'
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\PatchReceiptPrinterRequest $patch_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\PatchReceiptPrinterRequest  $patch_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function patchReceiptPrinterRequest($id, $patch_receipt_printer_request, string $contentType = self::contentTypes['patchReceiptPrinter'][0])
     {
@@ -1491,7 +1461,6 @@ class ReceiptPrintersApi
             );
         }
 
-
         $resourcePath = '/receipt-printers/{id}';
         $formParams = [];
         $queryParams = [];
@@ -1499,20 +1468,17 @@ class ReceiptPrintersApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1520,7 +1486,7 @@ class ReceiptPrintersApi
         // for model (json/xml)
         if (isset($patch_receipt_printer_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($patch_receipt_printer_request));
             } else {
                 $httpBody = $patch_receipt_printer_request;
@@ -1533,7 +1499,7 @@ class ReceiptPrintersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1541,7 +1507,7 @@ class ReceiptPrintersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1550,8 +1516,8 @@ class ReceiptPrintersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1567,9 +1533,10 @@ class ReceiptPrintersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'PATCH',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1580,16 +1547,17 @@ class ReceiptPrintersApi
      *
      * Test printer connection
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterConnection'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterConnection'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\TestReceiptPrinterConnection200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\TestReceiptPrinterConnection200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function testReceiptPrinterConnection($id, string $contentType = self::contentTypes['testReceiptPrinterConnection'][0])
     {
-        list($response) = $this->testReceiptPrinterConnectionWithHttpInfo($id, $contentType);
+        [$response] = $this->testReceiptPrinterConnectionWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -1598,12 +1566,12 @@ class ReceiptPrintersApi
      *
      * Test printer connection
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterConnection'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterConnection'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\TestReceiptPrinterConnection200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\TestReceiptPrinterConnection200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function testReceiptPrinterConnectionWithHttpInfo($id, string $contentType = self::contentTypes['testReceiptPrinterConnection'][0])
     {
@@ -1631,23 +1599,20 @@ class ReceiptPrintersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\TestReceiptPrinterConnection200Response',
+                        '\OpenAPIClient\Model\TestReceiptPrinterConnection200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1663,7 +1628,7 @@ class ReceiptPrintersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\TestReceiptPrinterConnection200Response',
+                '\OpenAPIClient\Model\TestReceiptPrinterConnection200Response',
                 $request,
                 $response,
             );
@@ -1672,7 +1637,7 @@ class ReceiptPrintersApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\TestReceiptPrinterConnection200Response',
+                        '\OpenAPIClient\Model\TestReceiptPrinterConnection200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1680,13 +1645,12 @@ class ReceiptPrintersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1697,11 +1661,11 @@ class ReceiptPrintersApi
      *
      * Test printer connection
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterConnection'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterConnection'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function testReceiptPrinterConnectionAsync($id, string $contentType = self::contentTypes['testReceiptPrinterConnection'][0])
     {
@@ -1718,15 +1682,15 @@ class ReceiptPrintersApi
      *
      * Test printer connection
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterConnection'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterConnection'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function testReceiptPrinterConnectionAsyncWithHttpInfo($id, string $contentType = self::contentTypes['testReceiptPrinterConnection'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\TestReceiptPrinterConnection200Response';
+        $returnType = '\OpenAPIClient\Model\TestReceiptPrinterConnection200Response';
         $request = $this->testReceiptPrinterConnectionRequest($id, $contentType);
 
         return $this->client
@@ -1734,7 +1698,7 @@ class ReceiptPrintersApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1745,7 +1709,7 @@ class ReceiptPrintersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1768,11 +1732,11 @@ class ReceiptPrintersApi
     /**
      * Create request for operation 'testReceiptPrinterConnection'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterConnection'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterConnection'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function testReceiptPrinterConnectionRequest($id, string $contentType = self::contentTypes['testReceiptPrinterConnection'][0])
     {
@@ -1784,7 +1748,6 @@ class ReceiptPrintersApi
             );
         }
 
-
         $resourcePath = '/receipt-printers/{id}/test-connection';
         $formParams = [];
         $queryParams = [];
@@ -1792,20 +1755,17 @@ class ReceiptPrintersApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1819,7 +1779,7 @@ class ReceiptPrintersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1827,7 +1787,7 @@ class ReceiptPrintersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1836,8 +1796,8 @@ class ReceiptPrintersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1853,9 +1813,10 @@ class ReceiptPrintersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1866,16 +1827,17 @@ class ReceiptPrintersApi
      *
      * Send test print
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterPrint'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterPrint'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\TestReceiptPrinterPrint200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\TestReceiptPrinterPrint200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function testReceiptPrinterPrint($id, string $contentType = self::contentTypes['testReceiptPrinterPrint'][0])
     {
-        list($response) = $this->testReceiptPrinterPrintWithHttpInfo($id, $contentType);
+        [$response] = $this->testReceiptPrinterPrintWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -1884,12 +1846,12 @@ class ReceiptPrintersApi
      *
      * Send test print
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterPrint'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterPrint'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\TestReceiptPrinterPrint200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\TestReceiptPrinterPrint200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function testReceiptPrinterPrintWithHttpInfo($id, string $contentType = self::contentTypes['testReceiptPrinterPrint'][0])
     {
@@ -1917,23 +1879,20 @@ class ReceiptPrintersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\TestReceiptPrinterPrint200Response',
+                        '\OpenAPIClient\Model\TestReceiptPrinterPrint200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1949,7 +1908,7 @@ class ReceiptPrintersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\TestReceiptPrinterPrint200Response',
+                '\OpenAPIClient\Model\TestReceiptPrinterPrint200Response',
                 $request,
                 $response,
             );
@@ -1958,7 +1917,7 @@ class ReceiptPrintersApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\TestReceiptPrinterPrint200Response',
+                        '\OpenAPIClient\Model\TestReceiptPrinterPrint200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1966,13 +1925,12 @@ class ReceiptPrintersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1983,11 +1941,11 @@ class ReceiptPrintersApi
      *
      * Send test print
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterPrint'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterPrint'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function testReceiptPrinterPrintAsync($id, string $contentType = self::contentTypes['testReceiptPrinterPrint'][0])
     {
@@ -2004,15 +1962,15 @@ class ReceiptPrintersApi
      *
      * Send test print
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterPrint'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterPrint'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function testReceiptPrinterPrintAsyncWithHttpInfo($id, string $contentType = self::contentTypes['testReceiptPrinterPrint'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\TestReceiptPrinterPrint200Response';
+        $returnType = '\OpenAPIClient\Model\TestReceiptPrinterPrint200Response';
         $request = $this->testReceiptPrinterPrintRequest($id, $contentType);
 
         return $this->client
@@ -2020,7 +1978,7 @@ class ReceiptPrintersApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -2031,7 +1989,7 @@ class ReceiptPrintersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -2054,11 +2012,11 @@ class ReceiptPrintersApi
     /**
      * Create request for operation 'testReceiptPrinterPrint'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterPrint'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['testReceiptPrinterPrint'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function testReceiptPrinterPrintRequest($id, string $contentType = self::contentTypes['testReceiptPrinterPrint'][0])
     {
@@ -2070,7 +2028,6 @@ class ReceiptPrintersApi
             );
         }
 
-
         $resourcePath = '/receipt-printers/{id}/test-print';
         $formParams = [];
         $queryParams = [];
@@ -2078,20 +2035,17 @@ class ReceiptPrintersApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -2105,7 +2059,7 @@ class ReceiptPrintersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -2113,7 +2067,7 @@ class ReceiptPrintersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -2122,8 +2076,8 @@ class ReceiptPrintersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -2139,9 +2093,10 @@ class ReceiptPrintersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -2152,17 +2107,18 @@ class ReceiptPrintersApi
      *
      * Update receipt printer
      *
-     * @param  int $id id (required)
-     * @param  \OpenAPI\Client\Model\UpdateReceiptPrinterRequest $update_receipt_printer_request update_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  \OpenAPIClient\Model\UpdateReceiptPrinterRequest  $update_receipt_printer_request  update_receipt_printer_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateReceiptPrinter'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\UpdateReceiptPrinter200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\UpdateReceiptPrinter200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function updateReceiptPrinter($id, $update_receipt_printer_request, string $contentType = self::contentTypes['updateReceiptPrinter'][0])
     {
-        list($response) = $this->updateReceiptPrinterWithHttpInfo($id, $update_receipt_printer_request, $contentType);
+        [$response] = $this->updateReceiptPrinterWithHttpInfo($id, $update_receipt_printer_request, $contentType);
+
         return $response;
     }
 
@@ -2171,13 +2127,13 @@ class ReceiptPrintersApi
      *
      * Update receipt printer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateReceiptPrinterRequest $update_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateReceiptPrinterRequest  $update_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateReceiptPrinter'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\UpdateReceiptPrinter200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\UpdateReceiptPrinter200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function updateReceiptPrinterWithHttpInfo($id, $update_receipt_printer_request, string $contentType = self::contentTypes['updateReceiptPrinter'][0])
     {
@@ -2205,23 +2161,20 @@ class ReceiptPrintersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\UpdateReceiptPrinter200Response',
+                        '\OpenAPIClient\Model\UpdateReceiptPrinter200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -2237,7 +2190,7 @@ class ReceiptPrintersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\UpdateReceiptPrinter200Response',
+                '\OpenAPIClient\Model\UpdateReceiptPrinter200Response',
                 $request,
                 $response,
             );
@@ -2246,7 +2199,7 @@ class ReceiptPrintersApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\UpdateReceiptPrinter200Response',
+                        '\OpenAPIClient\Model\UpdateReceiptPrinter200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2254,13 +2207,12 @@ class ReceiptPrintersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -2271,12 +2223,12 @@ class ReceiptPrintersApi
      *
      * Update receipt printer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateReceiptPrinterRequest $update_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateReceiptPrinterRequest  $update_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updateReceiptPrinterAsync($id, $update_receipt_printer_request, string $contentType = self::contentTypes['updateReceiptPrinter'][0])
     {
@@ -2293,16 +2245,16 @@ class ReceiptPrintersApi
      *
      * Update receipt printer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateReceiptPrinterRequest $update_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateReceiptPrinterRequest  $update_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updateReceiptPrinterAsyncWithHttpInfo($id, $update_receipt_printer_request, string $contentType = self::contentTypes['updateReceiptPrinter'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\UpdateReceiptPrinter200Response';
+        $returnType = '\OpenAPIClient\Model\UpdateReceiptPrinter200Response';
         $request = $this->updateReceiptPrinterRequest($id, $update_receipt_printer_request, $contentType);
 
         return $this->client
@@ -2310,7 +2262,7 @@ class ReceiptPrintersApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -2321,7 +2273,7 @@ class ReceiptPrintersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -2344,12 +2296,12 @@ class ReceiptPrintersApi
     /**
      * Create request for operation 'updateReceiptPrinter'
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateReceiptPrinterRequest $update_receipt_printer_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateReceiptPrinter'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateReceiptPrinterRequest  $update_receipt_printer_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateReceiptPrinter'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function updateReceiptPrinterRequest($id, $update_receipt_printer_request, string $contentType = self::contentTypes['updateReceiptPrinter'][0])
     {
@@ -2368,7 +2320,6 @@ class ReceiptPrintersApi
             );
         }
 
-
         $resourcePath = '/receipt-printers/{id}';
         $formParams = [];
         $queryParams = [];
@@ -2376,20 +2327,17 @@ class ReceiptPrintersApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -2397,7 +2345,7 @@ class ReceiptPrintersApi
         // for model (json/xml)
         if (isset($update_receipt_printer_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($update_receipt_printer_request));
             } else {
                 $httpBody = $update_receipt_printer_request;
@@ -2410,7 +2358,7 @@ class ReceiptPrintersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -2418,7 +2366,7 @@ class ReceiptPrintersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -2427,8 +2375,8 @@ class ReceiptPrintersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -2444,9 +2392,10 @@ class ReceiptPrintersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'PUT',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -2455,16 +2404,17 @@ class ReceiptPrintersApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -2485,7 +2435,7 @@ class ReceiptPrintersApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -2508,7 +2458,7 @@ class ReceiptPrintersApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

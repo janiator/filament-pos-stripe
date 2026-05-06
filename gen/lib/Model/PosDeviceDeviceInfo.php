@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PosDeviceDeviceInfo
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,80 +29,84 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * PosDeviceDeviceInfo Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializable
+class PosDeviceDeviceInfo implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'PosDevice_device_info';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'model' => 'string',
         'brand' => 'string',
         'manufacturer' => 'string',
         'product' => 'string',
         'hardware' => 'string',
-        'machine_identifier' => 'string'
+        'machine_identifier' => 'string',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'model' => null,
         'brand' => null,
         'manufacturer' => null,
         'product' => null,
         'hardware' => null,
-        'machine_identifier' => null
+        'machine_identifier' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'model' => true,
         'brand' => true,
         'manufacturer' => true,
         'product' => true,
         'hardware' => true,
-        'machine_identifier' => true
+        'machine_identifier' => true,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -125,8 +131,6 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -136,7 +140,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -146,7 +150,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -155,9 +159,6 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -166,9 +167,6 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -187,7 +185,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         'manufacturer' => 'manufacturer',
         'product' => 'product',
         'hardware' => 'hardware',
-        'machine_identifier' => 'machine_identifier'
+        'machine_identifier' => 'machine_identifier',
     ];
 
     /**
@@ -201,7 +199,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         'manufacturer' => 'setManufacturer',
         'product' => 'setProduct',
         'hardware' => 'setHardware',
-        'machine_identifier' => 'setMachineIdentifier'
+        'machine_identifier' => 'setMachineIdentifier',
     ];
 
     /**
@@ -215,7 +213,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         'manufacturer' => 'getManufacturer',
         'product' => 'getProduct',
         'hardware' => 'getHardware',
-        'machine_identifier' => 'getMachineIdentifier'
+        'machine_identifier' => 'getMachineIdentifier',
     ];
 
     /**
@@ -259,7 +257,6 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -270,8 +267,8 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -284,14 +281,12 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -324,7 +319,6 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets model
      *
@@ -338,8 +332,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Sets model
      *
-     * @param string|null $model model
-     *
+     * @param  string|null  $model  model
      * @return self
      */
     public function setModel($model)
@@ -349,7 +342,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('model', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -372,8 +365,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Sets brand
      *
-     * @param string|null $brand brand
-     *
+     * @param  string|null  $brand  brand
      * @return self
      */
     public function setBrand($brand)
@@ -383,7 +375,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('brand', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -406,8 +398,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Sets manufacturer
      *
-     * @param string|null $manufacturer manufacturer
-     *
+     * @param  string|null  $manufacturer  manufacturer
      * @return self
      */
     public function setManufacturer($manufacturer)
@@ -417,7 +408,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('manufacturer', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -440,8 +431,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Sets product
      *
-     * @param string|null $product product
-     *
+     * @param  string|null  $product  product
      * @return self
      */
     public function setProduct($product)
@@ -451,7 +441,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('product', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -474,8 +464,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Sets hardware
      *
-     * @param string|null $hardware hardware
-     *
+     * @param  string|null  $hardware  hardware
      * @return self
      */
     public function setHardware($hardware)
@@ -485,7 +474,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('hardware', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -508,8 +497,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Sets machine_identifier
      *
-     * @param string|null $machine_identifier machine_identifier
-     *
+     * @param  string|null  $machine_identifier  machine_identifier
      * @return self
      */
     public function setMachineIdentifier($machine_identifier)
@@ -519,7 +507,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('machine_identifier', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -528,12 +516,11 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -543,8 +530,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -556,10 +542,8 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -573,9 +557,7 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -584,15 +566,16 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -618,5 +601,3 @@ class PosDeviceDeviceInfo implements ModelInterface, ArrayAccess, \JsonSerializa
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

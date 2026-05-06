@@ -18,21 +18,21 @@ class ConnectedPaymentMethodInfolist
                 Section::make('Payment Method Information')
                     ->schema([
                         TextEntry::make('card_display')
-                            ->label('Payment Method')
-                            ->placeholder('-')
+                            ->label(__('Payment Method'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedCreditCard)
                             ->size(TextSize::Large)
                             ->weight('bold'),
 
                         TextEntry::make('type')
-                            ->label('Type')
+                            ->label(__('Type'))
                             ->badge()
                             ->formatStateUsing(fn ($state) => ucfirst($state))
                             ->color('gray')
                             ->icon(Heroicon::OutlinedCreditCard),
 
                         IconEntry::make('is_default')
-                            ->label('Default Payment Method')
+                            ->label(__('Default Payment Method'))
                             ->boolean()
                             ->icon(fn ($record) => $record->is_default
                                 ? Heroicon::OutlinedStar
@@ -44,22 +44,22 @@ class ConnectedPaymentMethodInfolist
                 Section::make('Customer & Store')
                     ->schema([
                         TextEntry::make('customer.name')
-                            ->label('Customer')
-                            ->placeholder('-')
+                            ->label(__('Customer'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedUser)
                             ->url(fn ($record) => class_exists(\App\Models\ConnectedCustomer::class) && $record->customer
                                 ? \App\Filament\Resources\ConnectedCustomers\ConnectedCustomerResource::getUrl('view', ['record' => $record->customer])
                                 : null),
 
                         TextEntry::make('customer.email')
-                            ->label('Customer Email')
-                            ->placeholder('-')
+                            ->label(__('Customer Email'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedEnvelope)
                             ->visible(fn ($record) => $record->customer && $record->customer->email),
 
                         TextEntry::make('store.name')
-                            ->label('Store')
-                            ->placeholder('-')
+                            ->label(__('Store'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedBuildingStorefront)
                             ->url(fn ($record) => $record->store
                                 ? \App\Filament\Resources\Stores\StoreResource::getUrl('view', ['record' => $record->store])
@@ -70,25 +70,25 @@ class ConnectedPaymentMethodInfolist
                 Section::make('Card Details')
                     ->schema([
                         TextEntry::make('card_brand')
-                            ->label('Brand')
-                            ->placeholder('-')
+                            ->label(__('Brand'))
+                            ->placeholder(__('-'))
                             ->formatStateUsing(fn ($state) => $state ? ucfirst($state) : null)
                             ->badge()
                             ->color('gray')
                             ->visible(fn ($record) => $record->type === 'card'),
 
                         TextEntry::make('card_last4')
-                            ->label('Last 4 Digits')
-                            ->placeholder('-')
+                            ->label(__('Last 4 Digits'))
+                            ->placeholder(__('-'))
                             ->formatStateUsing(fn ($state) => $state ? "•••• {$state}" : null)
                             ->visible(fn ($record) => $record->type === 'card'),
 
                         TextEntry::make('card_exp_month')
-                            ->label('Expiration')
+                            ->label(__('Expiration'))
                             ->formatStateUsing(fn ($state, $record) => ($state && $record->card_exp_year)
                                 ? "{$state}/{$record->card_exp_year}"
                                 : '-')
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->visible(fn ($record) => $record->type === 'card'),
                     ])
                     ->columns(3)
@@ -97,13 +97,13 @@ class ConnectedPaymentMethodInfolist
                 Section::make('Billing Details')
                     ->schema([
                         TextEntry::make('billing_details_name')
-                            ->label('Name')
-                            ->placeholder('-')
+                            ->label(__('Name'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedUser),
 
                         TextEntry::make('billing_details_email')
-                            ->label('Email')
-                            ->placeholder('-')
+                            ->label(__('Email'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedEnvelope),
                     ])
                     ->columns(2)
@@ -112,22 +112,22 @@ class ConnectedPaymentMethodInfolist
                 Section::make('Technical Details')
                     ->schema([
                         TextEntry::make('stripe_payment_method_id')
-                            ->label('Payment Method ID')
+                            ->label(__('Payment Method ID'))
                             ->copyable()
                             ->icon(Heroicon::OutlinedHashtag),
 
                         TextEntry::make('stripe_customer_id')
-                            ->label('Customer ID')
+                            ->label(__('Customer ID'))
                             ->copyable()
                             ->icon(Heroicon::OutlinedHashtag),
 
                         TextEntry::make('created_at')
-                            ->label('Created')
+                            ->label(__('Created'))
                             ->dateTime()
                             ->icon(Heroicon::OutlinedCalendar),
 
                         TextEntry::make('updated_at')
-                            ->label('Updated')
+                            ->label(__('Updated'))
                             ->dateTime()
                             ->icon(Heroicon::OutlinedCalendar),
                     ])

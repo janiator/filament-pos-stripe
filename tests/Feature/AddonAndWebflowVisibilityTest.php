@@ -3,7 +3,10 @@
 use App\Enums\AddonType;
 use App\Models\Addon;
 use App\Models\Store;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Artisan;
+use Positiv\FilamentWebflow\Filament\Pages\WebflowSitesNavigationPage;
+use Positiv\FilamentWebflow\Filament\Resources\WebflowSiteResource;
 use Positiv\FilamentWebflow\Models\WebflowSite;
 
 uses()->group('addons');
@@ -46,6 +49,27 @@ it('event tickets addon type is in types with webflow', function () {
 
     expect($addon->type)->toBe(AddonType::EventTickets);
     expect(AddonType::typesWithWebflow())->toContain($addon->type->value);
+});
+
+it('hides webflow cms navigation when only event tickets add-on is active', function () {
+    Addon::factory()->for($this->store)->eventTickets()->create(['is_active' => true]);
+
+    Filament::setTenant($this->store, isQuiet: true);
+
+    expect(WebflowSiteResource::shouldRegisterNavigation())->toBeFalse();
+    expect(WebflowSitesNavigationPage::shouldRegisterNavigation())->toBeFalse();
+});
+
+it('shows webflow cms navigation when webflow cms add-on is active', function () {
+    Addon::factory()->for($this->store)->create([
+        'type' => AddonType::WebflowCms,
+        'is_active' => true,
+    ]);
+
+    Filament::setTenant($this->store, isQuiet: true);
+
+    expect(WebflowSiteResource::shouldRegisterNavigation())->toBeTrue();
+    expect(WebflowSitesNavigationPage::shouldRegisterNavigation())->toBeTrue();
 });
 
 it('import event tickets command completes with zero created and updated when no webflow collection for store', function () {

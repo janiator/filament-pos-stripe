@@ -18,8 +18,8 @@ class ConnectedPriceInfolist
                 Section::make('Price Information')
                     ->schema([
                         TextEntry::make('formatted_amount')
-                            ->label('Amount')
-                            ->placeholder('-')
+                            ->label(__('Amount'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedCurrencyDollar)
                             ->size(TextSize::Large)
                             ->badge()
@@ -27,7 +27,7 @@ class ConnectedPriceInfolist
                             ->weight('bold'),
 
                         TextEntry::make('type')
-                            ->label('Type')
+                            ->label(__('Type'))
                             ->badge()
                             ->formatStateUsing(fn ($state) => ucfirst($state))
                             ->colors([
@@ -37,21 +37,21 @@ class ConnectedPriceInfolist
                             ->icon(Heroicon::OutlinedCreditCard),
 
                         TextEntry::make('recurring_description')
-                            ->label('Billing Interval')
+                            ->label(__('Billing Interval'))
                             ->badge()
                             ->color('info')
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedCalendar)
                             ->visible(fn ($record) => $record->type === 'recurring'),
 
                         TextEntry::make('currency')
-                            ->label('Currency')
+                            ->label(__('Currency'))
                             ->badge()
                             ->formatStateUsing(fn ($state) => strtoupper($state))
                             ->color('gray'),
 
                         IconEntry::make('active')
-                            ->label('Active')
+                            ->label(__('Active'))
                             ->boolean()
                             ->icon(fn ($record) => $record->active
                                 ? Heroicon::OutlinedCheckCircle
@@ -63,16 +63,16 @@ class ConnectedPriceInfolist
                 Section::make('Product & Store')
                     ->schema([
                         TextEntry::make('product.name')
-                            ->label('Product')
-                            ->placeholder('-')
+                            ->label(__('Product'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedRectangleStack)
                             ->url(fn ($record) => $record->product && class_exists(\App\Filament\Resources\ConnectedProducts\ConnectedProductResource::class)
                                 ? \App\Filament\Resources\ConnectedProducts\ConnectedProductResource::getUrl('view', ['record' => $record->product])
                                 : null),
 
                         TextEntry::make('store.name')
-                            ->label('Store')
-                            ->placeholder('-')
+                            ->label(__('Store'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedBuildingStorefront)
                             ->url(fn ($record) => $record->store
                                 ? \App\Filament\Resources\Stores\StoreResource::getUrl('view', ['record' => $record->store])
@@ -83,26 +83,26 @@ class ConnectedPriceInfolist
                 Section::make('Price Details')
                     ->schema([
                         TextEntry::make('nickname')
-                            ->label('Nickname')
-                            ->placeholder('-')
+                            ->label(__('Nickname'))
+                            ->placeholder(__('-'))
                             ->visible(fn ($record) => $record->nickname),
 
                         TextEntry::make('billing_scheme')
-                            ->label('Billing Scheme')
+                            ->label(__('Billing Scheme'))
                             ->badge()
                             ->formatStateUsing(fn ($state) => $state ? ucfirst(str_replace('_', ' ', $state)) : '-')
                             ->color('gray')
                             ->visible(fn ($record) => $record->billing_scheme),
 
                         TextEntry::make('tiers_mode')
-                            ->label('Tiers Mode')
+                            ->label(__('Tiers Mode'))
                             ->badge()
                             ->formatStateUsing(fn ($state) => $state ? ucfirst(str_replace('_', ' ', $state)) : '-')
                             ->color('gray')
                             ->visible(fn ($record) => $record->tiers_mode),
 
                         TextEntry::make('recurring_usage_type')
-                            ->label('Usage Type')
+                            ->label(__('Usage Type'))
                             ->badge()
                             ->formatStateUsing(fn ($state) => $state ? ucfirst(str_replace('_', ' ', $state)) : '-')
                             ->color('gray')
@@ -114,34 +114,34 @@ class ConnectedPriceInfolist
                 Section::make('Technical Details')
                     ->schema([
                         TextEntry::make('stripe_price_id')
-                            ->label('Price ID')
+                            ->label(__('Price ID'))
                             ->copyable()
                             ->icon(Heroicon::OutlinedHashtag),
 
                         TextEntry::make('stripe_product_id')
-                            ->label('Product ID')
+                            ->label(__('Product ID'))
                             ->copyable()
                             ->icon(Heroicon::OutlinedHashtag)
                             ->visible(fn ($record) => $record->stripe_product_id),
 
                         TextEntry::make('stripe_account_id')
-                            ->label('Account ID')
+                            ->label(__('Account ID'))
                             ->copyable()
                             ->icon(Heroicon::OutlinedHashtag),
 
                         TextEntry::make('unit_amount')
-                            ->label('Unit Amount (cents)')
+                            ->label(__('Unit Amount (cents)'))
                             ->numeric()
                             ->icon(Heroicon::OutlinedCurrencyDollar)
                             ->visible(fn ($record) => $record->unit_amount),
 
                         TextEntry::make('created_at')
-                            ->label('Created')
+                            ->label(__('Created'))
                             ->dateTime()
                             ->icon(Heroicon::OutlinedCalendar),
 
                         TextEntry::make('updated_at')
-                            ->label('Updated')
+                            ->label(__('Updated'))
                             ->dateTime()
                             ->icon(Heroicon::OutlinedCalendar),
                     ])

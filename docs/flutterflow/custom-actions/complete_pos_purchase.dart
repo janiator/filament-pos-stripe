@@ -28,6 +28,20 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+const String kPositivDeferredResumeChargeIdKey =
+    'positiv_deferred_resume_charge_id';
+const String kPositivDeferredResumeOrderLabelKey =
+    'positiv_deferred_resume_order_label';
+
+Future<void> _clearPositivDeferredResumePrefs() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(kPositivDeferredResumeChargeIdKey);
+    await prefs.remove(kPositivDeferredResumeOrderLabelKey);
+  } catch (_) {}
+}
 
 Future<dynamic> completePosPurchase(
   int posSessionId,
@@ -76,7 +90,27 @@ Future<dynamic> completePosPurchase(
         'message': 'Cart is empty. Cannot complete purchase.',
       };
     }
-    
+
+    // Parked deferred resume (orders → POS): do not POST a new purchase; use
+    // completeDeferredPayment + serializeCartForCompleteDeferred instead.
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final resumeId = prefs.getInt(kPositivDeferredResumeChargeIdKey) ?? 0;
+      final resumeLabel =
+          (prefs.getString(kPositivDeferredResumeOrderLabelKey) ?? '').trim();
+      if (resumeId > 0 && resumeLabel.isNotEmpty) {
+        return {
+          'success': false,
+          'blockedDeferredResume': true,
+          'resumeChargeId': resumeId,
+          'orderLabel': resumeLabel,
+          'message':
+              'This cart is a parked deferred order. Use completeDeferredPayment '
+              '(with cartJson from serializeCartForCompleteDeferred), not a new purchase.',
+        };
+      }
+    } catch (_) {}
+
     // Validate POS session ID
     if (posSessionId <= 0) {
       return {
@@ -318,6 +352,9 @@ Future<dynamic> completePosPurchase(
     
     // Check HTTP status code
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (responseData['success'] != false) {
+        await _clearPositivDeferredResumePrefs();
+      }
       // Success
       return {
         'success': responseData['success'] ?? true,

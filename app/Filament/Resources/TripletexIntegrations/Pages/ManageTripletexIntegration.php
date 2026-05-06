@@ -120,7 +120,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
         $this->persistLedgerSettingsFromForm($data);
 
         Notification::make()
-            ->title('Saved')
+            ->title(__('Saved'))
             ->success()
             ->send();
     }
@@ -527,7 +527,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
     {
         return [
             Action::make('save')
-                ->label('Save')
+                ->label(__('Save'))
                 ->submit('saveSettings'),
         ];
     }
@@ -546,22 +546,22 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
     {
         return [
             Action::make('syncHistory')
-                ->label('Sync history')
+                ->label(__('Sync history'))
                 ->url(fn (): string => TripletexSyncRunResource::getUrl('index'))
                 ->color('gray'),
             Action::make('previewLatestZ')
-                ->label('Preview latest Z voucher')
+                ->label(__('Preview latest Z voucher'))
                 ->icon('heroicon-o-eye')
                 ->color('gray')
                 ->slideOver()
-                ->modalHeading('Preview latest closed session (Z)')
-                ->modalDescription('Shows ledger lines for the most recently closed session. Turn on account resolution to build the exact JSON body sent to Tripletex (calls their API).')
+                ->modalHeading(__('Preview latest closed session (Z)'))
+                ->modalDescription(__('Shows ledger lines for the most recently closed session. Turn on account resolution to build the exact JSON body sent to Tripletex (calls their API).'))
                 ->modalWidth('xl')
                 ->visible(fn (): bool => $this->integration?->isConnected() ?? false)
                 ->form([
                     Toggle::make('resolve_tripletex_accounts')
-                        ->label('Resolve Tripletex account IDs (calls Tripletex API)')
-                        ->helperText('When enabled, session token + ledger/account lookups run; the draft voucher payload is included in the on-page preview.')
+                        ->label(__('Resolve Tripletex account IDs (calls Tripletex API)'))
+                        ->helperText(__('When enabled, session token + ledger/account lookups run; the draft voucher payload is included in the on-page preview.'))
                         ->default(false),
                 ])
                 ->action(function (array $data, TripletexSyncPreviewService $preview): void {
@@ -576,7 +576,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         ->orderByDesc('closed_at')
                         ->first();
                     if (! $session) {
-                        Notification::make()->title('No closed sessions')->warning()->send();
+                        Notification::make()->title(__('No closed sessions'))->warning()->send();
                         $this->tripletexPreview = null;
 
                         return;
@@ -586,21 +586,21 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         $this->integration,
                         (bool) ($data['resolve_tripletex_accounts'] ?? false),
                     );
-                    Notification::make()->title('Z voucher preview ready')->body('Scroll to the preview section below.')->success()->send();
+                    Notification::make()->title(__('Z voucher preview ready'))->body('Scroll to the preview section below.')->success()->send();
                 }),
             Action::make('previewLatestPayout')
-                ->label('Preview latest payout voucher')
+                ->label(__('Preview latest payout voucher'))
                 ->icon('heroicon-o-eye')
                 ->color('gray')
                 ->slideOver()
-                ->modalHeading('Preview latest paid payout')
-                ->modalDescription('Shows ledger lines for the most recent paid Stripe payout. Turn on account resolution to build the exact Tripletex voucher JSON (calls their API).')
+                ->modalHeading(__('Preview latest paid payout'))
+                ->modalDescription(__('Shows ledger lines for the most recent paid Stripe payout. Turn on account resolution to build the exact Tripletex voucher JSON (calls their API).'))
                 ->modalWidth('xl')
                 ->visible(fn (): bool => $this->integration?->isConnected() ?? false)
                 ->form([
                     Toggle::make('resolve_tripletex_accounts')
-                        ->label('Resolve Tripletex account IDs (calls Tripletex API)')
-                        ->helperText('When enabled, session token + ledger/account lookups run; the draft voucher payload is included in the on-page preview.')
+                        ->label(__('Resolve Tripletex account IDs (calls Tripletex API)'))
+                        ->helperText(__('When enabled, session token + ledger/account lookups run; the draft voucher payload is included in the on-page preview.'))
                         ->default(false),
                 ])
                 ->action(function (array $data, TripletexSyncPreviewService $preview): void {
@@ -614,7 +614,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         ->orderByDesc('arrival_date')
                         ->first();
                     if (! $payout) {
-                        Notification::make()->title('No paid payouts')->warning()->send();
+                        Notification::make()->title(__('No paid payouts'))->warning()->send();
                         $this->tripletexPreview = null;
 
                         return;
@@ -624,16 +624,16 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         $this->integration,
                         (bool) ($data['resolve_tripletex_accounts'] ?? false),
                     );
-                    Notification::make()->title('Payout voucher preview ready')->body('Scroll to the preview section below.')->success()->send();
+                    Notification::make()->title(__('Payout voucher preview ready'))->body('Scroll to the preview section below.')->success()->send();
                 }),
             Action::make('historicalZReports')
-                ->label('Queue historical Z-reports')
+                ->label(__('Queue historical Z-reports'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('warning')
                 ->visible(fn (): bool => (bool) $this->integration?->sync_enabled)
                 ->form([
-                    DatePicker::make('from')->label('Closed from (optional)'),
-                    DatePicker::make('to')->label('Closed to (optional)'),
+                    DatePicker::make('from')->label(__('Closed from (optional)')),
+                    DatePicker::make('to')->label(__('Closed to (optional)')),
                     TextInput::make('limit')
                         ->numeric()
                         ->default(25)
@@ -641,7 +641,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         ->maxValue(500)
                         ->required(),
                     Toggle::make('only_missing')
-                        ->label('Skip sessions already synced successfully')
+                        ->label(__('Skip sessions already synced successfully'))
                         ->default(true),
                 ])
                 ->action(function (array $data, TripletexHistoricalSyncService $historical): void {
@@ -655,19 +655,19 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                     $onlyMissing = (bool) ($data['only_missing'] ?? true);
                     $result = $historical->queueZReports($store, $from, $to, $limit, $onlyMissing);
                     Notification::make()
-                        ->title('Historical Z-reports queued')
+                        ->title(__('Historical Z-reports queued'))
                         ->body("Queued {$result['queued']}, skipped ineligible {$result['skipped']}.")
                         ->success()
                         ->send();
                 }),
             Action::make('historicalPayouts')
-                ->label('Queue historical payouts')
+                ->label(__('Queue historical payouts'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('warning')
                 ->visible(fn (): bool => (bool) $this->integration?->sync_enabled)
                 ->form([
-                    DatePicker::make('from')->label('Arrival from (optional)'),
-                    DatePicker::make('to')->label('Arrival to (optional)'),
+                    DatePicker::make('from')->label(__('Arrival from (optional)')),
+                    DatePicker::make('to')->label(__('Arrival to (optional)')),
                     TextInput::make('limit')
                         ->numeric()
                         ->default(25)
@@ -675,7 +675,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         ->maxValue(500)
                         ->required(),
                     Toggle::make('only_missing')
-                        ->label('Skip payouts already synced successfully')
+                        ->label(__('Skip payouts already synced successfully'))
                         ->default(true),
                 ])
                 ->action(function (array $data, TripletexHistoricalSyncService $historical): void {
@@ -689,24 +689,24 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                     $onlyMissing = (bool) ($data['only_missing'] ?? true);
                     $result = $historical->queuePayouts($store, $from, $to, $limit, $onlyMissing);
                     Notification::make()
-                        ->title('Historical payouts queued')
+                        ->title(__('Historical payouts queued'))
                         ->body("Queued {$result['queued']} payout job(s).")
                         ->success()
                         ->send();
                 }),
             Action::make('testConnection')
-                ->label('Test Tripletex connection')
+                ->label(__('Test Tripletex connection'))
                 ->visible(fn (): bool => $this->integration?->isConnected() ?? false)
                 ->action(function (TripletexApiClient $api): void {
                     try {
                         $api->createSessionToken($this->integration);
-                        Notification::make()->title('Tripletex session OK')->success()->send();
+                        Notification::make()->title(__('Tripletex session OK'))->success()->send();
                     } catch (\Throwable $e) {
-                        Notification::make()->title('Tripletex connection failed')->body($e->getMessage())->danger()->send();
+                        Notification::make()->title(__('Tripletex connection failed'))->body($e->getMessage())->danger()->send();
                     }
                 }),
             Action::make('syncLatestZReport')
-                ->label('Queue latest Z-report sync')
+                ->label(__('Queue latest Z-report sync'))
                 ->visible(fn (): bool => (bool) $this->integration?->sync_enabled)
                 ->action(function (): void {
                     $store = Filament::getTenant();
@@ -720,12 +720,12 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         ->orderByDesc('closed_at')
                         ->first();
                     if (! $session) {
-                        Notification::make()->title('No closed sessions')->warning()->send();
+                        Notification::make()->title(__('No closed sessions'))->warning()->send();
 
                         return;
                     }
                     SyncTripletexZReportJob::dispatch($session->id, true);
-                    Notification::make()->title('Queued Tripletex Z-report sync')->success()->send();
+                    Notification::make()->title(__('Queued Tripletex Z-report sync'))->success()->send();
                 }),
         ];
     }

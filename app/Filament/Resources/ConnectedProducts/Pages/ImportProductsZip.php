@@ -43,23 +43,23 @@ class ImportProductsZip extends Page implements HasForms
             ->components([
                 Wizard::make([
                     Step::make('upload')
-                        ->label('Upload ZIP')
-                        ->description('Upload your products export ZIP file')
+                        ->label(__('Upload ZIP'))
+                        ->description(__('Upload your products export ZIP file'))
                         ->schema([
                             FileUpload::make('zip_file')
-                                ->label('ZIP File')
+                                ->label(__('ZIP File'))
                                 ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])
                                 ->disk('local')
                                 ->directory('imports')
                                 ->visibility('private')
                                 ->required()
-                                ->helperText('Upload a products export ZIP file created with the products:export command')
+                                ->helperText(__('Upload a products export ZIP file created with the products:export command'))
                                 ->columnSpanFull(),
                         ]),
 
                     Step::make('preview')
-                        ->label('Preview')
-                        ->description('Review what will be imported')
+                        ->label(__('Preview'))
+                        ->description(__('Review what will be imported'))
                         ->schema([
                             View::make('filament.resources.connected-products.pages.import-zip-preview')
                                 ->key('import-zip-preview'),
@@ -70,18 +70,18 @@ class ImportProductsZip extends Page implements HasForms
                         }),
 
                     Step::make('options')
-                        ->label('Options')
-                        ->description('Configure import options')
+                        ->label(__('Options'))
+                        ->description(__('Configure import options'))
                         ->schema([
                             Checkbox::make('update_existing')
-                                ->label('Update existing products/collections')
-                                ->helperText('If checked, existing products and collections will be updated. Otherwise, they will be skipped.')
+                                ->label(__('Update existing products/collections'))
+                                ->helperText(__('If checked, existing products and collections will be updated. Otherwise, they will be skipped.'))
                                 ->default(false),
                         ]),
 
                     Step::make('import')
-                        ->label('Import')
-                        ->description('Confirm and import products')
+                        ->label(__('Import'))
+                        ->description(__('Confirm and import products'))
                         ->schema([
                             // Import confirmation
                         ]),
@@ -114,7 +114,7 @@ class ImportProductsZip extends Page implements HasForms
         if (! file_exists($fullPath)) {
             Notification::make()
                 ->danger()
-                ->title('ZIP file not found')
+                ->title(__('ZIP file not found'))
                 ->body('The uploaded ZIP file could not be found.')
                 ->send();
 
@@ -130,7 +130,7 @@ class ImportProductsZip extends Page implements HasForms
         } catch (\Exception $e) {
             Notification::make()
                 ->danger()
-                ->title('Error reading ZIP file')
+                ->title(__('Error reading ZIP file'))
                 ->body($e->getMessage())
                 ->send();
             $this->previewData = null;
@@ -144,7 +144,7 @@ class ImportProductsZip extends Page implements HasForms
         if (! $store || ! $store->stripe_account_id) {
             Notification::make()
                 ->danger()
-                ->title('Store not configured')
+                ->title(__('Store not configured'))
                 ->body('The current store does not have a Stripe account configured.')
                 ->send();
 
@@ -158,7 +158,7 @@ class ImportProductsZip extends Page implements HasForms
         if (! $zipPath) {
             Notification::make()
                 ->danger()
-                ->title('Missing required data')
+                ->title(__('Missing required data'))
                 ->body('Please upload a ZIP file.')
                 ->send();
 
@@ -170,7 +170,7 @@ class ImportProductsZip extends Page implements HasForms
         if (! file_exists($fullPath)) {
             Notification::make()
                 ->danger()
-                ->title('ZIP file not found')
+                ->title(__('ZIP file not found'))
                 ->body('The uploaded ZIP file could not be found.')
                 ->send();
 
@@ -202,7 +202,7 @@ class ImportProductsZip extends Page implements HasForms
 
             Notification::make()
                 ->success()
-                ->title('Import completed')
+                ->title(__('Import completed'))
                 ->body($message)
                 ->send();
 
@@ -219,7 +219,7 @@ class ImportProductsZip extends Page implements HasForms
 
             Notification::make()
                 ->danger()
-                ->title('Import failed')
+                ->title(__('Import failed'))
                 ->body('Failed to import ZIP file: '.$e->getMessage())
                 ->send();
         }

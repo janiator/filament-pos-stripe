@@ -17,17 +17,17 @@ class PowerOfficeAccountMappingsTable
         return $table
             ->columns([
                 TextColumn::make('basis_type')
-                    ->label('Basis')
+                    ->label(__('Basis'))
                     ->formatStateUsing(fn (PowerOfficeMappingBasis $state): string => $state->label()),
                 TextColumn::make('basis_key')
                     ->searchable(),
                 TextColumn::make('basis_label')
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
                 TextColumn::make('sales_account_no'),
                 TextColumn::make('vat_account_no')
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
                 TextColumn::make('tips_account_no')
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
                 IconColumn::make('is_active')
                     ->boolean(),
                 TextColumn::make('updated_at')

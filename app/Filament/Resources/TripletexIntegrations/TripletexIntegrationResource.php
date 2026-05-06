@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TripletexIntegrations;
 
 use App\Enums\AddonType;
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\TripletexIntegrations\Pages\ManageTripletexIntegration;
 use App\Filament\Resources\TripletexIntegrations\Schemas\TripletexIntegrationForm;
 use App\Models\Addon;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class TripletexIntegrationResource extends Resource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $model = TripletexIntegration::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentChartBar;
@@ -51,7 +54,11 @@ class TripletexIntegrationResource extends Resource
      */
     public static function canAccess(): bool
     {
-        return Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Tripletex);
+        if (! Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Tripletex)) {
+            return false;
+        }
+
+        return parent::canAccess();
     }
 
     public static function getEloquentQuery(): Builder

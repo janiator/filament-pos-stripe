@@ -1,18 +1,20 @@
 <?php
+
 /**
  * InventoryApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * InventoryApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class InventoryApi
@@ -73,7 +75,7 @@ class InventoryApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'adjustInventory' => [
             'application/json',
@@ -93,10 +95,7 @@ class InventoryApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -104,16 +103,16 @@ class InventoryApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -143,17 +142,18 @@ class InventoryApi
      *
      * Adjust inventory
      *
-     * @param  int $variant variant (required)
-     * @param  \OpenAPI\Client\Model\AdjustInventoryRequest $adjust_inventory_request adjust_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['adjustInventory'] to see the possible values for this operation
+     * @param  int  $variant  variant (required)
+     * @param  \OpenAPIClient\Model\AdjustInventoryRequest  $adjust_inventory_request  adjust_inventory_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['adjustInventory'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\AdjustInventory200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\AdjustInventory200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function adjustInventory($variant, $adjust_inventory_request, string $contentType = self::contentTypes['adjustInventory'][0])
     {
-        list($response) = $this->adjustInventoryWithHttpInfo($variant, $adjust_inventory_request, $contentType);
+        [$response] = $this->adjustInventoryWithHttpInfo($variant, $adjust_inventory_request, $contentType);
+
         return $response;
     }
 
@@ -162,13 +162,13 @@ class InventoryApi
      *
      * Adjust inventory
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\AdjustInventoryRequest $adjust_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['adjustInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\AdjustInventoryRequest  $adjust_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['adjustInventory'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\AdjustInventory200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\AdjustInventory200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function adjustInventoryWithHttpInfo($variant, $adjust_inventory_request, string $contentType = self::contentTypes['adjustInventory'][0])
     {
@@ -196,23 +196,20 @@ class InventoryApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\AdjustInventory200Response',
+                        '\OpenAPIClient\Model\AdjustInventory200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -228,7 +225,7 @@ class InventoryApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\AdjustInventory200Response',
+                '\OpenAPIClient\Model\AdjustInventory200Response',
                 $request,
                 $response,
             );
@@ -237,7 +234,7 @@ class InventoryApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\AdjustInventory200Response',
+                        '\OpenAPIClient\Model\AdjustInventory200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -245,13 +242,12 @@ class InventoryApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -262,12 +258,12 @@ class InventoryApi
      *
      * Adjust inventory
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\AdjustInventoryRequest $adjust_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['adjustInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\AdjustInventoryRequest  $adjust_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['adjustInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function adjustInventoryAsync($variant, $adjust_inventory_request, string $contentType = self::contentTypes['adjustInventory'][0])
     {
@@ -284,16 +280,16 @@ class InventoryApi
      *
      * Adjust inventory
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\AdjustInventoryRequest $adjust_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['adjustInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\AdjustInventoryRequest  $adjust_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['adjustInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function adjustInventoryAsyncWithHttpInfo($variant, $adjust_inventory_request, string $contentType = self::contentTypes['adjustInventory'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\AdjustInventory200Response';
+        $returnType = '\OpenAPIClient\Model\AdjustInventory200Response';
         $request = $this->adjustInventoryRequest($variant, $adjust_inventory_request, $contentType);
 
         return $this->client
@@ -301,7 +297,7 @@ class InventoryApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -312,7 +308,7 @@ class InventoryApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -335,12 +331,12 @@ class InventoryApi
     /**
      * Create request for operation 'adjustInventory'
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\AdjustInventoryRequest $adjust_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['adjustInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\AdjustInventoryRequest  $adjust_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['adjustInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function adjustInventoryRequest($variant, $adjust_inventory_request, string $contentType = self::contentTypes['adjustInventory'][0])
     {
@@ -359,7 +355,6 @@ class InventoryApi
             );
         }
 
-
         $resourcePath = '/variants/{variant}/inventory/adjust';
         $formParams = [];
         $queryParams = [];
@@ -367,20 +362,17 @@ class InventoryApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($variant !== null) {
             $resourcePath = str_replace(
-                '{' . 'variant' . '}',
+                '{'.'variant'.'}',
                 ObjectSerializer::toPathValue($variant),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -388,7 +380,7 @@ class InventoryApi
         // for model (json/xml)
         if (isset($adjust_inventory_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($adjust_inventory_request));
             } else {
                 $httpBody = $adjust_inventory_request;
@@ -401,7 +393,7 @@ class InventoryApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -409,7 +401,7 @@ class InventoryApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -418,8 +410,8 @@ class InventoryApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -435,9 +427,10 @@ class InventoryApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -448,16 +441,17 @@ class InventoryApi
      *
      * Bulk update inventory
      *
-     * @param  \OpenAPI\Client\Model\BulkUpdateInventoryRequest $bulk_update_inventory_request bulk_update_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['bulkUpdateInventory'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\BulkUpdateInventoryRequest  $bulk_update_inventory_request  bulk_update_inventory_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['bulkUpdateInventory'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\BulkUpdateInventory200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\BulkUpdateInventory200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function bulkUpdateInventory($bulk_update_inventory_request, string $contentType = self::contentTypes['bulkUpdateInventory'][0])
     {
-        list($response) = $this->bulkUpdateInventoryWithHttpInfo($bulk_update_inventory_request, $contentType);
+        [$response] = $this->bulkUpdateInventoryWithHttpInfo($bulk_update_inventory_request, $contentType);
+
         return $response;
     }
 
@@ -466,12 +460,12 @@ class InventoryApi
      *
      * Bulk update inventory
      *
-     * @param  \OpenAPI\Client\Model\BulkUpdateInventoryRequest $bulk_update_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['bulkUpdateInventory'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\BulkUpdateInventoryRequest  $bulk_update_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['bulkUpdateInventory'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\BulkUpdateInventory200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\BulkUpdateInventory200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function bulkUpdateInventoryWithHttpInfo($bulk_update_inventory_request, string $contentType = self::contentTypes['bulkUpdateInventory'][0])
     {
@@ -499,23 +493,20 @@ class InventoryApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\BulkUpdateInventory200Response',
+                        '\OpenAPIClient\Model\BulkUpdateInventory200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -531,7 +522,7 @@ class InventoryApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\BulkUpdateInventory200Response',
+                '\OpenAPIClient\Model\BulkUpdateInventory200Response',
                 $request,
                 $response,
             );
@@ -540,7 +531,7 @@ class InventoryApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\BulkUpdateInventory200Response',
+                        '\OpenAPIClient\Model\BulkUpdateInventory200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -548,13 +539,12 @@ class InventoryApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -565,11 +555,11 @@ class InventoryApi
      *
      * Bulk update inventory
      *
-     * @param  \OpenAPI\Client\Model\BulkUpdateInventoryRequest $bulk_update_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['bulkUpdateInventory'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\BulkUpdateInventoryRequest  $bulk_update_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['bulkUpdateInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function bulkUpdateInventoryAsync($bulk_update_inventory_request, string $contentType = self::contentTypes['bulkUpdateInventory'][0])
     {
@@ -586,15 +576,15 @@ class InventoryApi
      *
      * Bulk update inventory
      *
-     * @param  \OpenAPI\Client\Model\BulkUpdateInventoryRequest $bulk_update_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['bulkUpdateInventory'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\BulkUpdateInventoryRequest  $bulk_update_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['bulkUpdateInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function bulkUpdateInventoryAsyncWithHttpInfo($bulk_update_inventory_request, string $contentType = self::contentTypes['bulkUpdateInventory'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\BulkUpdateInventory200Response';
+        $returnType = '\OpenAPIClient\Model\BulkUpdateInventory200Response';
         $request = $this->bulkUpdateInventoryRequest($bulk_update_inventory_request, $contentType);
 
         return $this->client
@@ -602,7 +592,7 @@ class InventoryApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -613,7 +603,7 @@ class InventoryApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -636,11 +626,11 @@ class InventoryApi
     /**
      * Create request for operation 'bulkUpdateInventory'
      *
-     * @param  \OpenAPI\Client\Model\BulkUpdateInventoryRequest $bulk_update_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['bulkUpdateInventory'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\BulkUpdateInventoryRequest  $bulk_update_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['bulkUpdateInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function bulkUpdateInventoryRequest($bulk_update_inventory_request, string $contentType = self::contentTypes['bulkUpdateInventory'][0])
     {
@@ -652,7 +642,6 @@ class InventoryApi
             );
         }
 
-
         $resourcePath = '/inventory/bulk-update';
         $formParams = [];
         $queryParams = [];
@@ -660,12 +649,8 @@ class InventoryApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -673,7 +658,7 @@ class InventoryApi
         // for model (json/xml)
         if (isset($bulk_update_inventory_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($bulk_update_inventory_request));
             } else {
                 $httpBody = $bulk_update_inventory_request;
@@ -686,7 +671,7 @@ class InventoryApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -694,7 +679,7 @@ class InventoryApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -703,8 +688,8 @@ class InventoryApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -720,9 +705,10 @@ class InventoryApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -733,16 +719,17 @@ class InventoryApi
      *
      * Get product inventory
      *
-     * @param  int $product product (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getProductInventory'] to see the possible values for this operation
+     * @param  int  $product  product (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getProductInventory'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetProductInventory200Response|\OpenAPIClient\Model\GetProductInventory403Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GetProductInventory200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getProductInventory($product, string $contentType = self::contentTypes['getProductInventory'][0])
     {
-        list($response) = $this->getProductInventoryWithHttpInfo($product, $contentType);
+        [$response] = $this->getProductInventoryWithHttpInfo($product, $contentType);
+
         return $response;
     }
 
@@ -751,12 +738,12 @@ class InventoryApi
      *
      * Get product inventory
      *
-     * @param  int $product (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getProductInventory'] to see the possible values for this operation
+     * @param  int  $product  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getProductInventory'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetProductInventory200Response|\OpenAPIClient\Model\GetProductInventory403Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GetProductInventory200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getProductInventoryWithHttpInfo($product, string $contentType = self::contentTypes['getProductInventory'][0])
     {
@@ -784,23 +771,26 @@ class InventoryApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GetProductInventory200Response',
+                        '\OpenAPIClient\Model\GetProductInventory200Response',
+                        $request,
+                        $response,
+                    );
+                case 403:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\GetProductInventory403Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -816,7 +806,7 @@ class InventoryApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GetProductInventory200Response',
+                '\OpenAPIClient\Model\GetProductInventory200Response',
                 $request,
                 $response,
             );
@@ -825,7 +815,15 @@ class InventoryApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GetProductInventory200Response',
+                        '\OpenAPIClient\Model\GetProductInventory200Response',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 403:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\GetProductInventory403Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -833,13 +831,12 @@ class InventoryApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -850,11 +847,11 @@ class InventoryApi
      *
      * Get product inventory
      *
-     * @param  int $product (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getProductInventory'] to see the possible values for this operation
+     * @param  int  $product  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getProductInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getProductInventoryAsync($product, string $contentType = self::contentTypes['getProductInventory'][0])
     {
@@ -871,15 +868,15 @@ class InventoryApi
      *
      * Get product inventory
      *
-     * @param  int $product (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getProductInventory'] to see the possible values for this operation
+     * @param  int  $product  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getProductInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getProductInventoryAsyncWithHttpInfo($product, string $contentType = self::contentTypes['getProductInventory'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GetProductInventory200Response';
+        $returnType = '\OpenAPIClient\Model\GetProductInventory200Response';
         $request = $this->getProductInventoryRequest($product, $contentType);
 
         return $this->client
@@ -887,7 +884,7 @@ class InventoryApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -898,7 +895,7 @@ class InventoryApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -921,11 +918,11 @@ class InventoryApi
     /**
      * Create request for operation 'getProductInventory'
      *
-     * @param  int $product (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getProductInventory'] to see the possible values for this operation
+     * @param  int  $product  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getProductInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getProductInventoryRequest($product, string $contentType = self::contentTypes['getProductInventory'][0])
     {
@@ -937,7 +934,6 @@ class InventoryApi
             );
         }
 
-
         $resourcePath = '/products/{product}/inventory';
         $formParams = [];
         $queryParams = [];
@@ -945,20 +941,17 @@ class InventoryApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($product !== null) {
             $resourcePath = str_replace(
-                '{' . 'product' . '}',
+                '{'.'product'.'}',
                 ObjectSerializer::toPathValue($product),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -972,7 +965,7 @@ class InventoryApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -980,7 +973,7 @@ class InventoryApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -989,8 +982,8 @@ class InventoryApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1006,9 +999,10 @@ class InventoryApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1019,17 +1013,18 @@ class InventoryApi
      *
      * Set inventory quantity
      *
-     * @param  int $variant variant (required)
-     * @param  \OpenAPI\Client\Model\SetInventoryRequest $set_inventory_request set_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setInventory'] to see the possible values for this operation
+     * @param  int  $variant  variant (required)
+     * @param  \OpenAPIClient\Model\SetInventoryRequest  $set_inventory_request  set_inventory_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['setInventory'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\SetInventory200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\SetInventory200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function setInventory($variant, $set_inventory_request, string $contentType = self::contentTypes['setInventory'][0])
     {
-        list($response) = $this->setInventoryWithHttpInfo($variant, $set_inventory_request, $contentType);
+        [$response] = $this->setInventoryWithHttpInfo($variant, $set_inventory_request, $contentType);
+
         return $response;
     }
 
@@ -1038,13 +1033,13 @@ class InventoryApi
      *
      * Set inventory quantity
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\SetInventoryRequest $set_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\SetInventoryRequest  $set_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['setInventory'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\SetInventory200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\SetInventory200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function setInventoryWithHttpInfo($variant, $set_inventory_request, string $contentType = self::contentTypes['setInventory'][0])
     {
@@ -1072,23 +1067,20 @@ class InventoryApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\SetInventory200Response',
+                        '\OpenAPIClient\Model\SetInventory200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1104,7 +1096,7 @@ class InventoryApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\SetInventory200Response',
+                '\OpenAPIClient\Model\SetInventory200Response',
                 $request,
                 $response,
             );
@@ -1113,7 +1105,7 @@ class InventoryApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\SetInventory200Response',
+                        '\OpenAPIClient\Model\SetInventory200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1121,13 +1113,12 @@ class InventoryApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1138,12 +1129,12 @@ class InventoryApi
      *
      * Set inventory quantity
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\SetInventoryRequest $set_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\SetInventoryRequest  $set_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['setInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function setInventoryAsync($variant, $set_inventory_request, string $contentType = self::contentTypes['setInventory'][0])
     {
@@ -1160,16 +1151,16 @@ class InventoryApi
      *
      * Set inventory quantity
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\SetInventoryRequest $set_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\SetInventoryRequest  $set_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['setInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function setInventoryAsyncWithHttpInfo($variant, $set_inventory_request, string $contentType = self::contentTypes['setInventory'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\SetInventory200Response';
+        $returnType = '\OpenAPIClient\Model\SetInventory200Response';
         $request = $this->setInventoryRequest($variant, $set_inventory_request, $contentType);
 
         return $this->client
@@ -1177,7 +1168,7 @@ class InventoryApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1188,7 +1179,7 @@ class InventoryApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1211,12 +1202,12 @@ class InventoryApi
     /**
      * Create request for operation 'setInventory'
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\SetInventoryRequest $set_inventory_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\SetInventoryRequest  $set_inventory_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['setInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function setInventoryRequest($variant, $set_inventory_request, string $contentType = self::contentTypes['setInventory'][0])
     {
@@ -1235,7 +1226,6 @@ class InventoryApi
             );
         }
 
-
         $resourcePath = '/variants/{variant}/inventory/set';
         $formParams = [];
         $queryParams = [];
@@ -1243,20 +1233,17 @@ class InventoryApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($variant !== null) {
             $resourcePath = str_replace(
-                '{' . 'variant' . '}',
+                '{'.'variant'.'}',
                 ObjectSerializer::toPathValue($variant),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1264,7 +1251,7 @@ class InventoryApi
         // for model (json/xml)
         if (isset($set_inventory_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($set_inventory_request));
             } else {
                 $httpBody = $set_inventory_request;
@@ -1277,7 +1264,7 @@ class InventoryApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1285,7 +1272,7 @@ class InventoryApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1294,8 +1281,8 @@ class InventoryApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1311,9 +1298,10 @@ class InventoryApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1324,17 +1312,18 @@ class InventoryApi
      *
      * Update variant inventory
      *
-     * @param  int $variant variant (required)
-     * @param  \OpenAPI\Client\Model\UpdateVariantInventoryRequest|null $update_variant_inventory_request update_variant_inventory_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateVariantInventory'] to see the possible values for this operation
+     * @param  int  $variant  variant (required)
+     * @param  \OpenAPIClient\Model\UpdateVariantInventoryRequest|null  $update_variant_inventory_request  update_variant_inventory_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateVariantInventory'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\UpdateVariantInventory200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\UpdateVariantInventory200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function updateVariantInventory($variant, $update_variant_inventory_request = null, string $contentType = self::contentTypes['updateVariantInventory'][0])
     {
-        list($response) = $this->updateVariantInventoryWithHttpInfo($variant, $update_variant_inventory_request, $contentType);
+        [$response] = $this->updateVariantInventoryWithHttpInfo($variant, $update_variant_inventory_request, $contentType);
+
         return $response;
     }
 
@@ -1343,13 +1332,13 @@ class InventoryApi
      *
      * Update variant inventory
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\UpdateVariantInventoryRequest|null $update_variant_inventory_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateVariantInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\UpdateVariantInventoryRequest|null  $update_variant_inventory_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateVariantInventory'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\UpdateVariantInventory200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\UpdateVariantInventory200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function updateVariantInventoryWithHttpInfo($variant, $update_variant_inventory_request = null, string $contentType = self::contentTypes['updateVariantInventory'][0])
     {
@@ -1377,23 +1366,20 @@ class InventoryApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\UpdateVariantInventory200Response',
+                        '\OpenAPIClient\Model\UpdateVariantInventory200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1409,7 +1395,7 @@ class InventoryApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\UpdateVariantInventory200Response',
+                '\OpenAPIClient\Model\UpdateVariantInventory200Response',
                 $request,
                 $response,
             );
@@ -1418,7 +1404,7 @@ class InventoryApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\UpdateVariantInventory200Response',
+                        '\OpenAPIClient\Model\UpdateVariantInventory200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1426,13 +1412,12 @@ class InventoryApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1443,12 +1428,12 @@ class InventoryApi
      *
      * Update variant inventory
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\UpdateVariantInventoryRequest|null $update_variant_inventory_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateVariantInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\UpdateVariantInventoryRequest|null  $update_variant_inventory_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateVariantInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updateVariantInventoryAsync($variant, $update_variant_inventory_request = null, string $contentType = self::contentTypes['updateVariantInventory'][0])
     {
@@ -1465,16 +1450,16 @@ class InventoryApi
      *
      * Update variant inventory
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\UpdateVariantInventoryRequest|null $update_variant_inventory_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateVariantInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\UpdateVariantInventoryRequest|null  $update_variant_inventory_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateVariantInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updateVariantInventoryAsyncWithHttpInfo($variant, $update_variant_inventory_request = null, string $contentType = self::contentTypes['updateVariantInventory'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\UpdateVariantInventory200Response';
+        $returnType = '\OpenAPIClient\Model\UpdateVariantInventory200Response';
         $request = $this->updateVariantInventoryRequest($variant, $update_variant_inventory_request, $contentType);
 
         return $this->client
@@ -1482,7 +1467,7 @@ class InventoryApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1493,7 +1478,7 @@ class InventoryApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1516,12 +1501,12 @@ class InventoryApi
     /**
      * Create request for operation 'updateVariantInventory'
      *
-     * @param  int $variant (required)
-     * @param  \OpenAPI\Client\Model\UpdateVariantInventoryRequest|null $update_variant_inventory_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateVariantInventory'] to see the possible values for this operation
+     * @param  int  $variant  (required)
+     * @param  \OpenAPIClient\Model\UpdateVariantInventoryRequest|null  $update_variant_inventory_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateVariantInventory'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function updateVariantInventoryRequest($variant, $update_variant_inventory_request = null, string $contentType = self::contentTypes['updateVariantInventory'][0])
     {
@@ -1533,8 +1518,6 @@ class InventoryApi
             );
         }
 
-
-
         $resourcePath = '/variants/{variant}/inventory';
         $formParams = [];
         $queryParams = [];
@@ -1542,20 +1525,17 @@ class InventoryApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($variant !== null) {
             $resourcePath = str_replace(
-                '{' . 'variant' . '}',
+                '{'.'variant'.'}',
                 ObjectSerializer::toPathValue($variant),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1563,7 +1543,7 @@ class InventoryApi
         // for model (json/xml)
         if (isset($update_variant_inventory_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($update_variant_inventory_request));
             } else {
                 $httpBody = $update_variant_inventory_request;
@@ -1576,7 +1556,7 @@ class InventoryApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1584,7 +1564,7 @@ class InventoryApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1593,8 +1573,8 @@ class InventoryApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1610,9 +1590,10 @@ class InventoryApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'PUT',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1621,16 +1602,17 @@ class InventoryApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -1651,7 +1633,7 @@ class InventoryApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -1674,7 +1656,7 @@ class InventoryApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\PowerOfficeAccountMappings;
 
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\PowerOfficeAccountMappings\Pages\CreatePowerOfficeAccountMapping;
 use App\Filament\Resources\PowerOfficeAccountMappings\Pages\EditPowerOfficeAccountMapping;
 use App\Filament\Resources\PowerOfficeAccountMappings\Pages\ListPowerOfficeAccountMappings;
 use App\Filament\Resources\PowerOfficeAccountMappings\Schemas\PowerOfficeAccountMappingForm;
 use App\Filament\Resources\PowerOfficeAccountMappings\Tables\PowerOfficeAccountMappingsTable;
+use App\Filament\Resources\PowerOfficeIntegrations\PowerOfficeIntegrationResource;
 use App\Models\PowerOfficeAccountMapping;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -18,6 +20,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class PowerOfficeAccountMappingResource extends Resource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $model = PowerOfficeAccountMapping::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTableCells;
@@ -45,6 +49,11 @@ class PowerOfficeAccountMappingResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         return false;
+    }
+
+    public static function canAccess(): bool
+    {
+        return PowerOfficeIntegrationResource::canAccess();
     }
 
     public static function getEloquentQuery(): Builder

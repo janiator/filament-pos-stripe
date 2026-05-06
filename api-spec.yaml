@@ -3707,6 +3707,12 @@ paths:
         For Stripe payments, the payment intent must already be created and confirmed.
         Include the payment_intent_id in the metadata.
 
+        **Optional final cart (parked / edited deferred order):** You may send `cart` with the same shape as
+        `POST /purchases` (items, discounts, totals, etc.). When provided for a pending deferred charge, the server
+        replaces the stored line items and `amount` before capturing payment, applies an inventory delta versus the
+        original deferred cart, and issues the sales receipt for the final lines. For Stripe, `cart.total` must
+        exactly match the succeeded PaymentIntent amount (and currency must match).
+
         **Compliance:** This complies with Kassasystemforskriften § 2-8-7 (Utleveringskvittering).
         Deferred payments generate delivery receipts initially, then sales receipts when payment is completed.
       operationId: completePurchasePayment
@@ -3757,6 +3763,14 @@ paths:
                   additionalProperties: true
                   example:
                     payment_intent_id: pi_xxx
+                cart:
+                  allOf:
+                    - $ref: '#/components/schemas/PurchaseCart'
+                  nullable: true
+                  description: >
+                    Final cart when the customer edits the deferred order before payment (optional).
+                    Same schema as the `cart` object on `POST /api/purchases`. Not allowed unless the charge is a
+                    deferred pending purchase. When omitted, the original deferred lines and amount are unchanged.
       responses:
         '200':
           description: Payment completed successfully
@@ -7258,7 +7272,7 @@ components:
         purchase_note:
           type: string
           nullable: true
-          description: Optional note/comment for the purchase
+          description: Optional whole-order note (from charge metadata `note`, or legacy `cart_note` when `note` is absent)
           example: "Customer requested delivery by 3 PM"
         purchase_payments:
           type: array

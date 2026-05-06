@@ -50,12 +50,12 @@ class PosSessionsTable
             ]))
             ->columns([
                 TextColumn::make('session_number')
-                    ->label('Session #')
+                    ->label(__('Session #'))
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'open' => 'success',
@@ -65,8 +65,8 @@ class PosSessionsTable
                     ->sortable()
                     ->toggleable(),
                 IconColumn::make('poweroffice_synced')
-                    ->label('PO Synced')
-                    ->tooltip('PowerOffice sync status for closed sessions')
+                    ->label(__('PO Synced'))
+                    ->tooltip(__('PowerOffice sync status for closed sessions'))
                     ->visible(fn (): bool => self::isPowerOfficeActivatedForTenant())
                     ->getStateUsing(function (PosSession $record): ?string {
                         if ($record->status !== 'closed') {
@@ -109,7 +109,7 @@ class PosSessionsTable
                     })
                     ->toggleable(),
                 TextColumn::make('poweroffice_journal_no')
-                    ->label('PO Journal #')
+                    ->label(__('PO Journal #'))
                     ->visible(fn (): bool => self::isPowerOfficeActivatedForTenant())
                     ->getStateUsing(function (PosSession $record): ?string {
                         if ($record->status !== 'closed') {
@@ -134,11 +134,11 @@ class PosSessionsTable
 
                         return (is_numeric($journalNo) && (int) $journalNo > 0) ? (string) $journalNo : null;
                     })
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('tripletex_synced')
-                    ->label('TX Synced')
-                    ->tooltip('Tripletex sync status for closed sessions')
+                    ->label(__('TX Synced'))
+                    ->tooltip(__('Tripletex sync status for closed sessions'))
                     ->visible(fn (): bool => self::isTripletexActivatedForTenant())
                     ->getStateUsing(function (PosSession $record): ?string {
                         if ($record->status !== 'closed') {
@@ -186,7 +186,7 @@ class PosSessionsTable
                     })
                     ->toggleable(),
                 TextColumn::make('tripletex_voucher_id')
-                    ->label('TX Voucher')
+                    ->label(__('TX Voucher'))
                     ->visible(fn (): bool => self::isTripletexActivatedForTenant())
                     ->getStateUsing(function (PosSession $record): ?string {
                         if ($record->status !== 'closed') {
@@ -205,41 +205,41 @@ class PosSessionsTable
 
                         return (string) $run->tripletex_voucher_id;
                     })
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('store.name')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('posDevice.device_name')
-                    ->label('Device')
+                    ->label(__('Device'))
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('user.name')
-                    ->label('User')
+                    ->label(__('User'))
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('opened_at')
-                    ->label('Opened')
+                    ->label(__('Opened'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('closed_at')
-                    ->label('Closed')
+                    ->label(__('Closed'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('transaction_count')
-                    ->label('Transactions')
+                    ->label(__('Transactions'))
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('total_amount')
-                    ->label('Total')
+                    ->label(__('Total'))
                     ->money('nok', divideBy: 100)
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('cash_difference')
-                    ->label('Cash Diff')
+                    ->label(__('Cash Diff'))
                     ->money('nok', divideBy: 100)
                     ->color(fn ($state) => $state > 0 ? 'success' : ($state < 0 ? 'danger' : 'gray'))
                     ->sortable()
@@ -247,28 +247,28 @@ class PosSessionsTable
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->options([
                         'open' => 'Open',
                         'closed' => 'Closed',
                     ]),
 
                 SelectFilter::make('store_id')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->relationship('store', 'name')
                     ->searchable()
                     ->preload()
                     ->multiple(),
 
                 SelectFilter::make('pos_device_id')
-                    ->label('POS Device')
+                    ->label(__('POS Device'))
                     ->relationship('posDevice', 'device_name')
                     ->searchable()
                     ->preload()
                     ->multiple(),
 
                 SelectFilter::make('poweroffice_synced')
-                    ->label('PowerOffice Synced')
+                    ->label(__('PowerOffice Synced'))
                     ->visible(fn (): bool => self::isPowerOfficeActivatedForTenant())
                     ->options([
                         'yes' => 'Yes',
@@ -302,7 +302,7 @@ class PosSessionsTable
                     }),
 
                 SelectFilter::make('tripletex_synced')
-                    ->label('Tripletex Synced')
+                    ->label(__('Tripletex Synced'))
                     ->visible(fn (): bool => self::isTripletexActivatedForTenant())
                     ->options([
                         'yes' => 'Yes',
@@ -337,12 +337,12 @@ class PosSessionsTable
                     }),
 
                 Filter::make('closed_at')
-                    ->label('Closed Date')
+                    ->label(__('Closed Date'))
                     ->form([
                         DatePicker::make('closed_from')
-                            ->label('From'),
+                            ->label(__('From')),
                         DatePicker::make('closed_until')
-                            ->label('Until'),
+                            ->label(__('Until')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -363,10 +363,10 @@ class PosSessionsTable
                 EditAction::make()
                     ->visible(fn (PosSession $record): bool => $record->status !== 'closed'),
                 Action::make('x_report')
-                    ->label('X-Report')
+                    ->label(__('X-Report'))
                     ->icon('heroicon-o-document-chart-bar')
                     ->color('info')
-                    ->modalHeading('X-Report (Interim Report)')
+                    ->modalHeading(__('X-Report (Interim Report)'))
                     ->before(function (PosSession $record) {
                         // Generate report data first
                         $report = self::generateXReport($record);
@@ -397,10 +397,10 @@ class PosSessionsTable
                     ->modalCancelActionLabel('Close')
                     ->visible(fn (PosSession $record): bool => $record->status === 'open'),
                 Action::make('z_report')
-                    ->label('Z-Report')
+                    ->label(__('Z-Report'))
                     ->icon('heroicon-o-document-check')
                     ->color('success')
-                    ->modalHeading('Z-Report (End-of-Day Report)')
+                    ->modalHeading(__('Z-Report (End-of-Day Report)'))
                     ->before(function (PosSession $record) {
                         // Generate report data first
                         $report = self::generateZReport($record);
@@ -431,16 +431,16 @@ class PosSessionsTable
                     ->modalCancelActionLabel('Close')
                     ->visible(fn (PosSession $record): bool => $record->status === 'closed'),
                 Action::make('regenerate_z_report')
-                    ->label('Regenerate Z-Report')
+                    ->label(__('Regenerate Z-Report'))
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->modalHeading('Regenerate Z-Report')
+                    ->modalHeading(__('Regenerate Z-Report'))
                     ->modalDescription(fn (PosSession $record): string => "This will regenerate the Z-report for session {$record->session_number} and attempt to find any missing data (charges, receipts, events) that may not have been properly linked.")
                     ->form([
                         \Filament\Forms\Components\Toggle::make('find_missing_data')
-                            ->label('Find Missing Data')
-                            ->helperText('Attempt to find and link missing charges, receipts, and events')
+                            ->label(__('Find Missing Data'))
+                            ->helperText(__('Attempt to find and link missing charges, receipts, and events'))
                             ->default(true),
                     ])
                     ->visible(function (PosSession $record): bool {
@@ -473,7 +473,7 @@ class PosSessionsTable
 
                         if (! $stats['success']) {
                             Notification::make()
-                                ->title('Error Regenerating Z-Report')
+                                ->title(__('Error Regenerating Z-Report'))
                                 ->body("Failed to regenerate Z-report: {$stats['error']}")
                                 ->danger()
                                 ->send();
@@ -519,7 +519,7 @@ class PosSessionsTable
                         }
 
                         Notification::make()
-                            ->title('Z-Report Regenerated')
+                            ->title(__('Z-Report Regenerated'))
                             ->body($message)
                             ->success()
                             ->persistent()
@@ -545,7 +545,7 @@ class PosSessionsTable
                     })
                     ->visible(fn (PosSession $record): bool => $record->status === 'closed'),
                 Action::make('sync_poweroffice')
-                    ->label('Sync PowerOffice')
+                    ->label(__('Sync PowerOffice'))
                     ->icon('heroicon-o-cloud-arrow-up')
                     ->color('success')
                     ->visible(fn (PosSession $record): bool => self::canSyncToPowerOffice($record))
@@ -556,7 +556,7 @@ class PosSessionsTable
                         ]);
 
                         Notification::make()
-                            ->title('Syncing with PowerOffice...')
+                            ->title(__('Syncing with PowerOffice...'))
                             ->body("Session {$record->session_number}")
                             ->info()
                             ->send();
@@ -570,7 +570,7 @@ class PosSessionsTable
                                 ->first();
                         } catch (\Throwable $e) {
                             Notification::make()
-                                ->title('PowerOffice sync failed')
+                                ->title(__('PowerOffice sync failed'))
                                 ->body($e->getMessage())
                                 ->danger()
                                 ->send();
@@ -585,7 +585,7 @@ class PosSessionsTable
 
                         if (! $ok || $run?->status !== PowerOfficeSyncRunStatus::Success) {
                             Notification::make()
-                                ->title('PowerOffice sync failed')
+                                ->title(__('PowerOffice sync failed'))
                                 ->body($run?->error_message ?? 'See PowerOffice sync runs for details.')
                                 ->danger()
                                 ->persistent()
@@ -599,7 +599,7 @@ class PosSessionsTable
                             ?? data_get($run->response_payload, 'voucherNo');
 
                         Notification::make()
-                            ->title('Synced to PowerOffice')
+                            ->title(__('Synced to PowerOffice'))
                             ->body((is_numeric($journalNo) && (int) $journalNo > 0) ? "Bilagsnr #{$journalNo}" : 'Z-report synced successfully.')
                             ->success()
                             ->persistent()
@@ -607,7 +607,7 @@ class PosSessionsTable
                     }),
                 TripletexVoucherPreviewAction::makeTableActionForZReport(),
                 Action::make('sync_tripletex')
-                    ->label('Sync Tripletex')
+                    ->label(__('Sync Tripletex'))
                     ->icon('heroicon-o-document-chart-bar')
                     ->color('gray')
                     ->visible(fn (PosSession $record): bool => self::canSyncToTripletex($record))
@@ -618,7 +618,7 @@ class PosSessionsTable
                         ]);
 
                         Notification::make()
-                            ->title('Syncing with Tripletex...')
+                            ->title(__('Syncing with Tripletex...'))
                             ->body("Session {$record->session_number}")
                             ->info()
                             ->send();
@@ -632,7 +632,7 @@ class PosSessionsTable
                                 ->first();
                         } catch (\Throwable $e) {
                             Notification::make()
-                                ->title('Tripletex sync failed')
+                                ->title(__('Tripletex sync failed'))
                                 ->body($e->getMessage())
                                 ->danger()
                                 ->send();
@@ -647,7 +647,7 @@ class PosSessionsTable
 
                         if ($run?->status === TripletexSyncRunStatus::Skipped) {
                             Notification::make()
-                                ->title('Tripletex sync skipped')
+                                ->title(__('Tripletex sync skipped'))
                                 ->body($run->error_message ?? 'No voucher was posted.')
                                 ->warning()
                                 ->persistent()
@@ -658,7 +658,7 @@ class PosSessionsTable
 
                         if (! $ok || $run?->status !== TripletexSyncRunStatus::Success) {
                             Notification::make()
-                                ->title('Tripletex sync failed')
+                                ->title(__('Tripletex sync failed'))
                                 ->body($run?->error_message ?? 'See Tripletex sync history for details.')
                                 ->danger()
                                 ->persistent()
@@ -668,18 +668,18 @@ class PosSessionsTable
                         }
 
                         Notification::make()
-                            ->title('Synced to Tripletex')
+                            ->title(__('Synced to Tripletex'))
                             ->body($run->tripletex_voucher_id ? "Voucher #{$run->tripletex_voucher_id}" : 'Z-report synced successfully.')
                             ->success()
                             ->persistent()
                             ->send();
                     }),
                 Action::make('send_z_report_email')
-                    ->label('Send Z-Report Email')
+                    ->label(__('Send Z-Report Email'))
                     ->icon('heroicon-o-envelope')
                     ->color('info')
                     ->requiresConfirmation()
-                    ->modalHeading('Send Z-Report Email')
+                    ->modalHeading(__('Send Z-Report Email'))
                     ->modalDescription(function (PosSession $record): string {
                         $record->load('store');
                         $store = $record->store;
@@ -694,13 +694,13 @@ class PosSessionsTable
                             self::sendZReportEmail($record);
 
                             Notification::make()
-                                ->title('Z-Report Email Sent')
+                                ->title(__('Z-Report Email Sent'))
                                 ->body("Z-report email has been sent to {$record->store->z_report_email}")
                                 ->success()
                                 ->send();
                         } catch (\Exception $e) {
                             Notification::make()
-                                ->title('Failed to Send Email')
+                                ->title(__('Failed to Send Email'))
                                 ->body('Error: '.$e->getMessage())
                                 ->danger()
                                 ->send();
@@ -718,30 +718,30 @@ class PosSessionsTable
                         return $record->store && $record->store->z_report_email;
                     }),
                 Action::make('close')
-                    ->label('Close Session')
+                    ->label(__('Close Session'))
                     ->icon('heroicon-o-lock-closed')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->modalHeading('Close POS Session')
+                    ->modalHeading(__('Close POS Session'))
                     ->modalDescription(fn (PosSession $record): string => "Are you sure you want to close session {$record->session_number}? This will calculate expected cash and mark the session as closed.")
                     ->form([
                         \Filament\Forms\Components\TextInput::make('actual_cash')
-                            ->label('Actual Cash')
+                            ->label(__('Actual Cash'))
                             ->numeric()
-                            ->suffix('kr')
+                            ->suffix(__('kr'))
                             ->step(0.01)
-                            ->helperText('Enter the actual cash count at closing in NOK. Leave empty to use expected cash.'),
+                            ->helperText(__('Enter the actual cash count at closing in NOK. Leave empty to use expected cash.')),
                         \Filament\Forms\Components\Textarea::make('closing_notes')
-                            ->label('Closing Notes')
+                            ->label(__('Closing Notes'))
                             ->rows(3)
                             ->maxLength(1000)
-                            ->helperText('Optional notes about the session closing.'),
+                            ->helperText(__('Optional notes about the session closing.')),
                     ])
                     ->visible(fn (PosSession $record): bool => $record->status === 'open')
                     ->action(function (PosSession $record, array $data): void {
                         if (! $record->canBeClosed()) {
                             Notification::make()
-                                ->title('Cannot close session')
+                                ->title(__('Cannot close session'))
                                 ->danger()
                                 ->body('This session cannot be closed.')
                                 ->send();
@@ -758,13 +758,13 @@ class PosSessionsTable
 
                         if ($success) {
                             Notification::make()
-                                ->title('Session closed')
+                                ->title(__('Session closed'))
                                 ->success()
                                 ->body("Session {$record->session_number} has been closed successfully.")
                                 ->send();
                         } else {
                             Notification::make()
-                                ->title('Failed to close session')
+                                ->title(__('Failed to close session'))
                                 ->danger()
                                 ->body('An error occurred while closing the session.')
                                 ->send();
@@ -774,7 +774,7 @@ class PosSessionsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     BulkAction::make('sync_poweroffice')
-                        ->label('Sync selected to PowerOffice')
+                        ->label(__('Sync selected to PowerOffice'))
                         ->icon('heroicon-o-cloud-arrow-up')
                         ->color('success')
                         ->visible(fn (): bool => self::isPowerOfficeActivatedForTenant())
@@ -840,7 +840,7 @@ class PosSessionsTable
                             }
 
                             $notification = Notification::make()
-                                ->title('PowerOffice bulk sync completed')
+                                ->title(__('PowerOffice bulk sync completed'))
                                 ->body($body);
 
                             if ($failed > 0) {
@@ -853,7 +853,7 @@ class PosSessionsTable
                             $notification->send();
                         }),
                     BulkAction::make('sync_tripletex')
-                        ->label('Sync selected to Tripletex')
+                        ->label(__('Sync selected to Tripletex'))
                         ->icon('heroicon-o-document-chart-bar')
                         ->color('gray')
                         ->visible(fn (): bool => self::isTripletexActivatedForTenant())
@@ -928,7 +928,7 @@ class PosSessionsTable
                             }
 
                             $notification = Notification::make()
-                                ->title('Tripletex bulk sync completed')
+                                ->title(__('Tripletex bulk sync completed'))
                                 ->body($body);
 
                             if ($failed > 0) {

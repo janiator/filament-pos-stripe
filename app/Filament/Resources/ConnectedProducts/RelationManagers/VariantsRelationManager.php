@@ -129,33 +129,33 @@ class VariantsRelationManager extends RelationManager
                         Grid::make(3)
                             ->schema([
                                 TextInput::make('option1_name')
-                                    ->label('Option 1 Name')
-                                    ->placeholder('e.g., Size')
+                                    ->label(__('Option 1 Name'))
+                                    ->placeholder(__('e.g., Size'))
                                     ->maxLength(255),
 
                                 TextInput::make('option1_value')
-                                    ->label('Option 1 Value')
-                                    ->placeholder('e.g., Large')
+                                    ->label(__('Option 1 Value'))
+                                    ->placeholder(__('e.g., Large'))
                                     ->maxLength(255),
 
                                 TextInput::make('option2_name')
-                                    ->label('Option 2 Name')
-                                    ->placeholder('e.g., Color')
+                                    ->label(__('Option 2 Name'))
+                                    ->placeholder(__('e.g., Color'))
                                     ->maxLength(255),
 
                                 TextInput::make('option2_value')
-                                    ->label('Option 2 Value')
-                                    ->placeholder('e.g., Red')
+                                    ->label(__('Option 2 Value'))
+                                    ->placeholder(__('e.g., Red'))
                                     ->maxLength(255),
 
                                 TextInput::make('option3_name')
-                                    ->label('Option 3 Name')
-                                    ->placeholder('e.g., Material')
+                                    ->label(__('Option 3 Name'))
+                                    ->placeholder(__('e.g., Material'))
                                     ->maxLength(255),
 
                                 TextInput::make('option3_value')
-                                    ->label('Option 3 Value')
-                                    ->placeholder('e.g., Cotton')
+                                    ->label(__('Option 3 Value'))
+                                    ->placeholder(__('e.g., Cotton'))
                                     ->maxLength(255),
                             ]),
                     ])
@@ -166,10 +166,10 @@ class VariantsRelationManager extends RelationManager
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('price_amount')
-                                    ->label('Price')
+                                    ->label(__('Price'))
                                     ->numeric()
                                     ->prefix(fn ($get) => strtoupper($get('currency') ?? 'NOK'))
-                                    ->helperText('Enter price in decimal format (e.g., 99.99). Leave empty for custom price input on POS.')
+                                    ->helperText(__('Enter price in decimal format (e.g., 99.99). Leave empty for custom price input on POS.'))
                                     ->live()
                                     ->afterStateHydrated(function ($state, $set, $get, $record) {
                                         // Convert cents to decimal for display
@@ -195,10 +195,10 @@ class VariantsRelationManager extends RelationManager
                                     }),
 
                                 TextInput::make('compare_at_price_amount')
-                                    ->label('Compare At Price')
+                                    ->label(__('Compare At Price'))
                                     ->numeric()
                                     ->prefix(fn ($get) => strtoupper($get('currency') ?? 'NOK'))
-                                    ->helperText('Original price for showing discounts')
+                                    ->helperText(__('Original price for showing discounts'))
                                     ->live()
                                     ->afterStateHydrated(function ($state, $set, $get, $record) {
                                         // Convert cents to decimal for display
@@ -225,7 +225,7 @@ class VariantsRelationManager extends RelationManager
                                     ->visible(fn ($get) => ($get('price_amount') ?? 0) > 0),
 
                                 Select::make('currency')
-                                    ->label('Currency')
+                                    ->label(__('Currency'))
                                     ->options([
                                         'nok' => 'NOK',
                                         'usd' => 'USD',
@@ -237,8 +237,8 @@ class VariantsRelationManager extends RelationManager
                             ]),
 
                         Toggle::make('no_price_in_pos')
-                            ->label('No Price in POS')
-                            ->helperText('Enable this to allow custom price input on POS. When enabled, the price field can be left empty and will not sync to Stripe.')
+                            ->label(__('No Price in POS'))
+                            ->helperText(__('Enable this to allow custom price input on POS. When enabled, the price field can be left empty and will not sync to Stripe.'))
                             ->default(false)
                             ->columnSpanFull(),
 
@@ -250,14 +250,14 @@ class VariantsRelationManager extends RelationManager
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('sku')
-                                    ->label('SKU')
+                                    ->label(__('SKU'))
                                     ->maxLength(255)
                                     ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule) {
                                         return $rule->where('stripe_account_id', $this->ownerRecord->stripe_account_id);
                                     }),
 
                                 TextInput::make('barcode')
-                                    ->label('Barcode')
+                                    ->label(__('Barcode'))
                                     ->maxLength(255),
                             ]),
                     ])
@@ -268,14 +268,14 @@ class VariantsRelationManager extends RelationManager
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('inventory_quantity')
-                                    ->label('Inventory Quantity')
+                                    ->label(__('Inventory Quantity'))
                                     ->numeric()
                                     ->minValue(0)
-                                    ->helperText('Leave empty if not tracking inventory')
+                                    ->helperText(__('Leave empty if not tracking inventory'))
                                     ->live(),
 
                                 Select::make('inventory_policy')
-                                    ->label('Inventory Policy')
+                                    ->label(__('Inventory Policy'))
                                     ->options([
                                         'deny' => 'Deny (prevent sales when out of stock)',
                                         'continue' => 'Continue (allow backorders)',
@@ -283,8 +283,8 @@ class VariantsRelationManager extends RelationManager
                                     ->default('deny'),
 
                                 TextInput::make('inventory_management')
-                                    ->label('Inventory Management')
-                                    ->placeholder('e.g., shopify')
+                                    ->label(__('Inventory Management'))
+                                    ->placeholder(__('e.g., shopify'))
                                     ->maxLength(255)
                                     ->columnSpan(2),
                             ]),
@@ -298,16 +298,16 @@ class VariantsRelationManager extends RelationManager
                         Grid::make(3)
                             ->schema([
                                 TextInput::make('weight_grams')
-                                    ->label('Weight (grams)')
+                                    ->label(__('Weight (grams)'))
                                     ->numeric()
-                                    ->helperText('Enter weight in grams'),
+                                    ->helperText(__('Enter weight in grams')),
 
                                 Toggle::make('requires_shipping')
-                                    ->label('Requires Shipping')
+                                    ->label(__('Requires Shipping'))
                                     ->default(true),
 
                                 Toggle::make('taxable')
-                                    ->label('Taxable')
+                                    ->label(__('Taxable'))
                                     ->default(true),
                             ]),
                     ])
@@ -318,14 +318,14 @@ class VariantsRelationManager extends RelationManager
                         Grid::make(2)
                             ->schema([
                                 Toggle::make('active')
-                                    ->label('Active')
+                                    ->label(__('Active'))
                                     ->default(true),
 
                                 TextInput::make('image_url')
-                                    ->label('Variant Image URL')
+                                    ->label(__('Variant Image URL'))
                                     ->url()
                                     ->maxLength(255)
-                                    ->helperText('URL to variant-specific image'),
+                                    ->helperText(__('URL to variant-specific image')),
                             ]),
                     ])
                     ->collapsible(),
@@ -337,14 +337,14 @@ class VariantsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('variant_name')
-                    ->label('Variant')
+                    ->label(__('Variant'))
                     ->badge()
                     ->color('primary')
                     ->searchable(['option1_value', 'option2_value', 'option3_value'])
                     ->description(fn ($record) => $record->sku ? "SKU: {$record->sku}" : null),
 
                 TextColumn::make('formatted_price')
-                    ->label('Price')
+                    ->label(__('Price'))
                     ->badge()
                     ->color('success')
                     ->sortable(query: function ($query, string $direction) {
@@ -352,21 +352,21 @@ class VariantsRelationManager extends RelationManager
                     }),
 
                 TextColumn::make('compare_at_price_amount')
-                    ->label('Compare At')
+                    ->label(__('Compare At'))
                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2).' NOK' : '-')
                     ->badge()
                     ->color('gray')
                     ->toggleable(),
 
                 TextColumn::make('discount_percentage')
-                    ->label('Discount')
+                    ->label(__('Discount'))
                     ->formatStateUsing(fn ($state) => $state ? "{$state}%" : '-')
                     ->badge()
                     ->color('danger')
                     ->toggleable(),
 
                 TextColumn::make('inventory_quantity')
-                    ->label('Stock')
+                    ->label(__('Stock'))
                     ->formatStateUsing(function ($state, $record) {
                         if ($state === null) {
                             return 'Not tracked';
@@ -384,41 +384,41 @@ class VariantsRelationManager extends RelationManager
                         && (bool) $this->ownerRecord->track_inventory),
 
                 IconColumn::make('in_stock')
-                    ->label('In Stock')
+                    ->label(__('In Stock'))
                     ->boolean()
                     ->toggleable()
                     ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Inventory)
                         && (bool) $this->ownerRecord->track_inventory),
 
                 IconColumn::make('active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->sortable(),
 
                 TextColumn::make('stripe_product_id')
-                    ->label('Stripe Product ID')
+                    ->label(__('Stripe Product ID'))
                     ->searchable()
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->placeholder('Not synced'),
+                    ->placeholder(__('Not synced')),
 
                 TextColumn::make('stripe_price_id')
-                    ->label('Stripe Price ID')
+                    ->label(__('Stripe Price ID'))
                     ->searchable()
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->placeholder('Not synced'),
+                    ->placeholder(__('Not synced')),
             ])
             ->filters([
                 TernaryFilter::make('active')
-                    ->label('Active')
-                    ->placeholder('All')
+                    ->label(__('Active'))
+                    ->placeholder(__('All'))
                     ->trueLabel('Active only')
                     ->falseLabel('Inactive only'),
 
                 TernaryFilter::make('in_stock')
-                    ->label('In Stock')
-                    ->placeholder('All')
+                    ->label(__('In Stock'))
+                    ->placeholder(__('All'))
                     ->trueLabel('In stock only')
                     ->falseLabel('Out of stock only')
                     ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Inventory)
