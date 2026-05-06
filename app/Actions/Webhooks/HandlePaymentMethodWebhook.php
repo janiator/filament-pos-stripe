@@ -29,14 +29,20 @@ class HandlePaymentMethodWebhook
             return;
         }
 
+        $isDetachEvent = $eventType === 'payment_method.detached';
+
         $existingPaymentMethod = ConnectedPaymentMethod::query()
             ->where('stripe_payment_method_id', $paymentMethod->id)
             ->where('stripe_account_id', $store->stripe_account_id)
             ->first();
 
-        $resolvedStripeCustomerId = $paymentMethod->customer ?: $existingPaymentMethod?->stripe_customer_id;
+        if ($isDetachEvent) {
+            $resolvedStripeCustomerId = null;
+        } else {
+            $resolvedStripeCustomerId = $paymentMethod->customer ?: $existingPaymentMethod?->stripe_customer_id;
+        }
 
-        if (! $resolvedStripeCustomerId) {
+        if (! $isDetachEvent && ! $resolvedStripeCustomerId) {
             \Log::warning('Skipping payment method webhook because stripe customer id is missing', [
                 'payment_method_id' => $paymentMethod->id,
                 'event_type' => $eventType,
@@ -62,6 +68,10 @@ class HandlePaymentMethodWebhook
             $existingPaymentMethod->fill($data);
             $existingPaymentMethod->save();
 
+            return;
+        }
+
+        if ($isDetachEvent) {
             return;
         }
 
