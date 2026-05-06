@@ -56,7 +56,10 @@ class SyncStoreStripeBalanceTransactionsFromStripe
             $stripe = new StripeClient($secret);
 
             $transactions = $stripe->balanceTransactions->all(
-                ['limit' => 100],
+                [
+                    'limit' => 100,
+                    'expand' => ['data.source'],
+                ],
                 ['stripe_account' => $stripeAccountId]
             );
 
@@ -65,6 +68,8 @@ class SyncStoreStripeBalanceTransactionsFromStripe
 
                 try {
                     $chargeId = $this->resolveChargeId($bt);
+                    $payoutId = $this->resolvePayoutId($bt);
+                    $chargeExtras = $this->extractChargeSourceExtras($bt);
 
                     $availableOn = null;
                     if (! empty($bt->available_on)) {
@@ -83,6 +88,10 @@ class SyncStoreStripeBalanceTransactionsFromStripe
                         'status' => $bt->status ?? null,
                         'description' => $bt->description ?? null,
                         'stripe_charge_id' => $chargeId,
+                        'stripe_payment_intent_id' => $chargeExtras['stripe_payment_intent_id'],
+                        'stripe_payout_id' => $payoutId,
+                        'fee_details' => $this->stripeObjectToArray($bt->fee_details ?? null),
+                        'source_metadata' => $chargeExtras['source_metadata'],
                         'stripe_created' => (int) $bt->created,
                         'available_on' => $availableOn,
                         'reporting_category' => $bt->reporting_category ?? null,
@@ -136,6 +145,63 @@ class SyncStoreStripeBalanceTransactionsFromStripe
         }
     }
 
+    /**
+     * @return array{source_metadata: ?array<string, mixed>, stripe_payment_intent_id: ?string}
+     */
+    protected function extractChargeSourceExtras(object $bt): array
+    {
+        $out = [
+            'source_metadata' => null,
+            'stripe_payment_intent_id' => null,
+        ];
+
+        if (($bt->type ?? null) !== 'charge') {
+            return $out;
+        }
+
+        $source = $bt->source ?? null;
+        if (! is_object($source)) {
+            return $out;
+        }
+
+        if (($source->object ?? null) !== 'charge') {
+            return $out;
+        }
+
+        $out['source_metadata'] = $this->stripeObjectToArray($source->metadata ?? null);
+
+        $pi = $source->payment_intent ?? null;
+        if (is_string($pi) && str_starts_with($pi, 'pi_')) {
+            $out['stripe_payment_intent_id'] = $pi;
+        } elseif (is_object($pi) && isset($pi->id) && is_string($pi->id) && str_starts_with($pi->id, 'pi_')) {
+            $out['stripe_payment_intent_id'] = $pi->id;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function stripeObjectToArray(mixed $value): ?array
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (is_array($value)) {
+            return $value !== [] ? $value : null;
+        }
+
+        $json = json_encode($value);
+        if ($json === false || $json === '[]' || $json === '{}') {
+            return null;
+        }
+
+        $decoded = json_decode($json, true);
+
+        return is_array($decoded) && $decoded !== [] ? $decoded : null;
+    }
+
     protected function resolveChargeId(object $bt): ?string
     {
         if (($bt->type ?? null) !== 'charge') {
@@ -149,6 +215,19 @@ class SyncStoreStripeBalanceTransactionsFromStripe
 
         if (is_object($source) && isset($source->id) && is_string($source->id) && str_starts_with($source->id, 'ch_')) {
             return $source->id;
+        }
+
+        return null;
+    }
+
+    protected function resolvePayoutId(object $bt): ?string
+    {
+        $payout = $bt->payout ?? null;
+        if (is_string($payout) && str_starts_with($payout, 'po_')) {
+            return $payout;
+        }
+        if (is_object($payout) && isset($payout->id) && is_string($payout->id) && str_starts_with($payout->id, 'po_')) {
+            return $payout->id;
         }
 
         return null;

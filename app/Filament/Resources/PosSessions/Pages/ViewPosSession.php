@@ -5,17 +5,24 @@ namespace App\Filament\Resources\PosSessions\Pages;
 use App\Actions\PosSessions\RegenerateZReports;
 use App\Enums\AddonType;
 use App\Enums\PowerOfficeSyncRunStatus;
+use App\Enums\TripletexSyncRunStatus;
+use App\Filament\Actions\TripletexVoucherPreviewAction;
 use App\Filament\Resources\PosSessions\PosSessionResource;
 use App\Models\Addon;
 use App\Models\PosEvent;
 use App\Models\PowerOfficeSyncRun;
+use App\Models\TripletexSyncRun;
 use App\Services\CashDrawerService;
 use App\Services\PowerOffice\PowerOfficeZReportSync;
+use App\Services\Tripletex\TripletexSyncPreviewService;
+use App\Services\Tripletex\TripletexZReportSync;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Icons\Heroicon;
@@ -84,6 +91,99 @@ class ViewPosSession extends ViewRecord
                     Notification::make()
                         ->title('Synced to PowerOffice')
                         ->body((is_numeric($journalNo) && (int) $journalNo > 0) ? "Bilagsnr #{$journalNo}" : 'Z-report synced successfully.')
+                        ->success()
+                        ->persistent()
+                        ->send();
+                }),
+            Action::make('preview_tripletex_voucher')
+                ->label('Preview Tripletex voucher')
+                ->icon(Heroicon::OutlinedEye)
+                ->color('gray')
+                ->visible(fn (): bool => TripletexVoucherPreviewAction::canPreviewZReport($this->record))
+                ->slideOver()
+                ->modalHeading('Tripletex voucher preview')
+                ->modalDescription('Ledger lines for this session’s Z-report. Turn on account resolution to call Tripletex and include the exact JSON for POST /ledger/voucher.')
+                ->modalWidth('4xl')
+                ->fillForm(fn (): array => [
+                    'resolve_tripletex_accounts' => false,
+                    'preview_json' => json_encode(
+                        $this->tripletexZReportVoucherPreviewPayload(false),
+                        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+                    ),
+                ])
+                ->form([
+                    Toggle::make('resolve_tripletex_accounts')
+                        ->label('Resolve Tripletex account IDs (calls Tripletex API)')
+                        ->helperText('Creates a short-lived session token and resolves each ledger account number used in the voucher.')
+                        ->default(false)
+                        ->live()
+                        ->afterStateUpdated(function ($state, Set $set): void {
+                            $payload = $this->tripletexZReportVoucherPreviewPayload((bool) $state);
+                            $set('preview_json', json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                        }),
+                    Textarea::make('preview_json')
+                        ->label('Preview JSON')
+                        ->rows(28)
+                        ->readOnly()
+                        ->columnSpanFull()
+                        ->extraInputAttributes(['class' => 'font-mono text-xs']),
+                ])
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Close'),
+            Action::make('sync_tripletex')
+                ->label('Sync Tripletex')
+                ->icon('heroicon-o-document-chart-bar')
+                ->color('gray')
+                ->visible(fn (): bool => $this->canSyncToTripletex())
+                ->action(function (): void {
+                    Notification::make()
+                        ->title('Syncing with Tripletex...')
+                        ->body("Session {$this->record->session_number}")
+                        ->info()
+                        ->send();
+
+                    try {
+                        $sync = app(TripletexZReportSync::class);
+                        $ok = $sync->sync($this->record->id, true);
+                        $run = TripletexSyncRun::query()
+                            ->where('pos_session_id', $this->record->id)
+                            ->latest('id')
+                            ->first();
+                    } catch (\Throwable $e) {
+                        Notification::make()
+                            ->title('Tripletex sync failed')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    if ($run?->status === TripletexSyncRunStatus::Skipped) {
+                        Notification::make()
+                            ->title('Tripletex sync skipped')
+                            ->body($run->error_message ?? 'No voucher was posted.')
+                            ->warning()
+                            ->persistent()
+                            ->send();
+
+                        return;
+                    }
+
+                    if (! $ok || $run?->status !== TripletexSyncRunStatus::Success) {
+                        Notification::make()
+                            ->title('Tripletex sync failed')
+                            ->body($run?->error_message ?? 'See Tripletex sync history for details.')
+                            ->danger()
+                            ->persistent()
+                            ->send();
+
+                        return;
+                    }
+
+                    Notification::make()
+                        ->title('Synced to Tripletex')
+                        ->body($run->tripletex_voucher_id ? "Voucher #{$run->tripletex_voucher_id}" : 'Z-report synced successfully.')
                         ->success()
                         ->persistent()
                         ->send();
@@ -198,7 +298,7 @@ class ViewPosSession extends ViewRecord
                         return false;
                     }
 
-                    $tenant = \Filament\Facades\Filament::getTenant();
+                    $tenant = Filament::getTenant();
 
                     return $tenant
                         ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
@@ -298,7 +398,7 @@ class ViewPosSession extends ViewRecord
             return false;
         }
 
-        $tenant = \Filament\Facades\Filament::getTenant();
+        $tenant = Filament::getTenant();
         if (! $tenant || ! Addon::storeHasActiveAddon($tenant->getKey(), AddonType::PowerOfficeGo)) {
             return false;
         }
@@ -310,5 +410,39 @@ class ViewPosSession extends ViewRecord
         }
 
         return app(PowerOfficeZReportSync::class)->isSessionEligibleForSync($this->record);
+    }
+
+    protected function canSyncToTripletex(): bool
+    {
+        if ($this->record->status !== 'closed') {
+            return false;
+        }
+
+        $tenant = Filament::getTenant();
+        if (! $tenant || ! Addon::storeHasActiveAddon($tenant->getKey(), AddonType::Tripletex)) {
+            return false;
+        }
+
+        $this->record->loadMissing('store.tripletexIntegration');
+        $integration = $this->record->store?->tripletexIntegration;
+        if (! $integration?->isConnected() || ! $integration->sync_enabled) {
+            return false;
+        }
+
+        return app(TripletexZReportSync::class)->isSessionEligibleForSync($this->record);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function tripletexZReportVoucherPreviewPayload(bool $resolveTripletexAccounts): array
+    {
+        $this->record->loadMissing('store.tripletexIntegration');
+        $integration = $this->record->store?->tripletexIntegration;
+        if (! $integration) {
+            return ['ok' => false, 'error' => 'Tripletex integration is not configured for this store.'];
+        }
+
+        return app(TripletexSyncPreviewService::class)->previewZReport($this->record, $integration, $resolveTripletexAccounts);
     }
 }

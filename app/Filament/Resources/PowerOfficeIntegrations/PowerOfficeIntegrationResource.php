@@ -47,6 +47,14 @@ class PowerOfficeIntegrationResource extends Resource
         return Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::PowerOfficeGo);
     }
 
+    /**
+     * Used by {@see ManagePowerOfficeIntegration} authorization.
+     */
+    public static function canAccess(): bool
+    {
+        return Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::PowerOfficeGo);
+    }
+
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();

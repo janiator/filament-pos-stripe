@@ -2,11 +2,19 @@
 
 namespace App\Models;
 
+use App\Enums\TripletexSyncType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class StoreStripePayout extends Model
 {
+    protected static function booted(): void
+    {
+        static::observe(\App\Observers\StoreStripePayoutObserver::class);
+    }
+
     protected $fillable = [
         'store_id',
         'stripe_account_id',
@@ -35,6 +43,26 @@ class StoreStripePayout extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    /**
+     * @return HasMany<TripletexSyncRun, $this>
+     */
+    public function tripletexSyncRuns(): HasMany
+    {
+        return $this->hasMany(TripletexSyncRun::class, 'store_stripe_payout_id');
+    }
+
+    /**
+     * Latest Tripletex voucher sync attempt for this payout row.
+     *
+     * @return HasOne<TripletexSyncRun, $this>
+     */
+    public function latestTripletexSyncRun(): HasOne
+    {
+        return $this->hasOne(TripletexSyncRun::class, 'store_stripe_payout_id')
+            ->where('sync_type', TripletexSyncType::Payout)
+            ->latestOfMany();
     }
 
     public function getFormattedAmountAttribute(): string

@@ -324,7 +324,7 @@ class InventoryLedgerService
             }
 
             foreach ($originalItems as $idx => $item) {
-                $lineId = $item['item_id'] ?? $item['line_id'] ?? $idx;
+                $lineId = $item['id'] ?? $item['item_id'] ?? $item['line_id'] ?? $idx;
                 if ((string) $lineId !== (string) $itemId) {
                     continue;
                 }

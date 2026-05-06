@@ -222,6 +222,10 @@ class AddonsPage extends Page
                 'url' => \App\Filament\Resources\PowerOfficeIntegrations\PowerOfficeIntegrationResource::getUrl('index'),
                 'label' => 'Open PowerOffice',
             ],
+            AddonType::Tripletex => [
+                'url' => \App\Filament\Resources\TripletexIntegrations\TripletexIntegrationResource::getUrl('index'),
+                'label' => 'Open Tripletex',
+            ],
             AddonType::Inventory => [
                 'url' => \App\Filament\Resources\ConnectedProducts\ConnectedProductResource::getUrl('index'),
                 'label' => 'Open Products',

@@ -163,6 +163,17 @@ class SettingsForm
                     ])
                     ->collapsible()
                     ->collapsed(false),
+
+                Section::make('Register sessions')
+                    ->schema([
+                        Toggle::make('auto_close_open_sessions_daily')
+                            ->label('Auto-close open sessions daily')
+                            ->helperText('When enabled for this store, still-open register sessions are closed once per day by the server schedule (requires POS_AUTO_CLOSE_SESSIONS_DAILY=true on the server; see deployment docs). Actual cash is set to expected cash.')
+                            ->default(false)
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->collapsed(false),
             ]);
     }
 }

@@ -1,19 +1,19 @@
 // Automatic FlutterFlow imports
 import '/backend/schema/structs/index.dart';
 import '/backend/schema/enums/enums.dart';
-import '/backend/supabase/supabase.dart';
 import '/actions/actions.dart' as action_blocks;
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
-import '/flutter_flow/flutter_flow_icon_button.dart';
-import '/custom_code/actions/index.dart'; // Imports other custom actions
-import '/custom_code/widgets/index.dart' as custom_widgets; // Imports other custom widgets
+import 'index.dart'; // Imports other custom actions
 import '/flutter_flow/custom_functions.dart'; // Imports custom functions
 import 'package:flutter/material.dart';
 // Begin custom action code
-
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
+
+import '/flutter_flow/flutter_flow_widgets.dart';
+import '/flutter_flow/flutter_flow_icon_button.dart';
+import '/custom_code/widgets/index.dart'
+    as custom_widgets; // Imports other custom widgets
 
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -48,7 +48,8 @@ class RefundItemSelectionModal extends StatefulWidget {
 }
 
 class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
-  final Map<String, int> _selectedItems = {}; // item_id -> quantity to refund
+  final Map<String, num> _selectedItems =
+      {}; // item_id -> quantity to refund (supports decimals)
   final TextEditingController _reasonController = TextEditingController();
   bool _selectAll = false;
   bool _isProcessing = false;
@@ -59,16 +60,22 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
     super.dispose();
   }
 
+  /// Matches backend `PurchasesController::resolvePurchaseLineItemId` for lines without `id`.
+  String _lineIdForIndex(int index) {
+    final id = widget.purchaseItems[index].purchaseItemId;
+    if (id != null && id.isNotEmpty) {
+      return id;
+    }
+    return 'legacy_line_$index';
+  }
+
   void _toggleSelectAll() {
     setState(() {
       _selectAll = !_selectAll;
       if (_selectAll) {
-        // Select all items with their full quantities
-        for (var item in widget.purchaseItems) {
-          final itemId = item.purchaseItemId ?? '';
-          if (itemId.isNotEmpty) {
-            _selectedItems[itemId] = item.purchaseItemQuantity ?? 1;
-          }
+        for (var i = 0; i < widget.purchaseItems.length; i++) {
+          final item = widget.purchaseItems[i];
+          _selectedItems[_lineIdForIndex(i)] = item.purchaseItemQuantity ?? 1.0;
         }
       } else {
         _selectedItems.clear();
@@ -76,7 +83,7 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
     });
   }
 
-  void _toggleItem(String itemId, int maxQuantity) {
+  void _toggleItem(String itemId, num maxQuantity) {
     setState(() {
       if (_selectedItems.containsKey(itemId)) {
         _selectedItems.remove(itemId);
@@ -88,7 +95,7 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
     });
   }
 
-  void _updateItemQuantity(String itemId, int quantity) {
+  void _updateItemQuantity(String itemId, num quantity) {
     setState(() {
       if (quantity > 0) {
         _selectedItems[itemId] = quantity;
@@ -100,15 +107,16 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
 
   int _calculateRefundAmount() {
     int total = 0;
-    for (var item in widget.purchaseItems) {
-      final itemId = item.purchaseItemId ?? '';
-      if (_selectedItems.containsKey(itemId)) {
-        final quantityToRefund = _selectedItems[itemId] ?? 0;
+    for (var i = 0; i < widget.purchaseItems.length; i++) {
+      final item = widget.purchaseItems[i];
+      final lineId = _lineIdForIndex(i);
+      if (_selectedItems.containsKey(lineId)) {
+        final quantityToRefund = _selectedItems[lineId] ?? 0;
         final unitPrice = item.purchaseItemUnitPrice ?? 0;
         final discountAmount = item.purchaseItemDiscountAmount ?? 0;
-        // Calculate line total: (unit_price - discount) * quantity
+        // Calculate line total: (unit_price - discount) * quantity (quantity may be decimal)
         final lineTotal = (unitPrice - discountAmount) * quantityToRefund;
-        total += lineTotal;
+        total += lineTotal.round();
       }
     }
     return total;
@@ -201,7 +209,8 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
                 mainAxisSize: MainAxisSize.max,
                 children: [
                   Padding(
-                    padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 12.0, 0.0),
+                    padding:
+                        EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 12.0, 0.0),
                     child: FlutterFlowIconButton(
                       borderColor: Colors.transparent,
                       borderRadius: 30.0,
@@ -249,7 +258,8 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
                   children: [
                     // Select all checkbox
                     Padding(
-                      padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
+                      padding:
+                          EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
                       child: Row(
                         children: [
                           Checkbox(
@@ -264,23 +274,30 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
                       ),
                     ),
                     // Items
-                    ...widget.purchaseItems.map((item) {
-                      final itemId = item.purchaseItemId ?? '';
-                      final isSelected = _selectedItems.containsKey(itemId);
-                      final quantity = item.purchaseItemQuantity ?? 1;
+                    ...widget.purchaseItems.asMap().entries.map((entry) {
+                      final lineIndex = entry.key;
+                      final item = entry.value;
+                      final lineId = _lineIdForIndex(lineIndex);
+                      final isSelected = _selectedItems.containsKey(lineId);
+                      final quantity = item.purchaseItemQuantity ?? 1.0;
                       final unitPrice = item.purchaseItemUnitPrice ?? 0;
-                      final discountAmount = item.purchaseItemDiscountAmount ?? 0;
-                      final selectedQuantity = _selectedItems[itemId] ?? 0;
+                      final discountAmount =
+                          item.purchaseItemDiscountAmount ?? 0;
+                      final selectedQuantity = _selectedItems[lineId] ?? 0;
                       final itemTotal = (unitPrice - discountAmount) * quantity;
-                      final itemTotalFormatted = (itemTotal / 100).toStringAsFixed(2);
+                      final itemTotalFormatted =
+                          (itemTotal / 100).toStringAsFixed(2);
 
                       return Container(
-                        margin: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
-                        padding: EdgeInsetsDirectional.fromSTEB(12.0, 12.0, 12.0, 12.0),
+                        margin:
+                            EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
+                        padding: EdgeInsetsDirectional.fromSTEB(
+                            12.0, 12.0, 12.0, 12.0),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? FlutterFlowTheme.of(context).primaryBackground
-                              : FlutterFlowTheme.of(context).secondaryBackground,
+                              : FlutterFlowTheme.of(context)
+                                  .secondaryBackground,
                           border: Border.all(
                             color: isSelected
                                 ? FlutterFlowTheme.of(context).primary
@@ -296,59 +313,73 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
                               children: [
                                 Checkbox(
                                   value: isSelected,
-                                  onChanged: (value) => _toggleItem(itemId, quantity),
+                                  onChanged: (value) =>
+                                      _toggleItem(lineId, quantity),
                                 ),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        item.purchaseItemProductName ?? 'Ukjent vare',
-                                        style: FlutterFlowTheme.of(context).bodyLarge,
+                                        item.purchaseItemProductName ??
+                                            'Ukjent vare',
+                                        style: FlutterFlowTheme.of(context)
+                                            .bodyLarge,
                                       ),
-                                      if (item.purchaseItemDescription != null &&
-                                          item.purchaseItemDescription!.isNotEmpty)
+                                      if (item.purchaseItemDescription !=
+                                              null &&
+                                          item.purchaseItemDescription!
+                                              .isNotEmpty)
                                         Text(
                                           item.purchaseItemDescription!,
-                                          style: FlutterFlowTheme.of(context).bodySmall,
+                                          style: FlutterFlowTheme.of(context)
+                                              .bodySmall,
                                         ),
                                     ],
                                   ),
                                 ),
                                 Text(
                                   '$itemTotalFormatted kr',
-                                  style: FlutterFlowTheme.of(context).bodyMedium,
+                                  style:
+                                      FlutterFlowTheme.of(context).bodyMedium,
                                 ),
                               ],
                             ),
                             if (isSelected && quantity > 1)
                               Padding(
-                                padding: EdgeInsetsDirectional.fromSTEB(40.0, 8.0, 0.0, 0.0),
+                                padding: EdgeInsetsDirectional.fromSTEB(
+                                    40.0, 8.0, 0.0, 0.0),
                                 child: Row(
                                   children: [
                                     Text(
                                       'Antall å refundere: ',
-                                      style: FlutterFlowTheme.of(context).bodySmall,
+                                      style: FlutterFlowTheme.of(context)
+                                          .bodySmall,
                                     ),
                                     IconButton(
                                       icon: Icon(Icons.remove_circle_outline),
                                       onPressed: selectedQuantity > 1
-                                          ? () => _updateItemQuantity(itemId, selectedQuantity - 1)
+                                          ? () => _updateItemQuantity(
+                                              lineId, selectedQuantity - 1)
                                           : null,
                                     ),
                                     Text(
                                       '$selectedQuantity',
-                                      style: FlutterFlowTheme.of(context).bodyMedium,
+                                      style: FlutterFlowTheme.of(context)
+                                          .bodyMedium,
                                     ),
                                     IconButton(
                                       icon: Icon(Icons.add_circle_outline),
                                       onPressed: selectedQuantity < quantity
-                                          ? () => _updateItemQuantity(itemId, selectedQuantity + 1)
+                                          ? () => _updateItemQuantity(
+                                              lineId, selectedQuantity + 1)
                                           : null,
                                     ),
                                     Text(
                                       ' / $quantity',
-                                      style: FlutterFlowTheme.of(context).bodySmall,
+                                      style: FlutterFlowTheme.of(context)
+                                          .bodySmall,
                                     ),
                                   ],
                                 ),
@@ -359,7 +390,8 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
                     }).toList(),
                     // Reason field
                     Padding(
-                      padding: EdgeInsetsDirectional.fromSTEB(0.0, 16.0, 0.0, 0.0),
+                      padding:
+                          EdgeInsetsDirectional.fromSTEB(0.0, 16.0, 0.0, 0.0),
                       child: TextFormField(
                         controller: _reasonController,
                         decoration: InputDecoration(
@@ -415,7 +447,8 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
                     ],
                   ),
                   Padding(
-                    padding: EdgeInsetsDirectional.fromSTEB(0.0, 16.0, 0.0, 0.0),
+                    padding:
+                        EdgeInsetsDirectional.fromSTEB(0.0, 16.0, 0.0, 0.0),
                     child: FFButtonWidget(
                       onPressed: _isProcessing ? null : _processRefund,
                       text: widget.paymentMethod == 'cash'
@@ -427,7 +460,8 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
                               height: 20.0,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.0,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : const Icon(Icons.undo),
@@ -435,10 +469,11 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
                         width: double.infinity,
                         height: 50.0,
                         color: FlutterFlowTheme.of(context).primary,
-                        textStyle: FlutterFlowTheme.of(context).titleSmall.override(
-                              fontFamily: 'Inter Tight',
-                              color: Colors.white,
-                            ),
+                        textStyle:
+                            FlutterFlowTheme.of(context).titleSmall.override(
+                                  fontFamily: 'Inter Tight',
+                                  color: Colors.white,
+                                ),
                         elevation: 3.0,
                         borderSide: BorderSide(
                           color: Colors.transparent,
@@ -463,14 +498,14 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
 /// ────────────────────────────────────────────────────────────────
 
 /// Process a refund for an order
-/// 
+///
 /// Opens a modal to select which items from the order should be refunded,
 /// then processes the refund using the appropriate payment method (cash or Stripe).
-/// 
+///
 /// For compliance: If the original POS session is closed, the refund will be tracked
 /// in the current open session. The original session totals remain unchanged.
 /// The backend automatically detects the current open session if original is closed.
-/// 
+///
 /// Parameters:
 /// - context: BuildContext required for showing the dialog
 /// - purchase: The purchase/order struct containing all purchase information
@@ -478,7 +513,7 @@ class _RefundItemSelectionModalState extends State<RefundItemSelectionModal> {
 /// - authToken: Authentication token
 /// - width: Optional width for the modal (defaults to 600.0 if null)
 /// - height: Optional height for the modal (defaults to 700.0 if null)
-/// 
+///
 /// Returns:
 /// - success: true if refund was processed successfully
 /// - data: Refund data including charge, receipt, and pos_event
@@ -538,12 +573,11 @@ Future<dynamic> processOrderRefund(
       };
     }
 
-
     // Show modal to select items
     // Use default values if width/height are null (FlutterFlow compatibility)
     final modalWidth = width ?? 600.0;
     final modalHeight = height ?? 700.0;
-    
+
     final modalResult = await showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
@@ -579,7 +613,7 @@ Future<dynamic> processOrderRefund(
 
     // Build refunded items array for item-level tracking
     final refundedItemsList = <Map<String, dynamic>>[];
-    final selectedItemsMap = modalResult['selectedItems'] as Map<String, int>;
+    final selectedItemsMap = modalResult['selectedItems'] as Map<String, num>;
     for (var entry in selectedItemsMap.entries) {
       refundedItemsList.add({
         'item_id': entry.key,
@@ -616,11 +650,14 @@ Future<dynamic> processOrderRefund(
     if (response.statusCode >= 200 && response.statusCode < 300) {
       // Success
       final data = responseData['data'] as Map<String, dynamic>? ?? {};
-      final refundProcessedAutomatically = data['refund_processed_automatically'] ?? false;
-      final requiresManualProcessing = data['requires_manual_processing'] ?? false;
-      final manualProcessingMessage = data['manual_processing_message'] as String?;
+      final refundProcessedAutomatically =
+          data['refund_processed_automatically'] ?? false;
+      final requiresManualProcessing =
+          data['requires_manual_processing'] ?? false;
+      final manualProcessingMessage =
+          data['manual_processing_message'] as String?;
       final receipt = data['receipt'] as Map<String, dynamic>?;
-      
+
       return {
         'success': responseData['success'] ?? true,
         'data': data,
@@ -654,4 +691,3 @@ Future<dynamic> processOrderRefund(
     };
   }
 }
-

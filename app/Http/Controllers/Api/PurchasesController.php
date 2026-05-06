@@ -873,6 +873,29 @@ class PurchasesController extends BaseApiController
     }
 
     /**
+     * Stable line identifier for POS cart lines (refunds, item_refunds, Flutter selection).
+     * Matches {@see PurchaseService::enrichCartItemsWithProductSnapshots} when ids are persisted.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    protected function resolvePurchaseLineItemId(array $item, int $lineIndex): string
+    {
+        $raw = $item['id'] ?? null;
+
+        if (is_string($raw)) {
+            $trimmed = trim($raw);
+
+            return $trimmed !== '' ? $trimmed : 'legacy_line_'.$lineIndex;
+        }
+
+        if (is_int($raw) || is_float($raw)) {
+            return (string) $raw;
+        }
+
+        return 'legacy_line_'.$lineIndex;
+    }
+
+    /**
      * Enrich purchase items with product information
      * Uses stored product snapshots from metadata first (for historical accuracy),
      * falls back to current product data if snapshot is missing (backward compatibility)
@@ -890,21 +913,23 @@ class PurchasesController extends BaseApiController
 
         // If snapshots exist, use them directly (preserves historical data)
         if ($hasSnapshots) {
-            return array_map(function ($item) use ($itemRefunds) {
+            $out = [];
+            foreach ($items as $lineIndex => $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
                 $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
                 $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
                 // original_price is stored as integer (øre) in snapshot, or calculate if missing
                 $originalPrice = isset($item['original_price']) ? (int) $item['original_price'] : ($discountAmount > 0 ? ($unitPrice + $discountAmount) : null);
 
-                // Get refund status for this item
-                $itemId = $item['id'] ?? null;
+                $itemId = $this->resolvePurchaseLineItemId($item, (int) $lineIndex);
                 $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
-                $quantityRefunded = $itemId ? (float) ($itemRefunds[$itemId] ?? 0) : 0.0;
+                $quantityRefunded = (float) ($itemRefunds[$itemId] ?? 0);
                 $isFullyRefunded = $quantityRefunded >= $quantity;
                 $isPartiallyRefunded = $quantityRefunded > 0 && $quantityRefunded < $quantity;
 
-                // Format item with purchase_item_ prefix for FlutterFlow
-                return [
+                $out[] = [
                     'purchase_item_id' => $itemId,
                     'purchase_item_product_id' => isset($item['product_id']) ? (string) $item['product_id'] : null,
                     'purchase_item_variant_id' => isset($item['variant_id']) ? (string) $item['variant_id'] : null,
@@ -925,7 +950,9 @@ class PurchasesController extends BaseApiController
                         ? $item['metadata']
                         : null,
                 ];
-            }, $items);
+            }
+
+            return $out;
         }
 
         // Fallback: enrich from current product data (for old purchases without snapshots)
@@ -947,7 +974,11 @@ class PurchasesController extends BaseApiController
         $variants = $this->getProductVariantsForAccount($stripeAccountId, $variantIds);
 
         // Enrich each item from current product data
-        return array_map(function ($item) use ($products, $variants, $itemRefunds) {
+        $out = [];
+        foreach ($items as $lineIndex => $item) {
+            if (! is_array($item)) {
+                continue;
+            }
             $productId = isset($item['product_id']) ? (int) $item['product_id'] : null;
             $variantId = isset($item['variant_id']) ? (int) $item['variant_id'] : null;
             $variant = $variantId ? ($variants[$variantId] ?? null) : null;
@@ -1005,15 +1036,13 @@ class PurchasesController extends BaseApiController
                 $productCode = $product->product_code;
             }
 
-            // Get refund status for this item
-            $itemId = $item['id'] ?? null;
+            $itemId = $this->resolvePurchaseLineItemId($item, (int) $lineIndex);
             $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
-            $quantityRefunded = $itemId ? (float) ($itemRefunds[$itemId] ?? 0) : 0.0;
+            $quantityRefunded = (float) ($itemRefunds[$itemId] ?? 0);
             $isFullyRefunded = $quantityRefunded >= $quantity;
             $isPartiallyRefunded = $quantityRefunded > 0 && $quantityRefunded < $quantity;
 
-            // Format item with purchase_item_ prefix for FlutterFlow
-            return [
+            $out[] = [
                 'purchase_item_id' => $itemId,
                 'purchase_item_product_id' => $productId ? (string) $productId : null,
                 'purchase_item_variant_id' => $variantId ? (string) $variantId : null,
@@ -1034,7 +1063,9 @@ class PurchasesController extends BaseApiController
                     ? $item['metadata']
                     : null,
             ];
-        }, $items);
+        }
+
+        return $out;
     }
 
     /**

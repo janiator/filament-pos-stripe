@@ -132,6 +132,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/poweroffice/sync/retry/{syncRun}', [\App\Http\Controllers\Api\PowerOffice\PowerOfficeSyncController::class, 'retry'])
         ->name('api.poweroffice.sync.retry');
 
+    Route::post('/tripletex/sync/z-report/{posSession}', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'syncZReport'])
+        ->name('api.tripletex.sync.z-report');
+
+    Route::post('/tripletex/sync/payout/{payout}', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'syncPayout'])
+        ->name('api.tripletex.sync.payout');
+
+    Route::post('/tripletex/sync/retry/{syncRun}', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'retry'])
+        ->name('api.tripletex.sync.retry');
+
+    Route::get('/tripletex/preview/z-report/{posSession}', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'previewZReport'])
+        ->name('api.tripletex.preview.z-report');
+
+    Route::get('/tripletex/preview/payout/{payout}', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'previewPayout'])
+        ->name('api.tripletex.preview.payout');
+
+    Route::post('/tripletex/sync/historical', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'historical'])
+        ->name('api.tripletex.sync.historical');
+
     // SAF-T endpoints (Kassasystemforskriften compliance)
     Route::post('/saf-t/generate', [\App\Http\Controllers\Api\SafTController::class, 'generate'])->name('api.saf-t.generate');
     Route::get('/saf-t/content', [\App\Http\Controllers\Api\SafTController::class, 'content'])->name('api.saf-t.content');

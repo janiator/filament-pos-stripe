@@ -13,6 +13,7 @@ use App\Models\Store;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Stripe\StripeClient;
 use Throwable;
 
@@ -953,22 +954,36 @@ class PurchaseService
             $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
             $originalPrice = $discountAmount > 0 ? ($unitPrice + $discountAmount) : null;
 
-            // For diverse products or products without price, use custom description if provided
-            // Otherwise use product name. Store both for flexibility.
-            // Preserve description from original item (may come from cart)
+            // Optional cart line note (`description`): shown under the product on receipts when it
+            // differs from the resolved product title. If there is no resolved product name, the
+            // description is the only title (ad-hoc / diverse-style lines).
             $customDescription = $item['description'] ?? null;
-            // If description is empty string, treat as null
             if ($customDescription === '') {
                 $customDescription = null;
             }
-            $itemName = $customDescription ?? $productName;
+
+            $hasProductTitle = ($productName ?? '') !== '';
+            $displayName = $hasProductTitle
+                ? $productName
+                : ($customDescription ?? 'Vare');
+
+            $receiptLineDescription = null;
+            if ($customDescription !== null && $hasProductTitle && $customDescription !== $productName) {
+                $receiptLineDescription = $customDescription;
+            }
 
             // Merge snapshot data with existing item data
             // array_merge preserves all original item fields (including description if present)
+            $existingLineId = $item['id'] ?? null;
+            $lineId = is_string($existingLineId) && trim($existingLineId) !== ''
+                ? trim($existingLineId)
+                : (string) Str::uuid();
+
             $enrichedItem = array_merge($item, [
+                'id' => $lineId,
                 // Store snapshot of product information at purchase time
-                'name' => $itemName, // Primary name for receipts (custom description or product name)
-                'description' => $customDescription, // Custom description if provided (for diverse products) - explicitly set
+                'name' => $displayName,
+                'description' => $receiptLineDescription,
                 'product_name' => $productName, // Original product name (for reference)
                 'product_image_url' => $productImageUrl,
                 'original_price' => $originalPrice,

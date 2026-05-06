@@ -403,3 +403,69 @@ test('purchases index avoids repeated product lookup queries for metadata fallba
     $response->assertOk();
     expect($connectedProductQueries)->toBe(1);
 });
+
+test('purchase keeps product name as line title and stores distinct item description for receipts', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_line_desc']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    PaymentMethod::create([
+        'store_id' => $store->id,
+        'name' => 'Cash',
+        'code' => 'cash',
+        'provider' => 'cash',
+        'enabled' => true,
+        'pos_suitable' => true,
+        'sort_order' => 0,
+        'minimum_amount_kroner' => null,
+        'saf_t_payment_code' => '10000',
+        'saf_t_event_code' => '13016',
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Kaffe stor',
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->postJson('/api/purchases', [
+        'pos_session_id' => $session->id,
+        'payment_method_code' => 'cash',
+        'cart' => [
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 5000,
+                    'description' => 'Ekstra shot, soyamelk',
+                ],
+            ],
+            'subtotal' => 5000,
+            'total_discounts' => 0,
+            'total_tax' => 1000,
+            'total' => 5000,
+            'currency' => 'nok',
+        ],
+        'metadata' => [],
+    ]);
+
+    $response->assertCreated();
+
+    $charge = ConnectedCharge::query()->findOrFail($response->json('data.charge.id'));
+    $items = $charge->metadata['items'] ?? [];
+
+    expect($items)->toHaveCount(1)
+        ->and($items[0]['name'])->toBe('Kaffe stor')
+        ->and($items[0]['product_name'])->toBe('Kaffe stor')
+        ->and($items[0]['description'])->toBe('Ekstra shot, soyamelk');
+});

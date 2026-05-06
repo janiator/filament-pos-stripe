@@ -4,16 +4,18 @@ namespace App\Observers;
 
 use App\Enums\AddonType;
 use App\Jobs\SyncPowerOfficeZReportJob;
+use App\Jobs\SyncTripletexZReportJob;
 use App\Models\Addon;
 use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\Store;
 use App\Services\PowerOffice\PowerOfficeZReportSync;
+use App\Services\Tripletex\TripletexZReportSync;
 
 class PosEventObserver
 {
     /**
-     * After a Z-report is logged, queue PowerOffice sync when the add-on is enabled.
+     * After a Z-report is logged, queue accounting sync jobs when add-ons are enabled.
      */
     public function created(PosEvent $event): void
     {
@@ -30,24 +32,27 @@ class PosEventObserver
             return;
         }
 
-        if (! Addon::storeHasActiveAddon($store->getKey(), AddonType::PowerOfficeGo)) {
-            return;
-        }
-
-        $integration = $store->powerOfficeIntegration;
-        if (! $integration || ! $integration->isConnected() || ! $integration->sync_enabled || ! $integration->auto_sync_on_z_report) {
-            return;
-        }
-
         $session = PosSession::query()->find($event->pos_session_id);
         if (! $session) {
             return;
         }
 
-        if (! app(PowerOfficeZReportSync::class)->isSessionEligibleForSync($session)) {
-            return;
+        if (Addon::storeHasActiveAddon($store->getKey(), AddonType::PowerOfficeGo)) {
+            $integration = $store->powerOfficeIntegration;
+            if ($integration && $integration->isConnected() && $integration->sync_enabled && $integration->auto_sync_on_z_report) {
+                if (app(PowerOfficeZReportSync::class)->isSessionEligibleForSync($session)) {
+                    SyncPowerOfficeZReportJob::dispatch($event->pos_session_id);
+                }
+            }
         }
 
-        SyncPowerOfficeZReportJob::dispatch($event->pos_session_id);
+        if (Addon::storeHasActiveAddon($store->getKey(), AddonType::Tripletex)) {
+            $tripletex = $store->tripletexIntegration;
+            if ($tripletex && $tripletex->isConnected() && $tripletex->sync_enabled && $tripletex->auto_sync_on_z_report) {
+                if (app(TripletexZReportSync::class)->isSessionEligibleForSync($session)) {
+                    SyncTripletexZReportJob::dispatch($event->pos_session_id);
+                }
+            }
+        }
     }
 }

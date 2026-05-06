@@ -4,14 +4,19 @@ namespace App\Filament\Resources\PosSessions\Tables;
 
 use App\Enums\AddonType;
 use App\Enums\PowerOfficeSyncRunStatus;
+use App\Enums\TripletexIntegrationStatus;
+use App\Enums\TripletexSyncRunStatus;
+use App\Filament\Actions\TripletexVoucherPreviewAction;
 use App\Filament\Resources\PosSessions\PosSessionResource;
 use App\Mail\ZReportMail;
 use App\Models\Addon;
 use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\PowerOfficeSyncRun;
+use App\Models\TripletexSyncRun;
 use App\Services\PowerOffice\PowerOfficeZReportSync;
 use App\Services\PowerOffice\StripeSettlementTotalsForPosSession;
+use App\Services\Tripletex\TripletexZReportSync;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Filament\Actions\Action;
@@ -39,7 +44,9 @@ class PosSessionsTable
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
                 'store.powerOfficeIntegration',
+                'store.tripletexIntegration',
                 'latestPowerOfficeSyncRun',
+                'latestTripletexSyncRun',
             ]))
             ->columns([
                 TextColumn::make('session_number')
@@ -126,6 +133,77 @@ class PosSessionsTable
                         }
 
                         return (is_numeric($journalNo) && (int) $journalNo > 0) ? (string) $journalNo : null;
+                    })
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('tripletex_synced')
+                    ->label('TX Synced')
+                    ->tooltip('Tripletex sync status for closed sessions')
+                    ->visible(fn (): bool => self::isTripletexActivatedForTenant())
+                    ->getStateUsing(function (PosSession $record): ?string {
+                        if ($record->status !== 'closed') {
+                            return null;
+                        }
+
+                        $integration = $record->store?->tripletexIntegration;
+                        if (! $integration?->isConnected()) {
+                            return null;
+                        }
+
+                        $sync = app(TripletexZReportSync::class);
+                        if (! $sync->isSessionEligibleForSync($record)) {
+                            return 'ineligible';
+                        }
+
+                        $runStatus = $record->latestTripletexSyncRun?->status;
+                        if ($runStatus === TripletexSyncRunStatus::Success) {
+                            return 'success';
+                        }
+                        if ($runStatus === TripletexSyncRunStatus::Failed) {
+                            return 'failed';
+                        }
+                        if ($runStatus === TripletexSyncRunStatus::Skipped) {
+                            return 'skipped';
+                        }
+
+                        return 'not_synced';
+                    })
+                    ->icon(fn (?string $state): ?string => match ($state) {
+                        'success' => 'heroicon-o-check-circle',
+                        'failed' => 'heroicon-o-x-circle',
+                        'ineligible' => 'heroicon-o-x-circle',
+                        'skipped' => 'heroicon-o-information-circle',
+                        'not_synced' => 'heroicon-o-minus-circle',
+                        default => null,
+                    })
+                    ->color(fn (?string $state): ?string => match ($state) {
+                        'success' => 'success',
+                        'failed' => 'danger',
+                        'ineligible' => 'gray',
+                        'skipped' => 'gray',
+                        'not_synced' => 'warning',
+                        default => 'gray',
+                    })
+                    ->toggleable(),
+                TextColumn::make('tripletex_voucher_id')
+                    ->label('TX Voucher')
+                    ->visible(fn (): bool => self::isTripletexActivatedForTenant())
+                    ->getStateUsing(function (PosSession $record): ?string {
+                        if ($record->status !== 'closed') {
+                            return null;
+                        }
+
+                        $integration = $record->store?->tripletexIntegration;
+                        if (! $integration?->isConnected()) {
+                            return null;
+                        }
+
+                        $run = $record->latestTripletexSyncRun;
+                        if (! $run || ! $run->tripletex_voucher_id) {
+                            return null;
+                        }
+
+                        return (string) $run->tripletex_voucher_id;
                     })
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -219,6 +297,41 @@ class PosSessionsTable
                                 ->whereDoesntHave('latestPowerOfficeSyncRun')
                                 ->orWhereHas('latestPowerOfficeSyncRun', function (Builder $syncQuery): void {
                                     $syncQuery->where('status', '!=', PowerOfficeSyncRunStatus::Success->value);
+                                });
+                        });
+                    }),
+
+                SelectFilter::make('tripletex_synced')
+                    ->label('Tripletex Synced')
+                    ->visible(fn (): bool => self::isTripletexActivatedForTenant())
+                    ->options([
+                        'yes' => 'Yes',
+                        'no' => 'No',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $value = $data['value'] ?? null;
+                        if (! in_array($value, ['yes', 'no'], true)) {
+                            return $query;
+                        }
+
+                        $query->where('status', 'closed')
+                            ->whereHas('store.tripletexIntegration', function (Builder $integrationQuery): void {
+                                $integrationQuery->where('status', TripletexIntegrationStatus::Connected)
+                                    ->whereNotNull('consumer_token')
+                                    ->whereNotNull('employee_token');
+                            });
+
+                        if ($value === 'yes') {
+                            return $query->whereHas('latestTripletexSyncRun', function (Builder $syncQuery): void {
+                                $syncQuery->where('status', TripletexSyncRunStatus::Success->value);
+                            });
+                        }
+
+                        return $query->where(function (Builder $unsyncedQuery): void {
+                            $unsyncedQuery
+                                ->whereDoesntHave('latestTripletexSyncRun')
+                                ->orWhereHas('latestTripletexSyncRun', function (Builder $syncQuery): void {
+                                    $syncQuery->where('status', '!=', TripletexSyncRunStatus::Success->value);
                                 });
                         });
                     }),
@@ -492,6 +605,75 @@ class PosSessionsTable
                             ->persistent()
                             ->send();
                     }),
+                TripletexVoucherPreviewAction::makeTableActionForZReport(),
+                Action::make('sync_tripletex')
+                    ->label('Sync Tripletex')
+                    ->icon('heroicon-o-document-chart-bar')
+                    ->color('gray')
+                    ->visible(fn (PosSession $record): bool => self::canSyncToTripletex($record))
+                    ->action(function (PosSession $record): void {
+                        Log::info('Filament Tripletex sync clicked', [
+                            'pos_session_id' => $record->id,
+                            'session_number' => $record->session_number,
+                        ]);
+
+                        Notification::make()
+                            ->title('Syncing with Tripletex...')
+                            ->body("Session {$record->session_number}")
+                            ->info()
+                            ->send();
+
+                        try {
+                            $sync = app(TripletexZReportSync::class);
+                            $ok = $sync->sync($record->id, true);
+                            $run = TripletexSyncRun::query()
+                                ->where('pos_session_id', $record->id)
+                                ->latest('id')
+                                ->first();
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->title('Tripletex sync failed')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+
+                            Log::error('Filament Tripletex sync action failed', [
+                                'pos_session_id' => $record->id,
+                                'exception' => $e->getMessage(),
+                            ]);
+
+                            return;
+                        }
+
+                        if ($run?->status === TripletexSyncRunStatus::Skipped) {
+                            Notification::make()
+                                ->title('Tripletex sync skipped')
+                                ->body($run->error_message ?? 'No voucher was posted.')
+                                ->warning()
+                                ->persistent()
+                                ->send();
+
+                            return;
+                        }
+
+                        if (! $ok || $run?->status !== TripletexSyncRunStatus::Success) {
+                            Notification::make()
+                                ->title('Tripletex sync failed')
+                                ->body($run?->error_message ?? 'See Tripletex sync history for details.')
+                                ->danger()
+                                ->persistent()
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->title('Synced to Tripletex')
+                            ->body($run->tripletex_voucher_id ? "Voucher #{$run->tripletex_voucher_id}" : 'Z-report synced successfully.')
+                            ->success()
+                            ->persistent()
+                            ->send();
+                    }),
                 Action::make('send_z_report_email')
                     ->label('Send Z-Report Email')
                     ->icon('heroicon-o-envelope')
@@ -670,6 +852,94 @@ class PosSessionsTable
                             }
                             $notification->send();
                         }),
+                    BulkAction::make('sync_tripletex')
+                        ->label('Sync selected to Tripletex')
+                        ->icon('heroicon-o-document-chart-bar')
+                        ->color('gray')
+                        ->visible(fn (): bool => self::isTripletexActivatedForTenant())
+                        ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function (Collection $records): void {
+                            $sync = app(TripletexZReportSync::class);
+                            $synced = 0;
+                            $failed = 0;
+                            $skipped = 0;
+                            $errors = [];
+                            $skippedAfterSyncMessages = [];
+
+                            foreach ($records as $record) {
+                                if (! $record instanceof PosSession || $record->status !== 'closed') {
+                                    $skipped++;
+
+                                    continue;
+                                }
+
+                                $record->loadMissing('store.tripletexIntegration');
+                                $integration = $record->store?->tripletexIntegration;
+                                if (! $integration?->isConnected() || ! $integration->sync_enabled) {
+                                    $skipped++;
+
+                                    continue;
+                                }
+
+                                if (! $sync->isSessionEligibleForSync($record)) {
+                                    $skipped++;
+
+                                    continue;
+                                }
+
+                                $ok = $sync->sync($record->id, true);
+                                $run = TripletexSyncRun::query()
+                                    ->where('pos_session_id', $record->id)
+                                    ->latest('id')
+                                    ->first();
+
+                                if ($ok && $run?->status === TripletexSyncRunStatus::Success) {
+                                    $synced++;
+
+                                    continue;
+                                }
+
+                                if ($run?->status === TripletexSyncRunStatus::Skipped) {
+                                    $skipped++;
+                                    $skippedAfterSyncMessages[] = "Session {$record->session_number}: ".($run->error_message ?? 'skipped');
+
+                                    continue;
+                                }
+
+                                $failed++;
+                                $errors[] = "Session {$record->session_number}: ".($run?->error_message ?? 'unknown error');
+                            }
+
+                            $parts = [
+                                "{$synced} synced",
+                                "{$failed} failed",
+                            ];
+                            if ($skipped > 0) {
+                                $parts[] = "{$skipped} skipped";
+                            }
+                            $body = implode(', ', $parts).'.';
+                            $detailMessages = array_merge($errors, $skippedAfterSyncMessages);
+                            if ($detailMessages !== []) {
+                                $body .= ' '.implode(' ', array_slice($detailMessages, 0, 3));
+                                if (count($detailMessages) > 3) {
+                                    $body .= ' … and '.(count($detailMessages) - 3).' more.';
+                                }
+                            }
+
+                            $notification = Notification::make()
+                                ->title('Tripletex bulk sync completed')
+                                ->body($body);
+
+                            if ($failed > 0) {
+                                $notification->warning();
+                            } elseif ($synced > 0) {
+                                $notification->success();
+                            } else {
+                                $notification->danger();
+                            }
+                            $notification->send();
+                        }),
                 ]),
             ]);
     }
@@ -697,6 +967,31 @@ class PosSessionsTable
         }
 
         return app(PowerOfficeZReportSync::class)->isSessionEligibleForSync($record);
+    }
+
+    protected static function isTripletexActivatedForTenant(): bool
+    {
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return false;
+        }
+
+        return Addon::storeHasActiveAddon($tenant->getKey(), AddonType::Tripletex);
+    }
+
+    protected static function canSyncToTripletex(PosSession $record): bool
+    {
+        if ($record->status !== 'closed') {
+            return false;
+        }
+
+        $record->loadMissing('store.tripletexIntegration');
+        $integration = $record->store?->tripletexIntegration;
+        if (! $integration?->isConnected() || ! $integration->sync_enabled) {
+            return false;
+        }
+
+        return app(TripletexZReportSync::class)->isSessionEligibleForSync($record);
     }
 
     /**

@@ -276,6 +276,14 @@ class Store extends Model implements StripeAccount
     }
 
     /**
+     * Tripletex accounting integration (optional add-on).
+     */
+    public function tripletexIntegration(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(TripletexIntegration::class);
+    }
+
+    /**
      * Get event tickets for this store.
      */
     public function eventTickets()

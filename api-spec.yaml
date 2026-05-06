@@ -17,6 +17,7 @@ info:
     - Product and inventory management
     - SAF-T file generation (Norwegian tax compliance)
     - PowerOffice Go onboarding and Z-report sync (optional per-store add-on)
+    - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on)
     - Terminal operations (connection tokens and payment intents)
     - Verifone terminal operations (payment start/status/abort)
 
@@ -69,6 +70,9 @@ tags:
   - name: PowerOffice
     description: |
       PowerOffice Go accounting integration (Z-report sync, onboarding). Server-side calls to PowerOffice Go API v2 use OAuth 2.0 client credentials (Bearer access token from the Token URL; see `POWEROFFICE_CLIENT_ID` + per-store client key + `POWEROFFICE_SUBSCRIPTION_KEY` in server env). Z-report ledger post defaults to `POST …/Vouchers/ManualJournals` (direct posting; Go UI “Direktepostere manuelle bilag”); use `…/JournalEntryVouchers/ManualJournals` via `POWEROFFICE_LEDGER_POST_PATH` for the journal-entry workflow. HTTP 403 often means wrong path vs privilege set, stale token after Go privilege changes, or missing voucher documentation privilege. Z-report payloads stored on closed POS sessions may include `by_payment_method_net` (per payment_method after refunds) for ledger routing; optional `stripe_fees_minor`, `payout_to_bank_minor`, and `gift_card_sales_minor` when present—positive values override backend defaults. The server merges fee and payout totals into `closing_data.z_report_data` when generating or serving a Z-report (from Stripe data synced in Filament) unless a positive override is already set. When those keys are absent or zero at ledger build time, the server may still fill fees and payouts from the same source (**Stripe gebyr og saldo** / **Stripe-utbetalinger**). Category-style splits use **product collection** IDs (not article groups).
+  - name: Tripletex
+    description: |
+      Tripletex accounting integration: posts **draft** ledger vouchers (`sendToLedger` follows `TRIPLETEX_SEND_TO_LEDGER`). Per-store **consumer** and **employee** tokens are stored encrypted; the server exchanges them for a short-lived session token before account lookup and voucher POST. Z-report vouchers carry sales/VAT/tips/payment clearing; optional settlement lines on the Z voucher are controlled by `z_report_include_settlement` (default off) to avoid double-posting when **payout vouchers** also move bank/clearing/fee. Payout vouchers debit bank, credit Stripe clearing, and optionally fee expense/clearing from mirrored balance transactions (`stripe_payout_id` on `store_stripe_balance_transactions`). See `docs/accounting/TRIPLETEX_INTEGRATION.md`.
   - name: Terminals
     description: Terminal locations and readers management (Stripe-specific)
   - name: Verifone
@@ -4958,6 +4962,236 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /tripletex/sync/z-report/{posSession}:
+    post:
+      tags:
+        - Tripletex
+      summary: Queue Z-report sync to Tripletex
+      description: Queues a job to post the session Z-report snapshot to Tripletex (manual / force sync).
+      operationId: tripletexSyncZReport
+      parameters:
+        - name: posSession
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  pos_session_id:
+                    type: integer
+        '403':
+          description: Add-on disabled, Tripletex not connected, or sync is turned off (`sync_enabled`)
+        '404':
+          description: Session not found
+        '422':
+          description: Session not closed
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /tripletex/sync/payout/{payout}:
+    post:
+      tags:
+        - Tripletex
+      summary: Queue Stripe payout voucher sync to Tripletex
+      description: Queues a job to post a voucher for a **paid** mirrored Stripe payout (`store_stripe_payouts` row id).
+      operationId: tripletexSyncPayout
+      parameters:
+        - name: payout
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Primary key of `store_stripe_payouts` for this store
+      responses:
+        '200':
+          description: Job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  store_stripe_payout_id:
+                    type: integer
+        '403':
+          description: Add-on disabled, Tripletex not connected, or sync is turned off
+        '404':
+          description: Payout row not found
+        '422':
+          description: Payout not in paid status
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /tripletex/sync/retry/{syncRun}:
+    post:
+      tags:
+        - Tripletex
+      summary: Retry a failed or skipped Tripletex sync run
+      description: Re-queues Z-report or payout sync based on the run's `sync_type` (same as Filament **Retry** for failed or skipped rows).
+      operationId: tripletexSyncRetry
+      parameters:
+        - name: syncRun
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Retry queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  pos_session_id:
+                    type: integer
+                    nullable: true
+                  store_stripe_payout_id:
+                    type: integer
+                    nullable: true
+        '403':
+          description: Add-on disabled, Tripletex not connected, or sync is turned off
+        '404':
+          description: Sync run not found
+        '422':
+          description: Run cannot be retried (missing references)
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /tripletex/preview/z-report/{posSession}:
+    get:
+      tags:
+        - Tripletex
+      summary: Preview Tripletex Z-report voucher lines
+      description: |
+        Returns a voucher preview without posting. On success: `lines` (minor units), `lines_display` (same rows with debit/credit as decimal major units;
+        optional `posting_date` and `line_kind` when present on a line), `document_date`, `description`, `balanced`, and totals. Set `resolve_accounts=true` to call Tripletex (session + ledger/account lookups) and include
+        `tripletex_voucher_payload` (exact draft JSON for POST /ledger/voucher), `tripletex_postings_display` (readable posting rows, each with optional `date`), or `resolve_error` on failure.
+        Does not require `sync_enabled` on the integration (read-only).
+      operationId: tripletexPreviewZReport
+      parameters:
+        - name: posSession
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: resolve_accounts
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Preview JSON (`ok`, `lines`, `lines_display` with optional `posting_date`/`line_kind`, optional `tripletex_voucher_payload`, `tripletex_postings_display`, `resolve_error`)
+        '403':
+          description: Tripletex add-on disabled for the store, or Tripletex is not connected
+        '404':
+          description: Session not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /tripletex/preview/payout/{payout}:
+    get:
+      tags:
+        - Tripletex
+      summary: Preview Tripletex payout voucher lines
+      description: |
+        Same response shape as Z-report preview (`lines`, `lines_display` with optional `posting_date`/`line_kind`, optional resolved `tripletex_voucher_payload` / `tripletex_postings_display` with optional `date` per posting).
+        Payout must be `paid`. Read-only; does not require `sync_enabled`.
+      operationId: tripletexPreviewPayout
+      parameters:
+        - name: payout
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: resolve_accounts
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Preview JSON (`ok`, `lines`, `lines_display` with optional `posting_date`/`line_kind`, optional `tripletex_voucher_payload`, `tripletex_postings_display`, `resolve_error`)
+        '403':
+          description: Tripletex add-on disabled for the store, or Tripletex is not connected
+        '404':
+          description: Payout row not found
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /tripletex/sync/historical:
+    post:
+      tags:
+        - Tripletex
+      summary: Queue historical Tripletex sync jobs
+      description: |
+        Queues up to `limit` jobs for Z-reports or paid payouts in optional date windows.
+        Requires `sync_enabled` on the integration (same as other sync routes).
+      operationId: tripletexSyncHistorical
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  enum: [z_report, payout]
+                from:
+                  type: string
+                  format: date
+                  nullable: true
+                to:
+                  type: string
+                  format: date
+                  nullable: true
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 500
+                  default: 50
+                only_missing:
+                  type: boolean
+                  default: true
+                  description: When true, skip rows that already have a successful Tripletex sync run
+      responses:
+        '200':
+          description: Jobs queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  queued:
+                    type: integer
+                  skipped:
+                    type: integer
+        '403':
+          description: Add-on disabled, Tripletex not connected, or sync is turned off
+        '422':
+          description: Validation error (e.g. from after to)
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /saf-t/generate:
     post:
       tags:
@@ -8116,8 +8350,11 @@ components:
                 type: string
                 nullable: true
                 maxLength: 500
-                description: Custom description for diverse products or products without price. This will be used on receipts instead of the product name. Useful for items like "Various items", "Custom service", etc.
-                example: "Various items - customer selection"
+                description: >
+                  Optional line note for this cart line. When it differs from the product (or variant)
+                  title, it is stored separately and printed on the receipt under the product name.
+                  If there is no resolvable product title, this value is used as the receipt line title.
+                example: "Uten lokk / ekstra notat"
               discount_amount:
                 type: integer
                 description: Discount amount per unit in minor units

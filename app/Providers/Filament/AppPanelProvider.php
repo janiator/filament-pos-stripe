@@ -101,6 +101,7 @@ class AppPanelProvider extends PanelProvider
                 __('filament.navigation_groups.administration'),
                 'Webflow CMS',
                 'PowerOffice',
+                'Tripletex',
             ])
             ->navigationItems([
                 NavigationItem::make('Workflows')

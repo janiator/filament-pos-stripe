@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TripletexSyncType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -120,6 +121,24 @@ class PosSession extends Model
     public function latestPowerOfficeSyncRun(): HasOne
     {
         return $this->hasOne(PowerOfficeSyncRun::class)->latestOfMany();
+    }
+
+    /**
+     * @return HasMany<TripletexSyncRun, $this>
+     */
+    public function tripletexSyncRuns(): HasMany
+    {
+        return $this->hasMany(TripletexSyncRun::class);
+    }
+
+    /**
+     * Latest Tripletex sync run for this session (Z-report type).
+     */
+    public function latestTripletexSyncRun(): HasOne
+    {
+        return $this->hasOne(TripletexSyncRun::class)
+            ->where('sync_type', TripletexSyncType::ZReport)
+            ->latestOfMany();
     }
 
     /**
