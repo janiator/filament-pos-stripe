@@ -469,3 +469,68 @@ test('purchase keeps product name as line title and stores distinct item descrip
         ->and($items[0]['product_name'])->toBe('Kaffe stor')
         ->and($items[0]['description'])->toBe('Ekstra shot, soyamelk');
 });
+
+test('purchase with cart note stores note on charge and on sales receipt data', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_cart_note']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    PaymentMethod::create([
+        'store_id' => $store->id,
+        'name' => 'Cash',
+        'code' => 'cash',
+        'provider' => 'cash',
+        'enabled' => true,
+        'pos_suitable' => true,
+        'sort_order' => 0,
+        'minimum_amount_kroner' => null,
+        'saf_t_payment_code' => '10000',
+        'saf_t_event_code' => '13016',
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Vare A',
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->postJson('/api/purchases', [
+        'pos_session_id' => $session->id,
+        'payment_method_code' => 'cash',
+        'cart' => [
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 5000,
+                ],
+            ],
+            'subtotal' => 5000,
+            'total_discounts' => 0,
+            'total_tax' => 1000,
+            'total' => 5000,
+            'currency' => 'nok',
+            'note' => 'Ring kunden før levering',
+        ],
+        'metadata' => [],
+    ]);
+
+    $response->assertCreated();
+
+    $charge = ConnectedCharge::query()->findOrFail($response->json('data.charge.id'));
+    expect($charge->metadata['note'])->toBe('Ring kunden før levering');
+
+    $receipt = $charge->receipt;
+    expect($receipt)->not->toBeNull()
+        ->and($receipt->receipt_data['order_note'])->toBe('Ring kunden før levering');
+});

@@ -8431,8 +8431,10 @@ components:
         note:
           type: string
           nullable: true
-          description: Optional note/comment for the purchase
-          example: "Customer requested delivery by 3 PM"
+          description: >
+            Optional whole-order note (same value as `purchase_note` on the purchase response).
+            Printed on sales and delivery (ordrebekreftelse) receipts under the heading "Notat" when non-empty.
+          example: "Kunden henter etter kl. 15"
 
     PurchaseMetadata:
       type: object

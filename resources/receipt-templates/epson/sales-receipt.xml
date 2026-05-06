@@ -67,6 +67,15 @@
 <feed/>
 <text lang="en"/>
 {{/items}}
+{{#order_note_section}}
+<feed/>
+<text reverse="false" ul="false" em="true" color="color_1">Notat</text>
+{{#lines}}
+<feed/>
+<text lang="en"/>
+<text>{{.}}</text>
+{{/lines}}
+{{/order_note_section}}
 <text lang="en"/>
 <text>—————————————————————————————————————————————</text>
 <feed/>
