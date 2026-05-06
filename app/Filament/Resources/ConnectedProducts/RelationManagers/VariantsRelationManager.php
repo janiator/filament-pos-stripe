@@ -84,24 +84,10 @@ class VariantsRelationManager extends RelationManager
             unset($data['compare_at_price_decimal']);
         }
 
-        // Debug logging
-        \Log::debug('VariantsRelationManager handleRecordUpdate', [
-            'record_id' => $record->id,
-            'data_keys' => array_keys($data),
-            'price_amount' => $data['price_amount'] ?? 'NOT SET',
-            'price_decimal' => $data['price_decimal'] ?? 'NOT SET',
-            'current_price_amount' => $record->price_amount,
-        ]);
-
         // Call parent to handle the update
         $result = parent::handleRecordUpdate($record, $data);
 
-        // Debug after save
         $result->refresh();
-        \Log::debug('VariantsRelationManager after update', [
-            'record_id' => $result->id,
-            'saved_price_amount' => $result->price_amount,
-        ]);
 
         return $result;
     }

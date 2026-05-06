@@ -520,8 +520,9 @@ class InventoryLedgerService
 
     protected function isDuplicateKey(QueryException $e): bool
     {
-        $code = $e->errorInfo[1] ?? null;
+        $sqlState = $e->errorInfo[0] ?? null;
+        $driverCode = $e->errorInfo[1] ?? null;
 
-        return $code === 1062 || $code === 23505;
+        return $driverCode === 1062 || $sqlState === '23505';
     }
 }
