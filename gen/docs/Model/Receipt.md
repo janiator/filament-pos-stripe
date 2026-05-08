@@ -15,9 +15,9 @@ Name | Type | Description | Notes
 **printed** | **bool** |  | [optional]
 **printed_at** | **\DateTime** |  | [optional]
 **reprint_count** | **int** |  | [optional]
-**pos_session** | [**\OpenAPI\Client\Model\LogApplicationStart200ResponseCurrentSession**](LogApplicationStart200ResponseCurrentSession.md) |  | [optional]
-**charge** | [**\OpenAPI\Client\Model\ReceiptCharge**](ReceiptCharge.md) |  | [optional]
-**user** | [**\OpenAPI\Client\Model\PosSessionSessionUser**](PosSessionSessionUser.md) |  | [optional]
+**pos_session** | [**\OpenAPIClient\Model\LogApplicationStart200ResponseCurrentSession**](LogApplicationStart200ResponseCurrentSession.md) |  | [optional]
+**charge** | [**\OpenAPIClient\Model\ReceiptCharge**](ReceiptCharge.md) |  | [optional]
+**user** | [**\OpenAPIClient\Model\PosSessionSessionUser**](PosSessionSessionUser.md) |  | [optional]
 **created_at** | **\DateTime** |  | [optional]
 **updated_at** | **\DateTime** |  | [optional]
 

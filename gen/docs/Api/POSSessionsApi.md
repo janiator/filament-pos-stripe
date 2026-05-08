@@ -1,4 +1,4 @@
-# OpenAPI\Client\POSSessionsApi
+# OpenAPIClient\POSSessionsApi
 
 
 
@@ -6,8 +6,12 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 
 | Method | HTTP request | Description |
 | ------------- | ------------- | ------------- |
+| [**cashDeposit()**](POSSessionsApi.md#cashDeposit) | **POST** /pos-sessions/{id}/cash-deposit | Record cash deposit |
+| [**cashWithdrawal()**](POSSessionsApi.md#cashWithdrawal) | **POST** /pos-sessions/{id}/cash-withdrawal | Record cash withdrawal |
 | [**closePosSession()**](POSSessionsApi.md#closePosSession) | **POST** /pos-sessions/{id}/close | Close POS session |
 | [**createDailyClosing()**](POSSessionsApi.md#createDailyClosing) | **POST** /pos-sessions/daily-closing | Create daily closing report |
+| [**downloadXReportPdf()**](POSSessionsApi.md#downloadXReportPdf) | **GET** /pos-sessions/{id}/x-report/pdf | Download X-report as PDF |
+| [**downloadZReportPdf()**](POSSessionsApi.md#downloadZReportPdf) | **GET** /pos-sessions/{id}/z-report/pdf | Download Z-report as PDF |
 | [**generateXReport()**](POSSessionsApi.md#generateXReport) | **POST** /pos-sessions/{id}/x-report | Generate X-report |
 | [**generateZReport()**](POSSessionsApi.md#generateZReport) | **POST** /pos-sessions/{id}/z-report | Generate Z-report |
 | [**getCurrentPosSession()**](POSSessionsApi.md#getCurrentPosSession) | **GET** /pos-sessions/current | Get current open session |
@@ -16,10 +20,134 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 | [**openPosSession()**](POSSessionsApi.md#openPosSession) | **POST** /pos-sessions/open | Open POS session |
 
 
+## `cashDeposit()`
+
+```php
+cashDeposit($id, $cash_deposit_request): \OpenAPIClient\Model\CashDeposit201Response
+```
+
+Record cash deposit
+
+Log a cash deposit for an open session. Only allowed when session status is open.
+
+### Example
+
+```php
+<?php
+require_once(__DIR__ . '/vendor/autoload.php');
+
+
+// Configure Bearer (JWT) authorization: bearerAuth
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+
+
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
+    // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
+    // This is optional, `GuzzleHttp\Client` will be used as default.
+    new GuzzleHttp\Client(),
+    $config
+);
+$id = 56; // int
+$cash_deposit_request = new \OpenAPIClient\Model\CashDepositRequest(); // \OpenAPIClient\Model\CashDepositRequest
+
+try {
+    $result = $apiInstance->cashDeposit($id, $cash_deposit_request);
+    print_r($result);
+} catch (Exception $e) {
+    echo 'Exception when calling POSSessionsApi->cashDeposit: ', $e->getMessage(), PHP_EOL;
+}
+```
+
+### Parameters
+
+| Name | Type | Description  | Notes |
+| ------------- | ------------- | ------------- | ------------- |
+| **id** | **int**|  | |
+| **cash_deposit_request** | [**\OpenAPIClient\Model\CashDepositRequest**](../Model/CashDepositRequest.md)|  | |
+
+### Return type
+
+[**\OpenAPIClient\Model\CashDeposit201Response**](../Model/CashDeposit201Response.md)
+
+### Authorization
+
+[bearerAuth](../../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+[[Back to top]](#) [[Back to API list]](../../README.md#endpoints)
+[[Back to Model list]](../../README.md#models)
+[[Back to README]](../../README.md)
+
+## `cashWithdrawal()`
+
+```php
+cashWithdrawal($id, $cash_withdrawal_request): \OpenAPIClient\Model\CashWithdrawal201Response
+```
+
+Record cash withdrawal
+
+Log a cash withdrawal for an open session. Only allowed when session status is open.
+
+### Example
+
+```php
+<?php
+require_once(__DIR__ . '/vendor/autoload.php');
+
+
+// Configure Bearer (JWT) authorization: bearerAuth
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+
+
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
+    // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
+    // This is optional, `GuzzleHttp\Client` will be used as default.
+    new GuzzleHttp\Client(),
+    $config
+);
+$id = 56; // int
+$cash_withdrawal_request = new \OpenAPIClient\Model\CashWithdrawalRequest(); // \OpenAPIClient\Model\CashWithdrawalRequest
+
+try {
+    $result = $apiInstance->cashWithdrawal($id, $cash_withdrawal_request);
+    print_r($result);
+} catch (Exception $e) {
+    echo 'Exception when calling POSSessionsApi->cashWithdrawal: ', $e->getMessage(), PHP_EOL;
+}
+```
+
+### Parameters
+
+| Name | Type | Description  | Notes |
+| ------------- | ------------- | ------------- | ------------- |
+| **id** | **int**|  | |
+| **cash_withdrawal_request** | [**\OpenAPIClient\Model\CashWithdrawalRequest**](../Model/CashWithdrawalRequest.md)|  | |
+
+### Return type
+
+[**\OpenAPIClient\Model\CashWithdrawal201Response**](../Model/CashWithdrawal201Response.md)
+
+### Authorization
+
+[bearerAuth](../../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+[[Back to top]](#) [[Back to API list]](../../README.md#endpoints)
+[[Back to Model list]](../../README.md#models)
+[[Back to README]](../../README.md)
+
 ## `closePosSession()`
 
 ```php
-closePosSession($id, $close_pos_session_request): \OpenAPI\Client\Model\ClosePosSession200Response
+closePosSession($id, $include_session_charges, $close_pos_session_request): \OpenAPIClient\Model\ClosePosSession200Response
 ```
 
 Close POS session
@@ -34,20 +162,21 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSSessionsApi(
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $id = 56; // int
-$close_pos_session_request = new \OpenAPI\Client\Model\ClosePosSessionRequest(); // \OpenAPI\Client\Model\ClosePosSessionRequest
+$include_session_charges = false; // bool | When true, include full session_charges list in the returned session. Default false.
+$close_pos_session_request = new \OpenAPIClient\Model\ClosePosSessionRequest(); // \OpenAPIClient\Model\ClosePosSessionRequest
 
 try {
-    $result = $apiInstance->closePosSession($id, $close_pos_session_request);
+    $result = $apiInstance->closePosSession($id, $include_session_charges, $close_pos_session_request);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling POSSessionsApi->closePosSession: ', $e->getMessage(), PHP_EOL;
@@ -59,11 +188,12 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **id** | **int**|  | |
-| **close_pos_session_request** | [**\OpenAPI\Client\Model\ClosePosSessionRequest**](../Model/ClosePosSessionRequest.md)|  | [optional] |
+| **include_session_charges** | **bool**| When true, include full session_charges list in the returned session. Default false. | [optional] [default to false] |
+| **close_pos_session_request** | [**\OpenAPIClient\Model\ClosePosSessionRequest**](../Model/ClosePosSessionRequest.md)|  | [optional] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\ClosePosSession200Response**](../Model/ClosePosSession200Response.md)
+[**\OpenAPIClient\Model\ClosePosSession200Response**](../Model/ClosePosSession200Response.md)
 
 ### Authorization
 
@@ -81,7 +211,7 @@ try {
 ## `createDailyClosing()`
 
 ```php
-createDailyClosing($create_daily_closing_request): \OpenAPI\Client\Model\CreateDailyClosing201Response
+createDailyClosing($create_daily_closing_request): \OpenAPIClient\Model\CreateDailyClosing201Response
 ```
 
 Create daily closing report
@@ -96,16 +226,16 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSSessionsApi(
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
-$create_daily_closing_request = new \OpenAPI\Client\Model\CreateDailyClosingRequest(); // \OpenAPI\Client\Model\CreateDailyClosingRequest
+$create_daily_closing_request = new \OpenAPIClient\Model\CreateDailyClosingRequest(); // \OpenAPIClient\Model\CreateDailyClosingRequest
 
 try {
     $result = $apiInstance->createDailyClosing($create_daily_closing_request);
@@ -119,11 +249,11 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **create_daily_closing_request** | [**\OpenAPI\Client\Model\CreateDailyClosingRequest**](../Model/CreateDailyClosingRequest.md)|  | |
+| **create_daily_closing_request** | [**\OpenAPIClient\Model\CreateDailyClosingRequest**](../Model/CreateDailyClosingRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\CreateDailyClosing201Response**](../Model/CreateDailyClosing201Response.md)
+[**\OpenAPIClient\Model\CreateDailyClosing201Response**](../Model/CreateDailyClosing201Response.md)
 
 ### Authorization
 
@@ -138,10 +268,134 @@ try {
 [[Back to Model list]](../../README.md#models)
 [[Back to README]](../../README.md)
 
+## `downloadXReportPdf()`
+
+```php
+downloadXReportPdf($id, $store): \SplFileObject
+```
+
+Download X-report as PDF
+
+Generate and download the X-report for the given session as a PDF. Requires Bearer token. Store can be specified via query parameter `store` (slug) or header `X-Store-Slug`.
+
+### Example
+
+```php
+<?php
+require_once(__DIR__ . '/vendor/autoload.php');
+
+
+// Configure Bearer (JWT) authorization: bearerAuth
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+
+
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
+    // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
+    // This is optional, `GuzzleHttp\Client` will be used as default.
+    new GuzzleHttp\Client(),
+    $config
+);
+$id = 56; // int
+$store = 'store_example'; // string | Store slug (optional if user has current store or single store)
+
+try {
+    $result = $apiInstance->downloadXReportPdf($id, $store);
+    print_r($result);
+} catch (Exception $e) {
+    echo 'Exception when calling POSSessionsApi->downloadXReportPdf: ', $e->getMessage(), PHP_EOL;
+}
+```
+
+### Parameters
+
+| Name | Type | Description  | Notes |
+| ------------- | ------------- | ------------- | ------------- |
+| **id** | **int**|  | |
+| **store** | **string**| Store slug (optional if user has current store or single store) | [optional] |
+
+### Return type
+
+**\SplFileObject**
+
+### Authorization
+
+[bearerAuth](../../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/pdf`, `application/json`
+
+[[Back to top]](#) [[Back to API list]](../../README.md#endpoints)
+[[Back to Model list]](../../README.md#models)
+[[Back to README]](../../README.md)
+
+## `downloadZReportPdf()`
+
+```php
+downloadZReportPdf($id, $store): \SplFileObject
+```
+
+Download Z-report as PDF
+
+Generate and download the Z-report for the given session as a PDF. Requires Bearer token. Store can be specified via query parameter `store` (slug) or header `X-Store-Slug`.
+
+### Example
+
+```php
+<?php
+require_once(__DIR__ . '/vendor/autoload.php');
+
+
+// Configure Bearer (JWT) authorization: bearerAuth
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+
+
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
+    // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
+    // This is optional, `GuzzleHttp\Client` will be used as default.
+    new GuzzleHttp\Client(),
+    $config
+);
+$id = 56; // int
+$store = 'store_example'; // string | Store slug (optional if user has current store or single store)
+
+try {
+    $result = $apiInstance->downloadZReportPdf($id, $store);
+    print_r($result);
+} catch (Exception $e) {
+    echo 'Exception when calling POSSessionsApi->downloadZReportPdf: ', $e->getMessage(), PHP_EOL;
+}
+```
+
+### Parameters
+
+| Name | Type | Description  | Notes |
+| ------------- | ------------- | ------------- | ------------- |
+| **id** | **int**|  | |
+| **store** | **string**| Store slug (optional if user has current store or single store) | [optional] |
+
+### Return type
+
+**\SplFileObject**
+
+### Authorization
+
+[bearerAuth](../../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/pdf`, `application/json`
+
+[[Back to top]](#) [[Back to API list]](../../README.md#endpoints)
+[[Back to Model list]](../../README.md#models)
+[[Back to README]](../../README.md)
+
 ## `generateXReport()`
 
 ```php
-generateXReport($id): \OpenAPI\Client\Model\GenerateXReport200Response
+generateXReport($id): \OpenAPIClient\Model\GenerateXReport200Response
 ```
 
 Generate X-report
@@ -156,10 +410,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSSessionsApi(
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -183,7 +437,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\GenerateXReport200Response**](../Model/GenerateXReport200Response.md)
+[**\OpenAPIClient\Model\GenerateXReport200Response**](../Model/GenerateXReport200Response.md)
 
 ### Authorization
 
@@ -201,7 +455,7 @@ try {
 ## `generateZReport()`
 
 ```php
-generateZReport($id, $generate_z_report_request): \OpenAPI\Client\Model\GenerateZReport200Response
+generateZReport($id, $include_session_charges, $generate_z_report_request): \OpenAPIClient\Model\GenerateZReport200Response
 ```
 
 Generate Z-report
@@ -216,20 +470,21 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSSessionsApi(
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $id = 56; // int
-$generate_z_report_request = new \OpenAPI\Client\Model\GenerateZReportRequest(); // \OpenAPI\Client\Model\GenerateZReportRequest
+$include_session_charges = false; // bool | When true, include full session_charges list in the returned session. Default false.
+$generate_z_report_request = new \OpenAPIClient\Model\GenerateZReportRequest(); // \OpenAPIClient\Model\GenerateZReportRequest
 
 try {
-    $result = $apiInstance->generateZReport($id, $generate_z_report_request);
+    $result = $apiInstance->generateZReport($id, $include_session_charges, $generate_z_report_request);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling POSSessionsApi->generateZReport: ', $e->getMessage(), PHP_EOL;
@@ -241,11 +496,12 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **id** | **int**|  | |
-| **generate_z_report_request** | [**\OpenAPI\Client\Model\GenerateZReportRequest**](../Model/GenerateZReportRequest.md)|  | [optional] |
+| **include_session_charges** | **bool**| When true, include full session_charges list in the returned session. Default false. | [optional] [default to false] |
+| **generate_z_report_request** | [**\OpenAPIClient\Model\GenerateZReportRequest**](../Model/GenerateZReportRequest.md)|  | [optional] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\GenerateZReport200Response**](../Model/GenerateZReport200Response.md)
+[**\OpenAPIClient\Model\GenerateZReport200Response**](../Model/GenerateZReport200Response.md)
 
 ### Authorization
 
@@ -263,12 +519,12 @@ try {
 ## `getCurrentPosSession()`
 
 ```php
-getCurrentPosSession($pos_device_id): \OpenAPI\Client\Model\PosSessionWithCharges
+getCurrentPosSession($pos_device_id, $include_session_charges): \OpenAPIClient\Model\PosSession
 ```
 
 Get current open session
 
-Get the current open session for a POS device
+Get the current open session for a POS device. session_charges only present when include_session_charges=true.
 
 ### Example
 
@@ -278,19 +534,20 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSSessionsApi(
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $pos_device_id = 56; // int | POS device ID
+$include_session_charges = false; // bool | When true, include full session_charges list. Default false to reduce payload size.
 
 try {
-    $result = $apiInstance->getCurrentPosSession($pos_device_id);
+    $result = $apiInstance->getCurrentPosSession($pos_device_id, $include_session_charges);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling POSSessionsApi->getCurrentPosSession: ', $e->getMessage(), PHP_EOL;
@@ -302,10 +559,11 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **pos_device_id** | **int**| POS device ID | |
+| **include_session_charges** | **bool**| When true, include full session_charges list. Default false to reduce payload size. | [optional] [default to false] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\PosSessionWithCharges**](../Model/PosSessionWithCharges.md)
+[**\OpenAPIClient\Model\PosSession**](../Model/PosSession.md)
 
 ### Authorization
 
@@ -323,12 +581,12 @@ try {
 ## `getPosSession()`
 
 ```php
-getPosSession($id): \OpenAPI\Client\Model\GetPosSession200Response
+getPosSession($id, $include_session_charges): \OpenAPIClient\Model\GetPosSession200Response
 ```
 
 Get POS session
 
-Get a specific POS session with all details including charges
+Get a specific POS session. Use include_session_charges=true to include the full session_charges list (default false).
 
 ### Example
 
@@ -338,19 +596,20 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSSessionsApi(
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $id = 56; // int
+$include_session_charges = false; // bool | When true, include full session_charges list. Default false to reduce payload size.
 
 try {
-    $result = $apiInstance->getPosSession($id);
+    $result = $apiInstance->getPosSession($id, $include_session_charges);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling POSSessionsApi->getPosSession: ', $e->getMessage(), PHP_EOL;
@@ -362,10 +621,11 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **id** | **int**|  | |
+| **include_session_charges** | **bool**| When true, include full session_charges list. Default false to reduce payload size. | [optional] [default to false] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\GetPosSession200Response**](../Model/GetPosSession200Response.md)
+[**\OpenAPIClient\Model\GetPosSession200Response**](../Model/GetPosSession200Response.md)
 
 ### Authorization
 
@@ -383,7 +643,7 @@ try {
 ## `listPosSessions()`
 
 ```php
-listPosSessions($status, $date, $pos_device_id, $per_page): \OpenAPI\Client\Model\ListPosSessions200Response
+listPosSessions($status, $date, $pos_device_id, $per_page, $include_session_charges): \OpenAPIClient\Model\ListPosSessions200Response
 ```
 
 List POS sessions
@@ -398,10 +658,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSSessionsApi(
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -411,9 +671,10 @@ $status = 'status_example'; // string | Filter by status (open, closed, abandone
 $date = new \DateTime('2013-10-20T19:20:30+01:00'); // \DateTime | Filter by opening date (YYYY-MM-DD)
 $pos_device_id = 56; // int | Filter by POS device ID
 $per_page = 20; // int | Number of items per page
+$include_session_charges = false; // bool | When true, include full session_charges list in each session. Default false to reduce payload size.
 
 try {
-    $result = $apiInstance->listPosSessions($status, $date, $pos_device_id, $per_page);
+    $result = $apiInstance->listPosSessions($status, $date, $pos_device_id, $per_page, $include_session_charges);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling POSSessionsApi->listPosSessions: ', $e->getMessage(), PHP_EOL;
@@ -428,10 +689,11 @@ try {
 | **date** | **\DateTime**| Filter by opening date (YYYY-MM-DD) | [optional] |
 | **pos_device_id** | **int**| Filter by POS device ID | [optional] |
 | **per_page** | **int**| Number of items per page | [optional] [default to 20] |
+| **include_session_charges** | **bool**| When true, include full session_charges list in each session. Default false to reduce payload size. | [optional] [default to false] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\ListPosSessions200Response**](../Model/ListPosSessions200Response.md)
+[**\OpenAPIClient\Model\ListPosSessions200Response**](../Model/ListPosSessions200Response.md)
 
 ### Authorization
 
@@ -449,7 +711,7 @@ try {
 ## `openPosSession()`
 
 ```php
-openPosSession($open_pos_session_request): \OpenAPI\Client\Model\OpenPosSession201Response
+openPosSession($open_pos_session_request, $include_session_charges): \OpenAPIClient\Model\OpenPosSession201Response
 ```
 
 Open POS session
@@ -464,19 +726,20 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSSessionsApi(
+$apiInstance = new OpenAPIClient\Api\POSSessionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
-$open_pos_session_request = new \OpenAPI\Client\Model\OpenPosSessionRequest(); // \OpenAPI\Client\Model\OpenPosSessionRequest
+$open_pos_session_request = new \OpenAPIClient\Model\OpenPosSessionRequest(); // \OpenAPIClient\Model\OpenPosSessionRequest
+$include_session_charges = false; // bool | When true, include full session_charges list in the returned session (e.g. on 409 conflict). Default false.
 
 try {
-    $result = $apiInstance->openPosSession($open_pos_session_request);
+    $result = $apiInstance->openPosSession($open_pos_session_request, $include_session_charges);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling POSSessionsApi->openPosSession: ', $e->getMessage(), PHP_EOL;
@@ -487,11 +750,12 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **open_pos_session_request** | [**\OpenAPI\Client\Model\OpenPosSessionRequest**](../Model/OpenPosSessionRequest.md)|  | |
+| **open_pos_session_request** | [**\OpenAPIClient\Model\OpenPosSessionRequest**](../Model/OpenPosSessionRequest.md)|  | |
+| **include_session_charges** | **bool**| When true, include full session_charges list in the returned session (e.g. on 409 conflict). Default false. | [optional] [default to false] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\OpenPosSession201Response**](../Model/OpenPosSession201Response.md)
+[**\OpenAPIClient\Model\OpenPosSession201Response**](../Model/OpenPosSession201Response.md)
 
 ### Authorization
 

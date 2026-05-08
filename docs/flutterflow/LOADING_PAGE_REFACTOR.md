@@ -59,7 +59,15 @@ SchedulerBinding.instance.addPostFrameCallback((_) async {
 });
 ```
 
-## Step-by-Step Migration
+## Robustness (server down, signed-out session)
+
+After `meProfile` fails or `signOut()` runs, `currentAuthenticationToken` can be **null**. Do **not** use `currentAuthenticationToken!` on the next lines—guard with a local `authToken` and send the user to **login** if it is empty.
+
+Wrap the post-profile bootstrap (`registerPosDevice`, payment methods, navigation to **pos**, `startPosPeriodicActions`) in **try/catch**. On failure (host down, TLS error, timeout), show a **SnackBar**, sign out, and `goNamedAuth(LoginWidget.routeName, …)` so the app does not crash with “Null check operator used on a null value”.
+
+`getPaymentMethodsCall.paymentMethods(...)` can return **null**—use `?.toList().cast<PosPaymentMethodStruct>() ?? <PosPaymentMethodStruct>[]` instead of `!`.
+
+`startPosPeriodicActions` should receive `currentUserData?.currentStore?.slug ?? ''` and only run when `storeSlug.isNotEmpty` so a missing profile does not throw.
 
 ### Step 1: Add the Service
 

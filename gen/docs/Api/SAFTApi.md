@@ -1,4 +1,4 @@
-# OpenAPI\Client\SAFTApi
+# OpenAPIClient\SAFTApi
 
 
 
@@ -29,10 +29,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\SAFTApi(
+$apiInstance = new OpenAPIClient\Api\SAFTApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -74,7 +74,7 @@ try {
 ## `generateSafT()`
 
 ```php
-generateSafT($generate_saf_t_request): \OpenAPI\Client\Model\GenerateSafT201Response
+generateSafT($generate_saf_t_request): \OpenAPIClient\Model\GenerateSafT201Response
 ```
 
 Generate SAF-T file
@@ -89,16 +89,16 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\SAFTApi(
+$apiInstance = new OpenAPIClient\Api\SAFTApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
-$generate_saf_t_request = new \OpenAPI\Client\Model\GenerateSafTRequest(); // \OpenAPI\Client\Model\GenerateSafTRequest
+$generate_saf_t_request = new \OpenAPIClient\Model\GenerateSafTRequest(); // \OpenAPIClient\Model\GenerateSafTRequest
 
 try {
     $result = $apiInstance->generateSafT($generate_saf_t_request);
@@ -112,11 +112,11 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **generate_saf_t_request** | [**\OpenAPI\Client\Model\GenerateSafTRequest**](../Model/GenerateSafTRequest.md)|  | |
+| **generate_saf_t_request** | [**\OpenAPIClient\Model\GenerateSafTRequest**](../Model/GenerateSafTRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\GenerateSafT201Response**](../Model/GenerateSafT201Response.md)
+[**\OpenAPIClient\Model\GenerateSafT201Response**](../Model/GenerateSafT201Response.md)
 
 ### Authorization
 
@@ -149,10 +149,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\SAFTApi(
+$apiInstance = new OpenAPIClient\Api\SAFTApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),

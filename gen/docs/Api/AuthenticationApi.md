@@ -1,4 +1,4 @@
-# OpenAPI\Client\AuthenticationApi
+# OpenAPIClient\AuthenticationApi
 
 User authentication and authorization
 
@@ -15,7 +15,7 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 ## `getCurrentUser()`
 
 ```php
-getCurrentUser(): \OpenAPI\Client\Model\UserResponse
+getCurrentUser(): \OpenAPIClient\Model\UserResponse
 ```
 
 Get current user
@@ -30,10 +30,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\AuthenticationApi(
+$apiInstance = new OpenAPIClient\Api\AuthenticationApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -54,7 +54,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**\OpenAPI\Client\Model\UserResponse**](../Model/UserResponse.md)
+[**\OpenAPIClient\Model\UserResponse**](../Model/UserResponse.md)
 
 ### Authorization
 
@@ -72,7 +72,7 @@ This endpoint does not need any parameter.
 ## `login()`
 
 ```php
-login($login_request): \OpenAPI\Client\Model\LoginResponse
+login($login_request): \OpenAPIClient\Model\LoginResponse
 ```
 
 Login user
@@ -87,12 +87,12 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 
-$apiInstance = new OpenAPI\Client\Api\AuthenticationApi(
+$apiInstance = new OpenAPIClient\Api\AuthenticationApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client()
 );
-$login_request = new \OpenAPI\Client\Model\LoginRequest(); // \OpenAPI\Client\Model\LoginRequest
+$login_request = new \OpenAPIClient\Model\LoginRequest(); // \OpenAPIClient\Model\LoginRequest
 
 try {
     $result = $apiInstance->login($login_request);
@@ -106,11 +106,11 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **login_request** | [**\OpenAPI\Client\Model\LoginRequest**](../Model/LoginRequest.md)|  | |
+| **login_request** | [**\OpenAPIClient\Model\LoginRequest**](../Model/LoginRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\LoginResponse**](../Model/LoginResponse.md)
+[**\OpenAPIClient\Model\LoginResponse**](../Model/LoginResponse.md)
 
 ### Authorization
 
@@ -128,7 +128,7 @@ No authorization required
 ## `logout()`
 
 ```php
-logout(): \OpenAPI\Client\Model\Logout200Response
+logout(): \OpenAPIClient\Model\Logout200Response
 ```
 
 Logout user
@@ -143,10 +143,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\AuthenticationApi(
+$apiInstance = new OpenAPIClient\Api\AuthenticationApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -167,7 +167,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**\OpenAPI\Client\Model\Logout200Response**](../Model/Logout200Response.md)
+[**\OpenAPIClient\Model\Logout200Response**](../Model/Logout200Response.md)
 
 ### Authorization
 
@@ -185,7 +185,7 @@ This endpoint does not need any parameter.
 ## `logoutAll()`
 
 ```php
-logoutAll(): \OpenAPI\Client\Model\LogoutAll200Response
+logoutAll(): \OpenAPIClient\Model\LogoutAll200Response
 ```
 
 Logout from all devices
@@ -200,10 +200,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\AuthenticationApi(
+$apiInstance = new OpenAPIClient\Api\AuthenticationApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -224,7 +224,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**\OpenAPI\Client\Model\LogoutAll200Response**](../Model/LogoutAll200Response.md)
+[**\OpenAPIClient\Model\LogoutAll200Response**](../Model/LogoutAll200Response.md)
 
 ### Authorization
 

@@ -34,7 +34,7 @@ class GiftCardResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Sales';
+        return 'Katalog';
     }
 
     public static function shouldRegisterNavigation(): bool

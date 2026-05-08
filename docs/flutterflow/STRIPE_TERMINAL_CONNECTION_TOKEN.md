@@ -1,5 +1,7 @@
 # Where the Stripe Terminal connection token comes from
 
+This document is Stripe-only. Verifone uses provider-specific endpoints (`/api/verifone/stores/{store}/...`) and does not use Stripe connection tokens or payment intents.
+
 **API base URL:** You can pass `apiBaseUrl` without the `/api` prefix (e.g. `https://your-domain.com`). The custom code appends `/api` when calling the backend, so requests go to `https://your-domain.com/api/terminals/locations`, etc. If you already pass a base that ends with `/api`, it is left as-is.
 
 The message **"Tilkoblingstoken mangler"** is shown when the modal cannot show the terminal picker (e.g. API credentials are not passed, or no location is available). **No connection token is passed in** — the modal and connector work only with **apiBaseUrl**, **authToken**, and **storeSlug**. The connector **StripeInternetTerminalReaderPickerAndConnector** fetches a fresh connection token at the start of init (Stripe tokens are single-use), so "Søk på nytt" and reopening the modal always use a new token.

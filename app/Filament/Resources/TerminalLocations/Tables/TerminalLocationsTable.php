@@ -23,13 +23,13 @@ class TerminalLocationsTable
                     ->sortable(),
 
                 TextColumn::make('country')
-                    ->label('Country')
+                    ->label(__('Country'))
                     ->sortable(),
 
                 TextColumn::make('stripe_location_id')
-                    ->label('Stripe location')
+                    ->label(__('Stripe location'))
                     ->copyable()
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
 
                 TextColumn::make('created_at')
                     ->dateTime()

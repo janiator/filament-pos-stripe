@@ -1,4 +1,4 @@
-# OpenAPI\Client\ReceiptPrintersApi
+# OpenAPIClient\ReceiptPrintersApi
 
 
 
@@ -19,7 +19,7 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 ## `createReceiptPrinter()`
 
 ```php
-createReceiptPrinter($create_receipt_printer_request): \OpenAPI\Client\Model\CreateReceiptPrinter201Response
+createReceiptPrinter($create_receipt_printer_request): \OpenAPIClient\Model\CreateReceiptPrinter201Response
 ```
 
 Create receipt printer
@@ -34,16 +34,16 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\ReceiptPrintersApi(
+$apiInstance = new OpenAPIClient\Api\ReceiptPrintersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
-$create_receipt_printer_request = new \OpenAPI\Client\Model\CreateReceiptPrinterRequest(); // \OpenAPI\Client\Model\CreateReceiptPrinterRequest
+$create_receipt_printer_request = new \OpenAPIClient\Model\CreateReceiptPrinterRequest(); // \OpenAPIClient\Model\CreateReceiptPrinterRequest
 
 try {
     $result = $apiInstance->createReceiptPrinter($create_receipt_printer_request);
@@ -57,11 +57,11 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **create_receipt_printer_request** | [**\OpenAPI\Client\Model\CreateReceiptPrinterRequest**](../Model/CreateReceiptPrinterRequest.md)|  | |
+| **create_receipt_printer_request** | [**\OpenAPIClient\Model\CreateReceiptPrinterRequest**](../Model/CreateReceiptPrinterRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\CreateReceiptPrinter201Response**](../Model/CreateReceiptPrinter201Response.md)
+[**\OpenAPIClient\Model\CreateReceiptPrinter201Response**](../Model/CreateReceiptPrinter201Response.md)
 
 ### Authorization
 
@@ -79,7 +79,7 @@ try {
 ## `deleteReceiptPrinter()`
 
 ```php
-deleteReceiptPrinter($id): \OpenAPI\Client\Model\DeleteReceiptPrinter200Response
+deleteReceiptPrinter($id): \OpenAPIClient\Model\DeleteReceiptPrinter200Response
 ```
 
 Delete receipt printer
@@ -94,10 +94,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\ReceiptPrintersApi(
+$apiInstance = new OpenAPIClient\Api\ReceiptPrintersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -121,7 +121,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\DeleteReceiptPrinter200Response**](../Model/DeleteReceiptPrinter200Response.md)
+[**\OpenAPIClient\Model\DeleteReceiptPrinter200Response**](../Model/DeleteReceiptPrinter200Response.md)
 
 ### Authorization
 
@@ -139,7 +139,7 @@ try {
 ## `getReceiptPrinter()`
 
 ```php
-getReceiptPrinter($id): \OpenAPI\Client\Model\GetReceiptPrinter200Response
+getReceiptPrinter($id): \OpenAPIClient\Model\GetReceiptPrinter200Response
 ```
 
 Get receipt printer
@@ -154,10 +154,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\ReceiptPrintersApi(
+$apiInstance = new OpenAPIClient\Api\ReceiptPrintersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -181,7 +181,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\GetReceiptPrinter200Response**](../Model/GetReceiptPrinter200Response.md)
+[**\OpenAPIClient\Model\GetReceiptPrinter200Response**](../Model/GetReceiptPrinter200Response.md)
 
 ### Authorization
 
@@ -199,7 +199,7 @@ try {
 ## `listReceiptPrinters()`
 
 ```php
-listReceiptPrinters(): \OpenAPI\Client\Model\ListReceiptPrinters200Response
+listReceiptPrinters(): \OpenAPIClient\Model\ListReceiptPrinters200Response
 ```
 
 List receipt printers
@@ -214,10 +214,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\ReceiptPrintersApi(
+$apiInstance = new OpenAPIClient\Api\ReceiptPrintersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -238,7 +238,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**\OpenAPI\Client\Model\ListReceiptPrinters200Response**](../Model/ListReceiptPrinters200Response.md)
+[**\OpenAPIClient\Model\ListReceiptPrinters200Response**](../Model/ListReceiptPrinters200Response.md)
 
 ### Authorization
 
@@ -256,7 +256,7 @@ This endpoint does not need any parameter.
 ## `patchReceiptPrinter()`
 
 ```php
-patchReceiptPrinter($id, $patch_receipt_printer_request): \OpenAPI\Client\Model\UpdateReceiptPrinter200Response
+patchReceiptPrinter($id, $patch_receipt_printer_request): \OpenAPIClient\Model\UpdateReceiptPrinter200Response
 ```
 
 Update receipt printer (partial)
@@ -271,17 +271,17 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\ReceiptPrintersApi(
+$apiInstance = new OpenAPIClient\Api\ReceiptPrintersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $id = 56; // int
-$patch_receipt_printer_request = new \OpenAPI\Client\Model\PatchReceiptPrinterRequest(); // \OpenAPI\Client\Model\PatchReceiptPrinterRequest
+$patch_receipt_printer_request = new \OpenAPIClient\Model\PatchReceiptPrinterRequest(); // \OpenAPIClient\Model\PatchReceiptPrinterRequest
 
 try {
     $result = $apiInstance->patchReceiptPrinter($id, $patch_receipt_printer_request);
@@ -296,11 +296,11 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **id** | **int**|  | |
-| **patch_receipt_printer_request** | [**\OpenAPI\Client\Model\PatchReceiptPrinterRequest**](../Model/PatchReceiptPrinterRequest.md)|  | |
+| **patch_receipt_printer_request** | [**\OpenAPIClient\Model\PatchReceiptPrinterRequest**](../Model/PatchReceiptPrinterRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\UpdateReceiptPrinter200Response**](../Model/UpdateReceiptPrinter200Response.md)
+[**\OpenAPIClient\Model\UpdateReceiptPrinter200Response**](../Model/UpdateReceiptPrinter200Response.md)
 
 ### Authorization
 
@@ -318,7 +318,7 @@ try {
 ## `testReceiptPrinterConnection()`
 
 ```php
-testReceiptPrinterConnection($id): \OpenAPI\Client\Model\TestReceiptPrinterConnection200Response
+testReceiptPrinterConnection($id): \OpenAPIClient\Model\TestReceiptPrinterConnection200Response
 ```
 
 Test printer connection
@@ -333,10 +333,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\ReceiptPrintersApi(
+$apiInstance = new OpenAPIClient\Api\ReceiptPrintersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -360,7 +360,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\TestReceiptPrinterConnection200Response**](../Model/TestReceiptPrinterConnection200Response.md)
+[**\OpenAPIClient\Model\TestReceiptPrinterConnection200Response**](../Model/TestReceiptPrinterConnection200Response.md)
 
 ### Authorization
 
@@ -378,7 +378,7 @@ try {
 ## `testReceiptPrinterPrint()`
 
 ```php
-testReceiptPrinterPrint($id): \OpenAPI\Client\Model\TestReceiptPrinterPrint200Response
+testReceiptPrinterPrint($id): \OpenAPIClient\Model\TestReceiptPrinterPrint200Response
 ```
 
 Send test print
@@ -393,10 +393,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\ReceiptPrintersApi(
+$apiInstance = new OpenAPIClient\Api\ReceiptPrintersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -420,7 +420,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\TestReceiptPrinterPrint200Response**](../Model/TestReceiptPrinterPrint200Response.md)
+[**\OpenAPIClient\Model\TestReceiptPrinterPrint200Response**](../Model/TestReceiptPrinterPrint200Response.md)
 
 ### Authorization
 
@@ -438,7 +438,7 @@ try {
 ## `updateReceiptPrinter()`
 
 ```php
-updateReceiptPrinter($id, $update_receipt_printer_request): \OpenAPI\Client\Model\UpdateReceiptPrinter200Response
+updateReceiptPrinter($id, $update_receipt_printer_request): \OpenAPIClient\Model\UpdateReceiptPrinter200Response
 ```
 
 Update receipt printer
@@ -453,17 +453,17 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\ReceiptPrintersApi(
+$apiInstance = new OpenAPIClient\Api\ReceiptPrintersApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $id = 56; // int
-$update_receipt_printer_request = new \OpenAPI\Client\Model\UpdateReceiptPrinterRequest(); // \OpenAPI\Client\Model\UpdateReceiptPrinterRequest
+$update_receipt_printer_request = new \OpenAPIClient\Model\UpdateReceiptPrinterRequest(); // \OpenAPIClient\Model\UpdateReceiptPrinterRequest
 
 try {
     $result = $apiInstance->updateReceiptPrinter($id, $update_receipt_printer_request);
@@ -478,11 +478,11 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **id** | **int**|  | |
-| **update_receipt_printer_request** | [**\OpenAPI\Client\Model\UpdateReceiptPrinterRequest**](../Model/UpdateReceiptPrinterRequest.md)|  | |
+| **update_receipt_printer_request** | [**\OpenAPIClient\Model\UpdateReceiptPrinterRequest**](../Model/UpdateReceiptPrinterRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\UpdateReceiptPrinter200Response**](../Model/UpdateReceiptPrinter200Response.md)
+[**\OpenAPIClient\Model\UpdateReceiptPrinter200Response**](../Model/UpdateReceiptPrinter200Response.md)
 
 ### Authorization
 

@@ -23,40 +23,40 @@ class StoreInfolist
                             ->weight('bold'),
 
                         TextEntry::make('email')
-                            ->label('Email')
+                            ->label(__('Email'))
                             ->icon(Heroicon::OutlinedEnvelope)
                             ->copyable(),
 
                         TextEntry::make('organisasjonsnummer')
-                            ->label('Organisasjonsnummer')
+                            ->label(__('Organisasjonsnummer'))
                             ->copyable()
-                            ->placeholder('-'),
+                            ->placeholder(__('-')),
 
                         TextEntry::make('address')
-                            ->label('Address')
+                            ->label(__('Address'))
                             ->icon(Heroicon::OutlinedMapPin)
                             ->copyable()
                             ->columnSpanFull()
-                            ->placeholder('-'),
+                            ->placeholder(__('-')),
 
                         TextEntry::make('z_report_email')
-                            ->label('Z-Report Email')
+                            ->label(__('Z-Report Email'))
                             ->icon(Heroicon::OutlinedEnvelope)
                             ->copyable()
-                            ->placeholder('Not configured'),
+                            ->placeholder(__('Not configured')),
 
                         TextEntry::make('receipt_logo_max_width_dots')
-                            ->label('Receipt logo max width (dots)')
-                            ->placeholder('Default')
+                            ->label(__('Receipt logo max width (dots)'))
+                            ->placeholder(__('Default'))
                             ->visible(fn (?int $state) => $state !== null),
 
                         TextEntry::make('receipt_logo_max_height_dots')
-                            ->label('Receipt logo max height (dots)')
-                            ->placeholder('Default')
+                            ->label(__('Receipt logo max height (dots)'))
+                            ->placeholder(__('Default'))
                             ->visible(fn (?int $state) => $state !== null),
 
                         TextEntry::make('commission_type')
-                            ->label('Commission Type')
+                            ->label(__('Commission Type'))
                             ->badge()
                             ->formatStateUsing(fn ($state) => ucfirst($state))
                             ->colors([
@@ -66,7 +66,7 @@ class StoreInfolist
                             ->icon(Heroicon::OutlinedCurrencyDollar),
 
                         TextEntry::make('commission_rate')
-                            ->label('Commission Rate')
+                            ->label(__('Commission Rate'))
                             ->formatStateUsing(function (Store $record): string {
                                 if ($record->commission_type === 'percentage') {
                                     return "{$record->commission_rate}%";
@@ -83,14 +83,14 @@ class StoreInfolist
                 Section::make('Stripe Connection')
                     ->schema([
                         TextEntry::make('stripe_account_id')
-                            ->label('Stripe Account ID')
+                            ->label(__('Stripe Account ID'))
                             ->copyable()
                             ->icon(Heroicon::OutlinedHashtag)
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->color(fn (Store $record) => $record->stripe_account_id ? 'success' : 'danger'),
 
                         TextEntry::make('connected_customers_count')
-                            ->label('Customers')
+                            ->label(__('Customers'))
                             ->counts('connectedCustomers')
                             ->badge()
                             ->color('info')
@@ -98,7 +98,7 @@ class StoreInfolist
                             ->visible(fn () => class_exists(\App\Models\ConnectedCustomer::class)),
 
                         TextEntry::make('connected_subscriptions_count')
-                            ->label('Subscriptions')
+                            ->label(__('Subscriptions'))
                             ->counts('connectedSubscriptions')
                             ->badge()
                             ->color('info')
@@ -106,7 +106,7 @@ class StoreInfolist
                             ->visible(fn () => class_exists(\App\Models\ConnectedSubscription::class)),
 
                         TextEntry::make('connected_products_count')
-                            ->label('Products')
+                            ->label(__('Products'))
                             ->counts('connectedProducts')
                             ->badge()
                             ->color('info')
@@ -120,12 +120,12 @@ class StoreInfolist
                         TextEntry::make('created_at')
                             ->dateTime()
                             ->icon(Heroicon::OutlinedCalendar)
-                            ->placeholder('-'),
+                            ->placeholder(__('-')),
 
                         TextEntry::make('updated_at')
                             ->dateTime()
                             ->icon(Heroicon::OutlinedCalendar)
-                            ->placeholder('-'),
+                            ->placeholder(__('-')),
                     ])
                     ->columns(2)
                     ->collapsible(),

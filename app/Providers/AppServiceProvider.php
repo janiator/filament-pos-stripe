@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
+use App\Policies\WebflowSitePolicy;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Nightwatch\Facades\Nightwatch;
 use Laravel\Nightwatch\Records\Query;
+use Positiv\FilamentWebflow\Models\WebflowSite;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(WebflowSite::class, WebflowSitePolicy::class);
+
         config([
             'filament-webflow.item_edit_page' => \App\Filament\Pages\WebflowItemEditPage::class,
         ]);

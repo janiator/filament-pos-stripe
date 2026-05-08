@@ -85,9 +85,9 @@ These are added automatically by the `completePosPurchase` custom action when th
 
 **clearPreviousResult (modal):** When opening the seatmap modal with `clearPreviousResult: true` (default), the app clears `meranoSeatmapOrderJson` and `lastMeranoBookingResultJson` before showing the dialog. That way the action output and app state are reset when opening the modal again.
 
-**clearCart:** The custom action `clearCart` clears the cart and Merano-related app state (`lastMeranoBookingResultJson`, `meranoSeatmapOrderJson`). It supports:
+**clearCart:** The custom action `clearCart` (canonical source: [`custom-actions/clear_cart.dart`](custom-actions/clear_cart.dart)) clears the cart and Merano-related app state (`lastMeranoBookingResultJson`, `meranoSeatmapOrderJson`). It also removes the parked **deferred resume on POS** SharedPreferences keys (`positiv_deferred_resume_charge_id` / `positiv_deferred_resume_order_label`) and clears **`cartMetadata`**. For the **“Ordre …”** banner, add **FFAppState** `deferredResumeBannerActive` / `deferredResumeBannerText` and bind the banner to app state (see **`DEFERRED_PAYMENTS_FRONTEND.md` §1a**); otherwise chain **`getDeferredResumeContext`** after **`clearCart`** and refresh page state. It supports:
 
-- **afterSuccessfulPurchase** (bool, default false): When **true**, only the cart and Merano state are cleared (bookings were already confirmed by `completePosPurchase`). Use this when clearing after payment.
+- **afterSuccessfulPurchase** (bool, default false): When **true**, only the cart, Merano JSON state, and deferred-resume prefs are cleared (bookings were already confirmed by `completePosPurchase`). Use this when clearing after payment.
 - When **false** (e.g. user cancels or clears cart): if **apiBaseUrl** and **authToken** are passed, the action releases any pending Merano bookings in the cart via the API, then clears the cart and state. In FlutterFlow, when calling `clearCart` from a “Cancel purchase” or “Clear cart” button, pass **apiBaseUrl** and **authToken** (and optionally **storeSlug**) so those bookings are released.
 
 **Cart cleared after purchase:** `completePosPurchase` clears the cart (and Merano state) on success internally. You can remove any separate FlutterFlow callback that clears the cart after a successful purchase.
@@ -95,7 +95,7 @@ These are added automatically by the `completePosPurchase` custom action when th
 ## API used
 
 - **Create booking:** `POST /api/merano/v1/bookings` (via `createMeranoBooking` / `addMeranoBookingResultToCart` when no booking yet).
-- **Release booking:** `POST /api/merano/v1/bookings/{id}/release` (via `clearCart(afterSuccessfulPurchase: false, ...)` when clearing/cancelling).
+- **Release booking:** `POST /api/merano/v1/bookings/{id}/release` (via `clearCart(false, apiBaseUrl, authToken, storeSlug)` or shorter `clearCart(false)` when API creds are omitted; optional positional parameters).
 - **Ticket XML by reference:** `GET /api/receipts/ticket-xml?booking_reference=&lt;Merano_booking_number&gt;` – backend fetches booking from Merano and returns ticket XML. Used by `printMeranoBookingTickets` and for reprint from order view.
 - **Ticket XML (full payload):** `POST /api/receipts/print-ticket` – body has `printer_id`, `order_number`, `date`, `place`, `tickets`; for custom flows that supply payload directly.
 - **Confirm after payment:** `POST /api/merano/v1/bookings/{id}/confirm-pos-payment`.

@@ -2,25 +2,44 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\AddonType;
+use App\Models\Addon;
 use App\Models\ProductVariant;
-use Illuminate\Http\Request;
+use App\Models\Store;
+use App\Services\InventoryLedgerService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class InventoryController extends BaseApiController
 {
+    protected function ensureInventoryAddon(Store $store): ?JsonResponse
+    {
+        if (! Addon::storeHasActiveAddon($store->id, AddonType::Inventory)) {
+            return response()->json([
+                'error' => 'Inventory add-on is not enabled for this store.',
+            ], 403);
+        }
+
+        return null;
+    }
+
     /**
      * Update inventory for a variant
      */
     public function updateVariant(Request $request, string $variantId): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
         $this->authorizeTenant($request, $store);
+
+        if ($response = $this->ensureInventoryAddon($store)) {
+            return $response;
+        }
 
         $variant = ProductVariant::where('id', $variantId)
             ->where('stripe_account_id', $store->stripe_account_id)
@@ -40,19 +59,10 @@ class InventoryController extends BaseApiController
         }
 
         $variant->update($validator->validated());
+        $variant->refresh();
 
         return response()->json([
-            'variant' => [
-                'id' => $variant->id,
-                'sku' => $variant->sku ?? null,
-                'variant_inventory' => [
-                    'quantity' => $variant->inventory_quantity ?? null,
-                    'in_stock' => $variant->in_stock ?? true,
-                    'policy' => $variant->inventory_policy ?? null,
-                    'management' => $variant->inventory_management ?? null,
-                    'tracked' => $variant->inventory_quantity !== null,
-                ],
-            ],
+            'variant' => $this->variantInventoryPayload($variant),
         ]);
     }
 
@@ -62,12 +72,16 @@ class InventoryController extends BaseApiController
     public function adjustInventory(Request $request, string $variantId): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
         $this->authorizeTenant($request, $store);
+
+        if ($response = $this->ensureInventoryAddon($store)) {
+            return $response;
+        }
 
         $variant = ProductVariant::where('id', $variantId)
             ->where('stripe_account_id', $store->stripe_account_id)
@@ -88,34 +102,23 @@ class InventoryController extends BaseApiController
 
         $adjustment = $validator->validated()['quantity'];
         $currentQuantity = $variant->inventory_quantity ?? 0;
-        $newQuantity = max(0, $currentQuantity + $adjustment); // Prevent negative
 
-        $variant->update([
-            'inventory_quantity' => $newQuantity,
-        ]);
+        app(InventoryLedgerService::class)->recordManualAdjustment(
+            $store,
+            $variant,
+            $adjustment,
+            $validator->validated()['reason'] ?? null,
+            $request->user()?->id
+        );
 
-        // Log inventory adjustment (you might want to create an InventoryAdjustment model)
-        \Log::info('Inventory adjusted', [
-            'variant_id' => $variant->id,
-            'sku' => $variant->sku,
-            'adjustment' => $adjustment,
-            'old_quantity' => $currentQuantity,
-            'new_quantity' => $newQuantity,
-            'reason' => $validator->validated()['reason'] ?? null,
-            'user_id' => $request->user()->id,
-        ]);
+        $variant->refresh();
+
+        $payload = $this->variantInventoryPayload($variant);
+        $payload['variant_inventory']['previous_quantity'] = $currentQuantity;
+        $payload['variant_inventory']['adjustment'] = $adjustment;
 
         return response()->json([
-            'variant' => [
-                'id' => $variant->id,
-                'sku' => $variant->sku ?? null,
-                'variant_inventory' => [
-                    'quantity' => $variant->inventory_quantity ?? null,
-                    'in_stock' => $variant->in_stock ?? true,
-                    'previous_quantity' => $currentQuantity,
-                    'adjustment' => $adjustment,
-                ],
-            ],
+            'variant' => $payload,
         ]);
     }
 
@@ -125,12 +128,16 @@ class InventoryController extends BaseApiController
     public function setInventory(Request $request, string $variantId): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
         $this->authorizeTenant($request, $store);
+
+        if ($response = $this->ensureInventoryAddon($store)) {
+            return $response;
+        }
 
         $variant = ProductVariant::where('id', $variantId)
             ->where('stripe_account_id', $store->stripe_account_id)
@@ -151,31 +158,23 @@ class InventoryController extends BaseApiController
 
         $oldQuantity = $variant->inventory_quantity ?? 0;
         $newQuantity = $validator->validated()['quantity'];
+        $note = $validator->validated()['note'] ?? $validator->validated()['reason'] ?? null;
 
-        $variant->update([
-            'inventory_quantity' => $newQuantity,
-        ]);
+        app(InventoryLedgerService::class)->recordManualSetQuantity(
+            $store,
+            $variant,
+            $newQuantity,
+            $note,
+            $request->user()?->id
+        );
 
-        // Log inventory change
-        \Log::info('Inventory set', [
-            'variant_id' => $variant->id,
-            'sku' => $variant->sku,
-            'old_quantity' => $oldQuantity,
-            'new_quantity' => $newQuantity,
-            'reason' => $validator->validated()['reason'] ?? null,
-            'user_id' => $request->user()->id,
-        ]);
+        $variant->refresh();
+
+        $payload = $this->variantInventoryPayload($variant);
+        $payload['variant_inventory']['previous_quantity'] = $oldQuantity;
 
         return response()->json([
-            'variant' => [
-                'id' => $variant->id,
-                'sku' => $variant->sku ?? null,
-                'variant_inventory' => [
-                    'quantity' => $variant->inventory_quantity ?? null,
-                    'in_stock' => $variant->in_stock ?? true,
-                    'previous_quantity' => $oldQuantity,
-                ],
-            ],
+            'variant' => $payload,
         ]);
     }
 
@@ -185,24 +184,32 @@ class InventoryController extends BaseApiController
     public function getProductInventory(Request $request, string $productId): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
         $this->authorizeTenant($request, $store);
 
+        if ($response = $this->ensureInventoryAddon($store)) {
+            return $response;
+        }
+
+        $ledger = app(InventoryLedgerService::class);
+
         $product = \App\Models\ConnectedProduct::where('stripe_account_id', $store->stripe_account_id)
             ->where(function ($query) use ($productId) {
                 $query->where('id', $productId)
-                      ->orWhere('stripe_product_id', $productId);
+                    ->orWhere('stripe_product_id', $productId);
             })
             ->firstOrFail();
 
         $variants = ProductVariant::where('connected_product_id', $product->id)
             ->where('stripe_account_id', $store->stripe_account_id)
             ->get()
-            ->map(function ($variant) {
+            ->map(function ($variant) use ($ledger) {
+                $tracked = $ledger->isVariantTracked($variant);
+
                 return [
                     'id' => $variant->id,
                     'sku' => $variant->sku ?? null,
@@ -213,13 +220,13 @@ class InventoryController extends BaseApiController
                         'in_stock' => $variant->in_stock ?? true,
                         'policy' => $variant->inventory_policy ?? null,
                         'management' => $variant->inventory_management ?? null,
-                        'tracked' => $variant->inventory_quantity !== null,
+                        'tracked' => $tracked,
                     ],
                 ];
             });
 
-        $totalQuantity = $variants->sum(fn($v) => $v['variant_inventory']['quantity'] ?? 0);
-        $trackingInventory = $variants->contains(fn($v) => $v['variant_inventory']['tracked']);
+        $totalQuantity = $variants->sum(fn ($v) => $v['variant_inventory']['quantity'] ?? 0);
+        $trackingInventory = $variants->contains(fn ($v) => $v['variant_inventory']['tracked']);
 
         return response()->json([
             'product' => [
@@ -231,8 +238,8 @@ class InventoryController extends BaseApiController
                 'total_quantity' => $trackingInventory ? $totalQuantity : null,
                 'tracking_inventory' => $trackingInventory,
                 'variants_count' => $variants->count(),
-                'in_stock_count' => $variants->filter(fn($v) => $v['variant_inventory']['in_stock'])->count(),
-                'out_of_stock_count' => $variants->filter(fn($v) => !$v['variant_inventory']['in_stock'] && $v['variant_inventory']['tracked'])->count(),
+                'in_stock_count' => $variants->filter(fn ($v) => $v['variant_inventory']['in_stock'])->count(),
+                'out_of_stock_count' => $variants->filter(fn ($v) => ! $v['variant_inventory']['in_stock'] && $v['variant_inventory']['tracked'])->count(),
             ],
         ]);
     }
@@ -243,12 +250,18 @@ class InventoryController extends BaseApiController
     public function bulkUpdate(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
         $this->authorizeTenant($request, $store);
+
+        if ($response = $this->ensureInventoryAddon($store)) {
+            return $response;
+        }
+
+        $ledger = app(InventoryLedgerService::class);
 
         $validator = Validator::make($request->all(), [
             'variants' => 'required|array',
@@ -272,17 +285,24 @@ class InventoryController extends BaseApiController
                     ->where('stripe_account_id', $store->stripe_account_id)
                     ->first();
 
-                if (!$variant) {
+                if (! $variant) {
                     $errors[] = [
                         'variant_id' => $variantData['variant_id'],
                         'error' => 'Variant not found or not accessible',
                     ];
+
                     continue;
                 }
 
-                $variant->update([
-                    'inventory_quantity' => $variantData['quantity'],
-                ]);
+                $ledger->recordManualSetQuantity(
+                    $store,
+                    $variant,
+                    (int) $variantData['quantity'],
+                    'bulk_update',
+                    $request->user()?->id
+                );
+
+                $variant->refresh();
 
                 $updated[] = [
                     'id' => $variant->id,
@@ -307,5 +327,25 @@ class InventoryController extends BaseApiController
             ],
         ]);
     }
-}
 
+    /**
+     * @return array{id: int, sku: string|null, variant_inventory: array<string, mixed>}
+     */
+    protected function variantInventoryPayload(ProductVariant $variant): array
+    {
+        $ledger = app(InventoryLedgerService::class);
+        $tracked = $ledger->isVariantTracked($variant);
+
+        return [
+            'id' => $variant->id,
+            'sku' => $variant->sku,
+            'variant_inventory' => [
+                'quantity' => $variant->inventory_quantity,
+                'in_stock' => $variant->in_stock,
+                'policy' => $variant->inventory_policy,
+                'management' => $variant->inventory_management,
+                'tracked' => $tracked,
+            ],
+        ];
+    }
+}

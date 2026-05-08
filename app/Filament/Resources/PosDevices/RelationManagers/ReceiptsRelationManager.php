@@ -19,11 +19,11 @@ class ReceiptsRelationManager extends RelationManager
             ->recordTitleAttribute('receipt_number')
             ->columns([
                 Tables\Columns\TextColumn::make('receipt_number')
-                    ->label('Receipt #')
+                    ->label(__('Receipt #'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('receipt_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'sales' => 'success',
@@ -33,34 +33,34 @@ class ReceiptsRelationManager extends RelationManager
                     })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('posSession.session_number')
-                    ->label('Session')
+                    ->label(__('Session'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('printed')
-                    ->label('Printed')
+                    ->label(__('Printed'))
                     ->badge()
                     ->color(fn (bool $state): string => $state ? 'success' : 'gray')
                     ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('reprint_count')
-                    ->label('Reprints')
+                    ->label(__('Reprints'))
                     ->badge()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('receipt_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->options([
                         'sales' => 'Sales',
                         'return' => 'Return',
                         'correction' => 'Correction',
                     ]),
                 Tables\Filters\TernaryFilter::make('printed')
-                    ->label('Printed')
-                    ->placeholder('All')
+                    ->label(__('Printed'))
+                    ->placeholder(__('All'))
                     ->trueLabel('Printed only')
                     ->falseLabel('Not printed'),
             ])

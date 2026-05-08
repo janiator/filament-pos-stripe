@@ -25,12 +25,12 @@ class EditReceiptTemplate extends EditRecord
     {
         return [
             Action::make('resetToDefault')
-                ->label('Reset to Default')
+                ->label(__('Reset to Default'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('Reset Template to Default')
-                ->modalDescription('This will replace the current template with the default from the file. This action cannot be undone.')
+                ->modalHeading(__('Reset Template to Default'))
+                ->modalDescription(__('This will replace the current template with the default from the file. This action cannot be undone.'))
                 ->action('resetToDefault'),
             DeleteAction::make(),
         ];
@@ -102,7 +102,7 @@ class EditReceiptTemplate extends EditRecord
         if (! $filename) {
             Notification::make()
                 ->danger()
-                ->title('Template type not found')
+                ->title(__('Template type not found'))
                 ->send();
 
             return;
@@ -113,7 +113,7 @@ class EditReceiptTemplate extends EditRecord
         if (! File::exists($filePath)) {
             Notification::make()
                 ->danger()
-                ->title('Default template file not found')
+                ->title(__('Default template file not found'))
                 ->body("File: {$filename}")
                 ->send();
 
@@ -133,7 +133,7 @@ class EditReceiptTemplate extends EditRecord
 
         Notification::make()
             ->success()
-            ->title('Template reset to default')
+            ->title(__('Template reset to default'))
             ->body('The template has been reset to the default version from the file.')
             ->send();
     }

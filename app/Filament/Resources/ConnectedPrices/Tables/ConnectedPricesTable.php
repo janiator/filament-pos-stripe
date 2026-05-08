@@ -20,7 +20,7 @@ class ConnectedPricesTable
             ->modifyQueryUsing(fn ($query) => $query->with(['store', 'product']))
             ->columns([
                 TextColumn::make('formatted_amount')
-                    ->label('Amount')
+                    ->label(__('Amount'))
                     ->badge()
                     ->color('success')
                     ->weight('bold')
@@ -29,17 +29,17 @@ class ConnectedPricesTable
                     }),
 
                 TextColumn::make('product.name')
-                    ->label('Product')
+                    ->label(__('Product'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
-                    ->placeholder('-')
+                    ->placeholder(__('-'))
                     ->url(fn (ConnectedPrice $record) => $record->product && class_exists(\App\Filament\Resources\ConnectedProducts\ConnectedProductResource::class)
                         ? \App\Filament\Resources\ConnectedProducts\ConnectedProductResource::getUrl('view', ['record' => $record->product])
                         : null),
 
                 TextColumn::make('type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->formatStateUsing(fn ($state) => ucfirst($state))
                     ->colors([
@@ -49,32 +49,32 @@ class ConnectedPricesTable
                     ->sortable(),
 
                 TextColumn::make('recurring_description')
-                    ->label('Billing Interval')
+                    ->label(__('Billing Interval'))
                     ->badge()
                     ->color('info')
-                    ->placeholder('-')
+                    ->placeholder(__('-'))
                     ->visible(fn (ConnectedPrice $record) => $record->type === 'recurring'),
 
                 TextColumn::make('currency')
-                    ->label('Currency')
+                    ->label(__('Currency'))
                     ->badge()
                     ->formatStateUsing(fn ($state) => strtoupper($state))
                     ->color('gray')
                     ->sortable(),
 
                 IconColumn::make('active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->sortable(),
 
                 TextColumn::make('nickname')
-                    ->label('Nickname')
+                    ->label(__('Nickname'))
                     ->searchable()
-                    ->placeholder('-')
+                    ->placeholder(__('-'))
                     ->toggleable(),
 
                 TextColumn::make('store.name')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->searchable()
                     ->sortable()
                     ->badge()
@@ -82,33 +82,33 @@ class ConnectedPricesTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('stripe_price_id')
-                    ->label('Price ID')
+                    ->label(__('Price ID'))
                     ->searchable()
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 TernaryFilter::make('active')
-                    ->label('Active')
-                    ->placeholder('All')
+                    ->label(__('Active'))
+                    ->placeholder(__('All'))
                     ->trueLabel('Active only')
                     ->falseLabel('Inactive only'),
 
                 SelectFilter::make('type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->options([
                         'one_time' => 'One Time',
                         'recurring' => 'Recurring',
                     ]),
 
                 SelectFilter::make('stripe_account_id')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->relationship('store', 'name')
                     ->searchable()
                     ->preload(),

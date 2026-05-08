@@ -1,19 +1,21 @@
 <?php
+
 /**
  * ModelInterface
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client\Model
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,12 +29,11 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
 /**
  * Interface abstracting model access.
  *
- * @package OpenAPI\Client\Model
  * @author  OpenAPI Generator team
  */
 interface ModelInterface
@@ -96,17 +97,11 @@ interface ModelInterface
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool;
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool;
 }

@@ -4,8 +4,8 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**current_page** | **int** |  | [optional]
-**last_page** | **int** |  | [optional]
+**current_page** | **int** | Current page index (0-based) | [optional]
+**last_page** | **int** | Last page index (0-based) | [optional]
 **per_page** | **int** |  | [optional]
 **total** | **int** |  | [optional]
 

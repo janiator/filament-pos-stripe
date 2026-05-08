@@ -2,11 +2,12 @@
 
 namespace App\Filament\Resources\Shield\Roles;
 
+use App\Filament\Clusters\SettingsCluster;
+use App\Filament\Resources\Shield\Roles\Pages\CreateRole;
+use App\Filament\Resources\Shield\Roles\Pages\EditRole;
+use App\Filament\Resources\Shield\Roles\Pages\ListRoles;
+use App\Filament\Resources\Shield\Roles\Pages\ViewRole;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
-use BezhanSalleh\FilamentShield\Resources\Roles\Pages\CreateRole;
-use BezhanSalleh\FilamentShield\Resources\Roles\Pages\EditRole;
-use BezhanSalleh\FilamentShield\Resources\Roles\Pages\ListRoles;
-use BezhanSalleh\FilamentShield\Resources\Roles\Pages\ViewRole;
 use BezhanSalleh\FilamentShield\Support\Utils;
 use BezhanSalleh\FilamentShield\Traits\HasShieldFormComponents;
 use BezhanSalleh\PluginEssentials\Concerns\Resource as Essentials;
@@ -30,6 +31,7 @@ use Illuminate\Validation\Rules\Unique;
 class RoleResource extends Resource
 {
     use Essentials\BelongsToParent;
+
     // Removed BelongsToTenant to prevent tenant scoping for roles
     use Essentials\HasGlobalSearch;
     use Essentials\HasLabels;
@@ -38,20 +40,11 @@ class RoleResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    // Disable tenant scoping for this resource
-    protected static ?string $tenantOwnershipRelationshipName = null;
-
-    public static function scopeEloquentQueryToTenant(\Illuminate\Database\Eloquent\Builder $query, ?\Illuminate\Database\Eloquent\Model $tenant = null): \Illuminate\Database\Eloquent\Builder
-    {
-        // Don't scope to tenant - roles are global
-        return $query;
-    }
-
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-    {
-        // Don't scope to tenant - roles are global
-        return parent::getEloquentQuery();
-    }
+    /**
+     * Roles are global (Spatie Role has no store relationship). Filament panel
+     * tenancy must not register the tenant global scope or creation observers.
+     */
+    protected static bool $isScopedToTenant = false;
 
     public static function form(Schema $schema): Schema
     {
@@ -167,7 +160,7 @@ class RoleResource extends Resource
 
     public static function getCluster(): ?string
     {
-        return Utils::getResourceCluster();
+        return SettingsCluster::class;
     }
 
     public static function getEssentialsPlugin(): ?FilamentShieldPlugin
@@ -177,7 +170,6 @@ class RoleResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('filament.navigation_groups.administration');
+        return __('filament.navigation_groups.settings');
     }
 }
-

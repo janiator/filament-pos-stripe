@@ -1,18 +1,20 @@
 <?php
+
 /**
  * POSDevicesApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * POSDevicesApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class POSDevicesApi
@@ -73,7 +75,7 @@ class POSDevicesApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'closeCashDrawer' => [
             'application/json',
@@ -96,6 +98,9 @@ class POSDevicesApi
         'patchPosDevice' => [
             'application/json',
         ],
+        'registerOrUpdatePosDevice' => [
+            'application/json',
+        ],
         'registerPosDevice' => [
             'application/json',
         ],
@@ -108,10 +113,7 @@ class POSDevicesApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -119,16 +121,16 @@ class POSDevicesApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -158,17 +160,18 @@ class POSDevicesApi
      *
      * Close cash drawer
      *
-     * @param  int $id id (required)
-     * @param  \OpenAPI\Client\Model\CloseCashDrawerRequest|null $close_cash_drawer_request close_cash_drawer_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['closeCashDrawer'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  \OpenAPIClient\Model\CloseCashDrawerRequest|null  $close_cash_drawer_request  close_cash_drawer_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['closeCashDrawer'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CloseCashDrawer200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\CloseCashDrawer200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function closeCashDrawer($id, $close_cash_drawer_request = null, string $contentType = self::contentTypes['closeCashDrawer'][0])
     {
-        list($response) = $this->closeCashDrawerWithHttpInfo($id, $close_cash_drawer_request, $contentType);
+        [$response] = $this->closeCashDrawerWithHttpInfo($id, $close_cash_drawer_request, $contentType);
+
         return $response;
     }
 
@@ -177,13 +180,13 @@ class POSDevicesApi
      *
      * Close cash drawer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\CloseCashDrawerRequest|null $close_cash_drawer_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['closeCashDrawer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CloseCashDrawerRequest|null  $close_cash_drawer_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['closeCashDrawer'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CloseCashDrawer200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\CloseCashDrawer200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function closeCashDrawerWithHttpInfo($id, $close_cash_drawer_request = null, string $contentType = self::contentTypes['closeCashDrawer'][0])
     {
@@ -211,23 +214,20 @@ class POSDevicesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CloseCashDrawer200Response',
+                        '\OpenAPIClient\Model\CloseCashDrawer200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -243,7 +243,7 @@ class POSDevicesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\CloseCashDrawer200Response',
+                '\OpenAPIClient\Model\CloseCashDrawer200Response',
                 $request,
                 $response,
             );
@@ -252,7 +252,7 @@ class POSDevicesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CloseCashDrawer200Response',
+                        '\OpenAPIClient\Model\CloseCashDrawer200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -260,13 +260,12 @@ class POSDevicesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -277,12 +276,12 @@ class POSDevicesApi
      *
      * Close cash drawer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\CloseCashDrawerRequest|null $close_cash_drawer_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['closeCashDrawer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CloseCashDrawerRequest|null  $close_cash_drawer_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['closeCashDrawer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function closeCashDrawerAsync($id, $close_cash_drawer_request = null, string $contentType = self::contentTypes['closeCashDrawer'][0])
     {
@@ -299,16 +298,16 @@ class POSDevicesApi
      *
      * Close cash drawer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\CloseCashDrawerRequest|null $close_cash_drawer_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['closeCashDrawer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CloseCashDrawerRequest|null  $close_cash_drawer_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['closeCashDrawer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function closeCashDrawerAsyncWithHttpInfo($id, $close_cash_drawer_request = null, string $contentType = self::contentTypes['closeCashDrawer'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\CloseCashDrawer200Response';
+        $returnType = '\OpenAPIClient\Model\CloseCashDrawer200Response';
         $request = $this->closeCashDrawerRequest($id, $close_cash_drawer_request, $contentType);
 
         return $this->client
@@ -316,7 +315,7 @@ class POSDevicesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -327,7 +326,7 @@ class POSDevicesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -350,12 +349,12 @@ class POSDevicesApi
     /**
      * Create request for operation 'closeCashDrawer'
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\CloseCashDrawerRequest|null $close_cash_drawer_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['closeCashDrawer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\CloseCashDrawerRequest|null  $close_cash_drawer_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['closeCashDrawer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function closeCashDrawerRequest($id, $close_cash_drawer_request = null, string $contentType = self::contentTypes['closeCashDrawer'][0])
     {
@@ -367,8 +366,6 @@ class POSDevicesApi
             );
         }
 
-
-
         $resourcePath = '/pos-devices/{id}/cash-drawer/close';
         $formParams = [];
         $queryParams = [];
@@ -376,20 +373,17 @@ class POSDevicesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -397,7 +391,7 @@ class POSDevicesApi
         // for model (json/xml)
         if (isset($close_cash_drawer_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($close_cash_drawer_request));
             } else {
                 $httpBody = $close_cash_drawer_request;
@@ -410,7 +404,7 @@ class POSDevicesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -418,7 +412,7 @@ class POSDevicesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -427,8 +421,8 @@ class POSDevicesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -444,9 +438,10 @@ class POSDevicesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -457,16 +452,17 @@ class POSDevicesApi
      *
      * Get POS device
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosDevice'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosDevice'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetPosDevice200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GetPosDevice200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getPosDevice($id, string $contentType = self::contentTypes['getPosDevice'][0])
     {
-        list($response) = $this->getPosDeviceWithHttpInfo($id, $contentType);
+        [$response] = $this->getPosDeviceWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -475,12 +471,12 @@ class POSDevicesApi
      *
      * Get POS device
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosDevice'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetPosDevice200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GetPosDevice200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getPosDeviceWithHttpInfo($id, string $contentType = self::contentTypes['getPosDevice'][0])
     {
@@ -508,29 +504,26 @@ class POSDevicesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GetPosDevice200Response',
+                        '\OpenAPIClient\Model\GetPosDevice200Response',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -546,7 +539,7 @@ class POSDevicesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GetPosDevice200Response',
+                '\OpenAPIClient\Model\GetPosDevice200Response',
                 $request,
                 $response,
             );
@@ -555,7 +548,7 @@ class POSDevicesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GetPosDevice200Response',
+                        '\OpenAPIClient\Model\GetPosDevice200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -563,7 +556,7 @@ class POSDevicesApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -571,13 +564,12 @@ class POSDevicesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -588,11 +580,11 @@ class POSDevicesApi
      *
      * Get POS device
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getPosDeviceAsync($id, string $contentType = self::contentTypes['getPosDevice'][0])
     {
@@ -609,15 +601,15 @@ class POSDevicesApi
      *
      * Get POS device
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getPosDeviceAsyncWithHttpInfo($id, string $contentType = self::contentTypes['getPosDevice'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GetPosDevice200Response';
+        $returnType = '\OpenAPIClient\Model\GetPosDevice200Response';
         $request = $this->getPosDeviceRequest($id, $contentType);
 
         return $this->client
@@ -625,7 +617,7 @@ class POSDevicesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -636,7 +628,7 @@ class POSDevicesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -659,11 +651,11 @@ class POSDevicesApi
     /**
      * Create request for operation 'getPosDevice'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getPosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getPosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getPosDeviceRequest($id, string $contentType = self::contentTypes['getPosDevice'][0])
     {
@@ -675,7 +667,6 @@ class POSDevicesApi
             );
         }
 
-
         $resourcePath = '/pos-devices/{id}';
         $formParams = [];
         $queryParams = [];
@@ -683,20 +674,17 @@ class POSDevicesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -710,7 +698,7 @@ class POSDevicesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -718,7 +706,7 @@ class POSDevicesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -727,8 +715,8 @@ class POSDevicesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -744,9 +732,10 @@ class POSDevicesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -757,15 +746,16 @@ class POSDevicesApi
      *
      * List POS devices
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosDevices'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosDevices'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ListPosDevices200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ListPosDevices200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function listPosDevices(string $contentType = self::contentTypes['listPosDevices'][0])
     {
-        list($response) = $this->listPosDevicesWithHttpInfo($contentType);
+        [$response] = $this->listPosDevicesWithHttpInfo($contentType);
+
         return $response;
     }
 
@@ -774,11 +764,11 @@ class POSDevicesApi
      *
      * List POS devices
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosDevices'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosDevices'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ListPosDevices200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ListPosDevices200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function listPosDevicesWithHttpInfo(string $contentType = self::contentTypes['listPosDevices'][0])
     {
@@ -806,29 +796,26 @@ class POSDevicesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ListPosDevices200Response',
+                        '\OpenAPIClient\Model\ListPosDevices200Response',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -844,7 +831,7 @@ class POSDevicesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ListPosDevices200Response',
+                '\OpenAPIClient\Model\ListPosDevices200Response',
                 $request,
                 $response,
             );
@@ -853,7 +840,7 @@ class POSDevicesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ListPosDevices200Response',
+                        '\OpenAPIClient\Model\ListPosDevices200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -861,7 +848,7 @@ class POSDevicesApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -869,13 +856,12 @@ class POSDevicesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -886,10 +872,10 @@ class POSDevicesApi
      *
      * List POS devices
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosDevices'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosDevices'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listPosDevicesAsync(string $contentType = self::contentTypes['listPosDevices'][0])
     {
@@ -906,14 +892,14 @@ class POSDevicesApi
      *
      * List POS devices
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosDevices'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosDevices'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listPosDevicesAsyncWithHttpInfo(string $contentType = self::contentTypes['listPosDevices'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ListPosDevices200Response';
+        $returnType = '\OpenAPIClient\Model\ListPosDevices200Response';
         $request = $this->listPosDevicesRequest($contentType);
 
         return $this->client
@@ -921,7 +907,7 @@ class POSDevicesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -932,7 +918,7 @@ class POSDevicesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -955,14 +941,13 @@ class POSDevicesApi
     /**
      * Create request for operation 'listPosDevices'
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listPosDevices'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listPosDevices'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function listPosDevicesRequest(string $contentType = self::contentTypes['listPosDevices'][0])
     {
-
 
         $resourcePath = '/pos-devices';
         $formParams = [];
@@ -971,12 +956,8 @@ class POSDevicesApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -990,7 +971,7 @@ class POSDevicesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -998,7 +979,7 @@ class POSDevicesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1007,8 +988,8 @@ class POSDevicesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1024,9 +1005,10 @@ class POSDevicesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1037,16 +1019,17 @@ class POSDevicesApi
      *
      * Log application shutdown
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logApplicationShutdown'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logApplicationShutdown'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\LogApplicationShutdown200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\LogApplicationShutdown200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function logApplicationShutdown($id, string $contentType = self::contentTypes['logApplicationShutdown'][0])
     {
-        list($response) = $this->logApplicationShutdownWithHttpInfo($id, $contentType);
+        [$response] = $this->logApplicationShutdownWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -1055,12 +1038,12 @@ class POSDevicesApi
      *
      * Log application shutdown
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logApplicationShutdown'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logApplicationShutdown'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\LogApplicationShutdown200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\LogApplicationShutdown200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function logApplicationShutdownWithHttpInfo($id, string $contentType = self::contentTypes['logApplicationShutdown'][0])
     {
@@ -1088,23 +1071,20 @@ class POSDevicesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\LogApplicationShutdown200Response',
+                        '\OpenAPIClient\Model\LogApplicationShutdown200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1120,7 +1100,7 @@ class POSDevicesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\LogApplicationShutdown200Response',
+                '\OpenAPIClient\Model\LogApplicationShutdown200Response',
                 $request,
                 $response,
             );
@@ -1129,7 +1109,7 @@ class POSDevicesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\LogApplicationShutdown200Response',
+                        '\OpenAPIClient\Model\LogApplicationShutdown200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1137,13 +1117,12 @@ class POSDevicesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1154,11 +1133,11 @@ class POSDevicesApi
      *
      * Log application shutdown
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logApplicationShutdown'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logApplicationShutdown'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function logApplicationShutdownAsync($id, string $contentType = self::contentTypes['logApplicationShutdown'][0])
     {
@@ -1175,15 +1154,15 @@ class POSDevicesApi
      *
      * Log application shutdown
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logApplicationShutdown'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logApplicationShutdown'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function logApplicationShutdownAsyncWithHttpInfo($id, string $contentType = self::contentTypes['logApplicationShutdown'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\LogApplicationShutdown200Response';
+        $returnType = '\OpenAPIClient\Model\LogApplicationShutdown200Response';
         $request = $this->logApplicationShutdownRequest($id, $contentType);
 
         return $this->client
@@ -1191,7 +1170,7 @@ class POSDevicesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1202,7 +1181,7 @@ class POSDevicesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1225,11 +1204,11 @@ class POSDevicesApi
     /**
      * Create request for operation 'logApplicationShutdown'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logApplicationShutdown'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logApplicationShutdown'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function logApplicationShutdownRequest($id, string $contentType = self::contentTypes['logApplicationShutdown'][0])
     {
@@ -1241,7 +1220,6 @@ class POSDevicesApi
             );
         }
 
-
         $resourcePath = '/pos-devices/{id}/shutdown';
         $formParams = [];
         $queryParams = [];
@@ -1249,20 +1227,17 @@ class POSDevicesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1276,7 +1251,7 @@ class POSDevicesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1284,7 +1259,7 @@ class POSDevicesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1293,8 +1268,8 @@ class POSDevicesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1310,9 +1285,10 @@ class POSDevicesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1323,16 +1299,17 @@ class POSDevicesApi
      *
      * Log application start
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logApplicationStart'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logApplicationStart'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\LogApplicationStart200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\LogApplicationStart200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function logApplicationStart($id, string $contentType = self::contentTypes['logApplicationStart'][0])
     {
-        list($response) = $this->logApplicationStartWithHttpInfo($id, $contentType);
+        [$response] = $this->logApplicationStartWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -1341,12 +1318,12 @@ class POSDevicesApi
      *
      * Log application start
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logApplicationStart'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logApplicationStart'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\LogApplicationStart200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\LogApplicationStart200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function logApplicationStartWithHttpInfo($id, string $contentType = self::contentTypes['logApplicationStart'][0])
     {
@@ -1374,23 +1351,20 @@ class POSDevicesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\LogApplicationStart200Response',
+                        '\OpenAPIClient\Model\LogApplicationStart200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1406,7 +1380,7 @@ class POSDevicesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\LogApplicationStart200Response',
+                '\OpenAPIClient\Model\LogApplicationStart200Response',
                 $request,
                 $response,
             );
@@ -1415,7 +1389,7 @@ class POSDevicesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\LogApplicationStart200Response',
+                        '\OpenAPIClient\Model\LogApplicationStart200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1423,13 +1397,12 @@ class POSDevicesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1440,11 +1413,11 @@ class POSDevicesApi
      *
      * Log application start
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logApplicationStart'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logApplicationStart'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function logApplicationStartAsync($id, string $contentType = self::contentTypes['logApplicationStart'][0])
     {
@@ -1461,15 +1434,15 @@ class POSDevicesApi
      *
      * Log application start
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logApplicationStart'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logApplicationStart'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function logApplicationStartAsyncWithHttpInfo($id, string $contentType = self::contentTypes['logApplicationStart'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\LogApplicationStart200Response';
+        $returnType = '\OpenAPIClient\Model\LogApplicationStart200Response';
         $request = $this->logApplicationStartRequest($id, $contentType);
 
         return $this->client
@@ -1477,7 +1450,7 @@ class POSDevicesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1488,7 +1461,7 @@ class POSDevicesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1511,11 +1484,11 @@ class POSDevicesApi
     /**
      * Create request for operation 'logApplicationStart'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['logApplicationStart'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['logApplicationStart'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function logApplicationStartRequest($id, string $contentType = self::contentTypes['logApplicationStart'][0])
     {
@@ -1527,7 +1500,6 @@ class POSDevicesApi
             );
         }
 
-
         $resourcePath = '/pos-devices/{id}/start';
         $formParams = [];
         $queryParams = [];
@@ -1535,20 +1507,17 @@ class POSDevicesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1562,7 +1531,7 @@ class POSDevicesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1570,7 +1539,7 @@ class POSDevicesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1579,8 +1548,8 @@ class POSDevicesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1596,9 +1565,10 @@ class POSDevicesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1609,17 +1579,18 @@ class POSDevicesApi
      *
      * Open cash drawer
      *
-     * @param  int $id id (required)
-     * @param  \OpenAPI\Client\Model\OpenCashDrawerRequest|null $open_cash_drawer_request open_cash_drawer_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['openCashDrawer'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  \OpenAPIClient\Model\OpenCashDrawerRequest|null  $open_cash_drawer_request  open_cash_drawer_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['openCashDrawer'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\OpenCashDrawer200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\OpenCashDrawer200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function openCashDrawer($id, $open_cash_drawer_request = null, string $contentType = self::contentTypes['openCashDrawer'][0])
     {
-        list($response) = $this->openCashDrawerWithHttpInfo($id, $open_cash_drawer_request, $contentType);
+        [$response] = $this->openCashDrawerWithHttpInfo($id, $open_cash_drawer_request, $contentType);
+
         return $response;
     }
 
@@ -1628,13 +1599,13 @@ class POSDevicesApi
      *
      * Open cash drawer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\OpenCashDrawerRequest|null $open_cash_drawer_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['openCashDrawer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\OpenCashDrawerRequest|null  $open_cash_drawer_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['openCashDrawer'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\OpenCashDrawer200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\OpenCashDrawer200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function openCashDrawerWithHttpInfo($id, $open_cash_drawer_request = null, string $contentType = self::contentTypes['openCashDrawer'][0])
     {
@@ -1662,29 +1633,26 @@ class POSDevicesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\OpenCashDrawer200Response',
+                        '\OpenAPIClient\Model\OpenCashDrawer200Response',
                         $request,
                         $response,
                     );
                 case 400:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1700,7 +1668,7 @@ class POSDevicesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\OpenCashDrawer200Response',
+                '\OpenAPIClient\Model\OpenCashDrawer200Response',
                 $request,
                 $response,
             );
@@ -1709,7 +1677,7 @@ class POSDevicesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\OpenCashDrawer200Response',
+                        '\OpenAPIClient\Model\OpenCashDrawer200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1717,7 +1685,7 @@ class POSDevicesApi
                 case 400:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1725,13 +1693,12 @@ class POSDevicesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1742,12 +1709,12 @@ class POSDevicesApi
      *
      * Open cash drawer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\OpenCashDrawerRequest|null $open_cash_drawer_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['openCashDrawer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\OpenCashDrawerRequest|null  $open_cash_drawer_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['openCashDrawer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function openCashDrawerAsync($id, $open_cash_drawer_request = null, string $contentType = self::contentTypes['openCashDrawer'][0])
     {
@@ -1764,16 +1731,16 @@ class POSDevicesApi
      *
      * Open cash drawer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\OpenCashDrawerRequest|null $open_cash_drawer_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['openCashDrawer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\OpenCashDrawerRequest|null  $open_cash_drawer_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['openCashDrawer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function openCashDrawerAsyncWithHttpInfo($id, $open_cash_drawer_request = null, string $contentType = self::contentTypes['openCashDrawer'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\OpenCashDrawer200Response';
+        $returnType = '\OpenAPIClient\Model\OpenCashDrawer200Response';
         $request = $this->openCashDrawerRequest($id, $open_cash_drawer_request, $contentType);
 
         return $this->client
@@ -1781,7 +1748,7 @@ class POSDevicesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1792,7 +1759,7 @@ class POSDevicesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1815,12 +1782,12 @@ class POSDevicesApi
     /**
      * Create request for operation 'openCashDrawer'
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\OpenCashDrawerRequest|null $open_cash_drawer_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['openCashDrawer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\OpenCashDrawerRequest|null  $open_cash_drawer_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['openCashDrawer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function openCashDrawerRequest($id, $open_cash_drawer_request = null, string $contentType = self::contentTypes['openCashDrawer'][0])
     {
@@ -1832,8 +1799,6 @@ class POSDevicesApi
             );
         }
 
-
-
         $resourcePath = '/pos-devices/{id}/cash-drawer/open';
         $formParams = [];
         $queryParams = [];
@@ -1841,20 +1806,17 @@ class POSDevicesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1862,7 +1824,7 @@ class POSDevicesApi
         // for model (json/xml)
         if (isset($open_cash_drawer_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($open_cash_drawer_request));
             } else {
                 $httpBody = $open_cash_drawer_request;
@@ -1875,7 +1837,7 @@ class POSDevicesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1883,7 +1845,7 @@ class POSDevicesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1892,8 +1854,8 @@ class POSDevicesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1909,9 +1871,10 @@ class POSDevicesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1922,17 +1885,18 @@ class POSDevicesApi
      *
      * Update POS device (partial)
      *
-     * @param  int $id id (required)
-     * @param  \OpenAPI\Client\Model\PatchPosDeviceRequest|null $patch_pos_device_request patch_pos_device_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchPosDevice'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  \OpenAPIClient\Model\PatchPosDeviceRequest|null  $patch_pos_device_request  patch_pos_device_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchPosDevice'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\UpdatePosDevice200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\UpdatePosDevice200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function patchPosDevice($id, $patch_pos_device_request = null, string $contentType = self::contentTypes['patchPosDevice'][0])
     {
-        list($response) = $this->patchPosDeviceWithHttpInfo($id, $patch_pos_device_request, $contentType);
+        [$response] = $this->patchPosDeviceWithHttpInfo($id, $patch_pos_device_request, $contentType);
+
         return $response;
     }
 
@@ -1941,13 +1905,13 @@ class POSDevicesApi
      *
      * Update POS device (partial)
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\PatchPosDeviceRequest|null $patch_pos_device_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchPosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\PatchPosDeviceRequest|null  $patch_pos_device_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchPosDevice'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\UpdatePosDevice200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\UpdatePosDevice200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function patchPosDeviceWithHttpInfo($id, $patch_pos_device_request = null, string $contentType = self::contentTypes['patchPosDevice'][0])
     {
@@ -1975,23 +1939,20 @@ class POSDevicesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\UpdatePosDevice200Response',
+                        '\OpenAPIClient\Model\UpdatePosDevice200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -2007,7 +1968,7 @@ class POSDevicesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\UpdatePosDevice200Response',
+                '\OpenAPIClient\Model\UpdatePosDevice200Response',
                 $request,
                 $response,
             );
@@ -2016,7 +1977,7 @@ class POSDevicesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\UpdatePosDevice200Response',
+                        '\OpenAPIClient\Model\UpdatePosDevice200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2024,13 +1985,12 @@ class POSDevicesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -2041,12 +2001,12 @@ class POSDevicesApi
      *
      * Update POS device (partial)
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\PatchPosDeviceRequest|null $patch_pos_device_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchPosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\PatchPosDeviceRequest|null  $patch_pos_device_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchPosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function patchPosDeviceAsync($id, $patch_pos_device_request = null, string $contentType = self::contentTypes['patchPosDevice'][0])
     {
@@ -2063,16 +2023,16 @@ class POSDevicesApi
      *
      * Update POS device (partial)
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\PatchPosDeviceRequest|null $patch_pos_device_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchPosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\PatchPosDeviceRequest|null  $patch_pos_device_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchPosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function patchPosDeviceAsyncWithHttpInfo($id, $patch_pos_device_request = null, string $contentType = self::contentTypes['patchPosDevice'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\UpdatePosDevice200Response';
+        $returnType = '\OpenAPIClient\Model\UpdatePosDevice200Response';
         $request = $this->patchPosDeviceRequest($id, $patch_pos_device_request, $contentType);
 
         return $this->client
@@ -2080,7 +2040,7 @@ class POSDevicesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -2091,7 +2051,7 @@ class POSDevicesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -2114,12 +2074,12 @@ class POSDevicesApi
     /**
      * Create request for operation 'patchPosDevice'
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\PatchPosDeviceRequest|null $patch_pos_device_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['patchPosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\PatchPosDeviceRequest|null  $patch_pos_device_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['patchPosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function patchPosDeviceRequest($id, $patch_pos_device_request = null, string $contentType = self::contentTypes['patchPosDevice'][0])
     {
@@ -2131,8 +2091,6 @@ class POSDevicesApi
             );
         }
 
-
-
         $resourcePath = '/pos-devices/{id}';
         $formParams = [];
         $queryParams = [];
@@ -2140,20 +2098,17 @@ class POSDevicesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -2161,7 +2116,7 @@ class POSDevicesApi
         // for model (json/xml)
         if (isset($patch_pos_device_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($patch_pos_device_request));
             } else {
                 $httpBody = $patch_pos_device_request;
@@ -2174,7 +2129,7 @@ class POSDevicesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -2182,7 +2137,7 @@ class POSDevicesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -2191,8 +2146,8 @@ class POSDevicesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -2208,9 +2163,302 @@ class POSDevicesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'PATCH',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation registerOrUpdatePosDevice
+     *
+     * Register or update POS device (idempotent by device_name)
+     *
+     * @param  \OpenAPIClient\Model\RegisterOrUpdatePosDeviceRequest  $register_or_update_pos_device_request  register_or_update_pos_device_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerOrUpdatePosDevice'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\RegisterOrUpdatePosDevice200Response|\OpenAPIClient\Model\RegisterOrUpdatePosDevice201Response|\OpenAPIClient\Model\ErrorResponse
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function registerOrUpdatePosDevice($register_or_update_pos_device_request, string $contentType = self::contentTypes['registerOrUpdatePosDevice'][0])
+    {
+        [$response] = $this->registerOrUpdatePosDeviceWithHttpInfo($register_or_update_pos_device_request, $contentType);
+
+        return $response;
+    }
+
+    /**
+     * Operation registerOrUpdatePosDeviceWithHttpInfo
+     *
+     * Register or update POS device (idempotent by device_name)
+     *
+     * @param  \OpenAPIClient\Model\RegisterOrUpdatePosDeviceRequest  $register_or_update_pos_device_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerOrUpdatePosDevice'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\RegisterOrUpdatePosDevice200Response|\OpenAPIClient\Model\RegisterOrUpdatePosDevice201Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function registerOrUpdatePosDeviceWithHttpInfo($register_or_update_pos_device_request, string $contentType = self::contentTypes['registerOrUpdatePosDevice'][0])
+    {
+        $request = $this->registerOrUpdatePosDeviceRequest($register_or_update_pos_device_request, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+            switch ($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\RegisterOrUpdatePosDevice200Response',
+                        $request,
+                        $response,
+                    );
+                case 201:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\RegisterOrUpdatePosDevice201Response',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+            }
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\OpenAPIClient\Model\RegisterOrUpdatePosDevice200Response',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\RegisterOrUpdatePosDevice200Response',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 201:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\RegisterOrUpdatePosDevice201Response',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation registerOrUpdatePosDeviceAsync
+     *
+     * Register or update POS device (idempotent by device_name)
+     *
+     * @param  \OpenAPIClient\Model\RegisterOrUpdatePosDeviceRequest  $register_or_update_pos_device_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerOrUpdatePosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function registerOrUpdatePosDeviceAsync($register_or_update_pos_device_request, string $contentType = self::contentTypes['registerOrUpdatePosDevice'][0])
+    {
+        return $this->registerOrUpdatePosDeviceAsyncWithHttpInfo($register_or_update_pos_device_request, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation registerOrUpdatePosDeviceAsyncWithHttpInfo
+     *
+     * Register or update POS device (idempotent by device_name)
+     *
+     * @param  \OpenAPIClient\Model\RegisterOrUpdatePosDeviceRequest  $register_or_update_pos_device_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerOrUpdatePosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function registerOrUpdatePosDeviceAsyncWithHttpInfo($register_or_update_pos_device_request, string $contentType = self::contentTypes['registerOrUpdatePosDevice'][0])
+    {
+        $returnType = '\OpenAPIClient\Model\RegisterOrUpdatePosDevice200Response';
+        $request = $this->registerOrUpdatePosDeviceRequest($register_or_update_pos_device_request, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); // stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders(),
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'registerOrUpdatePosDevice'
+     *
+     * @param  \OpenAPIClient\Model\RegisterOrUpdatePosDeviceRequest  $register_or_update_pos_device_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerOrUpdatePosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function registerOrUpdatePosDeviceRequest($register_or_update_pos_device_request, string $contentType = self::contentTypes['registerOrUpdatePosDevice'][0])
+    {
+
+        // verify the required parameter 'register_or_update_pos_device_request' is set
+        if ($register_or_update_pos_device_request === null || (is_array($register_or_update_pos_device_request) && count($register_or_update_pos_device_request) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $register_or_update_pos_device_request when calling registerOrUpdatePosDevice'
+            );
+        }
+
+        $resourcePath = '/pos-devices/register';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json'],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (isset($register_or_update_pos_device_request)) {
+            if (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the body
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($register_or_update_pos_device_request));
+            } else {
+                $httpBody = $register_or_update_pos_device_request;
+            }
+        } elseif (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem,
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires Bearer (JWT) authentication (access token)
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+
+        return new Request(
+            'POST',
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -2221,16 +2469,17 @@ class POSDevicesApi
      *
      * Register POS device
      *
-     * @param  \OpenAPI\Client\Model\RegisterPosDeviceRequest $register_pos_device_request register_pos_device_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['registerPosDevice'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\RegisterPosDeviceRequest  $register_pos_device_request  register_pos_device_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerPosDevice'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\RegisterPosDevice201Response|\OpenAPIClient\Model\ValidationErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\RegisterPosDevice201Response|\OpenAPI\Client\Model\ValidationErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function registerPosDevice($register_pos_device_request, string $contentType = self::contentTypes['registerPosDevice'][0])
     {
-        list($response) = $this->registerPosDeviceWithHttpInfo($register_pos_device_request, $contentType);
+        [$response] = $this->registerPosDeviceWithHttpInfo($register_pos_device_request, $contentType);
+
         return $response;
     }
 
@@ -2239,12 +2488,12 @@ class POSDevicesApi
      *
      * Register POS device
      *
-     * @param  \OpenAPI\Client\Model\RegisterPosDeviceRequest $register_pos_device_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['registerPosDevice'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\RegisterPosDeviceRequest  $register_pos_device_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerPosDevice'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\RegisterPosDevice201Response|\OpenAPIClient\Model\ValidationErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\RegisterPosDevice201Response|\OpenAPI\Client\Model\ValidationErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function registerPosDeviceWithHttpInfo($register_pos_device_request, string $contentType = self::contentTypes['registerPosDevice'][0])
     {
@@ -2272,29 +2521,26 @@ class POSDevicesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 201:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\RegisterPosDevice201Response',
+                        '\OpenAPIClient\Model\RegisterPosDevice201Response',
                         $request,
                         $response,
                     );
                 case 422:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ValidationErrorResponse',
+                        '\OpenAPIClient\Model\ValidationErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -2310,7 +2556,7 @@ class POSDevicesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\RegisterPosDevice201Response',
+                '\OpenAPIClient\Model\RegisterPosDevice201Response',
                 $request,
                 $response,
             );
@@ -2319,7 +2565,7 @@ class POSDevicesApi
                 case 201:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\RegisterPosDevice201Response',
+                        '\OpenAPIClient\Model\RegisterPosDevice201Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2327,7 +2573,7 @@ class POSDevicesApi
                 case 422:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ValidationErrorResponse',
+                        '\OpenAPIClient\Model\ValidationErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2335,13 +2581,12 @@ class POSDevicesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -2352,11 +2597,11 @@ class POSDevicesApi
      *
      * Register POS device
      *
-     * @param  \OpenAPI\Client\Model\RegisterPosDeviceRequest $register_pos_device_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['registerPosDevice'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\RegisterPosDeviceRequest  $register_pos_device_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerPosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function registerPosDeviceAsync($register_pos_device_request, string $contentType = self::contentTypes['registerPosDevice'][0])
     {
@@ -2373,15 +2618,15 @@ class POSDevicesApi
      *
      * Register POS device
      *
-     * @param  \OpenAPI\Client\Model\RegisterPosDeviceRequest $register_pos_device_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['registerPosDevice'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\RegisterPosDeviceRequest  $register_pos_device_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerPosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function registerPosDeviceAsyncWithHttpInfo($register_pos_device_request, string $contentType = self::contentTypes['registerPosDevice'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\RegisterPosDevice201Response';
+        $returnType = '\OpenAPIClient\Model\RegisterPosDevice201Response';
         $request = $this->registerPosDeviceRequest($register_pos_device_request, $contentType);
 
         return $this->client
@@ -2389,7 +2634,7 @@ class POSDevicesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -2400,7 +2645,7 @@ class POSDevicesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -2423,11 +2668,11 @@ class POSDevicesApi
     /**
      * Create request for operation 'registerPosDevice'
      *
-     * @param  \OpenAPI\Client\Model\RegisterPosDeviceRequest $register_pos_device_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['registerPosDevice'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\RegisterPosDeviceRequest  $register_pos_device_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerPosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function registerPosDeviceRequest($register_pos_device_request, string $contentType = self::contentTypes['registerPosDevice'][0])
     {
@@ -2439,7 +2684,6 @@ class POSDevicesApi
             );
         }
 
-
         $resourcePath = '/pos-devices';
         $formParams = [];
         $queryParams = [];
@@ -2447,12 +2691,8 @@ class POSDevicesApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -2460,7 +2700,7 @@ class POSDevicesApi
         // for model (json/xml)
         if (isset($register_pos_device_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($register_pos_device_request));
             } else {
                 $httpBody = $register_pos_device_request;
@@ -2473,7 +2713,7 @@ class POSDevicesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -2481,7 +2721,7 @@ class POSDevicesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -2490,8 +2730,8 @@ class POSDevicesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -2507,9 +2747,10 @@ class POSDevicesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -2520,17 +2761,18 @@ class POSDevicesApi
      *
      * Update device heartbeat
      *
-     * @param  int $id id (required)
-     * @param  \OpenAPI\Client\Model\UpdateDeviceHeartbeatRequest|null $update_device_heartbeat_request update_device_heartbeat_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateDeviceHeartbeat'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  \OpenAPIClient\Model\UpdateDeviceHeartbeatRequest|null  $update_device_heartbeat_request  update_device_heartbeat_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateDeviceHeartbeat'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\UpdateDeviceHeartbeat200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\UpdateDeviceHeartbeat200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function updateDeviceHeartbeat($id, $update_device_heartbeat_request = null, string $contentType = self::contentTypes['updateDeviceHeartbeat'][0])
     {
-        list($response) = $this->updateDeviceHeartbeatWithHttpInfo($id, $update_device_heartbeat_request, $contentType);
+        [$response] = $this->updateDeviceHeartbeatWithHttpInfo($id, $update_device_heartbeat_request, $contentType);
+
         return $response;
     }
 
@@ -2539,13 +2781,13 @@ class POSDevicesApi
      *
      * Update device heartbeat
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateDeviceHeartbeatRequest|null $update_device_heartbeat_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateDeviceHeartbeat'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateDeviceHeartbeatRequest|null  $update_device_heartbeat_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateDeviceHeartbeat'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\UpdateDeviceHeartbeat200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\UpdateDeviceHeartbeat200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function updateDeviceHeartbeatWithHttpInfo($id, $update_device_heartbeat_request = null, string $contentType = self::contentTypes['updateDeviceHeartbeat'][0])
     {
@@ -2573,23 +2815,20 @@ class POSDevicesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\UpdateDeviceHeartbeat200Response',
+                        '\OpenAPIClient\Model\UpdateDeviceHeartbeat200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -2605,7 +2844,7 @@ class POSDevicesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\UpdateDeviceHeartbeat200Response',
+                '\OpenAPIClient\Model\UpdateDeviceHeartbeat200Response',
                 $request,
                 $response,
             );
@@ -2614,7 +2853,7 @@ class POSDevicesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\UpdateDeviceHeartbeat200Response',
+                        '\OpenAPIClient\Model\UpdateDeviceHeartbeat200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2622,13 +2861,12 @@ class POSDevicesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -2639,12 +2877,12 @@ class POSDevicesApi
      *
      * Update device heartbeat
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateDeviceHeartbeatRequest|null $update_device_heartbeat_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateDeviceHeartbeat'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateDeviceHeartbeatRequest|null  $update_device_heartbeat_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateDeviceHeartbeat'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updateDeviceHeartbeatAsync($id, $update_device_heartbeat_request = null, string $contentType = self::contentTypes['updateDeviceHeartbeat'][0])
     {
@@ -2661,16 +2899,16 @@ class POSDevicesApi
      *
      * Update device heartbeat
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateDeviceHeartbeatRequest|null $update_device_heartbeat_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateDeviceHeartbeat'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateDeviceHeartbeatRequest|null  $update_device_heartbeat_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateDeviceHeartbeat'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updateDeviceHeartbeatAsyncWithHttpInfo($id, $update_device_heartbeat_request = null, string $contentType = self::contentTypes['updateDeviceHeartbeat'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\UpdateDeviceHeartbeat200Response';
+        $returnType = '\OpenAPIClient\Model\UpdateDeviceHeartbeat200Response';
         $request = $this->updateDeviceHeartbeatRequest($id, $update_device_heartbeat_request, $contentType);
 
         return $this->client
@@ -2678,7 +2916,7 @@ class POSDevicesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -2689,7 +2927,7 @@ class POSDevicesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -2712,12 +2950,12 @@ class POSDevicesApi
     /**
      * Create request for operation 'updateDeviceHeartbeat'
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateDeviceHeartbeatRequest|null $update_device_heartbeat_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateDeviceHeartbeat'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateDeviceHeartbeatRequest|null  $update_device_heartbeat_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateDeviceHeartbeat'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function updateDeviceHeartbeatRequest($id, $update_device_heartbeat_request = null, string $contentType = self::contentTypes['updateDeviceHeartbeat'][0])
     {
@@ -2729,8 +2967,6 @@ class POSDevicesApi
             );
         }
 
-
-
         $resourcePath = '/pos-devices/{id}/heartbeat';
         $formParams = [];
         $queryParams = [];
@@ -2738,20 +2974,17 @@ class POSDevicesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -2759,7 +2992,7 @@ class POSDevicesApi
         // for model (json/xml)
         if (isset($update_device_heartbeat_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($update_device_heartbeat_request));
             } else {
                 $httpBody = $update_device_heartbeat_request;
@@ -2772,7 +3005,7 @@ class POSDevicesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -2780,7 +3013,7 @@ class POSDevicesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -2789,8 +3022,8 @@ class POSDevicesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -2806,9 +3039,10 @@ class POSDevicesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -2819,17 +3053,18 @@ class POSDevicesApi
      *
      * Update POS device
      *
-     * @param  int $id id (required)
-     * @param  \OpenAPI\Client\Model\UpdatePosDeviceRequest|null $update_pos_device_request update_pos_device_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePosDevice'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  \OpenAPIClient\Model\UpdatePosDeviceRequest|null  $update_pos_device_request  update_pos_device_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePosDevice'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\UpdatePosDevice200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\UpdatePosDevice200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function updatePosDevice($id, $update_pos_device_request = null, string $contentType = self::contentTypes['updatePosDevice'][0])
     {
-        list($response) = $this->updatePosDeviceWithHttpInfo($id, $update_pos_device_request, $contentType);
+        [$response] = $this->updatePosDeviceWithHttpInfo($id, $update_pos_device_request, $contentType);
+
         return $response;
     }
 
@@ -2838,13 +3073,13 @@ class POSDevicesApi
      *
      * Update POS device
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdatePosDeviceRequest|null $update_pos_device_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdatePosDeviceRequest|null  $update_pos_device_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePosDevice'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\UpdatePosDevice200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\UpdatePosDevice200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function updatePosDeviceWithHttpInfo($id, $update_pos_device_request = null, string $contentType = self::contentTypes['updatePosDevice'][0])
     {
@@ -2872,23 +3107,20 @@ class POSDevicesApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\UpdatePosDevice200Response',
+                        '\OpenAPIClient\Model\UpdatePosDevice200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -2904,7 +3136,7 @@ class POSDevicesApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\UpdatePosDevice200Response',
+                '\OpenAPIClient\Model\UpdatePosDevice200Response',
                 $request,
                 $response,
             );
@@ -2913,7 +3145,7 @@ class POSDevicesApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\UpdatePosDevice200Response',
+                        '\OpenAPIClient\Model\UpdatePosDevice200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -2921,13 +3153,12 @@ class POSDevicesApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -2938,12 +3169,12 @@ class POSDevicesApi
      *
      * Update POS device
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdatePosDeviceRequest|null $update_pos_device_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdatePosDeviceRequest|null  $update_pos_device_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updatePosDeviceAsync($id, $update_pos_device_request = null, string $contentType = self::contentTypes['updatePosDevice'][0])
     {
@@ -2960,16 +3191,16 @@ class POSDevicesApi
      *
      * Update POS device
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdatePosDeviceRequest|null $update_pos_device_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdatePosDeviceRequest|null  $update_pos_device_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updatePosDeviceAsyncWithHttpInfo($id, $update_pos_device_request = null, string $contentType = self::contentTypes['updatePosDevice'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\UpdatePosDevice200Response';
+        $returnType = '\OpenAPIClient\Model\UpdatePosDevice200Response';
         $request = $this->updatePosDeviceRequest($id, $update_pos_device_request, $contentType);
 
         return $this->client
@@ -2977,7 +3208,7 @@ class POSDevicesApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -2988,7 +3219,7 @@ class POSDevicesApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -3011,12 +3242,12 @@ class POSDevicesApi
     /**
      * Create request for operation 'updatePosDevice'
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdatePosDeviceRequest|null $update_pos_device_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updatePosDevice'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdatePosDeviceRequest|null  $update_pos_device_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updatePosDevice'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function updatePosDeviceRequest($id, $update_pos_device_request = null, string $contentType = self::contentTypes['updatePosDevice'][0])
     {
@@ -3028,8 +3259,6 @@ class POSDevicesApi
             );
         }
 
-
-
         $resourcePath = '/pos-devices/{id}';
         $formParams = [];
         $queryParams = [];
@@ -3037,20 +3266,17 @@ class POSDevicesApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -3058,7 +3284,7 @@ class POSDevicesApi
         // for model (json/xml)
         if (isset($update_pos_device_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($update_pos_device_request));
             } else {
                 $httpBody = $update_pos_device_request;
@@ -3071,7 +3297,7 @@ class POSDevicesApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -3079,7 +3305,7 @@ class POSDevicesApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -3088,8 +3314,8 @@ class POSDevicesApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -3105,9 +3331,10 @@ class POSDevicesApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'PUT',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -3116,16 +3343,17 @@ class POSDevicesApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -3146,7 +3374,7 @@ class POSDevicesApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -3169,7 +3397,7 @@ class POSDevicesApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

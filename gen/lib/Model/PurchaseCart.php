@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PurchaseCart
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,39 +29,41 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * PurchaseCart Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
+class PurchaseCart implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'PurchaseCart';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
-        'items' => '\OpenAPI\Client\Model\PurchaseCartItemsInner[]',
-        'discounts' => '\OpenAPI\Client\Model\PurchaseCartDiscountsInner[]',
+        'items' => '\OpenAPIClient\Model\PurchaseCartItemsInner[]',
+        'discounts' => '\OpenAPIClient\Model\PurchaseCartDiscountsInner[]',
         'tip_amount' => 'int',
         'customer_id' => 'int',
         'customer_name' => 'string',
@@ -68,16 +72,18 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         'total_tax' => 'int',
         'total' => 'int',
         'currency' => 'string',
-        'note' => 'string'
+        'note' => 'string',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'items' => null,
         'discounts' => null,
@@ -89,14 +95,14 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         'total_tax' => null,
         'total' => null,
         'currency' => null,
-        'note' => null
+        'note' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'items' => false,
         'discounts' => false,
@@ -108,14 +114,14 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         'total_tax' => false,
         'total' => false,
         'currency' => false,
-        'note' => true
+        'note' => true,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -140,8 +146,6 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -151,7 +155,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -161,7 +165,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -170,9 +174,6 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -181,9 +182,6 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -207,7 +205,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         'total_tax' => 'total_tax',
         'total' => 'total',
         'currency' => 'currency',
-        'note' => 'note'
+        'note' => 'note',
     ];
 
     /**
@@ -226,7 +224,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         'total_tax' => 'setTotalTax',
         'total' => 'setTotal',
         'currency' => 'setCurrency',
-        'note' => 'setNote'
+        'note' => 'setNote',
     ];
 
     /**
@@ -245,7 +243,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         'total_tax' => 'getTotalTax',
         'total' => 'getTotal',
         'currency' => 'getCurrency',
-        'note' => 'getNote'
+        'note' => 'getNote',
     ];
 
     /**
@@ -289,7 +287,6 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -300,8 +297,8 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -319,14 +316,12 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -355,8 +350,8 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         if ($this->container['total'] === null) {
             $invalidProperties[] = "'total' can't be null";
         }
-        if (($this->container['total'] < 1)) {
-            $invalidProperties[] = "invalid value for 'total', must be bigger than or equal to 1.";
+        if (($this->container['total'] < 0)) {
+            $invalidProperties[] = "invalid value for 'total', must be bigger than or equal to 0.";
         }
 
         return $invalidProperties;
@@ -373,11 +368,10 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets items
      *
-     * @return \OpenAPI\Client\Model\PurchaseCartItemsInner[]
+     * @return \OpenAPIClient\Model\PurchaseCartItemsInner[]
      */
     public function getItems()
     {
@@ -387,8 +381,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets items
      *
-     * @param \OpenAPI\Client\Model\PurchaseCartItemsInner[] $items items
-     *
+     * @param  \OpenAPIClient\Model\PurchaseCartItemsInner[]  $items  items
      * @return self
      */
     public function setItems($items)
@@ -396,7 +389,6 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         if (is_null($items)) {
             throw new \InvalidArgumentException('non-nullable items cannot be null');
         }
-
 
         if ((count($items) < 1)) {
             throw new \InvalidArgumentException('invalid length for $items when calling PurchaseCart., number of items must be greater than or equal to 1.');
@@ -409,7 +401,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets discounts
      *
-     * @return \OpenAPI\Client\Model\PurchaseCartDiscountsInner[]|null
+     * @return \OpenAPIClient\Model\PurchaseCartDiscountsInner[]|null
      */
     public function getDiscounts()
     {
@@ -419,8 +411,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets discounts
      *
-     * @param \OpenAPI\Client\Model\PurchaseCartDiscountsInner[]|null $discounts discounts
-     *
+     * @param  \OpenAPIClient\Model\PurchaseCartDiscountsInner[]|null  $discounts  discounts
      * @return self
      */
     public function setDiscounts($discounts)
@@ -446,8 +437,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets tip_amount
      *
-     * @param int|null $tip_amount Tip amount in minor units
-     *
+     * @param  int|null  $tip_amount  Tip amount in minor units
      * @return self
      */
     public function setTipAmount($tip_amount)
@@ -473,8 +463,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets customer_id
      *
-     * @param int|null $customer_id Customer database ID (integer)
-     *
+     * @param  int|null  $customer_id  Customer database ID (integer)
      * @return self
      */
     public function setCustomerId($customer_id)
@@ -484,7 +473,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('customer_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -507,8 +496,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets customer_name
      *
-     * @param string|null $customer_name customer_name
-     *
+     * @param  string|null  $customer_name  customer_name
      * @return self
      */
     public function setCustomerName($customer_name)
@@ -518,7 +506,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('customer_name', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -541,8 +529,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets subtotal
      *
-     * @param int|null $subtotal Subtotal in minor units (before discounts and tax)
-     *
+     * @param  int|null  $subtotal  Subtotal in minor units (before discounts and tax)
      * @return self
      */
     public function setSubtotal($subtotal)
@@ -568,8 +555,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets total_discounts
      *
-     * @param int|null $total_discounts Total discount amount in minor units
-     *
+     * @param  int|null  $total_discounts  Total discount amount in minor units
      * @return self
      */
     public function setTotalDiscounts($total_discounts)
@@ -595,8 +581,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets total_tax
      *
-     * @param int|null $total_tax Total tax amount in minor units
-     *
+     * @param  int|null  $total_tax  Total tax amount in minor units
      * @return self
      */
     public function setTotalTax($total_tax)
@@ -622,8 +607,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets total
      *
-     * @param int $total Total amount in minor units
-     *
+     * @param  int  $total  Total amount in minor units (0 allowed for e.g. freeticket orders)
      * @return self
      */
     public function setTotal($total)
@@ -632,8 +616,8 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
             throw new \InvalidArgumentException('non-nullable total cannot be null');
         }
 
-        if (($total < 1)) {
-            throw new \InvalidArgumentException('invalid value for $total when calling PurchaseCart., must be bigger than or equal to 1.');
+        if (($total < 0)) {
+            throw new \InvalidArgumentException('invalid value for $total when calling PurchaseCart., must be bigger than or equal to 0.');
         }
 
         $this->container['total'] = $total;
@@ -654,8 +638,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets currency
      *
-     * @param string|null $currency Currency code (ISO 3-letter)
-     *
+     * @param  string|null  $currency  Currency code (ISO 3-letter)
      * @return self
      */
     public function setCurrency($currency)
@@ -681,8 +664,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets note
      *
-     * @param string|null $note Optional note/comment for the purchase
-     *
+     * @param  string|null  $note  Optional whole-order note (same value as `purchase_note` on the purchase response). Printed on sales and delivery (ordrebekreftelse) receipts under the heading \"Notat\" when non-empty.
      * @return self
      */
     public function setNote($note)
@@ -692,7 +674,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('note', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -701,12 +683,11 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -716,8 +697,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -729,10 +709,8 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -746,9 +724,7 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -757,15 +733,16 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -791,5 +768,3 @@ class PurchaseCart implements ModelInterface, ArrayAccess, \JsonSerializable
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

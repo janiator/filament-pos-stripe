@@ -1,19 +1,21 @@
 <?php
+
 /**
  * ZReport
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,43 +29,45 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * ZReport Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
+class ZReport implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'ZReport';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'session_id' => 'int',
         'session_number' => 'string',
         'opened_at' => '\DateTime',
         'closed_at' => '\DateTime',
         'report_generated_at' => '\DateTime',
-        'store' => '\OpenAPI\Client\Model\XReportStore',
+        'store' => '\OpenAPIClient\Model\XReportStore',
         'device' => 'object',
         'cashier' => 'object',
         'opening_balance' => 'int',
@@ -81,16 +85,18 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         'other_amount' => 'int',
         'total_tips' => 'int',
         'cash_drawer_opens' => 'int',
-        'nullinnslag_count' => 'int'
+        'nullinnslag_count' => 'int',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'session_id' => null,
         'session_number' => null,
@@ -115,14 +121,14 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         'other_amount' => null,
         'total_tips' => null,
         'cash_drawer_opens' => null,
-        'nullinnslag_count' => null
+        'nullinnslag_count' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'session_id' => false,
         'session_number' => false,
@@ -147,14 +153,14 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         'other_amount' => false,
         'total_tips' => false,
         'cash_drawer_opens' => false,
-        'nullinnslag_count' => false
+        'nullinnslag_count' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -179,8 +185,6 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -190,7 +194,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -200,7 +204,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -209,9 +213,6 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -220,9 +221,6 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -259,7 +257,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         'other_amount' => 'other_amount',
         'total_tips' => 'total_tips',
         'cash_drawer_opens' => 'cash_drawer_opens',
-        'nullinnslag_count' => 'nullinnslag_count'
+        'nullinnslag_count' => 'nullinnslag_count',
     ];
 
     /**
@@ -291,7 +289,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         'other_amount' => 'setOtherAmount',
         'total_tips' => 'setTotalTips',
         'cash_drawer_opens' => 'setCashDrawerOpens',
-        'nullinnslag_count' => 'setNullinnslagCount'
+        'nullinnslag_count' => 'setNullinnslagCount',
     ];
 
     /**
@@ -323,7 +321,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         'other_amount' => 'getOtherAmount',
         'total_tips' => 'getTotalTips',
         'cash_drawer_opens' => 'getCashDrawerOpens',
-        'nullinnslag_count' => 'getNullinnslagCount'
+        'nullinnslag_count' => 'getNullinnslagCount',
     ];
 
     /**
@@ -367,7 +365,6 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -378,8 +375,8 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -410,14 +407,12 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -450,7 +445,6 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets session_id
      *
@@ -464,8 +458,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets session_id
      *
-     * @param int|null $session_id session_id
-     *
+     * @param  int|null  $session_id  session_id
      * @return self
      */
     public function setSessionId($session_id)
@@ -491,8 +484,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets session_number
      *
-     * @param string|null $session_number session_number
-     *
+     * @param  string|null  $session_number  session_number
      * @return self
      */
     public function setSessionNumber($session_number)
@@ -518,8 +510,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets opened_at
      *
-     * @param \DateTime|null $opened_at opened_at
-     *
+     * @param  \DateTime|null  $opened_at  opened_at
      * @return self
      */
     public function setOpenedAt($opened_at)
@@ -545,8 +536,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets closed_at
      *
-     * @param \DateTime|null $closed_at closed_at
-     *
+     * @param  \DateTime|null  $closed_at  closed_at
      * @return self
      */
     public function setClosedAt($closed_at)
@@ -572,8 +562,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets report_generated_at
      *
-     * @param \DateTime|null $report_generated_at report_generated_at
-     *
+     * @param  \DateTime|null  $report_generated_at  report_generated_at
      * @return self
      */
     public function setReportGeneratedAt($report_generated_at)
@@ -589,7 +578,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets store
      *
-     * @return \OpenAPI\Client\Model\XReportStore|null
+     * @return \OpenAPIClient\Model\XReportStore|null
      */
     public function getStore()
     {
@@ -599,8 +588,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets store
      *
-     * @param \OpenAPI\Client\Model\XReportStore|null $store store
-     *
+     * @param  \OpenAPIClient\Model\XReportStore|null  $store  store
      * @return self
      */
     public function setStore($store)
@@ -626,8 +614,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets device
      *
-     * @param object|null $device device
-     *
+     * @param  object|null  $device  device
      * @return self
      */
     public function setDevice($device)
@@ -637,7 +624,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('device', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -660,8 +647,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets cashier
      *
-     * @param object|null $cashier cashier
-     *
+     * @param  object|null  $cashier  cashier
      * @return self
      */
     public function setCashier($cashier)
@@ -671,7 +657,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('cashier', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -694,8 +680,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets opening_balance
      *
-     * @param int|null $opening_balance opening_balance
-     *
+     * @param  int|null  $opening_balance  opening_balance
      * @return self
      */
     public function setOpeningBalance($opening_balance)
@@ -721,8 +706,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets expected_cash
      *
-     * @param int|null $expected_cash expected_cash
-     *
+     * @param  int|null  $expected_cash  expected_cash
      * @return self
      */
     public function setExpectedCash($expected_cash)
@@ -732,7 +716,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('expected_cash', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -755,8 +739,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets actual_cash
      *
-     * @param int|null $actual_cash actual_cash
-     *
+     * @param  int|null  $actual_cash  actual_cash
      * @return self
      */
     public function setActualCash($actual_cash)
@@ -766,7 +749,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('actual_cash', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -789,8 +772,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets cash_difference
      *
-     * @param int|null $cash_difference cash_difference
-     *
+     * @param  int|null  $cash_difference  cash_difference
      * @return self
      */
     public function setCashDifference($cash_difference)
@@ -800,7 +782,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('cash_difference', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -823,8 +805,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets transactions_count
      *
-     * @param int|null $transactions_count transactions_count
-     *
+     * @param  int|null  $transactions_count  transactions_count
      * @return self
      */
     public function setTransactionsCount($transactions_count)
@@ -850,8 +831,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets total_amount
      *
-     * @param int|null $total_amount total_amount
-     *
+     * @param  int|null  $total_amount  total_amount
      * @return self
      */
     public function setTotalAmount($total_amount)
@@ -877,8 +857,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets vat_base
      *
-     * @param int|null $vat_base vat_base
-     *
+     * @param  int|null  $vat_base  vat_base
      * @return self
      */
     public function setVatBase($vat_base)
@@ -904,8 +883,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets vat_amount
      *
-     * @param int|null $vat_amount vat_amount
-     *
+     * @param  int|null  $vat_amount  vat_amount
      * @return self
      */
     public function setVatAmount($vat_amount)
@@ -931,8 +909,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets vat_rate
      *
-     * @param float|null $vat_rate vat_rate
-     *
+     * @param  float|null  $vat_rate  vat_rate
      * @return self
      */
     public function setVatRate($vat_rate)
@@ -958,8 +935,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets cash_amount
      *
-     * @param int|null $cash_amount cash_amount
-     *
+     * @param  int|null  $cash_amount  cash_amount
      * @return self
      */
     public function setCashAmount($cash_amount)
@@ -985,8 +961,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets card_amount
      *
-     * @param int|null $card_amount card_amount
-     *
+     * @param  int|null  $card_amount  card_amount
      * @return self
      */
     public function setCardAmount($card_amount)
@@ -1012,8 +987,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets mobile_amount
      *
-     * @param int|null $mobile_amount mobile_amount
-     *
+     * @param  int|null  $mobile_amount  mobile_amount
      * @return self
      */
     public function setMobileAmount($mobile_amount)
@@ -1039,8 +1013,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets other_amount
      *
-     * @param int|null $other_amount other_amount
-     *
+     * @param  int|null  $other_amount  other_amount
      * @return self
      */
     public function setOtherAmount($other_amount)
@@ -1066,8 +1039,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets total_tips
      *
-     * @param int|null $total_tips total_tips
-     *
+     * @param  int|null  $total_tips  total_tips
      * @return self
      */
     public function setTotalTips($total_tips)
@@ -1093,8 +1065,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets cash_drawer_opens
      *
-     * @param int|null $cash_drawer_opens cash_drawer_opens
-     *
+     * @param  int|null  $cash_drawer_opens  cash_drawer_opens
      * @return self
      */
     public function setCashDrawerOpens($cash_drawer_opens)
@@ -1120,8 +1091,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets nullinnslag_count
      *
-     * @param int|null $nullinnslag_count nullinnslag_count
-     *
+     * @param  int|null  $nullinnslag_count  nullinnslag_count
      * @return self
      */
     public function setNullinnslagCount($nullinnslag_count)
@@ -1133,12 +1103,11 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -1148,8 +1117,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -1161,10 +1129,8 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -1178,9 +1144,7 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -1189,15 +1153,16 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -1223,5 +1188,3 @@ class ZReport implements ModelInterface, ArrayAccess, \JsonSerializable
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

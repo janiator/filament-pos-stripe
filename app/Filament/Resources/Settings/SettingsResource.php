@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\Settings;
 
+use App\Filament\Clusters\SettingsCluster;
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\Settings\Pages\ManageSettings;
 use App\Filament\Resources\Settings\Schemas\SettingsForm;
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\Setting;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -14,6 +15,8 @@ use Filament\Support\Icons\Heroicon;
 class SettingsResource extends Resource
 {
     use HasTenantScopedQuery;
+
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = Setting::class;
 
@@ -40,7 +43,7 @@ class SettingsResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('filament.navigation_groups.administration');
+        return __('filament.navigation_groups.settings');
     }
 
     public static function form(Schema $schema): Schema
@@ -64,7 +67,7 @@ class SettingsResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         try {
             $tenant = \Filament\Facades\Filament::getTenant();
             if ($tenant && $tenant->slug !== 'visivo-admin') {
@@ -74,7 +77,7 @@ class SettingsResource extends Resource
         } catch (\Throwable $e) {
             // Fallback if Filament facade not available
         }
-        
+
         return $query;
     }
 

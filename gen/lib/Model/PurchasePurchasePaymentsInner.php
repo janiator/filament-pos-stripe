@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PurchasePurchasePaymentsInner
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * PurchasePurchasePaymentsInner Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \JsonSerializable
+class PurchasePurchasePaymentsInner implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'Purchase_purchase_payments_inner';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'stripe_charge_id' => 'string',
@@ -83,16 +87,18 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         'confirmation_method' => 'string',
         'receipt_email' => 'string',
         'statement_descriptor' => 'string',
-        'succeeded_at' => '\DateTime'
+        'succeeded_at' => '\DateTime',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'stripe_charge_id' => null,
@@ -119,14 +125,14 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         'confirmation_method' => null,
         'receipt_email' => null,
         'statement_descriptor' => null,
-        'succeeded_at' => 'date-time'
+        'succeeded_at' => 'date-time',
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'stripe_charge_id' => true,
@@ -153,14 +159,14 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         'confirmation_method' => true,
         'receipt_email' => true,
         'statement_descriptor' => true,
-        'succeeded_at' => true
+        'succeeded_at' => true,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -185,8 +191,6 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -196,7 +200,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -206,7 +210,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -215,9 +219,6 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -226,9 +227,6 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -267,7 +265,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         'confirmation_method' => 'confirmation_method',
         'receipt_email' => 'receipt_email',
         'statement_descriptor' => 'statement_descriptor',
-        'succeeded_at' => 'succeeded_at'
+        'succeeded_at' => 'succeeded_at',
     ];
 
     /**
@@ -301,7 +299,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         'confirmation_method' => 'setConfirmationMethod',
         'receipt_email' => 'setReceiptEmail',
         'statement_descriptor' => 'setStatementDescriptor',
-        'succeeded_at' => 'setSucceededAt'
+        'succeeded_at' => 'setSucceededAt',
     ];
 
     /**
@@ -335,7 +333,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         'confirmation_method' => 'getConfirmationMethod',
         'receipt_email' => 'getReceiptEmail',
         'statement_descriptor' => 'getStatementDescriptor',
-        'succeeded_at' => 'getSucceededAt'
+        'succeeded_at' => 'getSucceededAt',
     ];
 
     /**
@@ -379,7 +377,6 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -390,8 +387,8 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -424,14 +421,12 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -464,7 +459,6 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -478,8 +472,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets id
      *
-     * @param int|null $id Payment/charge ID
-     *
+     * @param  int|null  $id  Payment/charge ID
      * @return self
      */
     public function setId($id)
@@ -505,8 +498,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets stripe_charge_id
      *
-     * @param string|null $stripe_charge_id Stripe charge ID
-     *
+     * @param  string|null  $stripe_charge_id  Stripe charge ID
      * @return self
      */
     public function setStripeChargeId($stripe_charge_id)
@@ -516,7 +508,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('stripe_charge_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -539,8 +531,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets stripe_payment_intent_id
      *
-     * @param string|null $stripe_payment_intent_id Stripe payment intent ID
-     *
+     * @param  string|null  $stripe_payment_intent_id  Stripe payment intent ID
      * @return self
      */
     public function setStripePaymentIntentId($stripe_payment_intent_id)
@@ -550,7 +541,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('stripe_payment_intent_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -573,8 +564,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets amount
      *
-     * @param int|null $amount Payment amount in øre
-     *
+     * @param  int|null  $amount  Payment amount in øre
      * @return self
      */
     public function setAmount($amount)
@@ -600,8 +590,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets amount_refunded
      *
-     * @param int|null $amount_refunded Amount refunded in øre
-     *
+     * @param  int|null  $amount_refunded  Amount refunded in øre
      * @return self
      */
     public function setAmountRefunded($amount_refunded)
@@ -627,8 +616,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets currency
      *
-     * @param string|null $currency Currency code
-     *
+     * @param  string|null  $currency  Currency code
      * @return self
      */
     public function setCurrency($currency)
@@ -654,8 +642,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets status
      *
-     * @param string|null $status Payment status
-     *
+     * @param  string|null  $status  Payment status
      * @return self
      */
     public function setStatus($status)
@@ -681,8 +668,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets method
      *
-     * @param string|null $method Payment method code
-     *
+     * @param  string|null  $method  Payment method code
      * @return self
      */
     public function setMethod($method)
@@ -692,7 +678,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('method', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -715,8 +701,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets code
      *
-     * @param string|null $code SAF-T payment code
-     *
+     * @param  string|null  $code  SAF-T payment code
      * @return self
      */
     public function setCode($code)
@@ -726,7 +711,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('code', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -749,8 +734,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets transaction_code
      *
-     * @param string|null $transaction_code SAF-T transaction code
-     *
+     * @param  string|null  $transaction_code  SAF-T transaction code
      * @return self
      */
     public function setTransactionCode($transaction_code)
@@ -760,7 +744,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('transaction_code', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -783,8 +767,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets captured
      *
-     * @param bool|null $captured Whether payment is captured
-     *
+     * @param  bool|null  $captured  Whether payment is captured
      * @return self
      */
     public function setCaptured($captured)
@@ -810,8 +793,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets refunded
      *
-     * @param bool|null $refunded Whether payment is refunded
-     *
+     * @param  bool|null  $refunded  Whether payment is refunded
      * @return self
      */
     public function setRefunded($refunded)
@@ -837,8 +819,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets paid
      *
-     * @param bool|null $paid Whether payment is paid
-     *
+     * @param  bool|null  $paid  Whether payment is paid
      * @return self
      */
     public function setPaid($paid)
@@ -864,8 +845,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets paid_at
      *
-     * @param \DateTime|null $paid_at Payment date/time in Oslo timezone
-     *
+     * @param  \DateTime|null  $paid_at  Payment date/time in Oslo timezone
      * @return self
      */
     public function setPaidAt($paid_at)
@@ -875,7 +855,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('paid_at', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -898,8 +878,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets tip_amount
      *
-     * @param int|null $tip_amount Tip amount in øre
-     *
+     * @param  int|null  $tip_amount  Tip amount in øre
      * @return self
      */
     public function setTipAmount($tip_amount)
@@ -909,7 +888,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('tip_amount', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -932,8 +911,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets application_fee_amount
      *
-     * @param int|null $application_fee_amount Application fee amount in øre
-     *
+     * @param  int|null  $application_fee_amount  Application fee amount in øre
      * @return self
      */
     public function setApplicationFeeAmount($application_fee_amount)
@@ -943,7 +921,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('application_fee_amount', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -966,8 +944,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets description
      *
-     * @param string|null $description Payment description
-     *
+     * @param  string|null  $description  Payment description
      * @return self
      */
     public function setDescription($description)
@@ -977,7 +954,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('description', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1000,8 +977,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets failure_code
      *
-     * @param string|null $failure_code Failure code if payment failed
-     *
+     * @param  string|null  $failure_code  Failure code if payment failed
      * @return self
      */
     public function setFailureCode($failure_code)
@@ -1011,7 +987,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('failure_code', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1034,8 +1010,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets failure_message
      *
-     * @param string|null $failure_message Failure message if payment failed
-     *
+     * @param  string|null  $failure_message  Failure message if payment failed
      * @return self
      */
     public function setFailureMessage($failure_message)
@@ -1045,7 +1020,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('failure_message', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1068,8 +1043,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets created_at
      *
-     * @param \DateTime|null $created_at Payment creation date/time in Oslo timezone
-     *
+     * @param  \DateTime|null  $created_at  Payment creation date/time in Oslo timezone
      * @return self
      */
     public function setCreatedAt($created_at)
@@ -1095,8 +1069,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets payment_method_id
      *
-     * @param string|null $payment_method_id Stripe payment method ID (from payment intent)
-     *
+     * @param  string|null  $payment_method_id  Stripe payment method ID (from payment intent)
      * @return self
      */
     public function setPaymentMethodId($payment_method_id)
@@ -1106,7 +1079,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('payment_method_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1129,8 +1102,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets capture_method
      *
-     * @param string|null $capture_method Capture method (automatic or manual)
-     *
+     * @param  string|null  $capture_method  Capture method (automatic or manual)
      * @return self
      */
     public function setCaptureMethod($capture_method)
@@ -1140,7 +1112,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('capture_method', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1163,8 +1135,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets confirmation_method
      *
-     * @param string|null $confirmation_method Confirmation method
-     *
+     * @param  string|null  $confirmation_method  Confirmation method
      * @return self
      */
     public function setConfirmationMethod($confirmation_method)
@@ -1174,7 +1145,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('confirmation_method', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1197,8 +1168,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets receipt_email
      *
-     * @param string|null $receipt_email Receipt email address
-     *
+     * @param  string|null  $receipt_email  Receipt email address
      * @return self
      */
     public function setReceiptEmail($receipt_email)
@@ -1208,7 +1178,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('receipt_email', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1231,8 +1201,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets statement_descriptor
      *
-     * @param string|null $statement_descriptor Statement descriptor
-     *
+     * @param  string|null  $statement_descriptor  Statement descriptor
      * @return self
      */
     public function setStatementDescriptor($statement_descriptor)
@@ -1242,7 +1211,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('statement_descriptor', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1265,8 +1234,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets succeeded_at
      *
-     * @param \DateTime|null $succeeded_at Payment intent succeeded date/time in Oslo timezone
-     *
+     * @param  \DateTime|null  $succeeded_at  Payment intent succeeded date/time in Oslo timezone
      * @return self
      */
     public function setSucceededAt($succeeded_at)
@@ -1276,7 +1244,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('succeeded_at', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1285,12 +1253,11 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -1300,8 +1267,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -1313,10 +1279,8 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -1330,9 +1294,7 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -1341,15 +1303,16 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -1375,5 +1338,3 @@ class PurchasePurchasePaymentsInner implements ModelInterface, ArrayAccess, \Jso
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

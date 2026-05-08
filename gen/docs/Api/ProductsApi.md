@@ -1,4 +1,4 @@
-# OpenAPI\Client\ProductsApi
+# OpenAPIClient\ProductsApi
 
 Product management for POS
 
@@ -14,7 +14,7 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 ## `getProduct()`
 
 ```php
-getProduct($id): \OpenAPI\Client\Model\GetProduct200Response
+getProduct($id): \OpenAPIClient\Model\GetMeranoTicketProduct200Response
 ```
 
 Get product
@@ -29,10 +29,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\ProductsApi(
+$apiInstance = new OpenAPIClient\Api\ProductsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -56,7 +56,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\GetProduct200Response**](../Model/GetProduct200Response.md)
+[**\OpenAPIClient\Model\GetMeranoTicketProduct200Response**](../Model/GetMeranoTicketProduct200Response.md)
 
 ### Authorization
 
@@ -74,12 +74,12 @@ try {
 ## `listProducts()`
 
 ```php
-listProducts($search, $type, $collection_id, $collection_slug, $per_page): \OpenAPI\Client\Model\ListProducts200Response
+listProducts($include_inactive, $search, $type, $collection_id, $collection_slug, $per_page): \OpenAPIClient\Model\ListProducts200Response
 ```
 
 List products
 
-Get paginated list of active products for POS
+Get paginated list of products. By default only active products are returned (for POS). For admin screens (e.g. Products Categories Manager) pass include_inactive=1 to list all products including inactive.
 
 ### Example
 
@@ -89,15 +89,16 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\ProductsApi(
+$apiInstance = new OpenAPIClient\Api\ProductsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
+$include_inactive = false; // bool | If 1 or true, include inactive products. Use for admin/product manager screens. Default is to return only active products.
 $search = 'search_example'; // string | Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants
 $type = 'type_example'; // string | Filter by product type
 $collection_id = 1; // int | Filter by collection ID. Use 0 to get uncategorized products (products with no collection)
@@ -105,7 +106,7 @@ $collection_slug = summer-collection; // string | Filter by collection slug/hand
 $per_page = 50; // int | Number of items per page (max 100)
 
 try {
-    $result = $apiInstance->listProducts($search, $type, $collection_id, $collection_slug, $per_page);
+    $result = $apiInstance->listProducts($include_inactive, $search, $type, $collection_id, $collection_slug, $per_page);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling ProductsApi->listProducts: ', $e->getMessage(), PHP_EOL;
@@ -116,6 +117,7 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
+| **include_inactive** | **bool**| If 1 or true, include inactive products. Use for admin/product manager screens. Default is to return only active products. | [optional] [default to false] |
 | **search** | **string**| Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants | [optional] |
 | **type** | **string**| Filter by product type | [optional] |
 | **collection_id** | **int**| Filter by collection ID. Use 0 to get uncategorized products (products with no collection) | [optional] |
@@ -124,7 +126,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\ListProducts200Response**](../Model/ListProducts200Response.md)
+[**\OpenAPIClient\Model\ListProducts200Response**](../Model/ListProducts200Response.md)
 
 ### Authorization
 
@@ -157,7 +159,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 
-$apiInstance = new OpenAPI\Client\Api\ProductsApi(
+$apiInstance = new OpenAPIClient\Api\ProductsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client()

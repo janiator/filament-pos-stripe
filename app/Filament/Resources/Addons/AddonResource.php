@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Addons;
 
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\Addons\Pages\CreateAddon;
 use App\Filament\Resources\Addons\Pages\EditAddon;
 use App\Filament\Resources\Addons\Pages\ListAddons;
@@ -16,6 +17,8 @@ use Filament\Tables\Table;
 
 class AddonResource extends Resource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $model = Addon::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

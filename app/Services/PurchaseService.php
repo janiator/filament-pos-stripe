@@ -13,6 +13,8 @@ use App\Models\Store;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Stripe\StripeClient;
 use Throwable;
 
@@ -104,6 +106,25 @@ class PurchaseService
     }
 
     /**
+     * Whole-order note from API cart payload (`note` or legacy `cart_note`).
+     */
+    protected function wholeOrderNoteFromCartData(array $cartData): ?string
+    {
+        foreach (['note', 'cart_note'] as $key) {
+            $raw = $cartData[$key] ?? null;
+            if ($raw === null || $raw === '') {
+                continue;
+            }
+            $s = is_string($raw) ? trim($raw) : trim((string) $raw);
+            if ($s !== '') {
+                return $s;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Process a purchase with the given payment method
      *
      * @throws \Exception
@@ -142,6 +163,13 @@ class PurchaseService
             $isDeferredPayment = $metadata['deferred_payment'] ?? false;
             $isDeferredPayment = $isDeferredPayment || ($paymentMethod->code === 'deferred' || $paymentMethod->code === 'pay_later');
 
+            $store = $posSession->store;
+            if (! $store) {
+                throw new \Exception('Store not found for POS session');
+            }
+
+            app(InventoryLedgerService::class)->assertCartSellable($store, $cartData['items'] ?? []);
+
             // Process payment based on provider
             $charge = match ($paymentMethod->provider) {
                 'cash' => $isDeferredPayment
@@ -165,6 +193,8 @@ class PurchaseService
             // Log POS event (13012 - Sales receipt)
             // Note: Delivery receipts for deferred payments still log as sales receipt events
             $posEvent = $this->logSalesReceiptEvent($posSession, $charge, $receipt, $paymentMethod);
+
+            app(InventoryLedgerService::class)->applySaleForCharge($store, $cartData['items'] ?? [], $charge);
 
             // Don't open cash drawer for deferred payments (payment not received yet)
             if (! $isDeferredPayment && $paymentMethod->isCash()) {
@@ -245,7 +275,7 @@ class PurchaseService
                 'total_discounts' => $cartData['total_discounts'] ?? 0,
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
-                'note' => $cartData['note'] ?? null,
+                'note' => $this->wholeOrderNoteFromCartData($cartData),
             ], $metadata),
         ]);
 
@@ -384,7 +414,7 @@ class PurchaseService
                     'total_discounts' => $cartData['total_discounts'] ?? 0,
                     'total_tax' => $cartData['total_tax'] ?? 0,
                     'total' => $amount,
-                    'note' => $cartData['note'] ?? null,
+                    'note' => $this->wholeOrderNoteFromCartData($cartData),
                 ], $metadata),
             ]);
         } else {
@@ -405,7 +435,7 @@ class PurchaseService
                         'total_discounts' => $cartData['total_discounts'] ?? 0,
                         'total_tax' => $cartData['total_tax'] ?? 0,
                         'total' => $amount,
-                        'note' => $cartData['note'] ?? null,
+                        'note' => $this->wholeOrderNoteFromCartData($cartData),
                     ],
                     $metadata
                 ),
@@ -470,7 +500,7 @@ class PurchaseService
                 'total_discounts' => $cartData['total_discounts'] ?? 0,
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
-                'note' => $cartData['note'] ?? null,
+                'note' => $this->wholeOrderNoteFromCartData($cartData),
             ], $metadata),
         ]);
 
@@ -531,7 +561,7 @@ class PurchaseService
                 'total_discounts' => $cartData['total_discounts'] ?? 0,
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
-                'note' => $cartData['note'] ?? null,
+                'note' => $this->wholeOrderNoteFromCartData($cartData),
                 'gift_card_code' => $giftCardCode,
             ], $metadata),
         ]);
@@ -597,7 +627,7 @@ class PurchaseService
                 'total_discounts' => $cartData['total_discounts'] ?? 0,
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
-                'note' => $cartData['note'] ?? null,
+                'note' => $this->wholeOrderNoteFromCartData($cartData),
                 'deferred_payment' => true,
                 'deferred_reason' => $metadata['deferred_reason'] ?? 'Payment on pickup',
             ], $metadata),
@@ -610,12 +640,128 @@ class PurchaseService
     }
 
     /**
+     * Replace cart lines and amount on a pending deferred charge before payment capture.
+     *
+     * @param  array<string, mixed>  $cartData
+     * @param  array<string, mixed>  $paymentData
+     *
+     * @throws \Exception
+     */
+    protected function applyFinalCartToPendingDeferredCharge(
+        ConnectedCharge $charge,
+        Store $store,
+        array $cartData,
+        PaymentMethod $paymentMethod,
+        array $paymentData
+    ): void {
+        $metadata = is_array($charge->metadata) ? $charge->metadata : [];
+
+        $isDeferred = ($metadata['deferred_payment'] ?? false) === true
+            || in_array($charge->payment_method, ['deferred', 'pay_later'], true);
+
+        if (! $isDeferred) {
+            throw ValidationException::withMessages([
+                'cart' => ['Cart revision is only allowed for deferred (pending) purchases'],
+            ]);
+        }
+
+        $oldItems = isset($metadata['items']) && is_array($metadata['items']) ? $metadata['items'] : [];
+
+        if ($paymentMethod->provider === 'stripe') {
+            $paymentIntentId = $paymentData['payment_intent_id'] ?? null;
+            if (! $paymentIntentId) {
+                throw ValidationException::withMessages([
+                    'metadata.payment_intent_id' => ['Payment intent ID is required for Stripe payments'],
+                ]);
+            }
+
+            $stripe = $this->getStripeClient();
+            $paymentIntent = $stripe->paymentIntents->retrieve(
+                $paymentIntentId,
+                [],
+                ['stripe_account' => $store->stripe_account_id]
+            );
+
+            if ($paymentIntent->status !== 'succeeded') {
+                throw ValidationException::withMessages([
+                    'metadata.payment_intent_id' => ['Payment intent is not succeeded'],
+                ]);
+            }
+
+            $piAmount = (int) $paymentIntent->amount;
+            $cartTotal = (int) ($cartData['total'] ?? 0);
+            if ($piAmount !== $cartTotal) {
+                throw ValidationException::withMessages([
+                    'cart.total' => ["Cart total ({$cartTotal}) does not match PaymentIntent amount ({$piAmount})"],
+                ]);
+            }
+
+            $cartCurrency = strtolower((string) ($cartData['currency'] ?? $charge->currency ?? 'nok'));
+            $piCurrency = strtolower((string) $paymentIntent->currency);
+            if ($cartCurrency !== $piCurrency) {
+                throw ValidationException::withMessages([
+                    'cart.currency' => ["Cart currency ({$cartCurrency}) does not match PaymentIntent currency ({$piCurrency})"],
+                ]);
+            }
+        }
+
+        $newItemsInput = $cartData['items'] ?? [];
+        if (! is_array($newItemsInput) || $newItemsInput === []) {
+            throw ValidationException::withMessages([
+                'cart.items' => ['Cart items are required when cart is provided'],
+            ]);
+        }
+
+        app(InventoryLedgerService::class)->applyDeferredCompletionInventoryDelta(
+            $store,
+            $charge,
+            $oldItems,
+            $newItemsInput
+        );
+
+        $enrichedItems = $this->enrichCartItemsWithProductSnapshots(
+            $newItemsInput,
+            $store->stripe_account_id
+        );
+
+        $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id);
+
+        $newMetadata = array_merge($metadata, [
+            'items' => $enrichedItems,
+            'discounts' => $cartData['discounts'] ?? [],
+            'subtotal' => $cartData['subtotal'] ?? ($metadata['subtotal'] ?? 0),
+            'total_discounts' => $cartData['total_discounts'] ?? ($metadata['total_discounts'] ?? 0),
+            'total_tax' => $cartData['total_tax'] ?? ($metadata['total_tax'] ?? 0),
+            'total' => (int) $cartData['total'],
+            'note' => $this->wholeOrderNoteFromCartData($cartData) ?? ($metadata['note'] ?? null),
+            'tip_amount' => $cartData['tip_amount'] ?? ($metadata['tip_amount'] ?? 0),
+        ]);
+
+        if (array_key_exists('customer_id', $cartData)) {
+            $newMetadata['customer_id'] = $cartData['customer_id'];
+        }
+
+        if (array_key_exists('customer_name', $cartData)) {
+            $newMetadata['customer_name'] = $cartData['customer_name'];
+        }
+
+        $charge->update([
+            'amount' => (int) $cartData['total'],
+            'currency' => strtolower((string) ($cartData['currency'] ?? $charge->currency ?? 'nok')),
+            'stripe_customer_id' => $stripeCustomerId ?? $charge->stripe_customer_id,
+            'tip_amount' => (int) ($cartData['tip_amount'] ?? $charge->tip_amount ?? 0),
+            'metadata' => $newMetadata,
+        ]);
+    }
+
+    /**
      * Complete a deferred payment
      * Updates the charge status and generates a sales receipt
      *
      * @param  array  $paymentData  Additional payment data (e.g., payment_intent_id for Stripe)
      * @param  PosSession|null  $posSession  Optional POS session to use. If not provided, uses the charge's original session.
      *                                       This allows completing deferred payments on different devices/sessions.
+     * @param  array<string, mixed>|null  $cartData  Final cart when completing a parked / edited deferred order (optional)
      *
      * @throws \Exception
      */
@@ -623,7 +769,8 @@ class PurchaseService
         ConnectedCharge $charge,
         PaymentMethod $paymentMethod,
         array $paymentData = [],
-        ?PosSession $posSession = null
+        ?PosSession $posSession = null,
+        ?array $cartData = null
     ): array {
         DB::beginTransaction();
 
@@ -664,6 +811,17 @@ class PurchaseService
             if ($charge->pos_session_id !== $posSession->id) {
                 $charge->pos_session_id = $posSession->id;
                 $charge->save();
+            }
+
+            if ($cartData !== null) {
+                $this->applyFinalCartToPendingDeferredCharge(
+                    $charge,
+                    $store,
+                    $cartData,
+                    $paymentMethod,
+                    $paymentData
+                );
+                $charge->refresh();
             }
 
             // Process payment based on provider
@@ -768,6 +926,7 @@ class PurchaseService
                     'captured' => true,
                     'paid' => true,
                     'paid_at' => now(),
+                    'metadata' => array_merge(is_array($charge->metadata) ? $charge->metadata : [], $paymentData),
                 ]);
 
                 // Log card payment event (13017)
@@ -787,6 +946,7 @@ class PurchaseService
                     'captured' => true,
                     'paid' => true,
                     'paid_at' => now(),
+                    'metadata' => array_merge(is_array($charge->metadata) ? $charge->metadata : [], $paymentData),
                 ]);
 
                 // Log cash payment event (13016)
@@ -794,7 +954,7 @@ class PurchaseService
 
                 // Open cash drawer
                 $this->cashDrawerService->openCashDrawer($posSession, $charge->amount);
-            } elseif ($paymentMethod->provider === 'other') {
+            } elseif (in_array($paymentMethod->provider, ['other', 'verifone'], true)) {
                 // Handle other payment methods (e.g., Vipps, gift tokens, etc.)
                 // These are assumed to be confirmed automatically when completing the payment
                 $eventCode = $paymentMethod->saf_t_event_code ?? SafTCodeMapper::mapPaymentMethodToEventCode($paymentMethod->code, $paymentMethod->provider_method);
@@ -807,6 +967,7 @@ class PurchaseService
                     'captured' => true,
                     'paid' => true,
                     'paid_at' => now(),
+                    'metadata' => array_merge(is_array($charge->metadata) ? $charge->metadata : [], $paymentData),
                 ]);
 
                 // Log payment event using the payment method's event code
@@ -941,22 +1102,36 @@ class PurchaseService
             $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
             $originalPrice = $discountAmount > 0 ? ($unitPrice + $discountAmount) : null;
 
-            // For diverse products or products without price, use custom description if provided
-            // Otherwise use product name. Store both for flexibility.
-            // Preserve description from original item (may come from cart)
+            // Optional cart line note (`description`): shown under the product on receipts when it
+            // differs from the resolved product title. If there is no resolved product name, the
+            // description is the only title (ad-hoc / diverse-style lines).
             $customDescription = $item['description'] ?? null;
-            // If description is empty string, treat as null
             if ($customDescription === '') {
                 $customDescription = null;
             }
-            $itemName = $customDescription ?? $productName;
+
+            $hasProductTitle = ($productName ?? '') !== '';
+            $displayName = $hasProductTitle
+                ? $productName
+                : ($customDescription ?? 'Vare');
+
+            $receiptLineDescription = null;
+            if ($customDescription !== null && $hasProductTitle && $customDescription !== $productName) {
+                $receiptLineDescription = $customDescription;
+            }
 
             // Merge snapshot data with existing item data
             // array_merge preserves all original item fields (including description if present)
+            $existingLineId = $item['id'] ?? null;
+            $lineId = is_string($existingLineId) && trim($existingLineId) !== ''
+                ? trim($existingLineId)
+                : (string) Str::uuid();
+
             $enrichedItem = array_merge($item, [
+                'id' => $lineId,
                 // Store snapshot of product information at purchase time
-                'name' => $itemName, // Primary name for receipts (custom description or product name)
-                'description' => $customDescription, // Custom description if provided (for diverse products) - explicitly set
+                'name' => $displayName,
+                'description' => $receiptLineDescription,
                 'product_name' => $productName, // Original product name (for reference)
                 'product_image_url' => $productImageUrl,
                 'original_price' => $originalPrice,
@@ -1130,6 +1305,13 @@ class PurchaseService
                 throw new \Exception('At least one payment is required');
             }
 
+            $store = $posSession->store;
+            if (! $store) {
+                throw new \Exception('Store not found for POS session');
+            }
+
+            app(InventoryLedgerService::class)->assertCartSellable($store, $cartData['items'] ?? []);
+
             $device = $posSession->posDevice;
             $hasCashDrawerDisabled = $device && $device->cash_drawer_enabled === false;
 
@@ -1192,6 +1374,15 @@ class PurchaseService
 
             // Log sales receipt event (13012)
             $posEvent = $this->logSplitSalesReceiptEvent($posSession, $charges, $receipt, $paymentMethods);
+
+            foreach ($charges as $splitCharge) {
+                $meta = $splitCharge->metadata ?? [];
+                $meta['inventory_pos_event_id'] = $posEvent->id;
+                $meta['inventory_split_primary'] = $splitCharge->id === $charges[0]->id;
+                $splitCharge->update(['metadata' => $meta]);
+            }
+
+            app(InventoryLedgerService::class)->applySaleForSplitPosEvent($store, $cartData['items'] ?? [], $posEvent->id);
 
             // Auto-print receipt (if configured)
             if (config('pos.auto_print_receipts', true)) {
@@ -1439,13 +1630,15 @@ class PurchaseService
                     $itemId = $refundedItem['item_id'] ?? null;
                     if ($itemId) {
                         if (! isset($itemRefunds[$itemId])) {
-                            $itemRefunds[$itemId] = 0;
+                            $itemRefunds[$itemId] = 0.0;
                         }
-                        $itemRefunds[$itemId] += $refundedItem['quantity'] ?? 1;
+                        $itemRefunds[$itemId] += (float) ($refundedItem['quantity'] ?? 1);
                     }
                 }
                 $metadata['item_refunds'] = $itemRefunds;
             }
+
+            $refundIndex = count($refunds);
 
             $refunds[] = $refundData;
             $metadata['refunds'] = $refunds;
@@ -1464,6 +1657,17 @@ class PurchaseService
 
             // Refresh charge to get updated values
             $charge->refresh();
+
+            $refundStore = $charge->store;
+            if ($refundStore) {
+                app(InventoryLedgerService::class)->applyRefund(
+                    $refundStore,
+                    $charge,
+                    $refundIndex,
+                    $refundedItems,
+                    $isFullyRefunded
+                );
+            }
 
             // Get original receipt (sales receipt for completed purchases, delivery receipt for deferred)
             $originalReceipt = $charge->receipt;

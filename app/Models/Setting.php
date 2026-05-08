@@ -29,6 +29,7 @@ class Setting extends Model
         'tips_enabled',
         'gift_card_expiration_days',
         'customers_enabled',
+        'auto_close_open_sessions_daily',
         // Additional settings stored as JSON
         'additional_settings',
     ];
@@ -42,6 +43,7 @@ class Setting extends Model
         'tips_enabled' => 'boolean',
         'gift_card_expiration_days' => 'integer',
         'customers_enabled' => 'boolean',
+        'auto_close_open_sessions_daily' => 'boolean',
         'additional_settings' => 'array',
     ];
 
@@ -81,6 +83,7 @@ class Setting extends Model
                 'tax_included' => false,
                 'tips_enabled' => true,
                 'customers_enabled' => true,
+                'auto_close_open_sessions_daily' => false,
             ]
         );
     }

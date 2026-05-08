@@ -40,6 +40,7 @@ class ConnectedProduct extends Model implements HasMedia
         'quantity_unit_id',
         'vendor_id',
         'no_price_in_pos',
+        'track_inventory',
     ];
 
     protected $casts = [
@@ -51,6 +52,7 @@ class ConnectedProduct extends Model implements HasMedia
         'compare_at_price_amount' => 'integer',
         'vat_percent' => 'decimal:2',
         'no_price_in_pos' => 'boolean',
+        'track_inventory' => 'boolean',
     ];
 
     /**
@@ -69,7 +71,7 @@ class ConnectedProduct extends Model implements HasMedia
             $defaultPrice = ConnectedPrice::where('stripe_price_id', $this->default_price)
                 ->where('stripe_account_id', $this->stripe_account_id)
                 ->first();
-            
+
             if ($defaultPrice && $defaultPrice->unit_amount) {
                 // Return as decimal number (e.g., 299.00) for form compatibility
                 return number_format($defaultPrice->unit_amount / 100, 2, '.', '');
@@ -94,7 +96,7 @@ class ConnectedProduct extends Model implements HasMedia
             $defaultPrice = ConnectedPrice::where('stripe_price_id', $this->default_price)
                 ->where('stripe_account_id', $this->stripe_account_id)
                 ->first();
-            
+
             if ($defaultPrice && $defaultPrice->currency) {
                 return $defaultPrice->currency;
             }
@@ -107,7 +109,7 @@ class ConnectedProduct extends Model implements HasMedia
     {
         // Auto-set unit_label from quantity_unit when saving
         static::saving(function (ConnectedProduct $product) {
-            if ($product->quantity_unit_id && !$product->unit_label) {
+            if ($product->quantity_unit_id && ! $product->unit_label) {
                 $quantityUnit = QuantityUnit::find($product->quantity_unit_id);
                 if ($quantityUnit && $quantityUnit->symbol) {
                     $product->unit_label = $quantityUnit->symbol;
@@ -118,27 +120,27 @@ class ConnectedProduct extends Model implements HasMedia
         static::saved(function (ConnectedProduct $product) {
             // For variable products: Only sync product details, not prices (variants handle pricing)
             // For single products: Sync both product details and prices
-            
+
             // Sync price if price or currency changed
             // Only sync prices for single products
-            if (!$product->isVariable() 
-                && !$product->wasRecentlyCreated 
+            if (! $product->isVariable()
+                && ! $product->wasRecentlyCreated
                 && ($product->wasChanged('price') || $product->wasChanged('currency'))
-                && $product->price 
-                && $product->stripe_product_id 
+                && $product->price
+                && $product->stripe_product_id
                 && $product->stripe_account_id) {
-                $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice();
+                $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice;
                 $syncPriceAction($product);
             }
-            
+
             // Use saved event to ensure it fires for both create and update
             // Sync product details for both single and variable products (but not prices for variable)
-            if (!$product->wasRecentlyCreated) {
-                $listener = new \App\Listeners\SyncConnectedProductToStripeListener();
+            if (! $product->wasRecentlyCreated) {
+                $listener = new \App\Listeners\SyncConnectedProductToStripeListener;
                 $listener->handle($product);
             }
         });
-        
+
         // Handle product deletion - archive in Stripe and delete/archive variants
         static::deleting(function (ConnectedProduct $product) {
             // Capture data before deletion for queued jobs
@@ -146,17 +148,17 @@ class ConnectedProduct extends Model implements HasMedia
             $stripeAccountId = $product->stripe_account_id;
             $productId = $product->id;
             $productName = $product->name;
-            
+
             // First, handle all variants
             $variants = $product->variants()->get();
             foreach ($variants as $variant) {
                 $variantHasBeenUsed = $variant->hasBeenUsedInPurchases();
-                
+
                 if ($variantHasBeenUsed) {
                     // Archive variant instead of deleting
                     $variant->active = false;
                     $variant->saveQuietly();
-                    
+
                     // Queue job to archive variant product in Stripe
                     if ($variant->stripe_product_id && $variant->stripe_account_id) {
                         \App\Jobs\DeleteVariantProductFromStripeJob::dispatch(
@@ -171,7 +173,7 @@ class ConnectedProduct extends Model implements HasMedia
                     $variant->delete();
                 }
             }
-            
+
             // Queue job to archive product in Stripe (always archive, never delete from Stripe)
             // Products that have been used cannot be deleted in Stripe, only archived
             if ($stripeProductId && $stripeAccountId) {
@@ -182,12 +184,11 @@ class ConnectedProduct extends Model implements HasMedia
                     $productName
                 );
             }
-            
+
             // Note: Actual deletion prevention is handled in EditConnectedProduct page
             // via DeleteAction::before() callback
         });
     }
-    
 
     /**
      * Get the store that owns this product via stripe_account_id
@@ -226,8 +227,8 @@ class ConnectedProduct extends Model implements HasMedia
             'connected_product_id',
             'collection_id'
         )->withPivot('sort_order')
-          ->withTimestamps()
-          ->orderByPivot('sort_order');
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
     }
 
     /**
@@ -259,7 +260,7 @@ class ConnectedProduct extends Model implements HasMedia
      * Check if this is a variable product (has 2+ variants)
      * Variable products: Main product should NOT be created in Stripe, only variants
      * Single products: Only main product should be created in Stripe, no variants
-     * 
+     *
      * Can be manually set via product_meta['product_type'] = 'variable' or 'single'
      * If 'auto', it will be detected from variant count
      */
@@ -270,7 +271,7 @@ class ConnectedProduct extends Model implements HasMedia
         if (isset($meta['product_type'])) {
             return $meta['product_type'] === 'variable';
         }
-        
+
         // Auto-detect: Variable products must have 2 or more variants
         // Single products have 0 or 1 variant
         return $this->variants()->count() >= 2;
@@ -286,8 +287,8 @@ class ConnectedProduct extends Model implements HasMedia
         if (isset($meta['product_type'])) {
             return $meta['product_type'] === 'single';
         }
-        
-        return !$this->isVariable();
+
+        return ! $this->isVariable();
     }
 
     /**
@@ -301,27 +302,27 @@ class ConnectedProduct extends Model implements HasMedia
         if ($prices->isNotEmpty()) {
             $usedInSubscriptions = \App\Models\ConnectedSubscriptionItem::whereIn('connected_price', $prices)
                 ->exists();
-            
+
             if ($usedInSubscriptions) {
                 return true;
             }
-            
+
             // Check if any prices are used in payment links
             $usedInPaymentLinks = \App\Models\ConnectedPaymentLink::whereIn('stripe_price_id', $prices)
                 ->exists();
-            
+
             if ($usedInPaymentLinks) {
                 return true;
             }
         }
-        
+
         // Check if any variant prices are used
         foreach ($this->variants as $variant) {
             if ($variant->hasBeenUsedInPurchases()) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -348,11 +349,13 @@ class ConnectedProduct extends Model implements HasMedia
                     $scheme = request()->getScheme();
                     $host = request()->getHost();
                     $port = request()->getPort();
-                    $baseUrl = $scheme . '://' . $host . ($port && $port != 80 && $port != 443 ? ':' . $port : '');
+                    $baseUrl = $scheme.'://'.$host.($port && $port != 80 && $port != 443 ? ':'.$port : '');
                     $path = $media->getPath();
                     $relativePath = str_replace(public_path('storage'), '', $path);
-                    return $baseUrl . '/storage' . $relativePath;
+
+                    return $baseUrl.'/storage'.$relativePath;
                 }
+
                 return $media->getUrl();
             })
             ->toArray();
@@ -363,7 +366,7 @@ class ConnectedProduct extends Model implements HasMedia
      */
     public function getDiscountPercentageAttribute(): ?float
     {
-        if (!$this->compare_at_price_amount) {
+        if (! $this->compare_at_price_amount) {
             return null;
         }
 
@@ -375,13 +378,13 @@ class ConnectedProduct extends Model implements HasMedia
             $defaultPrice = ConnectedPrice::where('stripe_price_id', $this->default_price)
                 ->where('stripe_account_id', $this->stripe_account_id)
                 ->first();
-            
+
             if ($defaultPrice && $defaultPrice->unit_amount) {
                 $priceAmount = $defaultPrice->unit_amount;
             }
         }
 
-        if (!$priceAmount || $priceAmount <= 0) {
+        if (! $priceAmount || $priceAmount <= 0) {
             return null;
         }
 

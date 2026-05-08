@@ -1,19 +1,21 @@
 <?php
+
 /**
  * UpdateVariantInventory200ResponseVariantVariantInventory
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,77 +29,81 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * UpdateVariantInventory200ResponseVariantVariantInventory Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelInterface, ArrayAccess, \JsonSerializable
+class UpdateVariantInventory200ResponseVariantVariantInventory implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'updateVariantInventory_200_response_variant_variant_inventory';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'quantity' => 'int',
         'in_stock' => 'bool',
         'policy' => 'string',
         'management' => 'string',
-        'tracked' => 'bool'
+        'tracked' => 'bool',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'quantity' => null,
         'in_stock' => null,
         'policy' => null,
         'management' => null,
-        'tracked' => null
+        'tracked' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'quantity' => true,
         'in_stock' => false,
         'policy' => true,
         'management' => true,
-        'tracked' => false
+        'tracked' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -122,8 +128,6 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -133,7 +137,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -143,7 +147,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -152,9 +156,6 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -163,9 +164,6 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -183,7 +181,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
         'in_stock' => 'in_stock',
         'policy' => 'policy',
         'management' => 'management',
-        'tracked' => 'tracked'
+        'tracked' => 'tracked',
     ];
 
     /**
@@ -196,7 +194,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
         'in_stock' => 'setInStock',
         'policy' => 'setPolicy',
         'management' => 'setManagement',
-        'tracked' => 'setTracked'
+        'tracked' => 'setTracked',
     ];
 
     /**
@@ -209,7 +207,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
         'in_stock' => 'getInStock',
         'policy' => 'getPolicy',
         'management' => 'getManagement',
-        'tracked' => 'getTracked'
+        'tracked' => 'getTracked',
     ];
 
     /**
@@ -253,7 +251,6 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -264,8 +261,8 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -277,14 +274,12 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -317,7 +312,6 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets quantity
      *
@@ -331,8 +325,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     /**
      * Sets quantity
      *
-     * @param int|null $quantity quantity
-     *
+     * @param  int|null  $quantity  quantity
      * @return self
      */
     public function setQuantity($quantity)
@@ -342,7 +335,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('quantity', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -365,8 +358,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     /**
      * Sets in_stock
      *
-     * @param bool|null $in_stock in_stock
-     *
+     * @param  bool|null  $in_stock  in_stock
      * @return self
      */
     public function setInStock($in_stock)
@@ -392,8 +384,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     /**
      * Sets policy
      *
-     * @param string|null $policy policy
-     *
+     * @param  string|null  $policy  policy
      * @return self
      */
     public function setPolicy($policy)
@@ -403,7 +394,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('policy', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -426,8 +417,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     /**
      * Sets management
      *
-     * @param string|null $management management
-     *
+     * @param  string|null  $management  management
      * @return self
      */
     public function setManagement($management)
@@ -437,7 +427,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('management', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -460,8 +450,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     /**
      * Sets tracked
      *
-     * @param bool|null $tracked tracked
-     *
+     * @param  bool|null  $tracked  tracked
      * @return self
      */
     public function setTracked($tracked)
@@ -473,12 +462,11 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -488,8 +476,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -501,10 +488,8 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -518,9 +503,7 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -529,15 +512,16 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -563,5 +547,3 @@ class UpdateVariantInventory200ResponseVariantVariantInventory implements ModelI
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

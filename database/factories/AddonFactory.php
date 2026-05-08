@@ -34,4 +34,9 @@ class AddonFactory extends Factory
     {
         return $this->state(fn (array $attributes) => ['is_active' => false]);
     }
+
+    public function inventory(): static
+    {
+        return $this->state(fn (array $attributes) => ['type' => AddonType::Inventory]);
+    }
 }

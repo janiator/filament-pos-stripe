@@ -150,6 +150,7 @@ class ReceiptGenerationService
             'customer_name' => $customerName,
             'customer_phone' => $customerPhone,
             'customer_email' => $customerEmail,
+            'order_note' => $this->orderNoteFromPurchaseMetadata($metadata),
         ];
 
         $receipt = Receipt::create([
@@ -368,6 +369,7 @@ class ReceiptGenerationService
             'customer_phone' => $customerPhone,
             'customer_email' => $customerEmail,
             'estimated_pickup_date' => $estimatedPickupDate,
+            'order_note' => $this->orderNoteFromPurchaseMetadata($metadata),
         ];
 
         $receipt = Receipt::create([
@@ -392,5 +394,19 @@ class ReceiptGenerationService
     protected function calculateTax(ConnectedCharge $charge): float
     {
         return $this->calculateTaxFromAmount($charge->amount);
+    }
+
+    /**
+     * Whole-order note from POS cart (`cart.note`), stored on the charge as `metadata.note`.
+     */
+    protected function orderNoteFromPurchaseMetadata(array $metadata): ?string
+    {
+        if (! isset($metadata['note']) || ! is_string($metadata['note'])) {
+            return null;
+        }
+
+        $trimmed = trim($metadata['note']);
+
+        return $trimmed === '' ? null : $trimmed;
     }
 }

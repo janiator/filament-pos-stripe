@@ -25,13 +25,13 @@ class ConnectedPaymentMethodsTable
             })
             ->columns([
                 TextColumn::make('card_display')
-                    ->label('Payment Method')
+                    ->label(__('Payment Method'))
                     ->searchable()
                     ->weight('bold')
                     ->wrap(),
 
                 TextColumn::make('customer.name')
-                    ->label('Customer')
+                    ->label(__('Customer'))
                     ->searchable()
                     ->sortable()
                     ->placeholder(fn ($record) => $record->customer?->email ?? $record->stripe_customer_id ?? 'Unknown')
@@ -39,24 +39,24 @@ class ConnectedPaymentMethodsTable
                     ->wrap(),
 
                 TextColumn::make('type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->formatStateUsing(fn ($state) => ucfirst($state))
                     ->color('gray')
                     ->sortable(),
 
                 IconColumn::make('is_default')
-                    ->label('Default')
+                    ->label(__('Default'))
                     ->boolean()
                     ->sortable(),
 
                 TextColumn::make('billing_details_name')
-                    ->label('Billing Name')
+                    ->label(__('Billing Name'))
                     ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('store.name')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->searchable()
                     ->sortable()
                     ->badge()
@@ -64,28 +64,28 @@ class ConnectedPaymentMethodsTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('stripe_payment_method_id')
-                    ->label('Payment Method ID')
+                    ->label(__('Payment Method ID'))
                     ->searchable()
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->options([
                         'card' => 'Card',
                         'bank_account' => 'Bank Account',
                     ]),
 
                 \Filament\Tables\Filters\TernaryFilter::make('is_default')
-                    ->label('Default')
-                    ->placeholder('All')
+                    ->label(__('Default'))
+                    ->placeholder(__('All'))
                     ->trueLabel('Default only')
                     ->falseLabel('Non-default only'),
             ])

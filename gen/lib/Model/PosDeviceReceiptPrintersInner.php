@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PosDeviceReceiptPrintersInner
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * PosDeviceReceiptPrintersInner Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \JsonSerializable
+class PosDeviceReceiptPrintersInner implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'PosDevice_receipt_printers_inner';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'name' => 'string',
@@ -66,16 +70,18 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         'ip_address' => 'string',
         'port' => 'int',
         'is_active' => 'bool',
-        'epos_url' => 'string'
+        'epos_url' => 'string',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'name' => null,
@@ -85,14 +91,14 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         'ip_address' => 'ipv4',
         'port' => null,
         'is_active' => null,
-        'epos_url' => null
+        'epos_url' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'name' => false,
@@ -102,14 +108,14 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         'ip_address' => true,
         'port' => false,
         'is_active' => false,
-        'epos_url' => true
+        'epos_url' => true,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -134,8 +140,6 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -145,7 +149,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -155,7 +159,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -164,9 +168,6 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -175,9 +176,6 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -199,7 +197,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         'ip_address' => 'ip_address',
         'port' => 'port',
         'is_active' => 'is_active',
-        'epos_url' => 'epos_url'
+        'epos_url' => 'epos_url',
     ];
 
     /**
@@ -216,7 +214,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         'ip_address' => 'setIpAddress',
         'port' => 'setPort',
         'is_active' => 'setIsActive',
-        'epos_url' => 'setEposUrl'
+        'epos_url' => 'setEposUrl',
     ];
 
     /**
@@ -233,7 +231,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         'ip_address' => 'getIpAddress',
         'port' => 'getPort',
         'is_active' => 'getIsActive',
-        'epos_url' => 'getEposUrl'
+        'epos_url' => 'getEposUrl',
     ];
 
     /**
@@ -278,10 +276,15 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     }
 
     public const PRINTER_TYPE_EPSON = 'epson';
+
     public const PRINTER_TYPE_STAR = 'star';
+
     public const PRINTER_TYPE_GENERIC = 'generic';
+
     public const CONNECTION_TYPE_NETWORK = 'network';
+
     public const CONNECTION_TYPE_USB = 'usb';
+
     public const CONNECTION_TYPE_BLUETOOTH = 'bluetooth';
 
     /**
@@ -322,8 +325,8 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -339,14 +342,12 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -366,7 +367,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         $invalidProperties = [];
 
         $allowedValues = $this->getPrinterTypeAllowableValues();
-        if (!is_null($this->container['printer_type']) && !in_array($this->container['printer_type'], $allowedValues, true)) {
+        if (! is_null($this->container['printer_type']) && ! in_array($this->container['printer_type'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'printer_type', must be one of '%s'",
                 $this->container['printer_type'],
@@ -375,7 +376,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         }
 
         $allowedValues = $this->getConnectionTypeAllowableValues();
-        if (!is_null($this->container['connection_type']) && !in_array($this->container['connection_type'], $allowedValues, true)) {
+        if (! is_null($this->container['connection_type']) && ! in_array($this->container['connection_type'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'connection_type', must be one of '%s'",
                 $this->container['connection_type'],
@@ -397,7 +398,6 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -411,8 +411,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets id
      *
-     * @param int|null $id id
-     *
+     * @param  int|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -438,8 +437,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets name
      *
-     * @param string|null $name name
-     *
+     * @param  string|null  $name  name
      * @return self
      */
     public function setName($name)
@@ -465,8 +463,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets printer_type
      *
-     * @param string|null $printer_type printer_type
-     *
+     * @param  string|null  $printer_type  printer_type
      * @return self
      */
     public function setPrinterType($printer_type)
@@ -475,7 +472,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
             throw new \InvalidArgumentException('non-nullable printer_type cannot be null');
         }
         $allowedValues = $this->getPrinterTypeAllowableValues();
-        if (!in_array($printer_type, $allowedValues, true)) {
+        if (! in_array($printer_type, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'printer_type', must be one of '%s'",
@@ -502,8 +499,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets printer_model
      *
-     * @param string|null $printer_model printer_model
-     *
+     * @param  string|null  $printer_model  printer_model
      * @return self
      */
     public function setPrinterModel($printer_model)
@@ -513,7 +509,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('printer_model', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -536,8 +532,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets connection_type
      *
-     * @param string|null $connection_type connection_type
-     *
+     * @param  string|null  $connection_type  connection_type
      * @return self
      */
     public function setConnectionType($connection_type)
@@ -546,7 +541,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
             throw new \InvalidArgumentException('non-nullable connection_type cannot be null');
         }
         $allowedValues = $this->getConnectionTypeAllowableValues();
-        if (!in_array($connection_type, $allowedValues, true)) {
+        if (! in_array($connection_type, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'connection_type', must be one of '%s'",
@@ -573,8 +568,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets ip_address
      *
-     * @param string|null $ip_address ip_address
-     *
+     * @param  string|null  $ip_address  ip_address
      * @return self
      */
     public function setIpAddress($ip_address)
@@ -584,7 +578,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('ip_address', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -607,8 +601,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets port
      *
-     * @param int|null $port port
-     *
+     * @param  int|null  $port  port
      * @return self
      */
     public function setPort($port)
@@ -634,8 +627,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets is_active
      *
-     * @param bool|null $is_active is_active
-     *
+     * @param  bool|null  $is_active  is_active
      * @return self
      */
     public function setIsActive($is_active)
@@ -661,8 +653,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets epos_url
      *
-     * @param string|null $epos_url ePOS-Print service URL (for network printers)
-     *
+     * @param  string|null  $epos_url  ePOS-Print service URL (for network printers)
      * @return self
      */
     public function setEposUrl($epos_url)
@@ -672,7 +663,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('epos_url', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -681,12 +672,11 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -696,8 +686,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -709,10 +698,8 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -726,9 +713,7 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -737,15 +722,16 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -771,5 +757,3 @@ class PosDeviceReceiptPrintersInner implements ModelInterface, ArrayAccess, \Jso
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

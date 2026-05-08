@@ -109,6 +109,14 @@ You need the UDID of each iPad you'll deploy to:
 
 #### Step 5: Build IPA with Ad-Hoc Signing
 
+**Launcher icons (FlutterFlow exports):** If the app icon is wrong or missing until you use FlutterFlow’s **Generate App Icons**, run icon generation from the **exported project root** after each sync (same effect as the Designer command):
+
+```bash
+dart run flutter_launcher_icons
+```
+
+Use `flutter pub run flutter_launcher_icons:main` instead if your Flutter SDK is older. Then proceed with `flutter clean` / `flutter build ipa` as below.
+
 **Method 1: Using Flutter Build Command (Recommended)**
 
 ```bash

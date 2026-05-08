@@ -168,6 +168,37 @@ it('decreases expected cash after withdrawal and increases after deposit', funct
     expect($expectedAfterDeposit)->toBe(17000);
 });
 
+it('reduces calculateExpectedCash by cash refunds (partial and full)', function () {
+    $session = PosSession::factory()->create([
+        'store_id' => $this->store->id,
+        'pos_device_id' => $this->device->id,
+        'user_id' => $this->user->id,
+        'status' => 'open',
+        'opening_balance' => 10000,
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $this->store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'amount' => 8000,
+        'amount_refunded' => 3000,
+        'status' => 'succeeded',
+        'paid' => true,
+        'payment_method' => 'cash',
+    ]);
+
+    $session->refresh()->load('charges');
+    expect($session->calculateExpectedCash())->toBe(10000 + 8000 - 3000);
+
+    $session->charges()->first()->update([
+        'amount_refunded' => 8000,
+        'status' => 'refunded',
+        'refunded' => true,
+    ]);
+    $session->refresh()->load('charges');
+    expect($session->calculateExpectedCash())->toBe(10000);
+});
+
 it('includes cash_withdrawals and cash_deposits in X-report when present', function () {
     $session = PosSession::factory()->create([
         'store_id' => $this->store->id,
@@ -224,4 +255,38 @@ it('stores manual_discounts in X-report in øre when total_discounts comes from 
     expect($report)->toHaveKey('manual_discounts');
     expect($report['manual_discounts']['count'])->toBe(1);
     expect($report['manual_discounts']['amount'])->toBe(148500);
+});
+
+it('includes refund summary in rendered X-report blade when charges have amount_refunded', function () {
+    $session = PosSession::factory()->create([
+        'store_id' => $this->store->id,
+        'pos_device_id' => $this->device->id,
+        'user_id' => $this->user->id,
+        'status' => 'open',
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $this->store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'amount' => 10000,
+        'amount_refunded' => 2500,
+        'status' => 'succeeded',
+        'paid' => true,
+        'payment_method' => 'card_present',
+    ]);
+
+    $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
+    $report = \App\Filament\Resources\PosSessions\Tables\PosSessionsTable::generateXReport($session);
+
+    expect($report['total_refunded'])->toBe(2500);
+    expect($report['refunds'])->not->toBeEmpty();
+
+    $html = view('filament.resources.pos-reports.modals.x-report', [
+        'session' => $session->fresh(['store', 'posDevice', 'user']),
+        'report' => $report,
+    ])->render();
+
+    expect($html)->toContain('Refusjoner');
+    expect($html)->toContain('25.00');
+    expect($html)->toContain('Totalt refundert');
 });

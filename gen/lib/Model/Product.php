@@ -1,19 +1,21 @@
 <?php
+
 /**
  * Product
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * Product Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class Product implements ModelInterface, ArrayAccess, \JsonSerializable
+class Product implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'Product';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'stripe_product_id' => 'string',
@@ -68,28 +72,36 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         'url' => 'string',
         'images' => 'string[]',
         'no_price_in_pos' => 'bool',
-        'product_price' => '\OpenAPI\Client\Model\ProductProductPrice',
-        'prices' => '\OpenAPI\Client\Model\ProductPricesInner[]',
-        'variants' => '\OpenAPI\Client\Model\ProductVariantsInner[]',
+        'track_inventory' => 'bool',
+        'product_price' => '\OpenAPIClient\Model\ProductProductPrice',
+        'prices' => '\OpenAPIClient\Model\ProductPricesInner[]',
+        'variants' => '\OpenAPIClient\Model\ProductVariantsInner[]',
         'variants_count' => 'int',
-        'product_inventory' => '\OpenAPI\Client\Model\ProductProductInventory',
+        'product_inventory' => '\OpenAPIClient\Model\ProductProductInventory',
         'tax_code' => 'string',
         'unit_label' => 'string',
+        'vendor_id' => 'int',
+        'article_group_code' => 'string',
+        'quantity_unit_id' => 'int',
+        'vendor' => '\OpenAPIClient\Model\ProductVendor',
+        'quantity_unit' => '\OpenAPIClient\Model\ProductQuantityUnit',
         'statement_descriptor' => 'string',
-        'collections' => '\OpenAPI\Client\Model\ProductCollectionsInner[]',
+        'collections' => '\OpenAPIClient\Model\ProductCollectionsInner[]',
         'package_dimensions' => 'object',
         'product_meta' => 'array<string,mixed>',
         'created_at' => '\DateTime',
-        'updated_at' => '\DateTime'
+        'updated_at' => '\DateTime',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'stripe_product_id' => null,
@@ -101,6 +113,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         'url' => null,
         'images' => 'uri',
         'no_price_in_pos' => null,
+        'track_inventory' => null,
         'product_price' => null,
         'prices' => null,
         'variants' => null,
@@ -108,19 +121,24 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         'product_inventory' => null,
         'tax_code' => null,
         'unit_label' => null,
+        'vendor_id' => null,
+        'article_group_code' => null,
+        'quantity_unit_id' => null,
+        'vendor' => null,
+        'quantity_unit' => null,
         'statement_descriptor' => null,
         'collections' => null,
         'package_dimensions' => null,
         'product_meta' => null,
         'created_at' => 'date-time',
-        'updated_at' => 'date-time'
+        'updated_at' => 'date-time',
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'stripe_product_id' => true,
@@ -132,6 +150,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         'url' => true,
         'images' => false,
         'no_price_in_pos' => false,
+        'track_inventory' => false,
         'product_price' => true,
         'prices' => false,
         'variants' => false,
@@ -139,19 +158,24 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         'product_inventory' => false,
         'tax_code' => true,
         'unit_label' => true,
+        'vendor_id' => true,
+        'article_group_code' => true,
+        'quantity_unit_id' => true,
+        'vendor' => true,
+        'quantity_unit' => true,
         'statement_descriptor' => true,
         'collections' => false,
         'package_dimensions' => true,
         'product_meta' => true,
         'created_at' => false,
-        'updated_at' => false
+        'updated_at' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -176,8 +200,6 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -187,7 +209,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -197,7 +219,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -206,9 +228,6 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -217,9 +236,6 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -243,6 +259,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         'url' => 'url',
         'images' => 'images',
         'no_price_in_pos' => 'no_price_in_pos',
+        'track_inventory' => 'track_inventory',
         'product_price' => 'product_price',
         'prices' => 'prices',
         'variants' => 'variants',
@@ -250,12 +267,17 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         'product_inventory' => 'product_inventory',
         'tax_code' => 'tax_code',
         'unit_label' => 'unit_label',
+        'vendor_id' => 'vendor_id',
+        'article_group_code' => 'article_group_code',
+        'quantity_unit_id' => 'quantity_unit_id',
+        'vendor' => 'vendor',
+        'quantity_unit' => 'quantity_unit',
         'statement_descriptor' => 'statement_descriptor',
         'collections' => 'collections',
         'package_dimensions' => 'package_dimensions',
         'product_meta' => 'product_meta',
         'created_at' => 'created_at',
-        'updated_at' => 'updated_at'
+        'updated_at' => 'updated_at',
     ];
 
     /**
@@ -274,6 +296,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         'url' => 'setUrl',
         'images' => 'setImages',
         'no_price_in_pos' => 'setNoPriceInPos',
+        'track_inventory' => 'setTrackInventory',
         'product_price' => 'setProductPrice',
         'prices' => 'setPrices',
         'variants' => 'setVariants',
@@ -281,12 +304,17 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         'product_inventory' => 'setProductInventory',
         'tax_code' => 'setTaxCode',
         'unit_label' => 'setUnitLabel',
+        'vendor_id' => 'setVendorId',
+        'article_group_code' => 'setArticleGroupCode',
+        'quantity_unit_id' => 'setQuantityUnitId',
+        'vendor' => 'setVendor',
+        'quantity_unit' => 'setQuantityUnit',
         'statement_descriptor' => 'setStatementDescriptor',
         'collections' => 'setCollections',
         'package_dimensions' => 'setPackageDimensions',
         'product_meta' => 'setProductMeta',
         'created_at' => 'setCreatedAt',
-        'updated_at' => 'setUpdatedAt'
+        'updated_at' => 'setUpdatedAt',
     ];
 
     /**
@@ -305,6 +333,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         'url' => 'getUrl',
         'images' => 'getImages',
         'no_price_in_pos' => 'getNoPriceInPos',
+        'track_inventory' => 'getTrackInventory',
         'product_price' => 'getProductPrice',
         'prices' => 'getPrices',
         'variants' => 'getVariants',
@@ -312,12 +341,17 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         'product_inventory' => 'getProductInventory',
         'tax_code' => 'getTaxCode',
         'unit_label' => 'getUnitLabel',
+        'vendor_id' => 'getVendorId',
+        'article_group_code' => 'getArticleGroupCode',
+        'quantity_unit_id' => 'getQuantityUnitId',
+        'vendor' => 'getVendor',
+        'quantity_unit' => 'getQuantityUnit',
         'statement_descriptor' => 'getStatementDescriptor',
         'collections' => 'getCollections',
         'package_dimensions' => 'getPackageDimensions',
         'product_meta' => 'getProductMeta',
         'created_at' => 'getCreatedAt',
-        'updated_at' => 'getUpdatedAt'
+        'updated_at' => 'getUpdatedAt',
     ];
 
     /**
@@ -362,6 +396,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     public const TYPE_SERVICE = 'service';
+
     public const TYPE_GOOD = 'good';
 
     /**
@@ -387,8 +422,8 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -402,6 +437,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         $this->setIfExists('url', $data ?? [], null);
         $this->setIfExists('images', $data ?? [], null);
         $this->setIfExists('no_price_in_pos', $data ?? [], false);
+        $this->setIfExists('track_inventory', $data ?? [], false);
         $this->setIfExists('product_price', $data ?? [], null);
         $this->setIfExists('prices', $data ?? [], null);
         $this->setIfExists('variants', $data ?? [], null);
@@ -409,6 +445,11 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         $this->setIfExists('product_inventory', $data ?? [], null);
         $this->setIfExists('tax_code', $data ?? [], null);
         $this->setIfExists('unit_label', $data ?? [], null);
+        $this->setIfExists('vendor_id', $data ?? [], null);
+        $this->setIfExists('article_group_code', $data ?? [], null);
+        $this->setIfExists('quantity_unit_id', $data ?? [], null);
+        $this->setIfExists('vendor', $data ?? [], null);
+        $this->setIfExists('quantity_unit', $data ?? [], null);
         $this->setIfExists('statement_descriptor', $data ?? [], null);
         $this->setIfExists('collections', $data ?? [], null);
         $this->setIfExists('package_dimensions', $data ?? [], null);
@@ -418,14 +459,12 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -445,7 +484,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         $invalidProperties = [];
 
         $allowedValues = $this->getTypeAllowableValues();
-        if (!is_null($this->container['type']) && !in_array($this->container['type'], $allowedValues, true)) {
+        if (! is_null($this->container['type']) && ! in_array($this->container['type'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'type', must be one of '%s'",
                 $this->container['type'],
@@ -467,7 +506,6 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -481,8 +519,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets id
      *
-     * @param int|null $id id
-     *
+     * @param  int|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -508,8 +545,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets stripe_product_id
      *
-     * @param string|null $stripe_product_id stripe_product_id
-     *
+     * @param  string|null  $stripe_product_id  stripe_product_id
      * @return self
      */
     public function setStripeProductId($stripe_product_id)
@@ -519,7 +555,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('stripe_product_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -542,8 +578,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets name
      *
-     * @param string|null $name name
-     *
+     * @param  string|null  $name  name
      * @return self
      */
     public function setName($name)
@@ -569,8 +604,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets description
      *
-     * @param string|null $description description
-     *
+     * @param  string|null  $description  description
      * @return self
      */
     public function setDescription($description)
@@ -580,7 +614,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('description', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -603,8 +637,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets type
      *
-     * @param string|null $type type
-     *
+     * @param  string|null  $type  type
      * @return self
      */
     public function setType($type)
@@ -613,7 +646,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
             throw new \InvalidArgumentException('non-nullable type cannot be null');
         }
         $allowedValues = $this->getTypeAllowableValues();
-        if (!in_array($type, $allowedValues, true)) {
+        if (! in_array($type, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'type', must be one of '%s'",
@@ -640,8 +673,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets active
      *
-     * @param bool|null $active active
-     *
+     * @param  bool|null  $active  active
      * @return self
      */
     public function setActive($active)
@@ -667,8 +699,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets shippable
      *
-     * @param bool|null $shippable shippable
-     *
+     * @param  bool|null  $shippable  shippable
      * @return self
      */
     public function setShippable($shippable)
@@ -694,8 +725,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets url
      *
-     * @param string|null $url url
-     *
+     * @param  string|null  $url  url
      * @return self
      */
     public function setUrl($url)
@@ -705,7 +735,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('url', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -728,8 +758,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets images
      *
-     * @param string[]|null $images Array of image URLs (signed URLs for security)
-     *
+     * @param  string[]|null  $images  Array of image URLs (signed URLs for security)
      * @return self
      */
     public function setImages($images)
@@ -755,8 +784,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets no_price_in_pos
      *
-     * @param bool|null $no_price_in_pos If true, this product has no preset price and requires custom price input on POS.
-     *
+     * @param  bool|null  $no_price_in_pos  If true, this product has no preset price and requires custom price input on POS.
      * @return self
      */
     public function setNoPriceInPos($no_price_in_pos)
@@ -770,9 +798,35 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     /**
+     * Gets track_inventory
+     *
+     * @return bool|null
+     */
+    public function getTrackInventory()
+    {
+        return $this->container['track_inventory'];
+    }
+
+    /**
+     * Sets track_inventory
+     *
+     * @param  bool|null  $track_inventory  When true and the store has the Inventory add-on, variant quantities with a non-null inventory_quantity are enforced at checkout (deny policy).
+     * @return self
+     */
+    public function setTrackInventory($track_inventory)
+    {
+        if (is_null($track_inventory)) {
+            throw new \InvalidArgumentException('non-nullable track_inventory cannot be null');
+        }
+        $this->container['track_inventory'] = $track_inventory;
+
+        return $this;
+    }
+
+    /**
      * Gets product_price
      *
-     * @return \OpenAPI\Client\Model\ProductProductPrice|null
+     * @return \OpenAPIClient\Model\ProductProductPrice|null
      */
     public function getProductPrice()
     {
@@ -782,8 +836,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets product_price
      *
-     * @param \OpenAPI\Client\Model\ProductProductPrice|null $product_price product_price
-     *
+     * @param  \OpenAPIClient\Model\ProductProductPrice|null  $product_price  product_price
      * @return self
      */
     public function setProductPrice($product_price)
@@ -793,7 +846,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('product_price', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -806,7 +859,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets prices
      *
-     * @return \OpenAPI\Client\Model\ProductPricesInner[]|null
+     * @return \OpenAPIClient\Model\ProductPricesInner[]|null
      */
     public function getPrices()
     {
@@ -816,8 +869,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets prices
      *
-     * @param \OpenAPI\Client\Model\ProductPricesInner[]|null $prices prices
-     *
+     * @param  \OpenAPIClient\Model\ProductPricesInner[]|null  $prices  prices
      * @return self
      */
     public function setPrices($prices)
@@ -833,7 +885,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets variants
      *
-     * @return \OpenAPI\Client\Model\ProductVariantsInner[]|null
+     * @return \OpenAPIClient\Model\ProductVariantsInner[]|null
      */
     public function getVariants()
     {
@@ -843,8 +895,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets variants
      *
-     * @param \OpenAPI\Client\Model\ProductVariantsInner[]|null $variants variants
-     *
+     * @param  \OpenAPIClient\Model\ProductVariantsInner[]|null  $variants  variants
      * @return self
      */
     public function setVariants($variants)
@@ -870,8 +921,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets variants_count
      *
-     * @param int|null $variants_count variants_count
-     *
+     * @param  int|null  $variants_count  variants_count
      * @return self
      */
     public function setVariantsCount($variants_count)
@@ -887,7 +937,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets product_inventory
      *
-     * @return \OpenAPI\Client\Model\ProductProductInventory|null
+     * @return \OpenAPIClient\Model\ProductProductInventory|null
      */
     public function getProductInventory()
     {
@@ -897,8 +947,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets product_inventory
      *
-     * @param \OpenAPI\Client\Model\ProductProductInventory|null $product_inventory product_inventory
-     *
+     * @param  \OpenAPIClient\Model\ProductProductInventory|null  $product_inventory  product_inventory
      * @return self
      */
     public function setProductInventory($product_inventory)
@@ -924,8 +973,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets tax_code
      *
-     * @param string|null $tax_code tax_code
-     *
+     * @param  string|null  $tax_code  tax_code
      * @return self
      */
     public function setTaxCode($tax_code)
@@ -935,7 +983,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('tax_code', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -958,8 +1006,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets unit_label
      *
-     * @param string|null $unit_label unit_label
-     *
+     * @param  string|null  $unit_label  unit_label
      * @return self
      */
     public function setUnitLabel($unit_label)
@@ -969,12 +1016,177 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('unit_label', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
         }
         $this->container['unit_label'] = $unit_label;
+
+        return $this;
+    }
+
+    /**
+     * Gets vendor_id
+     *
+     * @return int|null
+     */
+    public function getVendorId()
+    {
+        return $this->container['vendor_id'];
+    }
+
+    /**
+     * Sets vendor_id
+     *
+     * @param  int|null  $vendor_id  Vendor ID for product edit form (Leverandør)
+     * @return self
+     */
+    public function setVendorId($vendor_id)
+    {
+        if (is_null($vendor_id)) {
+            array_push($this->openAPINullablesSetToNull, 'vendor_id');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('vendor_id', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['vendor_id'] = $vendor_id;
+
+        return $this;
+    }
+
+    /**
+     * Gets article_group_code
+     *
+     * @return string|null
+     */
+    public function getArticleGroupCode()
+    {
+        return $this->container['article_group_code'];
+    }
+
+    /**
+     * Sets article_group_code
+     *
+     * @param  string|null  $article_group_code  Article group code for product edit form (Varegruppekode)
+     * @return self
+     */
+    public function setArticleGroupCode($article_group_code)
+    {
+        if (is_null($article_group_code)) {
+            array_push($this->openAPINullablesSetToNull, 'article_group_code');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('article_group_code', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['article_group_code'] = $article_group_code;
+
+        return $this;
+    }
+
+    /**
+     * Gets quantity_unit_id
+     *
+     * @return int|null
+     */
+    public function getQuantityUnitId()
+    {
+        return $this->container['quantity_unit_id'];
+    }
+
+    /**
+     * Sets quantity_unit_id
+     *
+     * @param  int|null  $quantity_unit_id  Quantity unit ID for product edit form (Enhet)
+     * @return self
+     */
+    public function setQuantityUnitId($quantity_unit_id)
+    {
+        if (is_null($quantity_unit_id)) {
+            array_push($this->openAPINullablesSetToNull, 'quantity_unit_id');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('quantity_unit_id', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['quantity_unit_id'] = $quantity_unit_id;
+
+        return $this;
+    }
+
+    /**
+     * Gets vendor
+     *
+     * @return \OpenAPIClient\Model\ProductVendor|null
+     */
+    public function getVendor()
+    {
+        return $this->container['vendor'];
+    }
+
+    /**
+     * Sets vendor
+     *
+     * @param  \OpenAPIClient\Model\ProductVendor|null  $vendor  vendor
+     * @return self
+     */
+    public function setVendor($vendor)
+    {
+        if (is_null($vendor)) {
+            array_push($this->openAPINullablesSetToNull, 'vendor');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('vendor', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['vendor'] = $vendor;
+
+        return $this;
+    }
+
+    /**
+     * Gets quantity_unit
+     *
+     * @return \OpenAPIClient\Model\ProductQuantityUnit|null
+     */
+    public function getQuantityUnit()
+    {
+        return $this->container['quantity_unit'];
+    }
+
+    /**
+     * Sets quantity_unit
+     *
+     * @param  \OpenAPIClient\Model\ProductQuantityUnit|null  $quantity_unit  quantity_unit
+     * @return self
+     */
+    public function setQuantityUnit($quantity_unit)
+    {
+        if (is_null($quantity_unit)) {
+            array_push($this->openAPINullablesSetToNull, 'quantity_unit');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('quantity_unit', $nullablesSetToNull);
+            if ($index !== false) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
+        }
+        $this->container['quantity_unit'] = $quantity_unit;
 
         return $this;
     }
@@ -992,8 +1204,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets statement_descriptor
      *
-     * @param string|null $statement_descriptor statement_descriptor
-     *
+     * @param  string|null  $statement_descriptor  statement_descriptor
      * @return self
      */
     public function setStatementDescriptor($statement_descriptor)
@@ -1003,7 +1214,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('statement_descriptor', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1016,7 +1227,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets collections
      *
-     * @return \OpenAPI\Client\Model\ProductCollectionsInner[]|null
+     * @return \OpenAPIClient\Model\ProductCollectionsInner[]|null
      */
     public function getCollections()
     {
@@ -1026,8 +1237,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets collections
      *
-     * @param \OpenAPI\Client\Model\ProductCollectionsInner[]|null $collections Collections this product belongs to
-     *
+     * @param  \OpenAPIClient\Model\ProductCollectionsInner[]|null  $collections  Collections this product belongs to
      * @return self
      */
     public function setCollections($collections)
@@ -1053,8 +1263,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets package_dimensions
      *
-     * @param object|null $package_dimensions package_dimensions
-     *
+     * @param  object|null  $package_dimensions  package_dimensions
      * @return self
      */
     public function setPackageDimensions($package_dimensions)
@@ -1064,7 +1273,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('package_dimensions', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1087,8 +1296,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets product_meta
      *
-     * @param array<string,mixed>|null $product_meta product_meta
-     *
+     * @param  array<string,mixed>|null  $product_meta  product_meta
      * @return self
      */
     public function setProductMeta($product_meta)
@@ -1098,7 +1306,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('product_meta', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1121,8 +1329,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets created_at
      *
-     * @param \DateTime|null $created_at created_at
-     *
+     * @param  \DateTime|null  $created_at  created_at
      * @return self
      */
     public function setCreatedAt($created_at)
@@ -1148,8 +1355,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets updated_at
      *
-     * @param \DateTime|null $updated_at updated_at
-     *
+     * @param  \DateTime|null  $updated_at  updated_at
      * @return self
      */
     public function setUpdatedAt($updated_at)
@@ -1161,12 +1367,11 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -1176,8 +1381,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -1189,10 +1393,8 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -1206,9 +1408,7 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -1217,15 +1417,16 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -1251,5 +1452,3 @@ class Product implements ModelInterface, ArrayAccess, \JsonSerializable
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

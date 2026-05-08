@@ -2,21 +2,24 @@
 
 namespace Tests\Feature;
 
-use App\Models\Store;
-use App\Models\User;
+use App\Models\Addon;
+use App\Models\ConnectedPrice;
 use App\Models\ConnectedProduct;
 use App\Models\ProductVariant;
-use App\Models\ConnectedPrice;
+use App\Models\Store;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class ProductVariantsApiTest extends TestCase
 {
     use RefreshDatabase;
 
     protected User $user;
+
     protected Store $store;
+
     protected ConnectedProduct $product;
 
     protected function setUp(): void
@@ -25,7 +28,7 @@ class ProductVariantsApiTest extends TestCase
 
         $this->user = User::factory()->create();
         $this->store = Store::factory()->create([
-            'stripe_account_id' => 'acct_test_' . fake()->uuid(),
+            'stripe_account_id' => 'acct_test_'.fake()->uuid(),
         ]);
         $this->user->stores()->attach($this->store);
         $this->user->setCurrentStore($this->store);
@@ -37,11 +40,19 @@ class ProductVariantsApiTest extends TestCase
         Sanctum::actingAs($this->user, ['*']);
     }
 
+    protected function enableInventoryTracking(): void
+    {
+        Addon::factory()->inventory()->create(['store_id' => $this->store->id]);
+        $this->product->update(['track_inventory' => true]);
+    }
+
     /**
      * Test products API includes variants
      */
     public function test_products_api_includes_variants(): void
     {
+        $this->enableInventoryTracking();
+
         $price = ConnectedPrice::factory()->create([
             'stripe_account_id' => $this->store->stripe_account_id,
             'stripe_product_id' => $this->product->stripe_product_id,
@@ -77,18 +88,18 @@ class ProductVariantsApiTest extends TestCase
             'product' => [
                 'id',
                 'name',
+                'track_inventory',
                 'variants' => [
                     '*' => [
                         'id',
                         'sku',
                         'variant_name',
                         'variant_options',
-                        'price' => [
+                        'variant_price' => [
                             'amount',
                             'amount_formatted',
-                            'currency',
                         ],
-                        'inventory' => [
+                        'variant_inventory' => [
                             'quantity',
                             'in_stock',
                             'policy',
@@ -97,7 +108,7 @@ class ProductVariantsApiTest extends TestCase
                     ],
                 ],
                 'variants_count',
-                'inventory' => [
+                'product_inventory' => [
                     'tracked',
                     'total_quantity',
                     'in_stock_variants',
@@ -110,18 +121,18 @@ class ProductVariantsApiTest extends TestCase
         $data = $response->json('product');
         $this->assertCount(2, $data['variants']);
         $this->assertEquals(2, $data['variants_count']);
-        $this->assertEquals(15, $data['inventory']['total_quantity']); // 10 + 5
-        $this->assertEquals(2, $data['inventory']['in_stock_variants']);
-        $this->assertTrue($data['inventory']['all_in_stock']);
+        $this->assertEquals(15, $data['product_inventory']['total_quantity']); // 10 + 5
+        $this->assertEquals(2, $data['product_inventory']['in_stock_variants']);
+        $this->assertTrue($data['product_inventory']['all_in_stock']);
 
         // Check variant details
         $variantData = collect($data['variants'])->firstWhere('sku', 'SKU-001');
         $this->assertNotNull($variantData);
         $this->assertStringContainsString('Large', $variantData['variant_name']);
         $this->assertStringContainsString('Red', $variantData['variant_name']);
-        $this->assertEquals(5999, $variantData['price']['amount']);
-        $this->assertEquals(10, $variantData['inventory']['quantity']);
-        $this->assertTrue($variantData['inventory']['in_stock']);
+        $this->assertEquals(5999, $variantData['variant_price']['amount']);
+        $this->assertEquals(10, $variantData['variant_inventory']['quantity']);
+        $this->assertTrue($variantData['variant_inventory']['in_stock']);
     }
 
     /**
@@ -129,6 +140,8 @@ class ProductVariantsApiTest extends TestCase
      */
     public function test_products_list_includes_variants_summary(): void
     {
+        $this->enableInventoryTracking();
+
         ProductVariant::factory()->count(3)->create([
             'connected_product_id' => $this->product->id,
             'stripe_account_id' => $this->store->stripe_account_id,
@@ -145,18 +158,18 @@ class ProductVariantsApiTest extends TestCase
                     'name',
                     'variants',
                     'variants_count',
-                    'inventory',
+                    'product_inventory',
                 ],
             ],
         ]);
 
         $products = $response->json('product');
         $product = collect($products)->firstWhere('id', $this->product->id);
-        
+
         $this->assertNotNull($product);
         $this->assertCount(3, $product['variants']);
         $this->assertEquals(3, $product['variants_count']);
-        $this->assertEquals(30, $product['inventory']['total_quantity']);
+        $this->assertEquals(30, $product['product_inventory']['total_quantity']);
     }
 
     /**
@@ -168,12 +181,12 @@ class ProductVariantsApiTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json('product');
-        
+
         $this->assertIsArray($data['variants']);
         $this->assertCount(0, $data['variants']);
         $this->assertEquals(0, $data['variants_count']);
-        $this->assertFalse($data['inventory']['tracked']);
-        $this->assertNull($data['inventory']['total_quantity']);
+        $this->assertFalse($data['product_inventory']['tracked']);
+        $this->assertNull($data['product_inventory']['total_quantity']);
     }
 
     /**
@@ -181,6 +194,8 @@ class ProductVariantsApiTest extends TestCase
      */
     public function test_product_with_out_of_stock_variants(): void
     {
+        $this->enableInventoryTracking();
+
         $inStock = ProductVariant::factory()->create([
             'connected_product_id' => $this->product->id,
             'stripe_account_id' => $this->store->stripe_account_id,
@@ -197,10 +212,10 @@ class ProductVariantsApiTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json('product');
-        
-        $this->assertEquals(1, $data['inventory']['in_stock_variants']);
-        $this->assertEquals(1, $data['inventory']['out_of_stock_variants']);
-        $this->assertFalse($data['inventory']['all_in_stock']);
+
+        $this->assertEquals(1, $data['product_inventory']['in_stock_variants']);
+        $this->assertEquals(1, $data['product_inventory']['out_of_stock_variants']);
+        $this->assertFalse($data['product_inventory']['all_in_stock']);
     }
 
     /**
@@ -223,23 +238,22 @@ class ProductVariantsApiTest extends TestCase
 
         $response->assertStatus(200);
         $variantData = collect($response->json('product.variants'))->first();
-        
+
         // Variant options should now be an array
         $this->assertIsArray($variantData['variant_options']);
         $this->assertCount(3, $variantData['variant_options']);
-        
+
         // Find options by name
         $sizeOption = collect($variantData['variant_options'])->firstWhere('name', 'Size');
         $this->assertNotNull($sizeOption);
         $this->assertEquals('Large', $sizeOption['value']);
-        
+
         $colorOption = collect($variantData['variant_options'])->firstWhere('name', 'Color');
         $this->assertNotNull($colorOption);
         $this->assertEquals('Red', $colorOption['value']);
-        
+
         $materialOption = collect($variantData['variant_options'])->firstWhere('name', 'Material');
         $this->assertNotNull($materialOption);
         $this->assertEquals('Cotton', $materialOption['value']);
     }
 }
-

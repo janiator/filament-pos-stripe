@@ -1,18 +1,20 @@
 <?php
+
 /**
  * TerminalsApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * TerminalsApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class TerminalsApi
@@ -73,7 +75,7 @@ class TerminalsApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'createTerminalConnectionToken' => [
             'application/json',
@@ -87,13 +89,13 @@ class TerminalsApi
         'listTerminalReaders' => [
             'application/json',
         ],
+        'registerTerminalReaderFromCode' => [
+            'application/json',
+        ],
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -101,16 +103,16 @@ class TerminalsApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -140,17 +142,18 @@ class TerminalsApi
      *
      * Create terminal connection token
      *
-     * @param  string $store Store ID or slug (required)
-     * @param  \OpenAPI\Client\Model\CreateTerminalConnectionTokenRequest|null $create_terminal_connection_token_request create_terminal_connection_token_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createTerminalConnectionToken'] to see the possible values for this operation
+     * @param  string  $store  Store ID or slug (required)
+     * @param  \OpenAPIClient\Model\CreateTerminalConnectionTokenRequest|null  $create_terminal_connection_token_request  create_terminal_connection_token_request (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createTerminalConnectionToken'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CreateTerminalConnectionToken200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\CreateTerminalConnectionToken200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function createTerminalConnectionToken($store, $create_terminal_connection_token_request = null, string $contentType = self::contentTypes['createTerminalConnectionToken'][0])
     {
-        list($response) = $this->createTerminalConnectionTokenWithHttpInfo($store, $create_terminal_connection_token_request, $contentType);
+        [$response] = $this->createTerminalConnectionTokenWithHttpInfo($store, $create_terminal_connection_token_request, $contentType);
+
         return $response;
     }
 
@@ -159,13 +162,13 @@ class TerminalsApi
      *
      * Create terminal connection token
      *
-     * @param  string $store Store ID or slug (required)
-     * @param  \OpenAPI\Client\Model\CreateTerminalConnectionTokenRequest|null $create_terminal_connection_token_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createTerminalConnectionToken'] to see the possible values for this operation
+     * @param  string  $store  Store ID or slug (required)
+     * @param  \OpenAPIClient\Model\CreateTerminalConnectionTokenRequest|null  $create_terminal_connection_token_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createTerminalConnectionToken'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CreateTerminalConnectionToken200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\CreateTerminalConnectionToken200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function createTerminalConnectionTokenWithHttpInfo($store, $create_terminal_connection_token_request = null, string $contentType = self::contentTypes['createTerminalConnectionToken'][0])
     {
@@ -193,35 +196,32 @@ class TerminalsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CreateTerminalConnectionToken200Response',
+                        '\OpenAPIClient\Model\CreateTerminalConnectionToken200Response',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 422:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -237,7 +237,7 @@ class TerminalsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\CreateTerminalConnectionToken200Response',
+                '\OpenAPIClient\Model\CreateTerminalConnectionToken200Response',
                 $request,
                 $response,
             );
@@ -246,7 +246,7 @@ class TerminalsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CreateTerminalConnectionToken200Response',
+                        '\OpenAPIClient\Model\CreateTerminalConnectionToken200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -254,7 +254,7 @@ class TerminalsApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -262,7 +262,7 @@ class TerminalsApi
                 case 422:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -270,13 +270,12 @@ class TerminalsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -287,12 +286,12 @@ class TerminalsApi
      *
      * Create terminal connection token
      *
-     * @param  string $store Store ID or slug (required)
-     * @param  \OpenAPI\Client\Model\CreateTerminalConnectionTokenRequest|null $create_terminal_connection_token_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createTerminalConnectionToken'] to see the possible values for this operation
+     * @param  string  $store  Store ID or slug (required)
+     * @param  \OpenAPIClient\Model\CreateTerminalConnectionTokenRequest|null  $create_terminal_connection_token_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createTerminalConnectionToken'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createTerminalConnectionTokenAsync($store, $create_terminal_connection_token_request = null, string $contentType = self::contentTypes['createTerminalConnectionToken'][0])
     {
@@ -309,16 +308,16 @@ class TerminalsApi
      *
      * Create terminal connection token
      *
-     * @param  string $store Store ID or slug (required)
-     * @param  \OpenAPI\Client\Model\CreateTerminalConnectionTokenRequest|null $create_terminal_connection_token_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createTerminalConnectionToken'] to see the possible values for this operation
+     * @param  string  $store  Store ID or slug (required)
+     * @param  \OpenAPIClient\Model\CreateTerminalConnectionTokenRequest|null  $create_terminal_connection_token_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createTerminalConnectionToken'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createTerminalConnectionTokenAsyncWithHttpInfo($store, $create_terminal_connection_token_request = null, string $contentType = self::contentTypes['createTerminalConnectionToken'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\CreateTerminalConnectionToken200Response';
+        $returnType = '\OpenAPIClient\Model\CreateTerminalConnectionToken200Response';
         $request = $this->createTerminalConnectionTokenRequest($store, $create_terminal_connection_token_request, $contentType);
 
         return $this->client
@@ -326,7 +325,7 @@ class TerminalsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -337,7 +336,7 @@ class TerminalsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -360,12 +359,12 @@ class TerminalsApi
     /**
      * Create request for operation 'createTerminalConnectionToken'
      *
-     * @param  string $store Store ID or slug (required)
-     * @param  \OpenAPI\Client\Model\CreateTerminalConnectionTokenRequest|null $create_terminal_connection_token_request (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createTerminalConnectionToken'] to see the possible values for this operation
+     * @param  string  $store  Store ID or slug (required)
+     * @param  \OpenAPIClient\Model\CreateTerminalConnectionTokenRequest|null  $create_terminal_connection_token_request  (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createTerminalConnectionToken'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function createTerminalConnectionTokenRequest($store, $create_terminal_connection_token_request = null, string $contentType = self::contentTypes['createTerminalConnectionToken'][0])
     {
@@ -377,8 +376,6 @@ class TerminalsApi
             );
         }
 
-
-
         $resourcePath = '/stores/{store}/terminal/connection-token';
         $formParams = [];
         $queryParams = [];
@@ -386,20 +383,17 @@ class TerminalsApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($store !== null) {
             $resourcePath = str_replace(
-                '{' . 'store' . '}',
+                '{'.'store'.'}',
                 ObjectSerializer::toPathValue($store),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -407,7 +401,7 @@ class TerminalsApi
         // for model (json/xml)
         if (isset($create_terminal_connection_token_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($create_terminal_connection_token_request));
             } else {
                 $httpBody = $create_terminal_connection_token_request;
@@ -420,7 +414,7 @@ class TerminalsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -428,7 +422,7 @@ class TerminalsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -437,8 +431,8 @@ class TerminalsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -454,9 +448,10 @@ class TerminalsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -467,17 +462,18 @@ class TerminalsApi
      *
      * Create payment intent
      *
-     * @param  string $store Store ID or slug (required)
-     * @param  \OpenAPI\Client\Model\CreateTerminalPaymentIntentRequest $create_terminal_payment_intent_request create_terminal_payment_intent_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createTerminalPaymentIntent'] to see the possible values for this operation
+     * @param  string  $store  Store ID or slug (required)
+     * @param  \OpenAPIClient\Model\CreateTerminalPaymentIntentRequest  $create_terminal_payment_intent_request  create_terminal_payment_intent_request (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createTerminalPaymentIntent'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\CreateTerminalPaymentIntent201Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\CreateTerminalPaymentIntent201Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function createTerminalPaymentIntent($store, $create_terminal_payment_intent_request, string $contentType = self::contentTypes['createTerminalPaymentIntent'][0])
     {
-        list($response) = $this->createTerminalPaymentIntentWithHttpInfo($store, $create_terminal_payment_intent_request, $contentType);
+        [$response] = $this->createTerminalPaymentIntentWithHttpInfo($store, $create_terminal_payment_intent_request, $contentType);
+
         return $response;
     }
 
@@ -486,13 +482,13 @@ class TerminalsApi
      *
      * Create payment intent
      *
-     * @param  string $store Store ID or slug (required)
-     * @param  \OpenAPI\Client\Model\CreateTerminalPaymentIntentRequest $create_terminal_payment_intent_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createTerminalPaymentIntent'] to see the possible values for this operation
+     * @param  string  $store  Store ID or slug (required)
+     * @param  \OpenAPIClient\Model\CreateTerminalPaymentIntentRequest  $create_terminal_payment_intent_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createTerminalPaymentIntent'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\CreateTerminalPaymentIntent201Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\CreateTerminalPaymentIntent201Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function createTerminalPaymentIntentWithHttpInfo($store, $create_terminal_payment_intent_request, string $contentType = self::contentTypes['createTerminalPaymentIntent'][0])
     {
@@ -520,35 +516,32 @@ class TerminalsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 201:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\CreateTerminalPaymentIntent201Response',
+                        '\OpenAPIClient\Model\CreateTerminalPaymentIntent201Response',
                         $request,
                         $response,
                     );
                 case 422:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 500:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -564,7 +557,7 @@ class TerminalsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\CreateTerminalPaymentIntent201Response',
+                '\OpenAPIClient\Model\CreateTerminalPaymentIntent201Response',
                 $request,
                 $response,
             );
@@ -573,7 +566,7 @@ class TerminalsApi
                 case 201:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\CreateTerminalPaymentIntent201Response',
+                        '\OpenAPIClient\Model\CreateTerminalPaymentIntent201Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -581,7 +574,7 @@ class TerminalsApi
                 case 422:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -589,7 +582,7 @@ class TerminalsApi
                 case 500:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -597,13 +590,12 @@ class TerminalsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -614,12 +606,12 @@ class TerminalsApi
      *
      * Create payment intent
      *
-     * @param  string $store Store ID or slug (required)
-     * @param  \OpenAPI\Client\Model\CreateTerminalPaymentIntentRequest $create_terminal_payment_intent_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createTerminalPaymentIntent'] to see the possible values for this operation
+     * @param  string  $store  Store ID or slug (required)
+     * @param  \OpenAPIClient\Model\CreateTerminalPaymentIntentRequest  $create_terminal_payment_intent_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createTerminalPaymentIntent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createTerminalPaymentIntentAsync($store, $create_terminal_payment_intent_request, string $contentType = self::contentTypes['createTerminalPaymentIntent'][0])
     {
@@ -636,16 +628,16 @@ class TerminalsApi
      *
      * Create payment intent
      *
-     * @param  string $store Store ID or slug (required)
-     * @param  \OpenAPI\Client\Model\CreateTerminalPaymentIntentRequest $create_terminal_payment_intent_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createTerminalPaymentIntent'] to see the possible values for this operation
+     * @param  string  $store  Store ID or slug (required)
+     * @param  \OpenAPIClient\Model\CreateTerminalPaymentIntentRequest  $create_terminal_payment_intent_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createTerminalPaymentIntent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createTerminalPaymentIntentAsyncWithHttpInfo($store, $create_terminal_payment_intent_request, string $contentType = self::contentTypes['createTerminalPaymentIntent'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\CreateTerminalPaymentIntent201Response';
+        $returnType = '\OpenAPIClient\Model\CreateTerminalPaymentIntent201Response';
         $request = $this->createTerminalPaymentIntentRequest($store, $create_terminal_payment_intent_request, $contentType);
 
         return $this->client
@@ -653,7 +645,7 @@ class TerminalsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -664,7 +656,7 @@ class TerminalsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -687,12 +679,12 @@ class TerminalsApi
     /**
      * Create request for operation 'createTerminalPaymentIntent'
      *
-     * @param  string $store Store ID or slug (required)
-     * @param  \OpenAPI\Client\Model\CreateTerminalPaymentIntentRequest $create_terminal_payment_intent_request (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createTerminalPaymentIntent'] to see the possible values for this operation
+     * @param  string  $store  Store ID or slug (required)
+     * @param  \OpenAPIClient\Model\CreateTerminalPaymentIntentRequest  $create_terminal_payment_intent_request  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createTerminalPaymentIntent'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function createTerminalPaymentIntentRequest($store, $create_terminal_payment_intent_request, string $contentType = self::contentTypes['createTerminalPaymentIntent'][0])
     {
@@ -711,7 +703,6 @@ class TerminalsApi
             );
         }
 
-
         $resourcePath = '/stores/{store}/terminal/payment-intents';
         $formParams = [];
         $queryParams = [];
@@ -719,20 +710,17 @@ class TerminalsApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($store !== null) {
             $resourcePath = str_replace(
-                '{' . 'store' . '}',
+                '{'.'store'.'}',
                 ObjectSerializer::toPathValue($store),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -740,7 +728,7 @@ class TerminalsApi
         // for model (json/xml)
         if (isset($create_terminal_payment_intent_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($create_terminal_payment_intent_request));
             } else {
                 $httpBody = $create_terminal_payment_intent_request;
@@ -753,7 +741,7 @@ class TerminalsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -761,7 +749,7 @@ class TerminalsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -770,8 +758,8 @@ class TerminalsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -787,9 +775,10 @@ class TerminalsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -800,15 +789,17 @@ class TerminalsApi
      *
      * List terminal locations
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listTerminalLocations'] to see the possible values for this operation
+     * @param  string|null  $device_identifier  POS device identifier; when set, response may include last_connected for this device (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listTerminalLocations'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ListTerminalLocations200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ListTerminalLocations200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
-    public function listTerminalLocations(string $contentType = self::contentTypes['listTerminalLocations'][0])
+    public function listTerminalLocations($device_identifier = null, string $contentType = self::contentTypes['listTerminalLocations'][0])
     {
-        list($response) = $this->listTerminalLocationsWithHttpInfo($contentType);
+        [$response] = $this->listTerminalLocationsWithHttpInfo($device_identifier, $contentType);
+
         return $response;
     }
 
@@ -817,15 +808,16 @@ class TerminalsApi
      *
      * List terminal locations
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listTerminalLocations'] to see the possible values for this operation
+     * @param  string|null  $device_identifier  POS device identifier; when set, response may include last_connected for this device (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listTerminalLocations'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ListTerminalLocations200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ListTerminalLocations200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
-    public function listTerminalLocationsWithHttpInfo(string $contentType = self::contentTypes['listTerminalLocations'][0])
+    public function listTerminalLocationsWithHttpInfo($device_identifier = null, string $contentType = self::contentTypes['listTerminalLocations'][0])
     {
-        $request = $this->listTerminalLocationsRequest($contentType);
+        $request = $this->listTerminalLocationsRequest($device_identifier, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -849,29 +841,26 @@ class TerminalsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ListTerminalLocations200Response',
+                        '\OpenAPIClient\Model\ListTerminalLocations200Response',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -887,7 +876,7 @@ class TerminalsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ListTerminalLocations200Response',
+                '\OpenAPIClient\Model\ListTerminalLocations200Response',
                 $request,
                 $response,
             );
@@ -896,7 +885,7 @@ class TerminalsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ListTerminalLocations200Response',
+                        '\OpenAPIClient\Model\ListTerminalLocations200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -904,7 +893,7 @@ class TerminalsApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -912,13 +901,12 @@ class TerminalsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -929,14 +917,15 @@ class TerminalsApi
      *
      * List terminal locations
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listTerminalLocations'] to see the possible values for this operation
+     * @param  string|null  $device_identifier  POS device identifier; when set, response may include last_connected for this device (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listTerminalLocations'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function listTerminalLocationsAsync(string $contentType = self::contentTypes['listTerminalLocations'][0])
+    public function listTerminalLocationsAsync($device_identifier = null, string $contentType = self::contentTypes['listTerminalLocations'][0])
     {
-        return $this->listTerminalLocationsAsyncWithHttpInfo($contentType)
+        return $this->listTerminalLocationsAsyncWithHttpInfo($device_identifier, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -949,22 +938,23 @@ class TerminalsApi
      *
      * List terminal locations
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listTerminalLocations'] to see the possible values for this operation
+     * @param  string|null  $device_identifier  POS device identifier; when set, response may include last_connected for this device (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listTerminalLocations'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function listTerminalLocationsAsyncWithHttpInfo(string $contentType = self::contentTypes['listTerminalLocations'][0])
+    public function listTerminalLocationsAsyncWithHttpInfo($device_identifier = null, string $contentType = self::contentTypes['listTerminalLocations'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ListTerminalLocations200Response';
-        $request = $this->listTerminalLocationsRequest($contentType);
+        $returnType = '\OpenAPIClient\Model\ListTerminalLocations200Response';
+        $request = $this->listTerminalLocationsRequest($device_identifier, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -975,7 +965,7 @@ class TerminalsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -998,14 +988,14 @@ class TerminalsApi
     /**
      * Create request for operation 'listTerminalLocations'
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listTerminalLocations'] to see the possible values for this operation
+     * @param  string|null  $device_identifier  POS device identifier; when set, response may include last_connected for this device (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listTerminalLocations'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
-    public function listTerminalLocationsRequest(string $contentType = self::contentTypes['listTerminalLocations'][0])
+    public function listTerminalLocationsRequest($device_identifier = null, string $contentType = self::contentTypes['listTerminalLocations'][0])
     {
-
 
         $resourcePath = '/terminals/locations';
         $formParams = [];
@@ -1014,12 +1004,18 @@ class TerminalsApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $device_identifier,
+            'device_identifier', // param base name
+            'string', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
 
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1033,7 +1029,7 @@ class TerminalsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1041,7 +1037,7 @@ class TerminalsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1050,8 +1046,8 @@ class TerminalsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1067,9 +1063,10 @@ class TerminalsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1080,15 +1077,16 @@ class TerminalsApi
      *
      * List terminal readers
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listTerminalReaders'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listTerminalReaders'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ListTerminalReaders200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ListTerminalReaders200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function listTerminalReaders(string $contentType = self::contentTypes['listTerminalReaders'][0])
     {
-        list($response) = $this->listTerminalReadersWithHttpInfo($contentType);
+        [$response] = $this->listTerminalReadersWithHttpInfo($contentType);
+
         return $response;
     }
 
@@ -1097,11 +1095,11 @@ class TerminalsApi
      *
      * List terminal readers
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listTerminalReaders'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listTerminalReaders'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ListTerminalReaders200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ListTerminalReaders200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function listTerminalReadersWithHttpInfo(string $contentType = self::contentTypes['listTerminalReaders'][0])
     {
@@ -1129,29 +1127,26 @@ class TerminalsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ListTerminalReaders200Response',
+                        '\OpenAPIClient\Model\ListTerminalReaders200Response',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1167,7 +1162,7 @@ class TerminalsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ListTerminalReaders200Response',
+                '\OpenAPIClient\Model\ListTerminalReaders200Response',
                 $request,
                 $response,
             );
@@ -1176,7 +1171,7 @@ class TerminalsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ListTerminalReaders200Response',
+                        '\OpenAPIClient\Model\ListTerminalReaders200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1184,7 +1179,7 @@ class TerminalsApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1192,13 +1187,12 @@ class TerminalsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1209,10 +1203,10 @@ class TerminalsApi
      *
      * List terminal readers
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listTerminalReaders'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listTerminalReaders'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listTerminalReadersAsync(string $contentType = self::contentTypes['listTerminalReaders'][0])
     {
@@ -1229,14 +1223,14 @@ class TerminalsApi
      *
      * List terminal readers
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listTerminalReaders'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listTerminalReaders'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listTerminalReadersAsyncWithHttpInfo(string $contentType = self::contentTypes['listTerminalReaders'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ListTerminalReaders200Response';
+        $returnType = '\OpenAPIClient\Model\ListTerminalReaders200Response';
         $request = $this->listTerminalReadersRequest($contentType);
 
         return $this->client
@@ -1244,7 +1238,7 @@ class TerminalsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1255,7 +1249,7 @@ class TerminalsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1278,14 +1272,13 @@ class TerminalsApi
     /**
      * Create request for operation 'listTerminalReaders'
      *
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listTerminalReaders'] to see the possible values for this operation
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listTerminalReaders'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function listTerminalReadersRequest(string $contentType = self::contentTypes['listTerminalReaders'][0])
     {
-
 
         $resourcePath = '/terminals/readers';
         $formParams = [];
@@ -1294,12 +1287,8 @@ class TerminalsApi
         $httpBody = '';
         $multipart = false;
 
-
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1313,7 +1302,7 @@ class TerminalsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1321,7 +1310,7 @@ class TerminalsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1330,8 +1319,8 @@ class TerminalsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1347,9 +1336,326 @@ class TerminalsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation registerTerminalReaderFromCode
+     *
+     * Register terminal reader from registration code
+     *
+     * @param  \OpenAPIClient\Model\RegisterTerminalReaderFromCodeRequest  $register_terminal_reader_from_code_request  register_terminal_reader_from_code_request (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s current store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerTerminalReaderFromCode'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\RegisterTerminalReaderFromCode201Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function registerTerminalReaderFromCode($register_terminal_reader_from_code_request, $x_tenant = null, string $contentType = self::contentTypes['registerTerminalReaderFromCode'][0])
+    {
+        [$response] = $this->registerTerminalReaderFromCodeWithHttpInfo($register_terminal_reader_from_code_request, $x_tenant, $contentType);
+
+        return $response;
+    }
+
+    /**
+     * Operation registerTerminalReaderFromCodeWithHttpInfo
+     *
+     * Register terminal reader from registration code
+     *
+     * @param  \OpenAPIClient\Model\RegisterTerminalReaderFromCodeRequest  $register_terminal_reader_from_code_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s current store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerTerminalReaderFromCode'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\RegisterTerminalReaderFromCode201Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     */
+    public function registerTerminalReaderFromCodeWithHttpInfo($register_terminal_reader_from_code_request, $x_tenant = null, string $contentType = self::contentTypes['registerTerminalReaderFromCode'][0])
+    {
+        $request = $this->registerTerminalReaderFromCodeRequest($register_terminal_reader_from_code_request, $x_tenant, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+            switch ($statusCode) {
+                case 201:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\RegisterTerminalReaderFromCode201Response',
+                        $request,
+                        $response,
+                    );
+                case 404:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+                case 422:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $request,
+                        $response,
+                    );
+            }
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\OpenAPIClient\Model\RegisterTerminalReaderFromCode201Response',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 201:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\RegisterTerminalReaderFromCode201Response',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 404:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 422:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\OpenAPIClient\Model\ErrorResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation registerTerminalReaderFromCodeAsync
+     *
+     * Register terminal reader from registration code
+     *
+     * @param  \OpenAPIClient\Model\RegisterTerminalReaderFromCodeRequest  $register_terminal_reader_from_code_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s current store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerTerminalReaderFromCode'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function registerTerminalReaderFromCodeAsync($register_terminal_reader_from_code_request, $x_tenant = null, string $contentType = self::contentTypes['registerTerminalReaderFromCode'][0])
+    {
+        return $this->registerTerminalReaderFromCodeAsyncWithHttpInfo($register_terminal_reader_from_code_request, $x_tenant, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation registerTerminalReaderFromCodeAsyncWithHttpInfo
+     *
+     * Register terminal reader from registration code
+     *
+     * @param  \OpenAPIClient\Model\RegisterTerminalReaderFromCodeRequest  $register_terminal_reader_from_code_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s current store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerTerminalReaderFromCode'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function registerTerminalReaderFromCodeAsyncWithHttpInfo($register_terminal_reader_from_code_request, $x_tenant = null, string $contentType = self::contentTypes['registerTerminalReaderFromCode'][0])
+    {
+        $returnType = '\OpenAPIClient\Model\RegisterTerminalReaderFromCode201Response';
+        $request = $this->registerTerminalReaderFromCodeRequest($register_terminal_reader_from_code_request, $x_tenant, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); // stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders(),
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'registerTerminalReaderFromCode'
+     *
+     * @param  \OpenAPIClient\Model\RegisterTerminalReaderFromCodeRequest  $register_terminal_reader_from_code_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s current store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['registerTerminalReaderFromCode'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function registerTerminalReaderFromCodeRequest($register_terminal_reader_from_code_request, $x_tenant = null, string $contentType = self::contentTypes['registerTerminalReaderFromCode'][0])
+    {
+
+        // verify the required parameter 'register_terminal_reader_from_code_request' is set
+        if ($register_terminal_reader_from_code_request === null || (is_array($register_terminal_reader_from_code_request) && count($register_terminal_reader_from_code_request) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $register_terminal_reader_from_code_request when calling registerTerminalReaderFromCode'
+            );
+        }
+
+        $resourcePath = '/terminals/readers/register-from-code';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+        // header params
+        if ($x_tenant !== null) {
+            $headerParams['X-Tenant'] = ObjectSerializer::toHeaderValue($x_tenant);
+        }
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json'],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (isset($register_terminal_reader_from_code_request)) {
+            if (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the body
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($register_terminal_reader_from_code_request));
+            } else {
+                $httpBody = $register_terminal_reader_from_code_request;
+            }
+        } elseif (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem,
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                // if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires Bearer (JWT) authentication (access token)
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+
+        return new Request(
+            'POST',
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1358,16 +1664,17 @@ class TerminalsApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -1388,7 +1695,7 @@ class TerminalsApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -1411,7 +1718,7 @@ class TerminalsApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

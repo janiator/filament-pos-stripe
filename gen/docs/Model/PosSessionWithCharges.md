@@ -20,12 +20,14 @@ Name | Type | Description | Notes
 **closing_data** | **array<string,mixed>** |  | [optional]
 **opened_at** | **\DateTime** |  | [optional]
 **closed_at** | **\DateTime** |  | [optional]
-**session_device** | [**\OpenAPI\Client\Model\PosSessionSessionDevice**](PosSessionSessionDevice.md) |  | [optional]
-**session_user** | [**\OpenAPI\Client\Model\PosSessionSessionUser**](PosSessionSessionUser.md) |  | [optional]
+**session_device** | [**\OpenAPIClient\Model\PosSessionSessionDevice**](PosSessionSessionDevice.md) |  | [optional]
+**session_user** | [**\OpenAPIClient\Model\PosSessionSessionUser**](PosSessionSessionUser.md) |  | [optional]
 **transaction_count** | **int** | Number of successful transactions | [optional]
 **total_amount** | **int** | Total amount in øre | [optional]
+**cash_withdrawals** | [**\OpenAPIClient\Model\PosSessionCashWithdrawals**](PosSessionCashWithdrawals.md) |  | [optional]
+**cash_deposits** | [**\OpenAPIClient\Model\PosSessionCashDeposits**](PosSessionCashDeposits.md) |  | [optional]
 **created_at** | **\DateTime** |  | [optional]
 **updated_at** | **\DateTime** |  | [optional]
-**session_charges** | [**\OpenAPI\Client\Model\SessionCharge[]**](SessionCharge.md) |  | [optional]
+**session_charges** | [**\OpenAPIClient\Model\SessionCharge[]**](SessionCharge.md) |  | [optional]
 
 [[Back to Model list]](../../README.md#models) [[Back to API list]](../../README.md#endpoints) [[Back to README]](../../README.md)

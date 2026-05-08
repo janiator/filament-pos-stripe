@@ -17,7 +17,7 @@ class ReceiptTemplatesTable
         return $table
             ->columns([
                 TextColumn::make('template_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'sales' => 'Sales Receipt',
                         'return' => 'Return Receipt',
@@ -34,33 +34,33 @@ class ReceiptTemplatesTable
                     ->sortable(),
 
                 TextColumn::make('store.name')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->default('Global')
                     ->searchable()
                     ->sortable(),
 
                 IconColumn::make('is_custom')
-                    ->label('Custom')
+                    ->label(__('Custom'))
                     ->boolean()
                     ->sortable(),
 
                 TextColumn::make('version')
-                    ->label('Version')
+                    ->label(__('Version'))
                     ->sortable(),
 
                 TextColumn::make('updater.name')
-                    ->label('Last Updated By')
+                    ->label(__('Last Updated By'))
                     ->default('System')
                     ->sortable(),
 
                 TextColumn::make('updated_at')
-                    ->label('Last Updated')
+                    ->label(__('Last Updated'))
                     ->dateTime()
                     ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('template_type')
-                    ->label('Template Type')
+                    ->label(__('Template Type'))
                     ->options([
                         'sales' => 'Sales Receipt',
                         'return' => 'Return Receipt',
@@ -74,7 +74,7 @@ class ReceiptTemplatesTable
                     ]),
 
                 SelectFilter::make('is_custom')
-                    ->label('Custom')
+                    ->label(__('Custom'))
                     ->options([
                         '1' => 'Custom',
                         '0' => 'Default',

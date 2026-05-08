@@ -16,7 +16,9 @@ class EditUser extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Impersonate::make()->record($this->getRecord()),
+            Impersonate::make()
+                ->record($this->getRecord())
+                ->redirectTo(fn (): string => $this->getRecord()->impersonationRedirectUrl()),
             ViewAction::make(),
             DeleteAction::make(),
         ];
@@ -28,7 +30,7 @@ class EditUser extends EditRecord
 
         if ($tokenCount === 0) {
             Notification::make()
-                ->title('No tokens to clear')
+                ->title(__('No tokens to clear'))
                 ->warning()
                 ->send();
 
@@ -41,7 +43,7 @@ class EditUser extends EditRecord
         $this->record->refresh();
 
         Notification::make()
-            ->title('All API tokens cleared')
+            ->title(__('All API tokens cleared'))
             ->body("Successfully revoked {$tokenCount} token(s).")
             ->success()
             ->send();

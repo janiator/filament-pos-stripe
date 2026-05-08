@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PosSession
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * PosSession Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
+class PosSession implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'PosSession';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'store_id' => 'int',
@@ -74,21 +78,25 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         'closing_data' => 'array<string,mixed>',
         'opened_at' => '\DateTime',
         'closed_at' => '\DateTime',
-        'session_device' => '\OpenAPI\Client\Model\PosSessionSessionDevice',
-        'session_user' => '\OpenAPI\Client\Model\PosSessionSessionUser',
+        'session_device' => '\OpenAPIClient\Model\PosSessionSessionDevice',
+        'session_user' => '\OpenAPIClient\Model\PosSessionSessionUser',
         'transaction_count' => 'int',
         'total_amount' => 'int',
+        'cash_withdrawals' => '\OpenAPIClient\Model\PosSessionCashWithdrawals',
+        'cash_deposits' => '\OpenAPIClient\Model\PosSessionCashDeposits',
         'created_at' => '\DateTime',
-        'updated_at' => '\DateTime'
+        'updated_at' => '\DateTime',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'store_id' => null,
@@ -110,15 +118,17 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         'session_user' => null,
         'transaction_count' => null,
         'total_amount' => null,
+        'cash_withdrawals' => null,
+        'cash_deposits' => null,
         'created_at' => 'date-time',
-        'updated_at' => 'date-time'
+        'updated_at' => 'date-time',
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'store_id' => false,
@@ -140,15 +150,17 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         'session_user' => true,
         'transaction_count' => false,
         'total_amount' => false,
+        'cash_withdrawals' => false,
+        'cash_deposits' => false,
         'created_at' => false,
-        'updated_at' => false
+        'updated_at' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -173,8 +185,6 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -184,7 +194,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -194,7 +204,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -203,9 +213,6 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -214,9 +221,6 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -250,8 +254,10 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         'session_user' => 'session_user',
         'transaction_count' => 'transaction_count',
         'total_amount' => 'total_amount',
+        'cash_withdrawals' => 'cash_withdrawals',
+        'cash_deposits' => 'cash_deposits',
         'created_at' => 'created_at',
-        'updated_at' => 'updated_at'
+        'updated_at' => 'updated_at',
     ];
 
     /**
@@ -280,8 +286,10 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         'session_user' => 'setSessionUser',
         'transaction_count' => 'setTransactionCount',
         'total_amount' => 'setTotalAmount',
+        'cash_withdrawals' => 'setCashWithdrawals',
+        'cash_deposits' => 'setCashDeposits',
         'created_at' => 'setCreatedAt',
-        'updated_at' => 'setUpdatedAt'
+        'updated_at' => 'setUpdatedAt',
     ];
 
     /**
@@ -310,8 +318,10 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         'session_user' => 'getSessionUser',
         'transaction_count' => 'getTransactionCount',
         'total_amount' => 'getTotalAmount',
+        'cash_withdrawals' => 'getCashWithdrawals',
+        'cash_deposits' => 'getCashDeposits',
         'created_at' => 'getCreatedAt',
-        'updated_at' => 'getUpdatedAt'
+        'updated_at' => 'getUpdatedAt',
     ];
 
     /**
@@ -356,7 +366,9 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     }
 
     public const STATUS_OPEN = 'open';
+
     public const STATUS_CLOSED = 'closed';
+
     public const STATUS_ABANDONED = 'abandoned';
 
     /**
@@ -383,8 +395,8 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -408,19 +420,19 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         $this->setIfExists('session_user', $data ?? [], null);
         $this->setIfExists('transaction_count', $data ?? [], null);
         $this->setIfExists('total_amount', $data ?? [], null);
+        $this->setIfExists('cash_withdrawals', $data ?? [], null);
+        $this->setIfExists('cash_deposits', $data ?? [], null);
         $this->setIfExists('created_at', $data ?? [], null);
         $this->setIfExists('updated_at', $data ?? [], null);
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -440,7 +452,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         $invalidProperties = [];
 
         $allowedValues = $this->getStatusAllowableValues();
-        if (!is_null($this->container['status']) && !in_array($this->container['status'], $allowedValues, true)) {
+        if (! is_null($this->container['status']) && ! in_array($this->container['status'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'status', must be one of '%s'",
                 $this->container['status'],
@@ -448,11 +460,11 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
             );
         }
 
-        if (!is_null($this->container['opening_notes']) && (mb_strlen($this->container['opening_notes']) > 1000)) {
+        if (! is_null($this->container['opening_notes']) && (mb_strlen($this->container['opening_notes']) > 1000)) {
             $invalidProperties[] = "invalid value for 'opening_notes', the character length must be smaller than or equal to 1000.";
         }
 
-        if (!is_null($this->container['closing_notes']) && (mb_strlen($this->container['closing_notes']) > 1000)) {
+        if (! is_null($this->container['closing_notes']) && (mb_strlen($this->container['closing_notes']) > 1000)) {
             $invalidProperties[] = "invalid value for 'closing_notes', the character length must be smaller than or equal to 1000.";
         }
 
@@ -470,7 +482,6 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -484,8 +495,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets id
      *
-     * @param int|null $id id
-     *
+     * @param  int|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -511,8 +521,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets store_id
      *
-     * @param int|null $store_id store_id
-     *
+     * @param  int|null  $store_id  store_id
      * @return self
      */
     public function setStoreId($store_id)
@@ -538,8 +547,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets pos_device_id
      *
-     * @param int|null $pos_device_id pos_device_id
-     *
+     * @param  int|null  $pos_device_id  pos_device_id
      * @return self
      */
     public function setPosDeviceId($pos_device_id)
@@ -565,8 +573,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets user_id
      *
-     * @param int|null $user_id user_id
-     *
+     * @param  int|null  $user_id  user_id
      * @return self
      */
     public function setUserId($user_id)
@@ -592,8 +599,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets session_number
      *
-     * @param string|null $session_number Zero-padded 6-digit session number
-     *
+     * @param  string|null  $session_number  Zero-padded 6-digit session number
      * @return self
      */
     public function setSessionNumber($session_number)
@@ -619,8 +625,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets status
      *
-     * @param string|null $status status
-     *
+     * @param  string|null  $status  status
      * @return self
      */
     public function setStatus($status)
@@ -629,7 +634,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
             throw new \InvalidArgumentException('non-nullable status cannot be null');
         }
         $allowedValues = $this->getStatusAllowableValues();
-        if (!in_array($status, $allowedValues, true)) {
+        if (! in_array($status, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'status', must be one of '%s'",
@@ -656,8 +661,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets opening_balance
      *
-     * @param int|null $opening_balance Opening cash balance in øre
-     *
+     * @param  int|null  $opening_balance  Opening cash balance in øre
      * @return self
      */
     public function setOpeningBalance($opening_balance)
@@ -683,8 +687,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets expected_cash
      *
-     * @param int|null $expected_cash Expected cash amount in øre
-     *
+     * @param  int|null  $expected_cash  Expected cash amount in øre
      * @return self
      */
     public function setExpectedCash($expected_cash)
@@ -694,7 +697,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('expected_cash', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -717,8 +720,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets actual_cash
      *
-     * @param int|null $actual_cash Actual cash count in øre
-     *
+     * @param  int|null  $actual_cash  Actual cash count in øre
      * @return self
      */
     public function setActualCash($actual_cash)
@@ -728,7 +730,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('actual_cash', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -751,8 +753,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets cash_difference
      *
-     * @param int|null $cash_difference Cash difference in øre
-     *
+     * @param  int|null  $cash_difference  Cash difference in øre
      * @return self
      */
     public function setCashDifference($cash_difference)
@@ -762,7 +763,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('cash_difference', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -785,8 +786,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets opening_notes
      *
-     * @param string|null $opening_notes Free-text notes for session opening (e.g., shift information, initial observations, cashier notes)
-     *
+     * @param  string|null  $opening_notes  Free-text notes for session opening (e.g., shift information, initial observations, cashier notes)
      * @return self
      */
     public function setOpeningNotes($opening_notes)
@@ -796,12 +796,12 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('opening_notes', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
         }
-        if (!is_null($opening_notes) && (mb_strlen($opening_notes) > 1000)) {
+        if (! is_null($opening_notes) && (mb_strlen($opening_notes) > 1000)) {
             throw new \InvalidArgumentException('invalid length for $opening_notes when calling PosSession., must be smaller than or equal to 1000.');
         }
 
@@ -823,8 +823,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets closing_notes
      *
-     * @param string|null $closing_notes Free-text notes for session closing (e.g., cash discrepancies, end-of-shift observations, issues encountered)
-     *
+     * @param  string|null  $closing_notes  Free-text notes for session closing (e.g., cash discrepancies, end-of-shift observations, issues encountered)
      * @return self
      */
     public function setClosingNotes($closing_notes)
@@ -834,12 +833,12 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('closing_notes', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
         }
-        if (!is_null($closing_notes) && (mb_strlen($closing_notes) > 1000)) {
+        if (! is_null($closing_notes) && (mb_strlen($closing_notes) > 1000)) {
             throw new \InvalidArgumentException('invalid length for $closing_notes when calling PosSession., must be smaller than or equal to 1000.');
         }
 
@@ -861,8 +860,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets opening_data
      *
-     * @param array<string,mixed>|null $opening_data opening_data
-     *
+     * @param  array<string,mixed>|null  $opening_data  opening_data
      * @return self
      */
     public function setOpeningData($opening_data)
@@ -872,7 +870,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('opening_data', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -895,8 +893,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets closing_data
      *
-     * @param array<string,mixed>|null $closing_data closing_data
-     *
+     * @param  array<string,mixed>|null  $closing_data  closing_data
      * @return self
      */
     public function setClosingData($closing_data)
@@ -906,7 +903,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('closing_data', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -929,8 +926,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets opened_at
      *
-     * @param \DateTime|null $opened_at opened_at
-     *
+     * @param  \DateTime|null  $opened_at  opened_at
      * @return self
      */
     public function setOpenedAt($opened_at)
@@ -956,8 +952,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets closed_at
      *
-     * @param \DateTime|null $closed_at closed_at
-     *
+     * @param  \DateTime|null  $closed_at  closed_at
      * @return self
      */
     public function setClosedAt($closed_at)
@@ -967,7 +962,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('closed_at', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -980,7 +975,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets session_device
      *
-     * @return \OpenAPI\Client\Model\PosSessionSessionDevice|null
+     * @return \OpenAPIClient\Model\PosSessionSessionDevice|null
      */
     public function getSessionDevice()
     {
@@ -990,8 +985,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets session_device
      *
-     * @param \OpenAPI\Client\Model\PosSessionSessionDevice|null $session_device session_device
-     *
+     * @param  \OpenAPIClient\Model\PosSessionSessionDevice|null  $session_device  session_device
      * @return self
      */
     public function setSessionDevice($session_device)
@@ -1001,7 +995,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('session_device', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1014,7 +1008,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets session_user
      *
-     * @return \OpenAPI\Client\Model\PosSessionSessionUser|null
+     * @return \OpenAPIClient\Model\PosSessionSessionUser|null
      */
     public function getSessionUser()
     {
@@ -1024,8 +1018,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets session_user
      *
-     * @param \OpenAPI\Client\Model\PosSessionSessionUser|null $session_user session_user
-     *
+     * @param  \OpenAPIClient\Model\PosSessionSessionUser|null  $session_user  session_user
      * @return self
      */
     public function setSessionUser($session_user)
@@ -1035,7 +1028,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('session_user', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -1058,8 +1051,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets transaction_count
      *
-     * @param int|null $transaction_count Number of successful transactions
-     *
+     * @param  int|null  $transaction_count  Number of successful transactions
      * @return self
      */
     public function setTransactionCount($transaction_count)
@@ -1085,8 +1077,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets total_amount
      *
-     * @param int|null $total_amount Total amount in øre
-     *
+     * @param  int|null  $total_amount  Total amount in øre
      * @return self
      */
     public function setTotalAmount($total_amount)
@@ -1095,6 +1086,58 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
             throw new \InvalidArgumentException('non-nullable total_amount cannot be null');
         }
         $this->container['total_amount'] = $total_amount;
+
+        return $this;
+    }
+
+    /**
+     * Gets cash_withdrawals
+     *
+     * @return \OpenAPIClient\Model\PosSessionCashWithdrawals|null
+     */
+    public function getCashWithdrawals()
+    {
+        return $this->container['cash_withdrawals'];
+    }
+
+    /**
+     * Sets cash_withdrawals
+     *
+     * @param  \OpenAPIClient\Model\PosSessionCashWithdrawals|null  $cash_withdrawals  cash_withdrawals
+     * @return self
+     */
+    public function setCashWithdrawals($cash_withdrawals)
+    {
+        if (is_null($cash_withdrawals)) {
+            throw new \InvalidArgumentException('non-nullable cash_withdrawals cannot be null');
+        }
+        $this->container['cash_withdrawals'] = $cash_withdrawals;
+
+        return $this;
+    }
+
+    /**
+     * Gets cash_deposits
+     *
+     * @return \OpenAPIClient\Model\PosSessionCashDeposits|null
+     */
+    public function getCashDeposits()
+    {
+        return $this->container['cash_deposits'];
+    }
+
+    /**
+     * Sets cash_deposits
+     *
+     * @param  \OpenAPIClient\Model\PosSessionCashDeposits|null  $cash_deposits  cash_deposits
+     * @return self
+     */
+    public function setCashDeposits($cash_deposits)
+    {
+        if (is_null($cash_deposits)) {
+            throw new \InvalidArgumentException('non-nullable cash_deposits cannot be null');
+        }
+        $this->container['cash_deposits'] = $cash_deposits;
 
         return $this;
     }
@@ -1112,8 +1155,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets created_at
      *
-     * @param \DateTime|null $created_at created_at
-     *
+     * @param  \DateTime|null  $created_at  created_at
      * @return self
      */
     public function setCreatedAt($created_at)
@@ -1139,8 +1181,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets updated_at
      *
-     * @param \DateTime|null $updated_at updated_at
-     *
+     * @param  \DateTime|null  $updated_at  updated_at
      * @return self
      */
     public function setUpdatedAt($updated_at)
@@ -1152,12 +1193,11 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -1167,8 +1207,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -1180,10 +1219,8 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -1197,9 +1234,7 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -1208,15 +1243,16 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -1242,5 +1278,3 @@ class PosSession implements ModelInterface, ArrayAccess, \JsonSerializable
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

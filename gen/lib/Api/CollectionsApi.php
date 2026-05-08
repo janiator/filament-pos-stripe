@@ -1,18 +1,20 @@
 <?php
+
 /**
  * CollectionsApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * CollectionsApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class CollectionsApi
@@ -73,7 +75,7 @@ class CollectionsApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'getCollection' => [
             'application/json',
@@ -84,10 +86,7 @@ class CollectionsApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -95,16 +94,16 @@ class CollectionsApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -134,16 +133,17 @@ class CollectionsApi
      *
      * Get collection
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCollection'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCollection'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetCollection200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GetCollection200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getCollection($id, string $contentType = self::contentTypes['getCollection'][0])
     {
-        list($response) = $this->getCollectionWithHttpInfo($id, $contentType);
+        [$response] = $this->getCollectionWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -152,12 +152,12 @@ class CollectionsApi
      *
      * Get collection
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCollection'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCollection'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetCollection200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GetCollection200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getCollectionWithHttpInfo($id, string $contentType = self::contentTypes['getCollection'][0])
     {
@@ -185,23 +185,20 @@ class CollectionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GetCollection200Response',
+                        '\OpenAPIClient\Model\GetCollection200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -217,7 +214,7 @@ class CollectionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GetCollection200Response',
+                '\OpenAPIClient\Model\GetCollection200Response',
                 $request,
                 $response,
             );
@@ -226,7 +223,7 @@ class CollectionsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GetCollection200Response',
+                        '\OpenAPIClient\Model\GetCollection200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -234,13 +231,12 @@ class CollectionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -251,11 +247,11 @@ class CollectionsApi
      *
      * Get collection
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCollection'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCollection'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getCollectionAsync($id, string $contentType = self::contentTypes['getCollection'][0])
     {
@@ -272,15 +268,15 @@ class CollectionsApi
      *
      * Get collection
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCollection'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCollection'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getCollectionAsyncWithHttpInfo($id, string $contentType = self::contentTypes['getCollection'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GetCollection200Response';
+        $returnType = '\OpenAPIClient\Model\GetCollection200Response';
         $request = $this->getCollectionRequest($id, $contentType);
 
         return $this->client
@@ -288,7 +284,7 @@ class CollectionsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -299,7 +295,7 @@ class CollectionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -322,11 +318,11 @@ class CollectionsApi
     /**
      * Create request for operation 'getCollection'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCollection'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCollection'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getCollectionRequest($id, string $contentType = self::contentTypes['getCollection'][0])
     {
@@ -338,7 +334,6 @@ class CollectionsApi
             );
         }
 
-
         $resourcePath = '/collections/{id}';
         $formParams = [];
         $queryParams = [];
@@ -346,20 +341,17 @@ class CollectionsApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -373,7 +365,7 @@ class CollectionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -381,7 +373,7 @@ class CollectionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -390,8 +382,8 @@ class CollectionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -407,9 +399,10 @@ class CollectionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -420,18 +413,19 @@ class CollectionsApi
      *
      * List collections
      *
-     * @param  string|null $search Search term (name or description) (optional)
-     * @param  bool|null $active Filter by active status (defaults to true) (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 50)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listCollections'] to see the possible values for this operation
+     * @param  string|null  $search  Search term (name or description) (optional)
+     * @param  bool|null  $active  Filter by active status (defaults to true) (optional)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 50)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listCollections'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ListCollections200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ListCollections200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function listCollections($search = null, $active = null, $per_page = 50, string $contentType = self::contentTypes['listCollections'][0])
     {
-        list($response) = $this->listCollectionsWithHttpInfo($search, $active, $per_page, $contentType);
+        [$response] = $this->listCollectionsWithHttpInfo($search, $active, $per_page, $contentType);
+
         return $response;
     }
 
@@ -440,14 +434,14 @@ class CollectionsApi
      *
      * List collections
      *
-     * @param  string|null $search Search term (name or description) (optional)
-     * @param  bool|null $active Filter by active status (defaults to true) (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 50)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listCollections'] to see the possible values for this operation
+     * @param  string|null  $search  Search term (name or description) (optional)
+     * @param  bool|null  $active  Filter by active status (defaults to true) (optional)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 50)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listCollections'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ListCollections200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ListCollections200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function listCollectionsWithHttpInfo($search = null, $active = null, $per_page = 50, string $contentType = self::contentTypes['listCollections'][0])
     {
@@ -475,23 +469,20 @@ class CollectionsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ListCollections200Response',
+                        '\OpenAPIClient\Model\ListCollections200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -507,7 +498,7 @@ class CollectionsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ListCollections200Response',
+                '\OpenAPIClient\Model\ListCollections200Response',
                 $request,
                 $response,
             );
@@ -516,7 +507,7 @@ class CollectionsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ListCollections200Response',
+                        '\OpenAPIClient\Model\ListCollections200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -524,13 +515,12 @@ class CollectionsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -541,13 +531,13 @@ class CollectionsApi
      *
      * List collections
      *
-     * @param  string|null $search Search term (name or description) (optional)
-     * @param  bool|null $active Filter by active status (defaults to true) (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 50)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listCollections'] to see the possible values for this operation
+     * @param  string|null  $search  Search term (name or description) (optional)
+     * @param  bool|null  $active  Filter by active status (defaults to true) (optional)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 50)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listCollections'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listCollectionsAsync($search = null, $active = null, $per_page = 50, string $contentType = self::contentTypes['listCollections'][0])
     {
@@ -564,17 +554,17 @@ class CollectionsApi
      *
      * List collections
      *
-     * @param  string|null $search Search term (name or description) (optional)
-     * @param  bool|null $active Filter by active status (defaults to true) (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 50)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listCollections'] to see the possible values for this operation
+     * @param  string|null  $search  Search term (name or description) (optional)
+     * @param  bool|null  $active  Filter by active status (defaults to true) (optional)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 50)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listCollections'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function listCollectionsAsyncWithHttpInfo($search = null, $active = null, $per_page = 50, string $contentType = self::contentTypes['listCollections'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ListCollections200Response';
+        $returnType = '\OpenAPIClient\Model\ListCollections200Response';
         $request = $this->listCollectionsRequest($search, $active, $per_page, $contentType);
 
         return $this->client
@@ -582,7 +572,7 @@ class CollectionsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -593,7 +583,7 @@ class CollectionsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -616,23 +606,20 @@ class CollectionsApi
     /**
      * Create request for operation 'listCollections'
      *
-     * @param  string|null $search Search term (name or description) (optional)
-     * @param  bool|null $active Filter by active status (defaults to true) (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 50)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listCollections'] to see the possible values for this operation
+     * @param  string|null  $search  Search term (name or description) (optional)
+     * @param  bool|null  $active  Filter by active status (defaults to true) (optional)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 50)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listCollections'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function listCollectionsRequest($search = null, $active = null, $per_page = 50, string $contentType = self::contentTypes['listCollections'][0])
     {
 
-
-
         if ($per_page !== null && $per_page > 100) {
             throw new \InvalidArgumentException('invalid value for "$per_page" when calling CollectionsApi.listCollections, must be smaller than or equal to 100.');
         }
-        
 
         $resourcePath = '/collections';
         $formParams = [];
@@ -669,11 +656,8 @@ class CollectionsApi
             false // required
         ) ?? []);
 
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -687,7 +671,7 @@ class CollectionsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -695,7 +679,7 @@ class CollectionsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -704,8 +688,8 @@ class CollectionsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -721,9 +705,10 @@ class CollectionsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -732,16 +717,17 @@ class CollectionsApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -762,7 +748,7 @@ class CollectionsApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -785,7 +771,7 @@ class CollectionsApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

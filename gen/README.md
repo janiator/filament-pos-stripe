@@ -1,4 +1,4 @@
-# OpenAPIClient
+# OpenAPI
 
 API for managing Stripe Connect integration for POS systems.
 
@@ -7,14 +7,17 @@ This API provides endpoints for:
 - Store management
 - Customer management
 - POS device registration and management
-- POS session management (Kassasystemforskriften compliance)
+- POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads
 - POS event logging (audit trail)
 - POS transaction operations (void, correction)
 - Receipt generation and management
 - Receipt printer configuration and management
 - Product and inventory management
 - SAF-T file generation (Norwegian tax compliance)
+- PowerOffice Go onboarding and Z-report sync (optional per-store add-on)
+- Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on)
 - Terminal operations (connection tokens and payment intents)
+- Verifone terminal operations (payment start/status/abort)
 
 All endpoints (except login and webhooks) require Bearer token authentication.
 Requests are automatically scoped to the authenticated user's accessible stores.
@@ -53,7 +56,7 @@ Download the files and include `autoload.php`:
 
 ```php
 <?php
-require_once('/path/to/OpenAPIClient/vendor/autoload.php');
+require_once('/path/to/OpenAPI/vendor/autoload.php');
 ```
 
 ## Getting Started
@@ -67,10 +70,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\AuthenticationApi(
+$apiInstance = new OpenAPIClient\Api\AuthenticationApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -108,6 +111,12 @@ Class | Method | HTTP request | Description
 *InventoryApi* | [**getProductInventory**](docs/Api/InventoryApi.md#getproductinventory) | **GET** /products/{product}/inventory | Get product inventory
 *InventoryApi* | [**setInventory**](docs/Api/InventoryApi.md#setinventory) | **POST** /variants/{variant}/inventory/set | Set inventory quantity
 *InventoryApi* | [**updateVariantInventory**](docs/Api/InventoryApi.md#updatevariantinventory) | **PUT** /variants/{variant}/inventory | Update variant inventory
+*MeranoApi* | [**checkMeranoAvailability**](docs/Api/MeranoApi.md#checkmeranoavailability) | **POST** /merano/v1/events/{event}/availability | Check Merano seat availability
+*MeranoApi* | [**confirmMeranoPosPayment**](docs/Api/MeranoApi.md#confirmmeranopospayment) | **POST** /merano/v1/bookings/{booking}/confirm-pos-payment | Confirm Merano POS payment
+*MeranoApi* | [**createMeranoBooking**](docs/Api/MeranoApi.md#createmeranobooking) | **POST** /merano/v1/bookings | Create Merano booking
+*MeranoApi* | [**getMeranoTicketProduct**](docs/Api/MeranoApi.md#getmeranoticketproduct) | **GET** /stores/current/merano-ticket-product | Get Merano ticket product
+*MeranoApi* | [**listMeranoEvents**](docs/Api/MeranoApi.md#listmeranoevents) | **GET** /merano/v1/events | List Merano events
+*MeranoApi* | [**releaseMeranoBooking**](docs/Api/MeranoApi.md#releasemeranobooking) | **POST** /merano/v1/bookings/{booking}/release | Release Merano booking
 *POSDevicesApi* | [**closeCashDrawer**](docs/Api/POSDevicesApi.md#closecashdrawer) | **POST** /pos-devices/{id}/cash-drawer/close | Close cash drawer
 *POSDevicesApi* | [**getPosDevice**](docs/Api/POSDevicesApi.md#getposdevice) | **GET** /pos-devices/{id} | Get POS device
 *POSDevicesApi* | [**listPosDevices**](docs/Api/POSDevicesApi.md#listposdevices) | **GET** /pos-devices | List POS devices
@@ -115,14 +124,19 @@ Class | Method | HTTP request | Description
 *POSDevicesApi* | [**logApplicationStart**](docs/Api/POSDevicesApi.md#logapplicationstart) | **POST** /pos-devices/{id}/start | Log application start
 *POSDevicesApi* | [**openCashDrawer**](docs/Api/POSDevicesApi.md#opencashdrawer) | **POST** /pos-devices/{id}/cash-drawer/open | Open cash drawer
 *POSDevicesApi* | [**patchPosDevice**](docs/Api/POSDevicesApi.md#patchposdevice) | **PATCH** /pos-devices/{id} | Update POS device (partial)
+*POSDevicesApi* | [**registerOrUpdatePosDevice**](docs/Api/POSDevicesApi.md#registerorupdateposdevice) | **POST** /pos-devices/register | Register or update POS device (idempotent by device_name)
 *POSDevicesApi* | [**registerPosDevice**](docs/Api/POSDevicesApi.md#registerposdevice) | **POST** /pos-devices | Register POS device
 *POSDevicesApi* | [**updateDeviceHeartbeat**](docs/Api/POSDevicesApi.md#updatedeviceheartbeat) | **POST** /pos-devices/{id}/heartbeat | Update device heartbeat
 *POSDevicesApi* | [**updatePosDevice**](docs/Api/POSDevicesApi.md#updateposdevice) | **PUT** /pos-devices/{id} | Update POS device
 *POSEventsApi* | [**createPosEvent**](docs/Api/POSEventsApi.md#createposevent) | **POST** /pos-events | Create POS event
 *POSEventsApi* | [**getPosEvent**](docs/Api/POSEventsApi.md#getposevent) | **GET** /pos-events/{id} | Get POS event
 *POSEventsApi* | [**listPosEvents**](docs/Api/POSEventsApi.md#listposevents) | **GET** /pos-events | List POS events
+*POSSessionsApi* | [**cashDeposit**](docs/Api/POSSessionsApi.md#cashdeposit) | **POST** /pos-sessions/{id}/cash-deposit | Record cash deposit
+*POSSessionsApi* | [**cashWithdrawal**](docs/Api/POSSessionsApi.md#cashwithdrawal) | **POST** /pos-sessions/{id}/cash-withdrawal | Record cash withdrawal
 *POSSessionsApi* | [**closePosSession**](docs/Api/POSSessionsApi.md#closepossession) | **POST** /pos-sessions/{id}/close | Close POS session
 *POSSessionsApi* | [**createDailyClosing**](docs/Api/POSSessionsApi.md#createdailyclosing) | **POST** /pos-sessions/daily-closing | Create daily closing report
+*POSSessionsApi* | [**downloadXReportPdf**](docs/Api/POSSessionsApi.md#downloadxreportpdf) | **GET** /pos-sessions/{id}/x-report/pdf | Download X-report as PDF
+*POSSessionsApi* | [**downloadZReportPdf**](docs/Api/POSSessionsApi.md#downloadzreportpdf) | **GET** /pos-sessions/{id}/z-report/pdf | Download Z-report as PDF
 *POSSessionsApi* | [**generateXReport**](docs/Api/POSSessionsApi.md#generatexreport) | **POST** /pos-sessions/{id}/x-report | Generate X-report
 *POSSessionsApi* | [**generateZReport**](docs/Api/POSSessionsApi.md#generatezreport) | **POST** /pos-sessions/{id}/z-report | Generate Z-report
 *POSSessionsApi* | [**getCurrentPosSession**](docs/Api/POSSessionsApi.md#getcurrentpossession) | **GET** /pos-sessions/current | Get current open session
@@ -131,6 +145,10 @@ Class | Method | HTTP request | Description
 *POSSessionsApi* | [**openPosSession**](docs/Api/POSSessionsApi.md#openpossession) | **POST** /pos-sessions/open | Open POS session
 *POSTransactionsApi* | [**createCorrectionReceipt**](docs/Api/POSTransactionsApi.md#createcorrectionreceipt) | **POST** /pos-transactions/correction-receipt | Create correction receipt
 *POSTransactionsApi* | [**voidTransaction**](docs/Api/POSTransactionsApi.md#voidtransaction) | **POST** /pos-transactions/charges/{chargeId}/void | Void transaction
+*PowerOfficeApi* | [**powerofficeOnboardingCallback**](docs/Api/PowerOfficeApi.md#powerofficeonboardingcallback) | **POST** /poweroffice/onboarding/callback | PowerOffice onboarding server callback
+*PowerOfficeApi* | [**powerofficeOnboardingInit**](docs/Api/PowerOfficeApi.md#powerofficeonboardinginit) | **POST** /poweroffice/onboarding/init | Start PowerOffice Go onboarding
+*PowerOfficeApi* | [**powerofficeSyncRetry**](docs/Api/PowerOfficeApi.md#powerofficesyncretry) | **POST** /poweroffice/sync/retry/{syncRun} | Retry a failed PowerOffice sync
+*PowerOfficeApi* | [**powerofficeSyncZReport**](docs/Api/PowerOfficeApi.md#powerofficesynczreport) | **POST** /poweroffice/sync/z-report/{posSession} | Queue Z-report sync to PowerOffice
 *ProductsApi* | [**getProduct**](docs/Api/ProductsApi.md#getproduct) | **GET** /products/{id} | Get product
 *ProductsApi* | [**listProducts**](docs/Api/ProductsApi.md#listproducts) | **GET** /products | List products
 *ProductsApi* | [**serveProductImage**](docs/Api/ProductsApi.md#serveproductimage) | **GET** /products/{product}/images/{media} | Serve product image
@@ -139,6 +157,7 @@ Class | Method | HTTP request | Description
 *PurchasesApi* | [**createPurchase**](docs/Api/PurchasesApi.md#createpurchase) | **POST** /purchases | Complete purchase (single or split payment)
 *PurchasesApi* | [**getPaymentMethods**](docs/Api/PurchasesApi.md#getpaymentmethods) | **GET** /purchases/payment-methods | Get available payment methods
 *PurchasesApi* | [**getPurchase**](docs/Api/PurchasesApi.md#getpurchase) | **GET** /purchases/{id} | Get purchase
+*PurchasesApi* | [**listKioskSalesReport**](docs/Api/PurchasesApi.md#listkiosksalesreport) | **GET** /reports/kiosk-sales | List kiosk sales for reporting
 *PurchasesApi* | [**listPurchases**](docs/Api/PurchasesApi.md#listpurchases) | **GET** /purchases | List purchases
 *PurchasesApi* | [**refundPurchase**](docs/Api/PurchasesApi.md#refundpurchase) | **POST** /purchases/{id}/refund | Refund a purchase
 *PurchasesApi* | [**updatePurchaseCustomer**](docs/Api/PurchasesApi.md#updatepurchasecustomer) | **PUT** /purchases/{id}/customer | Register or update customer for purchase
@@ -154,14 +173,18 @@ Class | Method | HTTP request | Description
 *ReceiptsApi* | [**generateReceipt**](docs/Api/ReceiptsApi.md#generatereceipt) | **POST** /receipts/generate | Generate receipt
 *ReceiptsApi* | [**getReceipt**](docs/Api/ReceiptsApi.md#getreceipt) | **GET** /receipts/{id} | Get receipt
 *ReceiptsApi* | [**getReceiptXml**](docs/Api/ReceiptsApi.md#getreceiptxml) | **GET** /receipts/{id}/xml | Get receipt XML
+*ReceiptsApi* | [**getTicketXmlByReference**](docs/Api/ReceiptsApi.md#getticketxmlbyreference) | **GET** /receipts/ticket-xml | Get ticket XML by booking reference
 *ReceiptsApi* | [**listReceipts**](docs/Api/ReceiptsApi.md#listreceipts) | **GET** /receipts | List receipts
 *ReceiptsApi* | [**markReceiptPrinted**](docs/Api/ReceiptsApi.md#markreceiptprinted) | **POST** /receipts/{id}/mark-printed | Mark receipt as printed
+*ReceiptsApi* | [**printBookingTicket**](docs/Api/ReceiptsApi.md#printbookingticket) | **POST** /receipts/print-ticket | Render booking ticket XML (full payload)
+*ReceiptsApi* | [**printFreeTicket**](docs/Api/ReceiptsApi.md#printfreeticket) | **POST** /receipts/print-freeticket | Render free ticket XML
 *ReceiptsApi* | [**reprintReceipt**](docs/Api/ReceiptsApi.md#reprintreceipt) | **POST** /receipts/{id}/reprint | Reprint receipt
 *SAFTApi* | [**downloadSafT**](docs/Api/SAFTApi.md#downloadsaft) | **GET** /saf-t/download/{filename} | Download SAF-T file
 *SAFTApi* | [**generateSafT**](docs/Api/SAFTApi.md#generatesaft) | **POST** /saf-t/generate | Generate SAF-T file
 *SAFTApi* | [**getSafTContent**](docs/Api/SAFTApi.md#getsaftcontent) | **GET** /saf-t/content | Get SAF-T XML content
 *StoresApi* | [**changeCurrentStore**](docs/Api/StoresApi.md#changecurrentstore) | **PUT** /stores/current | Change current store
 *StoresApi* | [**getCurrentStore**](docs/Api/StoresApi.md#getcurrentstore) | **GET** /stores/current | Get current store
+*StoresApi* | [**getMeranoTicketProduct**](docs/Api/StoresApi.md#getmeranoticketproduct) | **GET** /stores/current/merano-ticket-product | Get Merano ticket product
 *StoresApi* | [**getStore**](docs/Api/StoresApi.md#getstore) | **GET** /stores/{slug} | Get store by slug
 *StoresApi* | [**listStores**](docs/Api/StoresApi.md#liststores) | **GET** /stores | List stores
 *StoresApi* | [**patchCurrentStore**](docs/Api/StoresApi.md#patchcurrentstore) | **PATCH** /stores/current | Change current store (partial)
@@ -169,21 +192,40 @@ Class | Method | HTTP request | Description
 *TerminalsApi* | [**createTerminalPaymentIntent**](docs/Api/TerminalsApi.md#createterminalpaymentintent) | **POST** /stores/{store}/terminal/payment-intents | Create payment intent
 *TerminalsApi* | [**listTerminalLocations**](docs/Api/TerminalsApi.md#listterminallocations) | **GET** /terminals/locations | List terminal locations
 *TerminalsApi* | [**listTerminalReaders**](docs/Api/TerminalsApi.md#listterminalreaders) | **GET** /terminals/readers | List terminal readers
+*TerminalsApi* | [**registerTerminalReaderFromCode**](docs/Api/TerminalsApi.md#registerterminalreaderfromcode) | **POST** /terminals/readers/register-from-code | Register terminal reader from registration code
+*TripletexApi* | [**tripletexPreviewPayout**](docs/Api/TripletexApi.md#tripletexpreviewpayout) | **GET** /tripletex/preview/payout/{payout} | Preview Tripletex payout voucher lines
+*TripletexApi* | [**tripletexPreviewZReport**](docs/Api/TripletexApi.md#tripletexpreviewzreport) | **GET** /tripletex/preview/z-report/{posSession} | Preview Tripletex Z-report voucher lines
+*TripletexApi* | [**tripletexSyncHistorical**](docs/Api/TripletexApi.md#tripletexsynchistorical) | **POST** /tripletex/sync/historical | Queue historical Tripletex sync jobs
+*TripletexApi* | [**tripletexSyncPayout**](docs/Api/TripletexApi.md#tripletexsyncpayout) | **POST** /tripletex/sync/payout/{payout} | Queue Stripe payout voucher sync to Tripletex
+*TripletexApi* | [**tripletexSyncRetry**](docs/Api/TripletexApi.md#tripletexsyncretry) | **POST** /tripletex/sync/retry/{syncRun} | Retry a failed or skipped Tripletex sync run
+*TripletexApi* | [**tripletexSyncZReport**](docs/Api/TripletexApi.md#tripletexsynczreport) | **POST** /tripletex/sync/z-report/{posSession} | Queue Z-report sync to Tripletex
+*VerifoneApi* | [**abortVerifoneTerminalRequest**](docs/Api/VerifoneApi.md#abortverifoneterminalrequest) | **POST** /verifone/stores/{store}/terminals/{terminal}/abort | Abort active Verifone terminal request
+*VerifoneApi* | [**createVerifonePayment**](docs/Api/VerifoneApi.md#createverifonepayment) | **POST** /verifone/stores/{store}/payments | Start Verifone terminal payment
+*VerifoneApi* | [**listVerifoneTerminals**](docs/Api/VerifoneApi.md#listverifoneterminals) | **GET** /verifone/stores/{store}/terminals | List Verifone terminals for store
+*VerifoneApi* | [**pollVerifonePaymentStatus**](docs/Api/VerifoneApi.md#pollverifonepaymentstatus) | **POST** /verifone/stores/{store}/payments/{serviceId}/status | Poll Verifone transaction status
 *WebhooksApi* | [**stripeConnectWebhook**](docs/Api/WebhooksApi.md#stripeconnectwebhook) | **POST** /stripe/connect/webhook | Stripe Connect webhook
 
 ## Models
 
+- [AbortVerifoneTerminalRequest200Response](docs/Model/AbortVerifoneTerminalRequest200Response.md)
 - [AdjustInventory200Response](docs/Model/AdjustInventory200Response.md)
 - [AdjustInventory200ResponseVariant](docs/Model/AdjustInventory200ResponseVariant.md)
 - [AdjustInventoryRequest](docs/Model/AdjustInventoryRequest.md)
 - [BulkUpdateInventory200Response](docs/Model/BulkUpdateInventory200Response.md)
+- [BulkUpdateInventory200ResponseSummary](docs/Model/BulkUpdateInventory200ResponseSummary.md)
 - [BulkUpdateInventoryRequest](docs/Model/BulkUpdateInventoryRequest.md)
-- [BulkUpdateInventoryRequestUpdatesInner](docs/Model/BulkUpdateInventoryRequestUpdatesInner.md)
+- [BulkUpdateInventoryRequestVariantsInner](docs/Model/BulkUpdateInventoryRequestVariantsInner.md)
 - [CancelPurchase200Response](docs/Model/CancelPurchase200Response.md)
 - [CancelPurchase422Response](docs/Model/CancelPurchase422Response.md)
 - [CancelPurchaseRequest](docs/Model/CancelPurchaseRequest.md)
+- [CashDeposit201Response](docs/Model/CashDeposit201Response.md)
+- [CashDepositRequest](docs/Model/CashDepositRequest.md)
+- [CashWithdrawal201Response](docs/Model/CashWithdrawal201Response.md)
+- [CashWithdrawal201ResponseEvent](docs/Model/CashWithdrawal201ResponseEvent.md)
+- [CashWithdrawalRequest](docs/Model/CashWithdrawalRequest.md)
 - [ChangeCurrentStore200Response](docs/Model/ChangeCurrentStore200Response.md)
 - [ChangeCurrentStoreRequest](docs/Model/ChangeCurrentStoreRequest.md)
+- [CheckMeranoAvailabilityRequest](docs/Model/CheckMeranoAvailabilityRequest.md)
 - [CloseCashDrawer200Response](docs/Model/CloseCashDrawer200Response.md)
 - [CloseCashDrawerRequest](docs/Model/CloseCashDrawerRequest.md)
 - [ClosePosSession200Response](docs/Model/ClosePosSession200Response.md)
@@ -195,6 +237,7 @@ Class | Method | HTTP request | Description
 - [CompletePurchasePayment200ResponseDataPosEvent](docs/Model/CompletePurchasePayment200ResponseDataPosEvent.md)
 - [CompletePurchasePayment422Response](docs/Model/CompletePurchasePayment422Response.md)
 - [CompletePurchasePaymentRequest](docs/Model/CompletePurchasePaymentRequest.md)
+- [ConfirmMeranoPosPaymentRequest](docs/Model/ConfirmMeranoPosPaymentRequest.md)
 - [CreateCorrectionReceipt201Response](docs/Model/CreateCorrectionReceipt201Response.md)
 - [CreateCorrectionReceipt201ResponseEvent](docs/Model/CreateCorrectionReceipt201ResponseEvent.md)
 - [CreateCorrectionReceipt201ResponseReceipt](docs/Model/CreateCorrectionReceipt201ResponseReceipt.md)
@@ -204,6 +247,7 @@ Class | Method | HTTP request | Description
 - [CreateDailyClosing201Response](docs/Model/CreateDailyClosing201Response.md)
 - [CreateDailyClosing409Response](docs/Model/CreateDailyClosing409Response.md)
 - [CreateDailyClosingRequest](docs/Model/CreateDailyClosingRequest.md)
+- [CreateMeranoBookingRequest](docs/Model/CreateMeranoBookingRequest.md)
 - [CreatePosEvent201Response](docs/Model/CreatePosEvent201Response.md)
 - [CreatePosEventRequest](docs/Model/CreatePosEventRequest.md)
 - [CreatePurchase201Response](docs/Model/CreatePurchase201Response.md)
@@ -212,6 +256,7 @@ Class | Method | HTTP request | Description
 - [CreatePurchase201ResponseDataPosEvent](docs/Model/CreatePurchase201ResponseDataPosEvent.md)
 - [CreatePurchase201ResponseDataReceipt](docs/Model/CreatePurchase201ResponseDataReceipt.md)
 - [CreatePurchase422Response](docs/Model/CreatePurchase422Response.md)
+- [CreatePurchase422ResponseLinesInner](docs/Model/CreatePurchase422ResponseLinesInner.md)
 - [CreatePurchaseRequest](docs/Model/CreatePurchaseRequest.md)
 - [CreateReceiptPrinter201Response](docs/Model/CreateReceiptPrinter201Response.md)
 - [CreateReceiptPrinterRequest](docs/Model/CreateReceiptPrinterRequest.md)
@@ -232,17 +277,21 @@ Class | Method | HTTP request | Description
 - [GetCollection200Response](docs/Model/GetCollection200Response.md)
 - [GetCollection200ResponseCollection](docs/Model/GetCollection200ResponseCollection.md)
 - [GetCurrentStore200Response](docs/Model/GetCurrentStore200Response.md)
+- [GetMeranoTicketProduct200Response](docs/Model/GetMeranoTicketProduct200Response.md)
 - [GetPaymentMethods200Response](docs/Model/GetPaymentMethods200Response.md)
 - [GetPosDevice200Response](docs/Model/GetPosDevice200Response.md)
 - [GetPosEvent200Response](docs/Model/GetPosEvent200Response.md)
 - [GetPosSession200Response](docs/Model/GetPosSession200Response.md)
-- [GetProduct200Response](docs/Model/GetProduct200Response.md)
 - [GetProductInventory200Response](docs/Model/GetProductInventory200Response.md)
 - [GetProductInventory200ResponseVariantsInner](docs/Model/GetProductInventory200ResponseVariantsInner.md)
 - [GetProductInventory200ResponseVariantsInnerInventory](docs/Model/GetProductInventory200ResponseVariantsInnerInventory.md)
+- [GetProductInventory403Response](docs/Model/GetProductInventory403Response.md)
 - [GetPurchase200Response](docs/Model/GetPurchase200Response.md)
 - [GetReceipt200Response](docs/Model/GetReceipt200Response.md)
 - [GetReceiptPrinter200Response](docs/Model/GetReceiptPrinter200Response.md)
+- [KioskSalesReportResponse](docs/Model/KioskSalesReportResponse.md)
+- [KioskSalesReportResponseMeta](docs/Model/KioskSalesReportResponseMeta.md)
+- [KioskSalesReportRow](docs/Model/KioskSalesReportRow.md)
 - [ListCollections200Response](docs/Model/ListCollections200Response.md)
 - [ListCustomers200Response](docs/Model/ListCustomers200Response.md)
 - [ListPosDevices200Response](docs/Model/ListPosDevices200Response.md)
@@ -255,7 +304,9 @@ Class | Method | HTTP request | Description
 - [ListReceipts200ResponseSimpleReceiptListInner](docs/Model/ListReceipts200ResponseSimpleReceiptListInner.md)
 - [ListStores200Response](docs/Model/ListStores200Response.md)
 - [ListTerminalLocations200Response](docs/Model/ListTerminalLocations200Response.md)
+- [ListTerminalLocations200ResponseLastConnected](docs/Model/ListTerminalLocations200ResponseLastConnected.md)
 - [ListTerminalReaders200Response](docs/Model/ListTerminalReaders200Response.md)
+- [ListVerifoneTerminals200Response](docs/Model/ListVerifoneTerminals200Response.md)
 - [LogApplicationShutdown200Response](docs/Model/LogApplicationShutdown200Response.md)
 - [LogApplicationStart200Response](docs/Model/LogApplicationStart200Response.md)
 - [LogApplicationStart200ResponseCurrentSession](docs/Model/LogApplicationStart200ResponseCurrentSession.md)
@@ -279,23 +330,35 @@ Class | Method | HTTP request | Description
 - [PosDevice](docs/Model/PosDevice.md)
 - [PosDeviceDeviceInfo](docs/Model/PosDeviceDeviceInfo.md)
 - [PosDeviceIdentifiers](docs/Model/PosDeviceIdentifiers.md)
+- [PosDeviceLastConnected](docs/Model/PosDeviceLastConnected.md)
 - [PosDeviceReceiptPrintersInner](docs/Model/PosDeviceReceiptPrintersInner.md)
 - [PosDeviceSystemInfo](docs/Model/PosDeviceSystemInfo.md)
 - [PosDeviceTerminalLocationsInner](docs/Model/PosDeviceTerminalLocationsInner.md)
 - [PosEvent](docs/Model/PosEvent.md)
 - [PosSession](docs/Model/PosSession.md)
+- [PosSessionCashDeposits](docs/Model/PosSessionCashDeposits.md)
+- [PosSessionCashWithdrawals](docs/Model/PosSessionCashWithdrawals.md)
 - [PosSessionClosing](docs/Model/PosSessionClosing.md)
 - [PosSessionSessionDevice](docs/Model/PosSessionSessionDevice.md)
 - [PosSessionSessionUser](docs/Model/PosSessionSessionUser.md)
 - [PosSessionWithCharges](docs/Model/PosSessionWithCharges.md)
+- [PowerofficeOnboardingCallbackRequest](docs/Model/PowerofficeOnboardingCallbackRequest.md)
+- [PowerofficeOnboardingInit200Response](docs/Model/PowerofficeOnboardingInit200Response.md)
+- [PowerofficeSyncZReport200Response](docs/Model/PowerofficeSyncZReport200Response.md)
+- [PrintBookingTicketRequest](docs/Model/PrintBookingTicketRequest.md)
+- [PrintBookingTicketRequestTicketsInner](docs/Model/PrintBookingTicketRequestTicketsInner.md)
+- [PrintFreeTicketRequest](docs/Model/PrintFreeTicketRequest.md)
 - [Product](docs/Model/Product.md)
 - [ProductCollectionsInner](docs/Model/ProductCollectionsInner.md)
 - [ProductPricesInner](docs/Model/ProductPricesInner.md)
 - [ProductProductInventory](docs/Model/ProductProductInventory.md)
 - [ProductProductPrice](docs/Model/ProductProductPrice.md)
+- [ProductQuantityUnit](docs/Model/ProductQuantityUnit.md)
 - [ProductVariantsInner](docs/Model/ProductVariantsInner.md)
+- [ProductVariantsInnerVariantInventory](docs/Model/ProductVariantsInnerVariantInventory.md)
 - [ProductVariantsInnerVariantOptionsInner](docs/Model/ProductVariantsInnerVariantOptionsInner.md)
 - [ProductVariantsInnerVariantPrice](docs/Model/ProductVariantsInnerVariantPrice.md)
+- [ProductVendor](docs/Model/ProductVendor.md)
 - [Purchase](docs/Model/Purchase.md)
 - [PurchaseCart](docs/Model/PurchaseCart.md)
 - [PurchaseCartDiscountsInner](docs/Model/PurchaseCartDiscountsInner.md)
@@ -323,19 +386,31 @@ Class | Method | HTTP request | Description
 - [RefundPurchase500Response](docs/Model/RefundPurchase500Response.md)
 - [RefundPurchaseRequest](docs/Model/RefundPurchaseRequest.md)
 - [RefundPurchaseRequestItemsInner](docs/Model/RefundPurchaseRequestItemsInner.md)
+- [RegisterOrUpdatePosDevice200Response](docs/Model/RegisterOrUpdatePosDevice200Response.md)
+- [RegisterOrUpdatePosDevice201Response](docs/Model/RegisterOrUpdatePosDevice201Response.md)
+- [RegisterOrUpdatePosDeviceRequest](docs/Model/RegisterOrUpdatePosDeviceRequest.md)
 - [RegisterPosDevice201Response](docs/Model/RegisterPosDevice201Response.md)
 - [RegisterPosDeviceRequest](docs/Model/RegisterPosDeviceRequest.md)
+- [RegisterTerminalReaderFromCode201Response](docs/Model/RegisterTerminalReaderFromCode201Response.md)
+- [RegisterTerminalReaderFromCodeRequest](docs/Model/RegisterTerminalReaderFromCodeRequest.md)
+- [RegisteredTerminalReader](docs/Model/RegisteredTerminalReader.md)
+- [ReleaseMeranoBookingRequest](docs/Model/ReleaseMeranoBookingRequest.md)
 - [ReprintReceipt200Response](docs/Model/ReprintReceipt200Response.md)
 - [SessionCharge](docs/Model/SessionCharge.md)
 - [SetInventory200Response](docs/Model/SetInventory200Response.md)
 - [SetInventoryRequest](docs/Model/SetInventoryRequest.md)
 - [Store](docs/Model/Store.md)
+- [StoreVisibleArticleGroupCodesInner](docs/Model/StoreVisibleArticleGroupCodesInner.md)
 - [TerminalLocation](docs/Model/TerminalLocation.md)
 - [TerminalLocationAddress](docs/Model/TerminalLocationAddress.md)
 - [TerminalReader](docs/Model/TerminalReader.md)
 - [TerminalReaderLocation](docs/Model/TerminalReaderLocation.md)
 - [TestReceiptPrinterConnection200Response](docs/Model/TestReceiptPrinterConnection200Response.md)
 - [TestReceiptPrinterPrint200Response](docs/Model/TestReceiptPrinterPrint200Response.md)
+- [TripletexSyncHistorical200Response](docs/Model/TripletexSyncHistorical200Response.md)
+- [TripletexSyncHistoricalRequest](docs/Model/TripletexSyncHistoricalRequest.md)
+- [TripletexSyncPayout200Response](docs/Model/TripletexSyncPayout200Response.md)
+- [TripletexSyncRetry200Response](docs/Model/TripletexSyncRetry200Response.md)
 - [UpdateCustomerRequest](docs/Model/UpdateCustomerRequest.md)
 - [UpdateDeviceHeartbeat200Response](docs/Model/UpdateDeviceHeartbeat200Response.md)
 - [UpdateDeviceHeartbeatRequest](docs/Model/UpdateDeviceHeartbeatRequest.md)
@@ -352,6 +427,12 @@ Class | Method | HTTP request | Description
 - [User](docs/Model/User.md)
 - [UserResponse](docs/Model/UserResponse.md)
 - [ValidationErrorResponse](docs/Model/ValidationErrorResponse.md)
+- [VerifoneAbortRequest](docs/Model/VerifoneAbortRequest.md)
+- [VerifonePaymentCreateRequest](docs/Model/VerifonePaymentCreateRequest.md)
+- [VerifonePaymentStartResponse](docs/Model/VerifonePaymentStartResponse.md)
+- [VerifonePaymentStatusRequest](docs/Model/VerifonePaymentStatusRequest.md)
+- [VerifonePaymentStatusResponse](docs/Model/VerifonePaymentStatusResponse.md)
+- [VerifoneTerminal](docs/Model/VerifoneTerminal.md)
 - [VoidTransaction200Response](docs/Model/VoidTransaction200Response.md)
 - [VoidTransaction200ResponseCharge](docs/Model/VoidTransaction200ResponseCharge.md)
 - [VoidTransactionRequest](docs/Model/VoidTransactionRequest.md)

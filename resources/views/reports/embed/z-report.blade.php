@@ -347,6 +347,30 @@
         </div>
     @endif
 
+    @if(($report['report_type'] ?? '') === 'Z-Report')
+        @php
+            $zStripeFeesMinor = (int) ($report['stripe_fees_minor'] ?? 0);
+            $zPayoutToBankMinor = (int) ($report['payout_to_bank_minor'] ?? 0);
+        @endphp
+        <div class="section">
+            <div class="section-title">Stripe</div>
+            <table>
+                <tr>
+                    <th>Post</th>
+                    <th class="text-right">Beløp</th>
+                </tr>
+                <tr>
+                    <td>Stripe-gebyr (kort) <span style="color: #6b7280; font-weight: normal;">— saldo for økten</span></td>
+                    <td class="text-right">{{ number_format($zStripeFeesMinor / 100, 2) }} NOK</td>
+                </tr>
+                <tr>
+                    <td>Utbetaling til bank <span style="color: #6b7280; font-weight: normal;">— ankomst stengedag</span></td>
+                    <td class="text-right">{{ number_format($zPayoutToBankMinor / 100, 2) }} NOK</td>
+                </tr>
+            </table>
+        </div>
+    @endif
+
     <div class="cash-grid {{ (!empty($report['tips_enabled']) && $report['tips_enabled'] === true) ? 'with-tips' : '' }}">
         <div>
             <div class="cash-item yellow">
@@ -416,14 +440,6 @@
                     </div>
                     <div style="display: table-cell; width: 30%; text-align: right; font-weight: 700; color: #dc2626; font-size: 11pt;">
                         {{ number_format($report['total_refunded'] / 100, 2) }} NOK
-                    </div>
-                </div>
-                <div style="display: table; width: 100%; margin-top: 5px;">
-                    <div style="display: table-cell; width: 70%; font-weight: 600; color: #111827;">
-                        Netto Beløp:
-                    </div>
-                    <div style="display: table-cell; width: 30%; text-align: right; font-weight: 700; color: #111827; font-size: 11pt;">
-                        {{ number_format(($report['net_amount'] ?? ($report['total_amount'] - $report['total_refunded'])) / 100, 2) }} NOK
                     </div>
                 </div>
             </div>

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ConnectedPaymentLinks;
 
 use App\Enums\AddonType;
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ConnectedPaymentLinks\Pages\CreateConnectedPaymentLink;
 use App\Filament\Resources\ConnectedPaymentLinks\Pages\EditConnectedPaymentLink;
@@ -23,6 +24,8 @@ use Filament\Tables\Table;
 class ConnectedPaymentLinkResource extends Resource
 {
     use HasTenantScopedQuery;
+
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = ConnectedPaymentLink::class;
 

@@ -14,22 +14,22 @@ class TerminalLocationInfolist
                 TextEntry::make('store_id')
                     ->numeric(),
                 TextEntry::make('stripe_location_id')
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
                 TextEntry::make('display_name'),
                 TextEntry::make('line1'),
                 TextEntry::make('line2')
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
                 TextEntry::make('city'),
                 TextEntry::make('state')
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
                 TextEntry::make('postal_code'),
                 TextEntry::make('country'),
                 TextEntry::make('created_at')
                     ->dateTime()
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
                 TextEntry::make('updated_at')
                     ->dateTime()
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
             ]);
     }
 }

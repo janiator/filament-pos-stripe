@@ -1,19 +1,21 @@
 <?php
+
 /**
  * CreateTerminalConnectionTokenRequest
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,65 +29,72 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * CreateTerminalConnectionTokenRequest Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAccess, \JsonSerializable
+class CreateTerminalConnectionTokenRequest implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'createTerminalConnectionToken_request';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
-        'location_id' => 'int'
+        'location_id' => 'int',
+        'pos_device_id' => 'int',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
-        'location_id' => null
+        'location_id' => null,
+        'pos_device_id' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
-        'location_id' => false
+        'location_id' => false,
+        'pos_device_id' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -110,8 +119,6 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -121,7 +128,7 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -131,7 +138,7 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -140,9 +147,6 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -151,9 +155,6 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -167,7 +168,8 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
      * @var string[]
      */
     protected static $attributeMap = [
-        'location_id' => 'location_id'
+        'location_id' => 'location_id',
+        'pos_device_id' => 'pos_device_id',
     ];
 
     /**
@@ -176,7 +178,8 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
      * @var string[]
      */
     protected static $setters = [
-        'location_id' => 'setLocationId'
+        'location_id' => 'setLocationId',
+        'pos_device_id' => 'setPosDeviceId',
     ];
 
     /**
@@ -185,7 +188,8 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
      * @var string[]
      */
     protected static $getters = [
-        'location_id' => 'getLocationId'
+        'location_id' => 'getLocationId',
+        'pos_device_id' => 'getPosDeviceId',
     ];
 
     /**
@@ -229,7 +233,6 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -240,23 +243,22 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
         $this->setIfExists('location_id', $data ?? [], null);
+        $this->setIfExists('pos_device_id', $data ?? [], null);
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -289,7 +291,6 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets location_id
      *
@@ -303,8 +304,7 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
     /**
      * Sets location_id
      *
-     * @param int|null $location_id Terminal location ID (optional if store has only one location)
-     *
+     * @param  int|null  $location_id  Terminal location ID (optional if pos_device_id or store default/single location is used)
      * @return self
      */
     public function setLocationId($location_id)
@@ -316,12 +316,37 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
 
         return $this;
     }
+
+    /**
+     * Gets pos_device_id
+     *
+     * @return int|null
+     */
+    public function getPosDeviceId()
+    {
+        return $this->container['pos_device_id'];
+    }
+
+    /**
+     * Sets pos_device_id
+     *
+     * @param  int|null  $pos_device_id  POS device ID; use the terminal location assigned to this device (from Pos devices resource)
+     * @return self
+     */
+    public function setPosDeviceId($pos_device_id)
+    {
+        if (is_null($pos_device_id)) {
+            throw new \InvalidArgumentException('non-nullable pos_device_id cannot be null');
+        }
+        $this->container['pos_device_id'] = $pos_device_id;
+
+        return $this;
+    }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -331,8 +356,7 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -344,10 +368,8 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -361,9 +383,7 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -372,15 +392,16 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -406,5 +427,3 @@ class CreateTerminalConnectionTokenRequest implements ModelInterface, ArrayAcces
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

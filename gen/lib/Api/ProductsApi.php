@@ -1,18 +1,20 @@
 <?php
+
 /**
  * ProductsApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * ProductsApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class ProductsApi
@@ -73,7 +75,7 @@ class ProductsApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'getProduct' => [
             'application/json',
@@ -87,10 +89,7 @@ class ProductsApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -98,16 +97,16 @@ class ProductsApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -137,16 +136,17 @@ class ProductsApi
      *
      * Get product
      *
-     * @param  int $id id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getProduct'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getProduct'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\GetMeranoTicketProduct200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\GetProduct200Response|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getProduct($id, string $contentType = self::contentTypes['getProduct'][0])
     {
-        list($response) = $this->getProductWithHttpInfo($id, $contentType);
+        [$response] = $this->getProductWithHttpInfo($id, $contentType);
+
         return $response;
     }
 
@@ -155,12 +155,12 @@ class ProductsApi
      *
      * Get product
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getProduct'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getProduct'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\GetMeranoTicketProduct200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\GetProduct200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getProductWithHttpInfo($id, string $contentType = self::contentTypes['getProduct'][0])
     {
@@ -188,23 +188,20 @@ class ProductsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\GetProduct200Response',
+                        '\OpenAPIClient\Model\GetMeranoTicketProduct200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -220,7 +217,7 @@ class ProductsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\GetProduct200Response',
+                '\OpenAPIClient\Model\GetMeranoTicketProduct200Response',
                 $request,
                 $response,
             );
@@ -229,7 +226,7 @@ class ProductsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\GetProduct200Response',
+                        '\OpenAPIClient\Model\GetMeranoTicketProduct200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -237,13 +234,12 @@ class ProductsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -254,11 +250,11 @@ class ProductsApi
      *
      * Get product
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getProduct'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getProduct'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getProductAsync($id, string $contentType = self::contentTypes['getProduct'][0])
     {
@@ -275,15 +271,15 @@ class ProductsApi
      *
      * Get product
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getProduct'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getProduct'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getProductAsyncWithHttpInfo($id, string $contentType = self::contentTypes['getProduct'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\GetProduct200Response';
+        $returnType = '\OpenAPIClient\Model\GetMeranoTicketProduct200Response';
         $request = $this->getProductRequest($id, $contentType);
 
         return $this->client
@@ -291,7 +287,7 @@ class ProductsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -302,7 +298,7 @@ class ProductsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -325,11 +321,11 @@ class ProductsApi
     /**
      * Create request for operation 'getProduct'
      *
-     * @param  int $id (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getProduct'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getProduct'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getProductRequest($id, string $contentType = self::contentTypes['getProduct'][0])
     {
@@ -341,7 +337,6 @@ class ProductsApi
             );
         }
 
-
         $resourcePath = '/products/{id}';
         $formParams = [];
         $queryParams = [];
@@ -349,20 +344,17 @@ class ProductsApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -376,7 +368,7 @@ class ProductsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -384,7 +376,7 @@ class ProductsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -393,8 +385,8 @@ class ProductsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -410,9 +402,10 @@ class ProductsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -423,20 +416,22 @@ class ProductsApi
      *
      * List products
      *
-     * @param  string|null $search Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants (optional)
-     * @param  string|null $type Filter by product type (optional)
-     * @param  int|null $collection_id Filter by collection ID. Use 0 to get uncategorized products (products with no collection) (optional)
-     * @param  string|null $collection_slug Filter by collection slug/handle (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 50)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listProducts'] to see the possible values for this operation
+     * @param  bool|null  $include_inactive  If 1 or true, include inactive products. Use for admin/product manager screens. Default is to return only active products. (optional, default to false)
+     * @param  string|null  $search  Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants (optional)
+     * @param  string|null  $type  Filter by product type (optional)
+     * @param  int|null  $collection_id  Filter by collection ID. Use 0 to get uncategorized products (products with no collection) (optional)
+     * @param  string|null  $collection_slug  Filter by collection slug/handle (optional)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 50)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listProducts'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ListProducts200Response|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ListProducts200Response|\OpenAPI\Client\Model\ErrorResponse
      */
-    public function listProducts($search = null, $type = null, $collection_id = null, $collection_slug = null, $per_page = 50, string $contentType = self::contentTypes['listProducts'][0])
+    public function listProducts($include_inactive = false, $search = null, $type = null, $collection_id = null, $collection_slug = null, $per_page = 50, string $contentType = self::contentTypes['listProducts'][0])
     {
-        list($response) = $this->listProductsWithHttpInfo($search, $type, $collection_id, $collection_slug, $per_page, $contentType);
+        [$response] = $this->listProductsWithHttpInfo($include_inactive, $search, $type, $collection_id, $collection_slug, $per_page, $contentType);
+
         return $response;
     }
 
@@ -445,20 +440,21 @@ class ProductsApi
      *
      * List products
      *
-     * @param  string|null $search Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants (optional)
-     * @param  string|null $type Filter by product type (optional)
-     * @param  int|null $collection_id Filter by collection ID. Use 0 to get uncategorized products (products with no collection) (optional)
-     * @param  string|null $collection_slug Filter by collection slug/handle (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 50)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listProducts'] to see the possible values for this operation
+     * @param  bool|null  $include_inactive  If 1 or true, include inactive products. Use for admin/product manager screens. Default is to return only active products. (optional, default to false)
+     * @param  string|null  $search  Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants (optional)
+     * @param  string|null  $type  Filter by product type (optional)
+     * @param  int|null  $collection_id  Filter by collection ID. Use 0 to get uncategorized products (products with no collection) (optional)
+     * @param  string|null  $collection_slug  Filter by collection slug/handle (optional)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 50)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listProducts'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ListProducts200Response|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ListProducts200Response|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
-    public function listProductsWithHttpInfo($search = null, $type = null, $collection_id = null, $collection_slug = null, $per_page = 50, string $contentType = self::contentTypes['listProducts'][0])
+    public function listProductsWithHttpInfo($include_inactive = false, $search = null, $type = null, $collection_id = null, $collection_slug = null, $per_page = 50, string $contentType = self::contentTypes['listProducts'][0])
     {
-        $request = $this->listProductsRequest($search, $type, $collection_id, $collection_slug, $per_page, $contentType);
+        $request = $this->listProductsRequest($include_inactive, $search, $type, $collection_id, $collection_slug, $per_page, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -482,23 +478,20 @@ class ProductsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ListProducts200Response',
+                        '\OpenAPIClient\Model\ListProducts200Response',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -514,7 +507,7 @@ class ProductsApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ListProducts200Response',
+                '\OpenAPIClient\Model\ListProducts200Response',
                 $request,
                 $response,
             );
@@ -523,7 +516,7 @@ class ProductsApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ListProducts200Response',
+                        '\OpenAPIClient\Model\ListProducts200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -531,13 +524,12 @@ class ProductsApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -548,19 +540,20 @@ class ProductsApi
      *
      * List products
      *
-     * @param  string|null $search Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants (optional)
-     * @param  string|null $type Filter by product type (optional)
-     * @param  int|null $collection_id Filter by collection ID. Use 0 to get uncategorized products (products with no collection) (optional)
-     * @param  string|null $collection_slug Filter by collection slug/handle (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 50)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listProducts'] to see the possible values for this operation
+     * @param  bool|null  $include_inactive  If 1 or true, include inactive products. Use for admin/product manager screens. Default is to return only active products. (optional, default to false)
+     * @param  string|null  $search  Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants (optional)
+     * @param  string|null  $type  Filter by product type (optional)
+     * @param  int|null  $collection_id  Filter by collection ID. Use 0 to get uncategorized products (products with no collection) (optional)
+     * @param  string|null  $collection_slug  Filter by collection slug/handle (optional)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 50)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listProducts'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function listProductsAsync($search = null, $type = null, $collection_id = null, $collection_slug = null, $per_page = 50, string $contentType = self::contentTypes['listProducts'][0])
+    public function listProductsAsync($include_inactive = false, $search = null, $type = null, $collection_id = null, $collection_slug = null, $per_page = 50, string $contentType = self::contentTypes['listProducts'][0])
     {
-        return $this->listProductsAsyncWithHttpInfo($search, $type, $collection_id, $collection_slug, $per_page, $contentType)
+        return $this->listProductsAsyncWithHttpInfo($include_inactive, $search, $type, $collection_id, $collection_slug, $per_page, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -573,27 +566,28 @@ class ProductsApi
      *
      * List products
      *
-     * @param  string|null $search Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants (optional)
-     * @param  string|null $type Filter by product type (optional)
-     * @param  int|null $collection_id Filter by collection ID. Use 0 to get uncategorized products (products with no collection) (optional)
-     * @param  string|null $collection_slug Filter by collection slug/handle (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 50)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listProducts'] to see the possible values for this operation
+     * @param  bool|null  $include_inactive  If 1 or true, include inactive products. Use for admin/product manager screens. Default is to return only active products. (optional, default to false)
+     * @param  string|null  $search  Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants (optional)
+     * @param  string|null  $type  Filter by product type (optional)
+     * @param  int|null  $collection_id  Filter by collection ID. Use 0 to get uncategorized products (products with no collection) (optional)
+     * @param  string|null  $collection_slug  Filter by collection slug/handle (optional)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 50)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listProducts'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function listProductsAsyncWithHttpInfo($search = null, $type = null, $collection_id = null, $collection_slug = null, $per_page = 50, string $contentType = self::contentTypes['listProducts'][0])
+    public function listProductsAsyncWithHttpInfo($include_inactive = false, $search = null, $type = null, $collection_id = null, $collection_slug = null, $per_page = 50, string $contentType = self::contentTypes['listProducts'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ListProducts200Response';
-        $request = $this->listProductsRequest($search, $type, $collection_id, $collection_slug, $per_page, $contentType);
+        $returnType = '\OpenAPIClient\Model\ListProducts200Response';
+        $request = $this->listProductsRequest($include_inactive, $search, $type, $collection_id, $collection_slug, $per_page, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -604,7 +598,7 @@ class ProductsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -627,27 +621,23 @@ class ProductsApi
     /**
      * Create request for operation 'listProducts'
      *
-     * @param  string|null $search Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants (optional)
-     * @param  string|null $type Filter by product type (optional)
-     * @param  int|null $collection_id Filter by collection ID. Use 0 to get uncategorized products (products with no collection) (optional)
-     * @param  string|null $collection_slug Filter by collection slug/handle (optional)
-     * @param  int|null $per_page Number of items per page (max 100) (optional, default to 50)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listProducts'] to see the possible values for this operation
+     * @param  bool|null  $include_inactive  If 1 or true, include inactive products. Use for admin/product manager screens. Default is to return only active products. (optional, default to false)
+     * @param  string|null  $search  Freetext search term that searches across multiple product fields: - Product name, description - Product codes (product_code, article_group_code) - Stripe product ID - Variant SKU and barcode - Variant names and option values - Stripe product/price IDs for variants (optional)
+     * @param  string|null  $type  Filter by product type (optional)
+     * @param  int|null  $collection_id  Filter by collection ID. Use 0 to get uncategorized products (products with no collection) (optional)
+     * @param  string|null  $collection_slug  Filter by collection slug/handle (optional)
+     * @param  int|null  $per_page  Number of items per page (max 100) (optional, default to 50)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listProducts'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
-    public function listProductsRequest($search = null, $type = null, $collection_id = null, $collection_slug = null, $per_page = 50, string $contentType = self::contentTypes['listProducts'][0])
+    public function listProductsRequest($include_inactive = false, $search = null, $type = null, $collection_id = null, $collection_slug = null, $per_page = 50, string $contentType = self::contentTypes['listProducts'][0])
     {
-
-
-
-
 
         if ($per_page !== null && $per_page > 100) {
             throw new \InvalidArgumentException('invalid value for "$per_page" when calling ProductsApi.listProducts, must be smaller than or equal to 100.');
         }
-        
 
         $resourcePath = '/products';
         $formParams = [];
@@ -656,6 +646,15 @@ class ProductsApi
         $httpBody = '';
         $multipart = false;
 
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $include_inactive,
+            'include_inactive', // param base name
+            'boolean', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
         // query params
         $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
             $search,
@@ -702,11 +701,8 @@ class ProductsApi
             false // required
         ) ?? []);
 
-
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -720,7 +716,7 @@ class ProductsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -728,7 +724,7 @@ class ProductsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -737,8 +733,8 @@ class ProductsApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -754,9 +750,10 @@ class ProductsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -767,17 +764,18 @@ class ProductsApi
      *
      * Serve product image
      *
-     * @param  int $product product (required)
-     * @param  string $media media (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['serveProductImage'] to see the possible values for this operation
-     *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
-     * @throws \InvalidArgumentException
+     * @param  int  $product  product (required)
+     * @param  string  $media  media (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['serveProductImage'] to see the possible values for this operation
      * @return \SplFileObject
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
      */
     public function serveProductImage($product, $media, string $contentType = self::contentTypes['serveProductImage'][0])
     {
-        list($response) = $this->serveProductImageWithHttpInfo($product, $media, $contentType);
+        [$response] = $this->serveProductImageWithHttpInfo($product, $media, $contentType);
+
         return $response;
     }
 
@@ -786,13 +784,13 @@ class ProductsApi
      *
      * Serve product image
      *
-     * @param  int $product (required)
-     * @param  string $media (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['serveProductImage'] to see the possible values for this operation
-     *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
-     * @throws \InvalidArgumentException
+     * @param  int  $product  (required)
+     * @param  string  $media  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['serveProductImage'] to see the possible values for this operation
      * @return array of \SplFileObject, HTTP status code, HTTP response headers (array of strings)
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
      */
     public function serveProductImageWithHttpInfo($product, $media, string $contentType = self::contentTypes['serveProductImage'][0])
     {
@@ -820,8 +818,7 @@ class ProductsApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
                         '\SplFileObject',
@@ -829,8 +826,6 @@ class ProductsApi
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -861,7 +856,6 @@ class ProductsApi
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -872,12 +866,12 @@ class ProductsApi
      *
      * Serve product image
      *
-     * @param  int $product (required)
-     * @param  string $media (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['serveProductImage'] to see the possible values for this operation
+     * @param  int  $product  (required)
+     * @param  string  $media  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['serveProductImage'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function serveProductImageAsync($product, $media, string $contentType = self::contentTypes['serveProductImage'][0])
     {
@@ -894,12 +888,12 @@ class ProductsApi
      *
      * Serve product image
      *
-     * @param  int $product (required)
-     * @param  string $media (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['serveProductImage'] to see the possible values for this operation
+     * @param  int  $product  (required)
+     * @param  string  $media  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['serveProductImage'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function serveProductImageAsyncWithHttpInfo($product, $media, string $contentType = self::contentTypes['serveProductImage'][0])
     {
@@ -911,7 +905,7 @@ class ProductsApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -922,7 +916,7 @@ class ProductsApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -945,12 +939,12 @@ class ProductsApi
     /**
      * Create request for operation 'serveProductImage'
      *
-     * @param  int $product (required)
-     * @param  string $media (required)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['serveProductImage'] to see the possible values for this operation
+     * @param  int  $product  (required)
+     * @param  string  $media  (required)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['serveProductImage'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function serveProductImageRequest($product, $media, string $contentType = self::contentTypes['serveProductImage'][0])
     {
@@ -969,7 +963,6 @@ class ProductsApi
             );
         }
 
-
         $resourcePath = '/products/{product}/images/{media}';
         $formParams = [];
         $queryParams = [];
@@ -977,12 +970,10 @@ class ProductsApi
         $httpBody = '';
         $multipart = false;
 
-
-
         // path params
         if ($product !== null) {
             $resourcePath = str_replace(
-                '{' . 'product' . '}',
+                '{'.'product'.'}',
                 ObjectSerializer::toPathValue($product),
                 $resourcePath
             );
@@ -990,15 +981,14 @@ class ProductsApi
         // path params
         if ($media !== null) {
             $resourcePath = str_replace(
-                '{' . 'media' . '}',
+                '{'.'media'.'}',
                 ObjectSerializer::toPathValue($media),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['image/*', ],
+            ['image/*'],
             $contentType,
             $multipart
         );
@@ -1012,7 +1002,7 @@ class ProductsApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1020,14 +1010,13 @@ class ProductsApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
             }
         }
-
 
         $defaultHeaders = [];
         if ($this->config->getUserAgent()) {
@@ -1042,9 +1031,10 @@ class ProductsApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1053,16 +1043,17 @@ class ProductsApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -1083,7 +1074,7 @@ class ProductsApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -1106,7 +1097,7 @@ class ProductsApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

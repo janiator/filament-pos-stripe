@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\TripletexSyncType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PosSession extends Model
 {
@@ -106,15 +108,55 @@ class PosSession extends Model
     }
 
     /**
+     * Get all PowerOffice sync runs for this session.
+     */
+    public function powerOfficeSyncRuns(): HasMany
+    {
+        return $this->hasMany(PowerOfficeSyncRun::class);
+    }
+
+    /**
+     * Get latest PowerOffice sync run for this session.
+     */
+    public function latestPowerOfficeSyncRun(): HasOne
+    {
+        return $this->hasOne(PowerOfficeSyncRun::class)->latestOfMany();
+    }
+
+    /**
+     * @return HasMany<TripletexSyncRun, $this>
+     */
+    public function tripletexSyncRuns(): HasMany
+    {
+        return $this->hasMany(TripletexSyncRun::class);
+    }
+
+    /**
+     * Latest Tripletex sync run for this session (Z-report type).
+     */
+    public function latestTripletexSyncRun(): HasOne
+    {
+        return $this->hasOne(TripletexSyncRun::class)
+            ->where('sync_type', TripletexSyncType::ZReport)
+            ->latestOfMany();
+    }
+
+    /**
      * Calculate expected cash from charges, opening balance, and cash movements.
      * Withdrawals reduce expected cash; deposits increase it.
+     *
+     * Cash sales net of refunds: partial and full cash refunds reduce expected cash
+     * (same net as X/Z `net_cash_amount`). Includes `refunded` rows so fully refunded
+     * cash sales do not leave phantom cash in the drawer expectation.
      */
     public function calculateExpectedCash(): int
     {
-        $cashFromTransactions = $this->charges()
-            ->where('status', 'succeeded')
+        $cashFromTransactions = (int) $this->charges()
+            ->whereIn('status', ['succeeded', 'refunded'])
             ->where('payment_method', 'cash')
-            ->sum('amount') ?? 0;
+            ->where('paid', true)
+            ->get()
+            ->sum(fn (ConnectedCharge $charge): int => max(0, (int) $charge->amount - (int) ($charge->amount_refunded ?? 0)));
 
         $base = ($this->opening_balance ?? 0) + $cashFromTransactions;
 

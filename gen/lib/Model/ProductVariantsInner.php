@@ -1,19 +1,21 @@
 <?php
+
 /**
  * ProductVariantsInner
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * ProductVariantsInner Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializable
+class ProductVariantsInner implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'Product_variants_inner';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'stripe_product_id' => 'string',
@@ -64,24 +68,26 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         'sku' => 'string',
         'barcode' => 'string',
         'variant_name' => 'string',
-        'variant_options' => '\OpenAPI\Client\Model\ProductVariantsInnerVariantOptionsInner[]',
-        'variant_price' => '\OpenAPI\Client\Model\ProductVariantsInnerVariantPrice',
+        'variant_options' => '\OpenAPIClient\Model\ProductVariantsInnerVariantOptionsInner[]',
+        'variant_price' => '\OpenAPIClient\Model\ProductVariantsInnerVariantPrice',
         'price_amount' => 'int',
         'price_amount_formatted' => 'string',
         'compare_at_price_amount' => 'int',
         'compare_at_price_amount_formatted' => 'string',
         'currency' => 'string',
         'no_price_in_pos' => 'bool',
-        'variant_inventory' => '\OpenAPI\Client\Model\UpdateVariantInventory200ResponseVariantVariantInventory'
+        'variant_inventory' => '\OpenAPIClient\Model\ProductVariantsInnerVariantInventory',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'stripe_product_id' => null,
@@ -97,14 +103,14 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         'compare_at_price_amount_formatted' => null,
         'currency' => null,
         'no_price_in_pos' => null,
-        'variant_inventory' => null
+        'variant_inventory' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'stripe_product_id' => true,
@@ -120,14 +126,14 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         'compare_at_price_amount_formatted' => true,
         'currency' => false,
         'no_price_in_pos' => false,
-        'variant_inventory' => false
+        'variant_inventory' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -152,8 +158,6 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -163,7 +167,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -173,7 +177,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -182,9 +186,6 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -193,9 +194,6 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -223,7 +221,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         'compare_at_price_amount_formatted' => 'compare_at_price_amount_formatted',
         'currency' => 'currency',
         'no_price_in_pos' => 'no_price_in_pos',
-        'variant_inventory' => 'variant_inventory'
+        'variant_inventory' => 'variant_inventory',
     ];
 
     /**
@@ -246,7 +244,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         'compare_at_price_amount_formatted' => 'setCompareAtPriceAmountFormatted',
         'currency' => 'setCurrency',
         'no_price_in_pos' => 'setNoPriceInPos',
-        'variant_inventory' => 'setVariantInventory'
+        'variant_inventory' => 'setVariantInventory',
     ];
 
     /**
@@ -269,7 +267,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         'compare_at_price_amount_formatted' => 'getCompareAtPriceAmountFormatted',
         'currency' => 'getCurrency',
         'no_price_in_pos' => 'getNoPriceInPos',
-        'variant_inventory' => 'getVariantInventory'
+        'variant_inventory' => 'getVariantInventory',
     ];
 
     /**
@@ -313,7 +311,6 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -324,8 +321,8 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -347,14 +344,12 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -387,7 +382,6 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -401,8 +395,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets id
      *
-     * @param int|null $id id
-     *
+     * @param  int|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -428,8 +421,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets stripe_product_id
      *
-     * @param string|null $stripe_product_id stripe_product_id
-     *
+     * @param  string|null  $stripe_product_id  stripe_product_id
      * @return self
      */
     public function setStripeProductId($stripe_product_id)
@@ -439,7 +431,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('stripe_product_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -462,8 +454,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets stripe_price_id
      *
-     * @param string|null $stripe_price_id stripe_price_id
-     *
+     * @param  string|null  $stripe_price_id  stripe_price_id
      * @return self
      */
     public function setStripePriceId($stripe_price_id)
@@ -473,7 +464,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('stripe_price_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -496,8 +487,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets sku
      *
-     * @param string|null $sku sku
-     *
+     * @param  string|null  $sku  sku
      * @return self
      */
     public function setSku($sku)
@@ -507,7 +497,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('sku', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -530,8 +520,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets barcode
      *
-     * @param string|null $barcode barcode
-     *
+     * @param  string|null  $barcode  barcode
      * @return self
      */
     public function setBarcode($barcode)
@@ -541,7 +530,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('barcode', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -564,8 +553,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets variant_name
      *
-     * @param string|null $variant_name variant_name
-     *
+     * @param  string|null  $variant_name  variant_name
      * @return self
      */
     public function setVariantName($variant_name)
@@ -581,7 +569,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Gets variant_options
      *
-     * @return \OpenAPI\Client\Model\ProductVariantsInnerVariantOptionsInner[]|null
+     * @return \OpenAPIClient\Model\ProductVariantsInnerVariantOptionsInner[]|null
      */
     public function getVariantOptions()
     {
@@ -591,8 +579,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets variant_options
      *
-     * @param \OpenAPI\Client\Model\ProductVariantsInnerVariantOptionsInner[]|null $variant_options variant_options
-     *
+     * @param  \OpenAPIClient\Model\ProductVariantsInnerVariantOptionsInner[]|null  $variant_options  variant_options
      * @return self
      */
     public function setVariantOptions($variant_options)
@@ -608,7 +595,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Gets variant_price
      *
-     * @return \OpenAPI\Client\Model\ProductVariantsInnerVariantPrice|null
+     * @return \OpenAPIClient\Model\ProductVariantsInnerVariantPrice|null
      */
     public function getVariantPrice()
     {
@@ -618,8 +605,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets variant_price
      *
-     * @param \OpenAPI\Client\Model\ProductVariantsInnerVariantPrice|null $variant_price variant_price
-     *
+     * @param  \OpenAPIClient\Model\ProductVariantsInnerVariantPrice|null  $variant_price  variant_price
      * @return self
      */
     public function setVariantPrice($variant_price)
@@ -645,8 +631,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets price_amount
      *
-     * @param int|null $price_amount Price in øre (flattened field for backward compatibility). Returns 0 for variants without preset prices (custom price input on POS). Frontend should check if price_amount === 0 to enable custom price input.
-     *
+     * @param  int|null  $price_amount  Price in øre (flattened field for backward compatibility). Returns 0 for variants without preset prices (custom price input on POS). Frontend should check if price_amount === 0 to enable custom price input.
      * @return self
      */
     public function setPriceAmount($price_amount)
@@ -672,8 +657,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets price_amount_formatted
      *
-     * @param string|null $price_amount_formatted Formatted price string (flattened field for backward compatibility). Returns \"0.00\" for variants without preset prices. Frontend should check if price_amount === 0 to enable custom price input.
-     *
+     * @param  string|null  $price_amount_formatted  Formatted price string (flattened field for backward compatibility). Returns \"0.00\" for variants without preset prices. Frontend should check if price_amount === 0 to enable custom price input.
      * @return self
      */
     public function setPriceAmountFormatted($price_amount_formatted)
@@ -699,8 +683,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets compare_at_price_amount
      *
-     * @param int|null $compare_at_price_amount Compare at price in øre (original price for discounts).
-     *
+     * @param  int|null  $compare_at_price_amount  Compare at price in øre (original price for discounts).
      * @return self
      */
     public function setCompareAtPriceAmount($compare_at_price_amount)
@@ -710,7 +693,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('compare_at_price_amount', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -733,8 +716,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets compare_at_price_amount_formatted
      *
-     * @param string|null $compare_at_price_amount_formatted Formatted compare at price string.
-     *
+     * @param  string|null  $compare_at_price_amount_formatted  Formatted compare at price string.
      * @return self
      */
     public function setCompareAtPriceAmountFormatted($compare_at_price_amount_formatted)
@@ -744,7 +726,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('compare_at_price_amount_formatted', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -767,8 +749,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets currency
      *
-     * @param string|null $currency currency
-     *
+     * @param  string|null  $currency  currency
      * @return self
      */
     public function setCurrency($currency)
@@ -794,8 +775,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets no_price_in_pos
      *
-     * @param bool|null $no_price_in_pos If true, this variant has no preset price and requires custom price input on POS.
-     *
+     * @param  bool|null  $no_price_in_pos  If true, this variant has no preset price and requires custom price input on POS.
      * @return self
      */
     public function setNoPriceInPos($no_price_in_pos)
@@ -811,7 +791,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Gets variant_inventory
      *
-     * @return \OpenAPI\Client\Model\UpdateVariantInventory200ResponseVariantVariantInventory|null
+     * @return \OpenAPIClient\Model\ProductVariantsInnerVariantInventory|null
      */
     public function getVariantInventory()
     {
@@ -821,8 +801,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets variant_inventory
      *
-     * @param \OpenAPI\Client\Model\UpdateVariantInventory200ResponseVariantVariantInventory|null $variant_inventory variant_inventory
-     *
+     * @param  \OpenAPIClient\Model\ProductVariantsInnerVariantInventory|null  $variant_inventory  variant_inventory
      * @return self
      */
     public function setVariantInventory($variant_inventory)
@@ -834,12 +813,11 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -849,8 +827,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -862,10 +839,8 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -879,9 +854,7 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -890,15 +863,16 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -924,5 +898,3 @@ class ProductVariantsInner implements ModelInterface, ArrayAccess, \JsonSerializ
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

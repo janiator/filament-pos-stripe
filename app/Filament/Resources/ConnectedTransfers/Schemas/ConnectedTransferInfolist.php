@@ -17,15 +17,15 @@ class ConnectedTransferInfolist
                 Section::make('Transfer Information')
                     ->schema([
                         TextEntry::make('formatted_amount')
-                            ->label('Amount')
-                            ->placeholder('-')
+                            ->label(__('Amount'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedCurrencyDollar)
                             ->size(TextSize::Large)
                             ->badge()
                             ->color('success'),
 
                         TextEntry::make('status')
-                            ->label('Status')
+                            ->label(__('Status'))
                             ->badge()
                             ->colors([
                                 'success' => 'paid',
@@ -36,15 +36,15 @@ class ConnectedTransferInfolist
                             ->icon(Heroicon::OutlinedCheckCircle),
 
                         TextEntry::make('arrival_date')
-                            ->label('Arrival Date')
+                            ->label(__('Arrival Date'))
                             ->dateTime()
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedCalendar)
                             ->color(fn ($record) => $record->arrival_date && $record->arrival_date->isPast() ? 'success' : 'warning'),
 
                         TextEntry::make('description')
-                            ->label('Description')
-                            ->placeholder('-')
+                            ->label(__('Description'))
+                            ->placeholder(__('-'))
                             ->wrap()
                             ->icon(Heroicon::OutlinedDocumentText),
                     ])
@@ -53,16 +53,16 @@ class ConnectedTransferInfolist
                 Section::make('Store & Destination')
                     ->schema([
                         TextEntry::make('store.name')
-                            ->label('Store')
-                            ->placeholder('-')
+                            ->label(__('Store'))
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedBuildingStorefront)
                             ->url(fn ($record) => $record->store
                                 ? \App\Filament\Resources\Stores\StoreResource::getUrl('view', ['record' => $record->store])
                                 : null),
 
                         TextEntry::make('destination')
-                            ->label('Destination')
-                            ->placeholder('-')
+                            ->label(__('Destination'))
+                            ->placeholder(__('-'))
                             ->copyable()
                             ->icon(Heroicon::OutlinedArrowRightCircle),
                     ])
@@ -71,22 +71,22 @@ class ConnectedTransferInfolist
                 Section::make('Transfer Details')
                     ->schema([
                         TextEntry::make('formatted_reversed_amount')
-                            ->label('Reversed Amount')
-                            ->placeholder('$0.00')
+                            ->label(__('Reversed Amount'))
+                            ->placeholder(__('$0.00'))
                             ->badge()
                             ->color(fn ($record) => $record->reversed_amount > 0 ? 'danger' : 'gray')
                             ->visible(fn ($record) => $record->reversed_amount > 0),
 
                         TextEntry::make('formatted_net_amount')
-                            ->label('Net Amount')
+                            ->label(__('Net Amount'))
                             ->badge()
                             ->color('success')
                             ->visible(fn ($record) => $record->reversed_amount > 0),
 
                         TextEntry::make('stripe_charge_id')
-                            ->label('Source Charge ID')
+                            ->label(__('Source Charge ID'))
                             ->copyable()
-                            ->placeholder('-')
+                            ->placeholder(__('-'))
                             ->icon(Heroicon::OutlinedHashtag)
                             ->visible(fn ($record) => $record->stripe_charge_id),
                     ])
@@ -95,17 +95,17 @@ class ConnectedTransferInfolist
                 Section::make('Technical Details')
                     ->schema([
                         TextEntry::make('stripe_transfer_id')
-                            ->label('Transfer ID')
+                            ->label(__('Transfer ID'))
                             ->copyable()
                             ->icon(Heroicon::OutlinedHashtag),
 
                         TextEntry::make('created_at')
-                            ->label('Created')
+                            ->label(__('Created'))
                             ->dateTime()
                             ->icon(Heroicon::OutlinedCalendar),
 
                         TextEntry::make('updated_at')
-                            ->label('Updated')
+                            ->label(__('Updated'))
                             ->dateTime()
                             ->icon(Heroicon::OutlinedCalendar),
                     ])

@@ -2,11 +2,18 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\Verifone\VerifonePaymentsController;
+use App\Http\Controllers\Api\Verifone\VerifonePaymentStatusController;
+use App\Http\Controllers\Api\Verifone\VerifoneTerminalAbortController;
+use App\Http\Controllers\Api\Verifone\VerifoneTerminalsController;
 use App\Http\Controllers\Stores\StoreTerminalConnectionTokenController;
 use App\Http\Controllers\Stores\StoreTerminalPaymentIntentController;
 use App\Http\Controllers\Webhooks\StripeConnectWebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/poweroffice/onboarding/callback', [\App\Http\Controllers\Api\PowerOffice\PowerOfficeOnboardingController::class, 'callback'])
+    ->name('api.poweroffice.onboarding.callback');
 
 // Public webhook endpoint (no authentication required)
 // Support both /api/stripe/connect/webhook and /connectWebhook (for Stripe CLI compatibility)
@@ -92,6 +99,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/stores/{store}/terminal/payment-intents', StoreTerminalPaymentIntentController::class)
         ->name('stores.terminal.payment-intents.store');
 
+    // Verifone terminal endpoints (provider-specific)
+    Route::get('/verifone/stores/{store}/terminals', [VerifoneTerminalsController::class, 'index'])
+        ->name('api.verifone.terminals.index');
+    Route::post('/verifone/stores/{store}/payments', [VerifonePaymentsController::class, 'store'])
+        ->name('api.verifone.payments.store');
+    Route::post('/verifone/stores/{store}/payments/{serviceId}/status', [VerifonePaymentStatusController::class, 'store'])
+        ->name('api.verifone.payments.status');
+    Route::post('/verifone/stores/{store}/terminals/{terminal}/abort', [VerifoneTerminalAbortController::class, 'store'])
+        ->name('api.verifone.terminals.abort');
+
     // Tenant-scoped API resources
     Route::apiResource('customers', \App\Http\Controllers\Api\CustomersController::class);
     Route::apiResource('products', \App\Http\Controllers\Api\ProductsController::class)->only(['index', 'show', 'store', 'update']);
@@ -105,6 +122,33 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/variants/{variant}/inventory/adjust', [\App\Http\Controllers\Api\InventoryController::class, 'adjustInventory'])->name('api.variants.inventory.adjust');
     Route::post('/variants/{variant}/inventory/set', [\App\Http\Controllers\Api\InventoryController::class, 'setInventory'])->name('api.variants.inventory.set');
     Route::post('/inventory/bulk-update', [\App\Http\Controllers\Api\InventoryController::class, 'bulkUpdate'])->name('api.inventory.bulk-update');
+
+    Route::post('/poweroffice/onboarding/init', [\App\Http\Controllers\Api\PowerOffice\PowerOfficeOnboardingController::class, 'init'])
+        ->name('api.poweroffice.onboarding.init');
+
+    Route::post('/poweroffice/sync/z-report/{posSession}', [\App\Http\Controllers\Api\PowerOffice\PowerOfficeSyncController::class, 'syncZReport'])
+        ->name('api.poweroffice.sync.z-report');
+
+    Route::post('/poweroffice/sync/retry/{syncRun}', [\App\Http\Controllers\Api\PowerOffice\PowerOfficeSyncController::class, 'retry'])
+        ->name('api.poweroffice.sync.retry');
+
+    Route::post('/tripletex/sync/z-report/{posSession}', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'syncZReport'])
+        ->name('api.tripletex.sync.z-report');
+
+    Route::post('/tripletex/sync/payout/{payout}', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'syncPayout'])
+        ->name('api.tripletex.sync.payout');
+
+    Route::post('/tripletex/sync/retry/{syncRun}', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'retry'])
+        ->name('api.tripletex.sync.retry');
+
+    Route::get('/tripletex/preview/z-report/{posSession}', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'previewZReport'])
+        ->name('api.tripletex.preview.z-report');
+
+    Route::get('/tripletex/preview/payout/{payout}', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'previewPayout'])
+        ->name('api.tripletex.preview.payout');
+
+    Route::post('/tripletex/sync/historical', [\App\Http\Controllers\Api\Tripletex\TripletexSyncController::class, 'historical'])
+        ->name('api.tripletex.sync.historical');
 
     // SAF-T endpoints (Kassasystemforskriften compliance)
     Route::post('/saf-t/generate', [\App\Http\Controllers\Api\SafTController::class, 'generate'])->name('api.saf-t.generate');

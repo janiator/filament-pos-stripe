@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ReceiptPrinters;
 
 use App\Enums\AddonType;
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ReceiptPrinters\Pages\CreateReceiptPrinter;
 use App\Filament\Resources\ReceiptPrinters\Pages\EditReceiptPrinter;
@@ -20,6 +21,8 @@ use Filament\Tables\Table;
 class ReceiptPrinterResource extends Resource
 {
     use HasTenantScopedQuery;
+
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = ReceiptPrinter::class;
 

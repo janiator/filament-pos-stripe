@@ -12,6 +12,9 @@ enum AddonType: string
     case Transfers = 'transfers';
     case Workflows = 'workflows';
     case Pos = 'pos';
+    case PowerOfficeGo = 'power_office_go';
+    case Tripletex = 'tripletex';
+    case Inventory = 'inventory';
 
     public function label(): string
     {
@@ -24,6 +27,9 @@ enum AddonType: string
             self::Transfers => 'Transfers',
             self::Workflows => 'Workflows',
             self::Pos => 'POS',
+            self::PowerOfficeGo => 'PowerOffice Go',
+            self::Tripletex => 'Tripletex',
+            self::Inventory => 'Inventory',
         };
     }
 
@@ -41,6 +47,9 @@ enum AddonType: string
             self::Transfers => 'View and manage Stripe transfers and payouts.',
             self::Workflows => 'Automate actions with event- and schedule-triggered workflows.',
             self::Pos => 'Point of sale: sessions, devices, terminals, receipts, and payment methods.',
+            self::PowerOfficeGo => 'Sync Z-reports to PowerOffice Go accounting with configurable account mapping.',
+            self::Tripletex => 'Post POS Z-reports and Stripe payouts to Tripletex as vouchers.',
+            self::Inventory => 'Track stock per variant, validate sales, and adjust quantities from the API or admin.',
         };
     }
 
@@ -53,7 +62,8 @@ enum AddonType: string
     }
 
     /**
-     * Addon type slugs that allow linking Webflow sites.
+     * Addon type slugs that allow linking Webflow sites (add-ons page, cleanup, shared data).
+     * Filament "Webflow CMS" navigation requires {@see self::WebflowCms} only.
      *
      * @return array<string>
      */

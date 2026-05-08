@@ -7,6 +7,9 @@ Route::get('/', function () {
     return redirect('/app/login');
 });
 
+Route::get('/integrations/poweroffice/onboarding/redirect', \App\Http\Controllers\PowerOffice\PowerOfficeOnboardingRedirectController::class)
+    ->name('poweroffice.onboarding.redirect');
+
 // Stripe webhook endpoint (also available without /api prefix for compatibility)
 // Exclude from CSRF protection since webhooks don't have CSRF tokens
 Route::post('/connectWebhook', StripeConnectWebhookController::class)

@@ -20,19 +20,19 @@ class ListEventTickets extends ListRecords
     {
         return [
             Action::make('syncFromWebflow')
-                ->label('Sync from Webflow')
+                ->label(__('Sync from Webflow'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->form([
                     Checkbox::make('pull_first')
-                        ->label('Pull from Webflow first (sync latest CMS items before importing)')
+                        ->label(__('Pull from Webflow first (sync latest CMS items before importing)'))
                         ->default(false),
                 ])
                 ->action(function (array $data): void {
                     $store = Filament::getTenant();
                     if (! $store instanceof Store) {
                         Notification::make()
-                            ->title('No store selected')
+                            ->title(__('No store selected'))
                             ->body('Please select a store (tenant) first.')
                             ->danger()
                             ->send();
@@ -44,7 +44,7 @@ class ListEventTickets extends ListRecords
                     $result = $import($store, null, (bool) ($data['pull_first'] ?? false));
 
                     Notification::make()
-                        ->title('Sync complete')
+                        ->title(__('Sync complete'))
                         ->body("Created: {$result['created']}, Updated: {$result['updated']}.")
                         ->success()
                         ->send();

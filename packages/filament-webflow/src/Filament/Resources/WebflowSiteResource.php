@@ -48,11 +48,7 @@ class WebflowSiteResource extends Resource
             return false;
         }
 
-        return Addon::query()
-            ->where('store_id', $tenant->getKey())
-            ->where('is_active', true)
-            ->whereIn('type', AddonType::typesWithWebflow())
-            ->exists();
+        return Addon::storeHasActiveAddon($tenant->getKey(), AddonType::WebflowCms);
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder

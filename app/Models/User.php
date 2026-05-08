@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Filament\Resources\PosSessions\PosSessionResource;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasDefaultTenant;
 use Filament\Models\Contracts\HasTenants;
@@ -144,7 +145,7 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     /**
      * Check if user is a super admin, bypassing tenant scoping
      */
-    protected function isSuperAdmin(): bool
+    public function isSuperAdmin(): bool
     {
         try {
             // Use withoutGlobalScopes to bypass tenant scoping for role checks
@@ -164,5 +165,29 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     {
         // Return the user's current store, or first store if not set, or null if they have no stores
         return $this->currentStore();
+    }
+
+    /**
+     * Target URL after Filament impersonation. Tenant routes require the user to be
+     * attached to the store (store_user); redirecting here avoids 404 on the previous URL.
+     */
+    public function impersonationRedirectUrl(): string
+    {
+        $panel = \Filament\Facades\Filament::getPanel('app');
+        $tenant = $this->getTenants($panel)->first();
+
+        if (! $tenant instanceof Store) {
+            return route('filament.app.auth.profile');
+        }
+
+        if ($this->can('View:Dashboard')) {
+            return route('filament.app.pages.dashboard', ['tenant' => $tenant]);
+        }
+
+        if ($this->can('ViewAny:PosSession')) {
+            return PosSessionResource::getUrl('index', [], true, 'app', $tenant);
+        }
+
+        return route('filament.app.auth.profile');
     }
 }

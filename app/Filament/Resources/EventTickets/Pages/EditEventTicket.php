@@ -37,7 +37,7 @@ class EditEventTicket extends EditRecord
     {
         return [
             Action::make('syncFromWebflow')
-                ->label('Sync from Webflow')
+                ->label(__('Sync from Webflow'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->visible(fn () => $this->record->webflowItem !== null)
@@ -58,7 +58,7 @@ class EditEventTicket extends EditRecord
                     $formData['ticket_2_enabled'] = ((int) ($record->ticket_2_available ?? 0)) > 0 || ! empty($record->ticket_2_payment_link_id);
                     $this->form->fill($formData);
                     Notification::make()
-                        ->title('Synced from Webflow')
+                        ->title(__('Synced from Webflow'))
                         ->body('Event details have been updated from the linked Webflow CMS item.')
                         ->success()
                         ->send();

@@ -17,7 +17,7 @@ class AddonForm
         return $schema
             ->components([
                 Select::make('type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->options(collect(AddonType::cases())->mapWithKeys(fn (AddonType $t) => [$t->value => $t->label()])->all())
                     ->required()
                     ->native(false)
@@ -31,7 +31,7 @@ class AddonForm
                         modifyRuleUsing: fn (Unique $rule) => $rule->where('store_id', \Filament\Facades\Filament::getTenant()?->id)
                     ),
                 Toggle::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->default(true),
                 Hidden::make('store_id')
                     ->default(fn () => \Filament\Facades\Filament::getTenant()?->id),

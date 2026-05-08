@@ -22,7 +22,7 @@ class PosPurchasesTable
             })
             ->columns([
                 TextColumn::make('formatted_amount')
-                    ->label('Amount')
+                    ->label(__('Amount'))
                     ->badge()
                     ->color('success')
                     ->weight('bold')
@@ -32,7 +32,7 @@ class PosPurchasesTable
                     ->toggleable(),
 
                 TextColumn::make('posSession.session_number')
-                    ->label('Session')
+                    ->label(__('Session'))
                     ->searchable()
                     ->sortable()
                     ->badge()
@@ -40,16 +40,16 @@ class PosPurchasesTable
                     ->toggleable(),
 
                 TextColumn::make('receipt.receipt_number')
-                    ->label('Receipt')
+                    ->label(__('Receipt'))
                     ->searchable()
                     ->sortable()
                     ->badge()
                     ->color('gray')
-                    ->placeholder('No receipt')
+                    ->placeholder(__('No receipt'))
                     ->toggleable(),
 
                 TextColumn::make('payment_method')
-                    ->label('Payment Method')
+                    ->label(__('Payment Method'))
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state ? ucfirst(str_replace('_', ' ', $state)) : '-')
                     ->color(fn ($state) => match ($state) {
@@ -61,7 +61,7 @@ class PosPurchasesTable
                     ->toggleable(),
 
                 TextColumn::make('charge_display')
-                    ->label('Charge ID')
+                    ->label(__('Charge ID'))
                     ->formatStateUsing(function ($record) {
                         if ($record->stripe_charge_id) {
                             return $record->stripe_charge_id;
@@ -80,7 +80,7 @@ class PosPurchasesTable
                     ->toggleable(),
 
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->colors([
                         'success' => 'succeeded',
@@ -92,20 +92,20 @@ class PosPurchasesTable
                     ->toggleable(),
 
                 TextColumn::make('posSession.user.name')
-                    ->label('Cashier')
+                    ->label(__('Cashier'))
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('paid_at')
-                    ->label('Paid At')
+                    ->label(__('Paid At'))
                     ->dateTime()
                     ->sortable()
-                    ->placeholder('-')
+                    ->placeholder(__('-'))
                     ->toggleable(),
 
                 TextColumn::make('note')
-                    ->label('Note')
+                    ->label(__('Note'))
                     ->state(function ($record) {
                         $metadata = $record->metadata ?? [];
                         if (is_string($metadata)) {
@@ -124,18 +124,18 @@ class PosPurchasesTable
 
                         return is_array($metadata) ? ($metadata['note'] ?? null) : null;
                     })
-                    ->placeholder('-')
+                    ->placeholder(__('-'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->options([
                         'succeeded' => 'Succeeded',
                         'pending' => 'Pending',
@@ -144,7 +144,7 @@ class PosPurchasesTable
                     ]),
 
                 SelectFilter::make('payment_method')
-                    ->label('Payment Method')
+                    ->label(__('Payment Method'))
                     ->options(function () {
                         return \App\Models\ConnectedCharge::whereNotNull('pos_session_id')
                             ->distinct()
@@ -155,10 +155,10 @@ class PosPurchasesTable
                     }),
 
                 Filter::make('cashier')
-                    ->label('Cashier')
+                    ->label(__('Cashier'))
                     ->form([
                         Select::make('user_id')
-                            ->label('Cashier')
+                            ->label(__('Cashier'))
                             ->options(function () {
                                 $query = \App\Models\PosSession::query()
                                     ->whereNotNull('user_id')
@@ -178,7 +178,7 @@ class PosPurchasesTable
                             })
                             ->searchable()
                             ->preload()
-                            ->placeholder('All'),
+                            ->placeholder(__('All')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
@@ -191,16 +191,16 @@ class PosPurchasesTable
                     }),
 
                 Filter::make('has_receipt')
-                    ->label('Receipt')
+                    ->label(__('Receipt'))
                     ->form([
                         Select::make('has_receipt')
-                            ->label('Has receipt')
+                            ->label(__('Has receipt'))
                             ->options([
                                 '' => 'All',
                                 '1' => 'With receipt',
                                 '0' => 'Without receipt',
                             ])
-                            ->placeholder('All'),
+                            ->placeholder(__('All')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         $value = $data['has_receipt'] ?? null;
@@ -214,14 +214,14 @@ class PosPurchasesTable
                     }),
 
                 Filter::make('amount')
-                    ->label('Amount range')
+                    ->label(__('Amount range'))
                     ->form([
                         TextInput::make('amount_min')
-                            ->label('Min (main unit, e.g. NOK)')
+                            ->label(__('Min (main unit, e.g. NOK)'))
                             ->numeric()
                             ->minValue(0),
                         TextInput::make('amount_max')
-                            ->label('Max (main unit, e.g. NOK)')
+                            ->label(__('Max (main unit, e.g. NOK)'))
                             ->numeric()
                             ->minValue(0),
                     ])
@@ -238,7 +238,7 @@ class PosPurchasesTable
                     }),
 
                 Filter::make('pos_session_id')
-                    ->label('POS Session')
+                    ->label(__('POS Session'))
                     ->form([
                         Select::make('pos_session_id')
                             ->relationship('posSession', 'session_number', modifyQueryUsing: function ($query) {
@@ -262,12 +262,12 @@ class PosPurchasesTable
                     }),
 
                 Filter::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->form([
                         DatePicker::make('created_from')
-                            ->label('Created From'),
+                            ->label(__('Created From')),
                         DatePicker::make('created_until')
-                            ->label('Created Until'),
+                            ->label(__('Created Until')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -282,12 +282,12 @@ class PosPurchasesTable
                     }),
 
                 Filter::make('paid_at')
-                    ->label('Paid at')
+                    ->label(__('Paid at'))
                     ->form([
                         DatePicker::make('paid_from')
-                            ->label('Paid From'),
+                            ->label(__('Paid From')),
                         DatePicker::make('paid_until')
-                            ->label('Paid Until'),
+                            ->label(__('Paid Until')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query

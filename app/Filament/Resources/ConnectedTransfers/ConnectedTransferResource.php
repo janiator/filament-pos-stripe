@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ConnectedTransfers;
 
 use App\Enums\AddonType;
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ConnectedTransfers\Pages\CreateConnectedTransfer;
 use App\Filament\Resources\ConnectedTransfers\Pages\EditConnectedTransfer;
@@ -23,6 +24,8 @@ use Filament\Tables\Table;
 class ConnectedTransferResource extends Resource
 {
     use HasTenantScopedQuery;
+
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = ConnectedTransfer::class;
 

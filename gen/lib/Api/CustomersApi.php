@@ -1,18 +1,20 @@
 <?php
+
 /**
  * CustomersApi
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -26,7 +28,7 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Api;
+namespace OpenAPIClient\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -35,20 +37,20 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\MultipartStream;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
+use OpenAPIClient\ApiException;
+use OpenAPIClient\Configuration;
+use OpenAPIClient\HeaderSelector;
+use OpenAPIClient\ObjectSerializer;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use OpenAPI\Client\ApiException;
-use OpenAPI\Client\Configuration;
-use OpenAPI\Client\FormDataProcessor;
-use OpenAPI\Client\HeaderSelector;
-use OpenAPI\Client\ObjectSerializer;
 
 /**
  * CustomersApi Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 class CustomersApi
@@ -73,7 +75,7 @@ class CustomersApi
      */
     protected $hostIndex;
 
-    /** @var string[] $contentTypes **/
+    /** @var string[] * */
     public const contentTypes = [
         'createCustomer' => [
             'application/json',
@@ -93,10 +95,7 @@ class CustomersApi
     ];
 
     /**
-     * @param ClientInterface $client
-     * @param Configuration   $config
-     * @param HeaderSelector  $selector
-     * @param int             $hostIndex (Optional) host index to select the list of hosts if defined in the OpenAPI spec
+     * @param  int  $hostIndex  (Optional) host index to select the list of hosts if defined in the OpenAPI spec
      */
     public function __construct(
         ?ClientInterface $client = null,
@@ -104,16 +103,16 @@ class CustomersApi
         ?HeaderSelector $selector = null,
         int $hostIndex = 0
     ) {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
         $this->config = $config ?: Configuration::getDefaultConfiguration();
-        $this->headerSelector = $selector ?: new HeaderSelector();
+        $this->headerSelector = $selector ?: new HeaderSelector;
         $this->hostIndex = $hostIndex;
     }
 
     /**
      * Set the host index
      *
-     * @param int $hostIndex Host index (required)
+     * @param  int  $hostIndex  Host index (required)
      */
     public function setHostIndex($hostIndex): void
     {
@@ -143,17 +142,18 @@ class CustomersApi
      *
      * Create customer
      *
-     * @param  \OpenAPI\Client\Model\CreateCustomerRequest $create_customer_request create_customer_request (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createCustomer'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateCustomerRequest  $create_customer_request  create_customer_request (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createCustomer'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\Customer|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\Customer|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function createCustomer($create_customer_request, $x_tenant = null, string $contentType = self::contentTypes['createCustomer'][0])
     {
-        list($response) = $this->createCustomerWithHttpInfo($create_customer_request, $x_tenant, $contentType);
+        [$response] = $this->createCustomerWithHttpInfo($create_customer_request, $x_tenant, $contentType);
+
         return $response;
     }
 
@@ -162,13 +162,13 @@ class CustomersApi
      *
      * Create customer
      *
-     * @param  \OpenAPI\Client\Model\CreateCustomerRequest $create_customer_request (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createCustomer'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateCustomerRequest  $create_customer_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createCustomer'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\Customer|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\Customer|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function createCustomerWithHttpInfo($create_customer_request, $x_tenant = null, string $contentType = self::contentTypes['createCustomer'][0])
     {
@@ -196,29 +196,26 @@ class CustomersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 201:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\Customer',
+                        '\OpenAPIClient\Model\Customer',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -234,7 +231,7 @@ class CustomersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\Customer',
+                '\OpenAPIClient\Model\Customer',
                 $request,
                 $response,
             );
@@ -243,7 +240,7 @@ class CustomersApi
                 case 201:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\Customer',
+                        '\OpenAPIClient\Model\Customer',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -251,7 +248,7 @@ class CustomersApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -259,13 +256,12 @@ class CustomersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -276,12 +272,12 @@ class CustomersApi
      *
      * Create customer
      *
-     * @param  \OpenAPI\Client\Model\CreateCustomerRequest $create_customer_request (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createCustomer'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateCustomerRequest  $create_customer_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createCustomerAsync($create_customer_request, $x_tenant = null, string $contentType = self::contentTypes['createCustomer'][0])
     {
@@ -298,16 +294,16 @@ class CustomersApi
      *
      * Create customer
      *
-     * @param  \OpenAPI\Client\Model\CreateCustomerRequest $create_customer_request (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createCustomer'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateCustomerRequest  $create_customer_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function createCustomerAsyncWithHttpInfo($create_customer_request, $x_tenant = null, string $contentType = self::contentTypes['createCustomer'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\Customer';
+        $returnType = '\OpenAPIClient\Model\Customer';
         $request = $this->createCustomerRequest($create_customer_request, $x_tenant, $contentType);
 
         return $this->client
@@ -315,7 +311,7 @@ class CustomersApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -326,7 +322,7 @@ class CustomersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -349,12 +345,12 @@ class CustomersApi
     /**
      * Create request for operation 'createCustomer'
      *
-     * @param  \OpenAPI\Client\Model\CreateCustomerRequest $create_customer_request (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createCustomer'] to see the possible values for this operation
+     * @param  \OpenAPIClient\Model\CreateCustomerRequest  $create_customer_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['createCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function createCustomerRequest($create_customer_request, $x_tenant = null, string $contentType = self::contentTypes['createCustomer'][0])
     {
@@ -366,8 +362,6 @@ class CustomersApi
             );
         }
 
-
-
         $resourcePath = '/customers';
         $formParams = [];
         $queryParams = [];
@@ -375,16 +369,13 @@ class CustomersApi
         $httpBody = '';
         $multipart = false;
 
-
         // header params
         if ($x_tenant !== null) {
             $headerParams['X-Tenant'] = ObjectSerializer::toHeaderValue($x_tenant);
         }
 
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -392,7 +383,7 @@ class CustomersApi
         // for model (json/xml)
         if (isset($create_customer_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($create_customer_request));
             } else {
                 $httpBody = $create_customer_request;
@@ -405,7 +396,7 @@ class CustomersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -413,7 +404,7 @@ class CustomersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -422,8 +413,8 @@ class CustomersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -439,9 +430,10 @@ class CustomersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'POST',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -452,13 +444,13 @@ class CustomersApi
      *
      * Delete customer
      *
-     * @param  int $id id (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['deleteCustomer'] to see the possible values for this operation
-     *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
-     * @throws \InvalidArgumentException
+     * @param  int  $id  id (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['deleteCustomer'] to see the possible values for this operation
      * @return void
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
      */
     public function deleteCustomer($id, $x_tenant = null, string $contentType = self::contentTypes['deleteCustomer'][0])
     {
@@ -470,13 +462,13 @@ class CustomersApi
      *
      * Delete customer
      *
-     * @param  int $id (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['deleteCustomer'] to see the possible values for this operation
-     *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
-     * @throws \InvalidArgumentException
+     * @param  int  $id  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['deleteCustomer'] to see the possible values for this operation
      * @return array of null, HTTP status code, HTTP response headers (array of strings)
+     *
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
      */
     public function deleteCustomerWithHttpInfo($id, $x_tenant = null, string $contentType = self::contentTypes['deleteCustomer'][0])
     {
@@ -504,14 +496,13 @@ class CustomersApi
 
             $statusCode = $response->getStatusCode();
 
-
             return [null, $statusCode, $response->getHeaders()];
         } catch (ApiException $e) {
             switch ($e->getCode()) {
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -519,13 +510,12 @@ class CustomersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -536,12 +526,12 @@ class CustomersApi
      *
      * Delete customer
      *
-     * @param  int $id (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['deleteCustomer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['deleteCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function deleteCustomerAsync($id, $x_tenant = null, string $contentType = self::contentTypes['deleteCustomer'][0])
     {
@@ -558,12 +548,12 @@ class CustomersApi
      *
      * Delete customer
      *
-     * @param  int $id (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['deleteCustomer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['deleteCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function deleteCustomerAsyncWithHttpInfo($id, $x_tenant = null, string $contentType = self::contentTypes['deleteCustomer'][0])
     {
@@ -573,7 +563,7 @@ class CustomersApi
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
-                function ($response) use ($returnType) {
+                function ($response) {
                     return [null, $response->getStatusCode(), $response->getHeaders()];
                 },
                 function ($exception) {
@@ -596,12 +586,12 @@ class CustomersApi
     /**
      * Create request for operation 'deleteCustomer'
      *
-     * @param  int $id (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['deleteCustomer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['deleteCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function deleteCustomerRequest($id, $x_tenant = null, string $contentType = self::contentTypes['deleteCustomer'][0])
     {
@@ -613,15 +603,12 @@ class CustomersApi
             );
         }
 
-
-
         $resourcePath = '/customers/{id}';
         $formParams = [];
         $queryParams = [];
         $headerParams = [];
         $httpBody = '';
         $multipart = false;
-
 
         // header params
         if ($x_tenant !== null) {
@@ -631,15 +618,14 @@ class CustomersApi
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -653,7 +639,7 @@ class CustomersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -661,7 +647,7 @@ class CustomersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -670,8 +656,8 @@ class CustomersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -687,9 +673,10 @@ class CustomersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'DELETE',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -700,17 +687,18 @@ class CustomersApi
      *
      * Get customer
      *
-     * @param  int $id id (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCustomer'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCustomer'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\Customer|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\Customer|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function getCustomer($id, $x_tenant = null, string $contentType = self::contentTypes['getCustomer'][0])
     {
-        list($response) = $this->getCustomerWithHttpInfo($id, $x_tenant, $contentType);
+        [$response] = $this->getCustomerWithHttpInfo($id, $x_tenant, $contentType);
+
         return $response;
     }
 
@@ -719,13 +707,13 @@ class CustomersApi
      *
      * Get customer
      *
-     * @param  int $id (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCustomer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCustomer'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\Customer|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\Customer|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function getCustomerWithHttpInfo($id, $x_tenant = null, string $contentType = self::contentTypes['getCustomer'][0])
     {
@@ -753,29 +741,26 @@ class CustomersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\Customer',
+                        '\OpenAPIClient\Model\Customer',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -791,7 +776,7 @@ class CustomersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\Customer',
+                '\OpenAPIClient\Model\Customer',
                 $request,
                 $response,
             );
@@ -800,7 +785,7 @@ class CustomersApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\Customer',
+                        '\OpenAPIClient\Model\Customer',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -808,7 +793,7 @@ class CustomersApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -816,13 +801,12 @@ class CustomersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -833,12 +817,12 @@ class CustomersApi
      *
      * Get customer
      *
-     * @param  int $id (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCustomer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getCustomerAsync($id, $x_tenant = null, string $contentType = self::contentTypes['getCustomer'][0])
     {
@@ -855,16 +839,16 @@ class CustomersApi
      *
      * Get customer
      *
-     * @param  int $id (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCustomer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function getCustomerAsyncWithHttpInfo($id, $x_tenant = null, string $contentType = self::contentTypes['getCustomer'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\Customer';
+        $returnType = '\OpenAPIClient\Model\Customer';
         $request = $this->getCustomerRequest($id, $x_tenant, $contentType);
 
         return $this->client
@@ -872,7 +856,7 @@ class CustomersApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -883,7 +867,7 @@ class CustomersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -906,12 +890,12 @@ class CustomersApi
     /**
      * Create request for operation 'getCustomer'
      *
-     * @param  int $id (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getCustomer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['getCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function getCustomerRequest($id, $x_tenant = null, string $contentType = self::contentTypes['getCustomer'][0])
     {
@@ -923,15 +907,12 @@ class CustomersApi
             );
         }
 
-
-
         $resourcePath = '/customers/{id}';
         $formParams = [];
         $queryParams = [];
         $headerParams = [];
         $httpBody = '';
         $multipart = false;
-
 
         // header params
         if ($x_tenant !== null) {
@@ -941,15 +922,14 @@ class CustomersApi
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -963,7 +943,7 @@ class CustomersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -971,7 +951,7 @@ class CustomersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -980,8 +960,8 @@ class CustomersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -997,9 +977,10 @@ class CustomersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1010,18 +991,20 @@ class CustomersApi
      *
      * List customers
      *
-     * @param  int|null $per_page Number of items per page (optional, default to 15)
-     * @param  int|null $page Page number (0-based, starts at 0) (optional, default to 0)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listCustomers'] to see the possible values for this operation
+     * @param  int|null  $per_page  Number of items per page (optional, default to 15)
+     * @param  int|null  $page  Page number (0-based, starts at 0) (optional, default to 0)
+     * @param  string|null  $search  Search term to filter customers by name, email, or phone (case-insensitive) (optional)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listCustomers'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\ListCustomers200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\ListCustomers200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
-    public function listCustomers($per_page = 15, $page = 0, $x_tenant = null, string $contentType = self::contentTypes['listCustomers'][0])
+    public function listCustomers($per_page = 15, $page = 0, $search = null, $x_tenant = null, string $contentType = self::contentTypes['listCustomers'][0])
     {
-        list($response) = $this->listCustomersWithHttpInfo($per_page, $page, $x_tenant, $contentType);
+        [$response] = $this->listCustomersWithHttpInfo($per_page, $page, $search, $x_tenant, $contentType);
+
         return $response;
     }
 
@@ -1030,18 +1013,19 @@ class CustomersApi
      *
      * List customers
      *
-     * @param  int|null $per_page Number of items per page (optional, default to 15)
-     * @param  int|null $page Page number (0-based, starts at 0) (optional, default to 0)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listCustomers'] to see the possible values for this operation
+     * @param  int|null  $per_page  Number of items per page (optional, default to 15)
+     * @param  int|null  $page  Page number (0-based, starts at 0) (optional, default to 0)
+     * @param  string|null  $search  Search term to filter customers by name, email, or phone (case-insensitive) (optional)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listCustomers'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\ListCustomers200Response|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\ListCustomers200Response|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
-    public function listCustomersWithHttpInfo($per_page = 15, $page = 0, $x_tenant = null, string $contentType = self::contentTypes['listCustomers'][0])
+    public function listCustomersWithHttpInfo($per_page = 15, $page = 0, $search = null, $x_tenant = null, string $contentType = self::contentTypes['listCustomers'][0])
     {
-        $request = $this->listCustomersRequest($per_page, $page, $x_tenant, $contentType);
+        $request = $this->listCustomersRequest($per_page, $page, $search, $x_tenant, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1065,29 +1049,26 @@ class CustomersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ListCustomers200Response',
+                        '\OpenAPIClient\Model\ListCustomers200Response',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1103,7 +1084,7 @@ class CustomersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\ListCustomers200Response',
+                '\OpenAPIClient\Model\ListCustomers200Response',
                 $request,
                 $response,
             );
@@ -1112,7 +1093,7 @@ class CustomersApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ListCustomers200Response',
+                        '\OpenAPIClient\Model\ListCustomers200Response',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1120,7 +1101,7 @@ class CustomersApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1128,13 +1109,12 @@ class CustomersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1145,17 +1125,18 @@ class CustomersApi
      *
      * List customers
      *
-     * @param  int|null $per_page Number of items per page (optional, default to 15)
-     * @param  int|null $page Page number (0-based, starts at 0) (optional, default to 0)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listCustomers'] to see the possible values for this operation
+     * @param  int|null  $per_page  Number of items per page (optional, default to 15)
+     * @param  int|null  $page  Page number (0-based, starts at 0) (optional, default to 0)
+     * @param  string|null  $search  Search term to filter customers by name, email, or phone (case-insensitive) (optional)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listCustomers'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function listCustomersAsync($per_page = 15, $page = 0, $x_tenant = null, string $contentType = self::contentTypes['listCustomers'][0])
+    public function listCustomersAsync($per_page = 15, $page = 0, $search = null, $x_tenant = null, string $contentType = self::contentTypes['listCustomers'][0])
     {
-        return $this->listCustomersAsyncWithHttpInfo($per_page, $page, $x_tenant, $contentType)
+        return $this->listCustomersAsyncWithHttpInfo($per_page, $page, $search, $x_tenant, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -1168,25 +1149,26 @@ class CustomersApi
      *
      * List customers
      *
-     * @param  int|null $per_page Number of items per page (optional, default to 15)
-     * @param  int|null $page Page number (0-based, starts at 0) (optional, default to 0)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listCustomers'] to see the possible values for this operation
+     * @param  int|null  $per_page  Number of items per page (optional, default to 15)
+     * @param  int|null  $page  Page number (0-based, starts at 0) (optional, default to 0)
+     * @param  string|null  $search  Search term to filter customers by name, email, or phone (case-insensitive) (optional)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listCustomers'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function listCustomersAsyncWithHttpInfo($per_page = 15, $page = 0, $x_tenant = null, string $contentType = self::contentTypes['listCustomers'][0])
+    public function listCustomersAsyncWithHttpInfo($per_page = 15, $page = 0, $search = null, $x_tenant = null, string $contentType = self::contentTypes['listCustomers'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\ListCustomers200Response';
-        $request = $this->listCustomersRequest($per_page, $page, $x_tenant, $contentType);
+        $returnType = '\OpenAPIClient\Model\ListCustomers200Response';
+        $request = $this->listCustomersRequest($per_page, $page, $search, $x_tenant, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1197,7 +1179,7 @@ class CustomersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1220,23 +1202,21 @@ class CustomersApi
     /**
      * Create request for operation 'listCustomers'
      *
-     * @param  int|null $per_page Number of items per page (optional, default to 15)
-     * @param  int|null $page Page number (0-based, starts at 0) (optional, default to 0)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listCustomers'] to see the possible values for this operation
+     * @param  int|null  $per_page  Number of items per page (optional, default to 15)
+     * @param  int|null  $page  Page number (0-based, starts at 0) (optional, default to 0)
+     * @param  string|null  $search  Search term to filter customers by name, email, or phone (case-insensitive) (optional)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['listCustomers'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
-    public function listCustomersRequest($per_page = 15, $page = 0, $x_tenant = null, string $contentType = self::contentTypes['listCustomers'][0])
+    public function listCustomersRequest($per_page = 15, $page = 0, $search = null, $x_tenant = null, string $contentType = self::contentTypes['listCustomers'][0])
     {
-
 
         if ($page !== null && $page < 0) {
             throw new \InvalidArgumentException('invalid value for "$page" when calling CustomersApi.listCustomers, must be bigger than or equal to 0.');
         }
-        
-
 
         $resourcePath = '/customers';
         $formParams = [];
@@ -1263,16 +1243,23 @@ class CustomersApi
             true, // explode
             false // required
         ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $search,
+            'search', // param base name
+            'string', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
 
         // header params
         if ($x_tenant !== null) {
             $headerParams['X-Tenant'] = ObjectSerializer::toHeaderValue($x_tenant);
         }
 
-
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1286,7 +1273,7 @@ class CustomersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1294,7 +1281,7 @@ class CustomersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1303,8 +1290,8 @@ class CustomersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1320,9 +1307,10 @@ class CustomersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'GET',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1333,18 +1321,19 @@ class CustomersApi
      *
      * Update customer
      *
-     * @param  int $id id (required)
-     * @param  \OpenAPI\Client\Model\UpdateCustomerRequest $update_customer_request update_customer_request (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateCustomer'] to see the possible values for this operation
+     * @param  int  $id  id (required)
+     * @param  \OpenAPIClient\Model\UpdateCustomerRequest  $update_customer_request  update_customer_request (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateCustomer'] to see the possible values for this operation
+     * @return \OpenAPIClient\Model\Customer|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \OpenAPI\Client\Model\Customer|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse
      */
     public function updateCustomer($id, $update_customer_request, $x_tenant = null, string $contentType = self::contentTypes['updateCustomer'][0])
     {
-        list($response) = $this->updateCustomerWithHttpInfo($id, $update_customer_request, $x_tenant, $contentType);
+        [$response] = $this->updateCustomerWithHttpInfo($id, $update_customer_request, $x_tenant, $contentType);
+
         return $response;
     }
 
@@ -1353,14 +1342,14 @@ class CustomersApi
      *
      * Update customer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateCustomerRequest $update_customer_request (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateCustomer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateCustomerRequest  $update_customer_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateCustomer'] to see the possible values for this operation
+     * @return array of \OpenAPIClient\Model\Customer|\OpenAPIClient\Model\ErrorResponse|\OpenAPIClient\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      *
-     * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \OpenAPIClient\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \OpenAPI\Client\Model\Customer|\OpenAPI\Client\Model\ErrorResponse|\OpenAPI\Client\Model\ErrorResponse, HTTP status code, HTTP response headers (array of strings)
      */
     public function updateCustomerWithHttpInfo($id, $update_customer_request, $x_tenant = null, string $contentType = self::contentTypes['updateCustomer'][0])
     {
@@ -1388,29 +1377,26 @@ class CustomersApi
 
             $statusCode = $response->getStatusCode();
 
-
-            switch($statusCode) {
+            switch ($statusCode) {
                 case 200:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\Customer',
+                        '\OpenAPIClient\Model\Customer',
                         $request,
                         $response,
                     );
                 case 404:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
                 case 401:
                     return $this->handleResponseWithDataType(
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $request,
                         $response,
                     );
             }
-
-            
 
             if ($statusCode < 200 || $statusCode > 299) {
                 throw new ApiException(
@@ -1426,7 +1412,7 @@ class CustomersApi
             }
 
             return $this->handleResponseWithDataType(
-                '\OpenAPI\Client\Model\Customer',
+                '\OpenAPIClient\Model\Customer',
                 $request,
                 $response,
             );
@@ -1435,7 +1421,7 @@ class CustomersApi
                 case 200:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\Customer',
+                        '\OpenAPIClient\Model\Customer',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1443,7 +1429,7 @@ class CustomersApi
                 case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
@@ -1451,13 +1437,12 @@ class CustomersApi
                 case 401:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
-                        '\OpenAPI\Client\Model\ErrorResponse',
+                        '\OpenAPIClient\Model\ErrorResponse',
                         $e->getResponseHeaders()
                     );
                     $e->setResponseObject($data);
                     throw $e;
             }
-        
 
             throw $e;
         }
@@ -1468,13 +1453,13 @@ class CustomersApi
      *
      * Update customer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateCustomerRequest $update_customer_request (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateCustomer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateCustomerRequest  $update_customer_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updateCustomerAsync($id, $update_customer_request, $x_tenant = null, string $contentType = self::contentTypes['updateCustomer'][0])
     {
@@ -1491,17 +1476,17 @@ class CustomersApi
      *
      * Update customer
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateCustomerRequest $update_customer_request (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateCustomer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateCustomerRequest  $update_customer_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Promise\PromiseInterface
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Promise\PromiseInterface
      */
     public function updateCustomerAsyncWithHttpInfo($id, $update_customer_request, $x_tenant = null, string $contentType = self::contentTypes['updateCustomer'][0])
     {
-        $returnType = '\OpenAPI\Client\Model\Customer';
+        $returnType = '\OpenAPIClient\Model\Customer';
         $request = $this->updateCustomerRequest($id, $update_customer_request, $x_tenant, $contentType);
 
         return $this->client
@@ -1509,7 +1494,7 @@ class CustomersApi
             ->then(
                 function ($response) use ($returnType) {
                     if ($returnType === '\SplFileObject') {
-                        $content = $response->getBody(); //stream goes to serializer
+                        $content = $response->getBody(); // stream goes to serializer
                     } else {
                         $content = (string) $response->getBody();
                         if ($returnType !== 'string') {
@@ -1520,7 +1505,7 @@ class CustomersApi
                     return [
                         ObjectSerializer::deserialize($content, $returnType, []),
                         $response->getStatusCode(),
-                        $response->getHeaders()
+                        $response->getHeaders(),
                     ];
                 },
                 function ($exception) {
@@ -1543,13 +1528,13 @@ class CustomersApi
     /**
      * Create request for operation 'updateCustomer'
      *
-     * @param  int $id (required)
-     * @param  \OpenAPI\Client\Model\UpdateCustomerRequest $update_customer_request (required)
-     * @param  string|null $x_tenant Store slug (optional, defaults to user&#39;s first store) (optional)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateCustomer'] to see the possible values for this operation
+     * @param  int  $id  (required)
+     * @param  \OpenAPIClient\Model\UpdateCustomerRequest  $update_customer_request  (required)
+     * @param  string|null  $x_tenant  Store slug (optional, defaults to user&#39;s first store) (optional)
+     * @param  string  $contentType  The value for the Content-Type header. Check self::contentTypes['updateCustomer'] to see the possible values for this operation
+     * @return \GuzzleHttp\Psr7\Request
      *
      * @throws \InvalidArgumentException
-     * @return \GuzzleHttp\Psr7\Request
      */
     public function updateCustomerRequest($id, $update_customer_request, $x_tenant = null, string $contentType = self::contentTypes['updateCustomer'][0])
     {
@@ -1568,15 +1553,12 @@ class CustomersApi
             );
         }
 
-
-
         $resourcePath = '/customers/{id}';
         $formParams = [];
         $queryParams = [];
         $headerParams = [];
         $httpBody = '';
         $multipart = false;
-
 
         // header params
         if ($x_tenant !== null) {
@@ -1586,15 +1568,14 @@ class CustomersApi
         // path params
         if ($id !== null) {
             $resourcePath = str_replace(
-                '{' . 'id' . '}',
+                '{'.'id'.'}',
                 ObjectSerializer::toPathValue($id),
                 $resourcePath
             );
         }
 
-
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', ],
+            ['application/json'],
             $contentType,
             $multipart
         );
@@ -1602,7 +1583,7 @@ class CustomersApi
         // for model (json/xml)
         if (isset($update_customer_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the body
+                // if Content-Type contains "application/json", json_encode the body
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($update_customer_request));
             } else {
                 $httpBody = $update_customer_request;
@@ -1615,7 +1596,7 @@ class CustomersApi
                     foreach ($formParamValueItems as $formParamValueItem) {
                         $multipartContents[] = [
                             'name' => $formParamName,
-                            'contents' => $formParamValueItem
+                            'contents' => $formParamValueItem,
                         ];
                     }
                 }
@@ -1623,7 +1604,7 @@ class CustomersApi
                 $httpBody = new MultipartStream($multipartContents);
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
-                # if Content-Type contains "application/json", json_encode the form parameters
+                // if Content-Type contains "application/json", json_encode the form parameters
                 $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
             } else {
                 // for HTTP post (form)
@@ -1632,8 +1613,8 @@ class CustomersApi
         }
 
         // this endpoint requires Bearer (JWT) authentication (access token)
-        if (!empty($this->config->getAccessToken())) {
-            $headers['Authorization'] = 'Bearer ' . $this->config->getAccessToken();
+        if (! empty($this->config->getAccessToken())) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getAccessToken();
         }
 
         $defaultHeaders = [];
@@ -1649,9 +1630,10 @@ class CustomersApi
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
+
         return new Request(
             'PUT',
-            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $operationHost.$resourcePath.($query ? "?{$query}" : ''),
             $headers,
             $httpBody
         );
@@ -1660,16 +1642,17 @@ class CustomersApi
     /**
      * Create http client option
      *
-     * @throws \RuntimeException on file opening failure
      * @return array of http client options
+     *
+     * @throws \RuntimeException on file opening failure
      */
     protected function createHttpClientOption()
     {
         $options = [];
         if ($this->config->getDebug()) {
             $options[RequestOptions::DEBUG] = fopen($this->config->getDebugFile(), 'a');
-            if (!$options[RequestOptions::DEBUG]) {
-                throw new \RuntimeException('Failed to open the debug file: ' . $this->config->getDebugFile());
+            if (! $options[RequestOptions::DEBUG]) {
+                throw new \RuntimeException('Failed to open the debug file: '.$this->config->getDebugFile());
             }
         }
 
@@ -1690,7 +1673,7 @@ class CustomersApi
         ResponseInterface $response
     ): array {
         if ($dataType === '\SplFileObject') {
-            $content = $response->getBody(); //stream goes to serializer
+            $content = $response->getBody(); // stream goes to serializer
         } else {
             $content = (string) $response->getBody();
             if ($dataType !== 'string') {
@@ -1713,7 +1696,7 @@ class CustomersApi
         return [
             ObjectSerializer::deserialize($content, $dataType, []),
             $response->getStatusCode(),
-            $response->getHeaders()
+            $response->getHeaders(),
         ];
     }
 

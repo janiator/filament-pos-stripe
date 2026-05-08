@@ -1,19 +1,21 @@
 <?php
+
 /**
  * UpdateCustomerRequest
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,54 +29,58 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * UpdateCustomerRequest Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSerializable
+class UpdateCustomerRequest implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'updateCustomer_request';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'name' => 'string',
         'email' => 'string',
         'phone' => 'string',
         'profile_image_url' => 'string',
-        'customer_address' => '\OpenAPI\Client\Model\CreateCustomerRequestCustomerAddress',
+        'customer_address' => '\OpenAPIClient\Model\CreateCustomerRequestCustomerAddress',
         'model' => 'string',
         'model_id' => 'int',
-        'model_uuid' => 'string'
+        'model_uuid' => 'string',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'name' => null,
         'email' => 'email',
@@ -83,14 +89,14 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'customer_address' => null,
         'model' => null,
         'model_id' => null,
-        'model_uuid' => 'uuid'
+        'model_uuid' => 'uuid',
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'name' => false,
         'email' => true,
@@ -99,14 +105,14 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'customer_address' => true,
         'model' => true,
         'model_id' => true,
-        'model_uuid' => true
+        'model_uuid' => true,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -131,8 +137,6 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -142,7 +146,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -152,7 +156,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -161,9 +165,6 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -172,9 +173,6 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -195,7 +193,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'customer_address' => 'customer_address',
         'model' => 'model',
         'model_id' => 'model_id',
-        'model_uuid' => 'model_uuid'
+        'model_uuid' => 'model_uuid',
     ];
 
     /**
@@ -211,7 +209,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'customer_address' => 'setCustomerAddress',
         'model' => 'setModel',
         'model_id' => 'setModelId',
-        'model_uuid' => 'setModelUuid'
+        'model_uuid' => 'setModelUuid',
     ];
 
     /**
@@ -227,7 +225,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         'customer_address' => 'getCustomerAddress',
         'model' => 'getModel',
         'model_id' => 'getModelId',
-        'model_uuid' => 'getModelUuid'
+        'model_uuid' => 'getModelUuid',
     ];
 
     /**
@@ -271,7 +269,6 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -282,8 +279,8 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -298,14 +295,12 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -331,13 +326,14 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
             $invalidProperties[] = "invalid value for 'name', the character length must be smaller than or equal to 255.";
         }
 
-        if (!is_null($this->container['email']) && (mb_strlen($this->container['email']) > 255)) {
+        if (! is_null($this->container['email']) && (mb_strlen($this->container['email']) > 255)) {
             $invalidProperties[] = "invalid value for 'email', the character length must be smaller than or equal to 255.";
         }
 
         if ($this->container['phone'] === null) {
             $invalidProperties[] = "'phone' can't be null";
         }
+
         return $invalidProperties;
     }
 
@@ -352,7 +348,6 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets name
      *
@@ -366,8 +361,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets name
      *
-     * @param string $name name
-     *
+     * @param  string  $name  name
      * @return self
      */
     public function setName($name)
@@ -397,8 +391,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets email
      *
-     * @param string|null $email Customer email address (optional - some older customers may not have an email)
-     *
+     * @param  string|null  $email  Customer email address (optional - some older customers may not have an email)
      * @return self
      */
     public function setEmail($email)
@@ -408,12 +401,12 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('email', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
         }
-        if (!is_null($email) && (mb_strlen($email) > 255)) {
+        if (! is_null($email) && (mb_strlen($email) > 255)) {
             throw new \InvalidArgumentException('invalid length for $email when calling UpdateCustomerRequest., must be smaller than or equal to 255.');
         }
 
@@ -435,8 +428,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets phone
      *
-     * @param string $phone Customer phone number (per Stripe API spec)
-     *
+     * @param  string  $phone  Customer phone number (per Stripe API spec)
      * @return self
      */
     public function setPhone($phone)
@@ -462,8 +454,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets profile_image_url
      *
-     * @param string|null $profile_image_url URL to the customer profile image
-     *
+     * @param  string|null  $profile_image_url  URL to the customer profile image
      * @return self
      */
     public function setProfileImageUrl($profile_image_url)
@@ -473,7 +464,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('profile_image_url', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -486,7 +477,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Gets customer_address
      *
-     * @return \OpenAPI\Client\Model\CreateCustomerRequestCustomerAddress|null
+     * @return \OpenAPIClient\Model\CreateCustomerRequestCustomerAddress|null
      */
     public function getCustomerAddress()
     {
@@ -496,8 +487,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets customer_address
      *
-     * @param \OpenAPI\Client\Model\CreateCustomerRequestCustomerAddress|null $customer_address customer_address
-     *
+     * @param  \OpenAPIClient\Model\CreateCustomerRequestCustomerAddress|null  $customer_address  customer_address
      * @return self
      */
     public function setCustomerAddress($customer_address)
@@ -507,7 +497,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('customer_address', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -530,8 +520,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets model
      *
-     * @param string|null $model model
-     *
+     * @param  string|null  $model  model
      * @return self
      */
     public function setModel($model)
@@ -541,7 +530,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('model', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -564,8 +553,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets model_id
      *
-     * @param int|null $model_id model_id
-     *
+     * @param  int|null  $model_id  model_id
      * @return self
      */
     public function setModelId($model_id)
@@ -575,7 +563,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('model_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -598,8 +586,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets model_uuid
      *
-     * @param string|null $model_uuid model_uuid
-     *
+     * @param  string|null  $model_uuid  model_uuid
      * @return self
      */
     public function setModelUuid($model_uuid)
@@ -609,7 +596,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('model_uuid', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -618,12 +605,11 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -633,8 +619,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -646,10 +631,8 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -663,9 +646,7 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -674,15 +655,16 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -708,5 +690,3 @@ class UpdateCustomerRequest implements ModelInterface, ArrayAccess, \JsonSeriali
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

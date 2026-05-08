@@ -75,6 +75,11 @@ class StoreResource extends Resource
         return null; // Stores is the main resource, no group
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function getNavigationUrl(): string
     {
         $tenant = Filament::getTenant();
@@ -141,15 +146,8 @@ class StoreResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Resources\Stores\RelationManagers\TerminalLocationsRelationManager::class,
-            \App\Filament\Resources\Stores\RelationManagers\TerminalReadersRelationManager::class,
-            \App\Filament\Resources\Stores\RelationManagers\ConnectedCustomersRelationManager::class,
-            \App\Filament\Resources\Stores\RelationManagers\ConnectedSubscriptionsRelationManager::class,
-            \App\Filament\Resources\Stores\RelationManagers\ConnectedProductsRelationManager::class,
-            \App\Filament\Resources\Stores\RelationManagers\ConnectedChargesRelationManager::class,
-            \App\Filament\Resources\Stores\RelationManagers\ConnectedTransfersRelationManager::class,
-            \App\Filament\Resources\Stores\RelationManagers\ConnectedPaymentMethodsRelationManager::class,
-            \App\Filament\Resources\Stores\RelationManagers\ConnectedPaymentLinksRelationManager::class,
+            \App\Filament\Resources\Stores\RelationManagers\VerifoneTerminalsRelationManager::class,
+            \App\Filament\Resources\Stores\RelationManagers\VerifoneTerminalPaymentsRelationManager::class,
         ];
     }
 

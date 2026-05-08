@@ -20,12 +20,12 @@ class UserInfolist
                             ->icon(Heroicon::OutlinedUser),
 
                         TextEntry::make('email')
-                            ->label('Email')
+                            ->label(__('Email'))
                             ->icon(Heroicon::OutlinedEnvelope)
                             ->copyable(),
 
                         IconEntry::make('email_verified_at')
-                            ->label('Email Verified')
+                            ->label(__('Email Verified'))
                             ->boolean()
                             ->trueIcon('heroicon-o-check-circle')
                             ->falseIcon('heroicon-o-x-circle')
@@ -33,7 +33,7 @@ class UserInfolist
                             ->falseColor('danger'),
 
                         TextEntry::make('roles.name')
-                            ->label('Roles')
+                            ->label(__('Roles'))
                             ->badge()
                             ->separator(',')
                             ->icon(Heroicon::OutlinedShieldCheck),
@@ -43,7 +43,7 @@ class UserInfolist
                 Section::make('Store Access')
                     ->schema([
                         TextEntry::make('stores_count')
-                            ->label('Number of Stores')
+                            ->label(__('Number of Stores'))
                             ->state(fn ($record) => $record->stores->count())
                             ->badge()
                             ->color('info')
@@ -54,12 +54,12 @@ class UserInfolist
                 Section::make('Timestamps')
                     ->schema([
                         TextEntry::make('created_at')
-                            ->label('Created')
+                            ->label(__('Created'))
                             ->dateTime()
                             ->icon(Heroicon::OutlinedCalendar),
 
                         TextEntry::make('updated_at')
-                            ->label('Updated')
+                            ->label(__('Updated'))
                             ->dateTime()
                             ->icon(Heroicon::OutlinedCalendar),
                     ])

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PaymentMethods;
 
 use App\Enums\AddonType;
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\PaymentMethods\Pages\CreatePaymentMethod;
 use App\Filament\Resources\PaymentMethods\Pages\EditPaymentMethod;
@@ -20,6 +21,8 @@ use Filament\Tables\Table;
 class PaymentMethodResource extends Resource
 {
     use HasTenantScopedQuery;
+
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = PaymentMethod::class;
 

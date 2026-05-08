@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\CashDrawerDisabledException;
+use App\Exceptions\InsufficientStockException;
+use App\Http\Requests\Api\CompletePurchasePaymentRequest;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
@@ -14,10 +16,17 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class PurchasesController extends BaseApiController
 {
     protected PurchaseService $purchaseService;
+
+    /** @var array<string, array<int, ConnectedProduct>> */
+    protected array $connectedProductsCache = [];
+
+    /** @var array<string, array<int, ProductVariant>> */
+    protected array $productVariantsCache = [];
 
     public function __construct(PurchaseService $purchaseService)
     {
@@ -581,7 +590,7 @@ class PurchasesController extends BaseApiController
         if (! empty($items) && is_array($items)) {
             // Get item refunds from metadata for refund status tracking
             $itemRefunds = $cleanMetadata['item_refunds'] ?? [];
-            $data['purchase_items'] = $this->enrichPurchaseItems($items, $purchase->stripe_account_id, $itemRefunds);
+            $data['purchase_items'] = $this->enrichPurchaseItems($items, $purchase->stripe_account_id, $itemRefunds, $cleanMetadata);
 
             // Calculate totals from items if metadata values are missing or 0
             $calculatedSubtotal = 0;
@@ -661,10 +670,21 @@ class PurchasesController extends BaseApiController
         // Use metadata tip (or 0 if not set)
         $data['purchase_tip_amount'] = $metadataTip ?? 0;
 
-        // Extract note from metadata if present
-        $data['purchase_note'] = isset($cleanMetadata['note']) && ! empty($cleanMetadata['note'])
-            ? $cleanMetadata['note']
-            : null;
+        // Whole-order note: prefer `note`, fall back to legacy `cart_note` in metadata,
+        // then charge description (some POS flows store the order note only there).
+        $noteCandidate = $cleanMetadata['note'] ?? $cleanMetadata['cart_note'] ?? null;
+        $noteString = is_string($noteCandidate)
+            ? trim($noteCandidate)
+            : (is_scalar($noteCandidate) ? trim((string) $noteCandidate) : '');
+        if ($noteString === '') {
+            $desc = $purchase->description ?? null;
+            if (is_string($desc)) {
+                $noteString = trim($desc);
+            } elseif (is_scalar($desc)) {
+                $noteString = trim((string) $desc);
+            }
+        }
+        $data['purchase_note'] = $noteString !== '' ? $noteString : null;
 
         // Add purchase payments - list of payments connected to this purchase
         $data['purchase_payments'] = $this->formatPurchasePayments($purchase);
@@ -739,21 +759,20 @@ class PurchasesController extends BaseApiController
     }
 
     /**
-     * Extract lightweight line-item data from charge metadata for the kiosk-sales report.
+     * Final line totals in øre per cart line (after item-level and proportional cart discount).
+     * Matches allocation used for kiosk reporting and POS refunds.
      *
-     * @return array<int, array{product_name: string, quantity: float, unit_price_ore: int, line_total_ore: int}>
+     * @param  array<int, array<string, mixed>>  $arrayItems
+     * @param  array<string, mixed>  $metadata  Charge metadata (total_discounts and/or discounts)
+     * @return list<int>
      */
-    protected function extractKioskLineItems(ConnectedCharge $charge): array
+    protected function computeLineTotalsOreAfterCartDiscountFromItemLines(array $arrayItems, array $metadata): array
     {
-        $metadata = $charge->metadata ?? [];
-        $items = is_array($metadata) ? ($metadata['items'] ?? []) : [];
-
-        if (empty($items) || ! is_array($items)) {
+        if ($arrayItems === []) {
             return [];
         }
 
-        $arrayItems = array_values(array_filter($items, fn ($item) => is_array($item)));
-        $totalDiscountsOre = $this->resolveTotalDiscountsOreFromMetadata(is_array($metadata) ? $metadata : []);
+        $totalDiscountsOre = $this->resolveTotalDiscountsOreFromMetadata($metadata);
 
         $normalizedItems = [];
         $itemDiscountsTotalOre = 0;
@@ -776,11 +795,7 @@ class PurchasesController extends BaseApiController
             $lineNetBeforeCartDiscountOre = max(0, $lineTotalOre - $itemDiscountOre);
 
             $normalizedItems[] = [
-                'product_name' => (string) ($item['product_name'] ?? $item['name'] ?? $item['description'] ?? 'Ukjent produkt'),
-                'quantity' => $quantity,
-                'unit_price_ore' => $unitPrice,
                 'line_total_ore' => $lineNetBeforeCartDiscountOre,
-                'is_ticket' => $this->isTicketLineItem($item),
             ];
 
             $itemDiscountsTotalOre += $itemDiscountOre;
@@ -816,16 +831,12 @@ class PurchasesController extends BaseApiController
             unset($lineItem);
         }
 
-        return collect($normalizedItems)
-            ->filter(fn (array $item): bool => ($item['is_ticket'] ?? false) !== true)
-            ->map(fn (array $item): array => [
-                'product_name' => (string) ($item['product_name'] ?? 'Ukjent produkt'),
-                'quantity' => (float) ($item['quantity'] ?? 1),
-                'unit_price_ore' => (int) ($item['unit_price_ore'] ?? 0),
-                'line_total_ore' => (int) ($item['line_total_ore'] ?? 0),
-            ])
-            ->values()
-            ->all();
+        $totals = [];
+        foreach ($normalizedItems as $lineItem) {
+            $totals[] = (int) ($lineItem['line_total_ore'] ?? 0);
+        }
+
+        return $totals;
     }
 
     /**
@@ -842,6 +853,44 @@ class PurchasesController extends BaseApiController
             || isset($item['merano_booking_number'])
             || isset($itemMetadata['merano_booking_id'])
             || isset($itemMetadata['merano_booking_number']);
+    }
+
+    /**
+     * Extract lightweight line-item data from charge metadata for the kiosk-sales report.
+     *
+     * @return array<int, array{product_name: string, quantity: float, unit_price_ore: int, line_total_ore: int}>
+     */
+    protected function extractKioskLineItems(ConnectedCharge $charge): array
+    {
+        $metadata = $charge->metadata ?? [];
+        $items = is_array($metadata) ? ($metadata['items'] ?? []) : [];
+
+        if (empty($items) || ! is_array($items)) {
+            return [];
+        }
+
+        $arrayItems = array_values(array_filter($items, fn ($item) => is_array($item)));
+        $metadataArray = is_array($metadata) ? $metadata : [];
+        $lineTotalsOre = $this->computeLineTotalsOreAfterCartDiscountFromItemLines($arrayItems, $metadataArray);
+
+        $lineItems = [];
+        foreach ($arrayItems as $index => $item) {
+            if ($this->isTicketLineItem($item)) {
+                continue;
+            }
+
+            $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+            $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
+
+            $lineItems[] = [
+                'product_name' => (string) ($item['product_name'] ?? $item['name'] ?? $item['description'] ?? 'Ukjent produkt'),
+                'quantity' => $quantity,
+                'unit_price_ore' => $unitPrice,
+                'line_total_ore' => $lineTotalsOre[$index] ?? 0,
+            ];
+        }
+
+        return $lineItems;
     }
 
     /**
@@ -899,38 +948,68 @@ class PurchasesController extends BaseApiController
     }
 
     /**
+     * Stable line identifier for POS cart lines (refunds, item_refunds, Flutter selection).
+     * Matches {@see PurchaseService::enrichCartItemsWithProductSnapshots} when ids are persisted.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    protected function resolvePurchaseLineItemId(array $item, int $lineIndex): string
+    {
+        $raw = $item['id'] ?? null;
+
+        if (is_string($raw)) {
+            $trimmed = trim($raw);
+
+            return $trimmed !== '' ? $trimmed : 'legacy_line_'.$lineIndex;
+        }
+
+        if (is_int($raw) || is_float($raw)) {
+            return (string) $raw;
+        }
+
+        return 'legacy_line_'.$lineIndex;
+    }
+
+    /**
      * Enrich purchase items with product information
      * Uses stored product snapshots from metadata first (for historical accuracy),
      * falls back to current product data if snapshot is missing (backward compatibility)
      *
      * @param  array  $itemRefunds  Item refunds tracking (item_id => quantity_refunded)
+     * @param  array<string, mixed>  $discountMetadata  Metadata subset for cart/item discount totals (e.g. total_discounts, discounts)
      */
-    protected function enrichPurchaseItems(array $items, string $stripeAccountId, array $itemRefunds = []): array
+    protected function enrichPurchaseItems(array $items, string $stripeAccountId, array $itemRefunds = [], array $discountMetadata = []): array
     {
         if (empty($items)) {
             return [];
         }
+
+        $arrayItemsForTotals = array_values(array_filter($items, fn ($item) => is_array($item)));
+        $lineTotalsOre = $this->computeLineTotalsOreAfterCartDiscountFromItemLines($arrayItemsForTotals, $discountMetadata);
 
         // Check if items already have product snapshots (new purchases)
         $hasSnapshots = ! empty($items[0]['product_name'] ?? null);
 
         // If snapshots exist, use them directly (preserves historical data)
         if ($hasSnapshots) {
-            return array_map(function ($item) use ($itemRefunds) {
+            $out = [];
+            $lineTotalIndex = 0;
+            foreach ($items as $lineIndex => $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
                 $unitPrice = isset($item['unit_price']) ? (int) $item['unit_price'] : 0;
                 $discountAmount = isset($item['discount_amount']) ? (int) $item['discount_amount'] : 0;
                 // original_price is stored as integer (øre) in snapshot, or calculate if missing
                 $originalPrice = isset($item['original_price']) ? (int) $item['original_price'] : ($discountAmount > 0 ? ($unitPrice + $discountAmount) : null);
 
-                // Get refund status for this item
-                $itemId = $item['id'] ?? null;
+                $itemId = $this->resolvePurchaseLineItemId($item, (int) $lineIndex);
                 $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
-                $quantityRefunded = $itemId ? (float) ($itemRefunds[$itemId] ?? 0) : 0.0;
+                $quantityRefunded = (float) ($itemRefunds[$itemId] ?? 0);
                 $isFullyRefunded = $quantityRefunded >= $quantity;
                 $isPartiallyRefunded = $quantityRefunded > 0 && $quantityRefunded < $quantity;
 
-                // Format item with purchase_item_ prefix for FlutterFlow
-                return [
+                $out[] = [
                     'purchase_item_id' => $itemId,
                     'purchase_item_product_id' => isset($item['product_id']) ? (string) $item['product_id'] : null,
                     'purchase_item_variant_id' => isset($item['variant_id']) ? (string) $item['variant_id'] : null,
@@ -939,6 +1018,7 @@ class PurchasesController extends BaseApiController
                     'purchase_item_product_image_url' => $item['product_image_url'] ?? null,
                     'purchase_item_unit_price' => $unitPrice,
                     'purchase_item_quantity' => $quantity,
+                    'purchase_item_line_total_ore' => $lineTotalsOre[$lineTotalIndex] ?? 0,
                     'purchase_item_quantity_refunded' => $quantityRefunded > 0 ? $quantityRefunded : null,
                     'purchase_item_is_refunded' => $isFullyRefunded,
                     'purchase_item_is_partially_refunded' => $isPartiallyRefunded,
@@ -951,7 +1031,10 @@ class PurchasesController extends BaseApiController
                         ? $item['metadata']
                         : null,
                 ];
-            }, $items);
+                $lineTotalIndex++;
+            }
+
+            return $out;
         }
 
         // Fallback: enrich from current product data (for old purchases without snapshots)
@@ -969,28 +1052,30 @@ class PurchasesController extends BaseApiController
         }
 
         // Fetch products and variants in bulk
-        $products = ConnectedProduct::whereIn('id', array_unique($productIds))
-            ->where('stripe_account_id', $stripeAccountId)
-            ->get()
-            ->keyBy('id');
-
-        $variants = ProductVariant::whereIn('id', array_unique($variantIds))
-            ->where('stripe_account_id', $stripeAccountId)
-            ->get()
-            ->keyBy('id');
+        $products = $this->getConnectedProductsForAccount($stripeAccountId, $productIds);
+        $variants = $this->getProductVariantsForAccount($stripeAccountId, $variantIds);
 
         // Enrich each item from current product data
-        return array_map(function ($item) use ($products, $variants, $itemRefunds) {
+        $out = [];
+        $lineTotalIndex = 0;
+        foreach ($items as $lineIndex => $item) {
+            if (! is_array($item)) {
+                continue;
+            }
             $productId = isset($item['product_id']) ? (int) $item['product_id'] : null;
             $variantId = isset($item['variant_id']) ? (int) $item['variant_id'] : null;
+            $variant = $variantId ? ($variants[$variantId] ?? null) : null;
+
+            if (! $productId && $variant) {
+                $productId = (int) $variant->connected_product_id;
+            }
 
             $product = $productId ? ($products[$productId] ?? null) : null;
-            $variant = $variantId ? ($variants[$variantId] ?? null) : null;
 
             // Get product name (from variant if available, otherwise product)
             $productName = null;
-            if ($variant && $variant->product) {
-                $productName = $variant->product->name;
+            if ($variant && $product) {
+                $productName = $product->name;
                 if ($variant->variant_name !== 'Default') {
                     $productName .= ' - '.$variant->variant_name;
                 }
@@ -1029,23 +1114,18 @@ class PurchasesController extends BaseApiController
             // Get article group code and product code
             $articleGroupCode = null;
             $productCode = null;
-            if ($variant && $variant->product) {
-                $articleGroupCode = $variant->product->article_group_code;
-                $productCode = $variant->product->product_code;
-            } elseif ($product) {
+            if ($product) {
                 $articleGroupCode = $product->article_group_code;
                 $productCode = $product->product_code;
             }
 
-            // Get refund status for this item
-            $itemId = $item['id'] ?? null;
+            $itemId = $this->resolvePurchaseLineItemId($item, (int) $lineIndex);
             $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
-            $quantityRefunded = $itemId ? (float) ($itemRefunds[$itemId] ?? 0) : 0.0;
+            $quantityRefunded = (float) ($itemRefunds[$itemId] ?? 0);
             $isFullyRefunded = $quantityRefunded >= $quantity;
             $isPartiallyRefunded = $quantityRefunded > 0 && $quantityRefunded < $quantity;
 
-            // Format item with purchase_item_ prefix for FlutterFlow
-            return [
+            $out[] = [
                 'purchase_item_id' => $itemId,
                 'purchase_item_product_id' => $productId ? (string) $productId : null,
                 'purchase_item_variant_id' => $variantId ? (string) $variantId : null,
@@ -1054,6 +1134,7 @@ class PurchasesController extends BaseApiController
                 'purchase_item_product_image_url' => $productImageUrl,
                 'purchase_item_unit_price' => $unitPrice,
                 'purchase_item_quantity' => $quantity,
+                'purchase_item_line_total_ore' => $lineTotalsOre[$lineTotalIndex] ?? 0,
                 'purchase_item_quantity_refunded' => $quantityRefunded > 0 ? $quantityRefunded : null,
                 'purchase_item_is_refunded' => $isFullyRefunded,
                 'purchase_item_is_partially_refunded' => $isPartiallyRefunded,
@@ -1066,7 +1147,84 @@ class PurchasesController extends BaseApiController
                     ? $item['metadata']
                     : null,
             ];
-        }, $items);
+            $lineTotalIndex++;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<int, int>  $productIds
+     * @return array<int, ConnectedProduct>
+     */
+    protected function getConnectedProductsForAccount(string $stripeAccountId, array $productIds): array
+    {
+        $uniqueProductIds = array_values(array_unique(array_filter($productIds)));
+        if ($uniqueProductIds === []) {
+            return [];
+        }
+
+        if (! isset($this->connectedProductsCache[$stripeAccountId])) {
+            $this->connectedProductsCache[$stripeAccountId] = [];
+        }
+
+        $missingProductIds = array_values(array_diff(
+            $uniqueProductIds,
+            array_keys($this->connectedProductsCache[$stripeAccountId])
+        ));
+
+        if ($missingProductIds !== []) {
+            $fetchedProducts = ConnectedProduct::query()
+                ->where('stripe_account_id', $stripeAccountId)
+                ->whereIn('id', $missingProductIds)
+                ->get()
+                ->keyBy('id')
+                ->all();
+
+            $this->connectedProductsCache[$stripeAccountId] += $fetchedProducts;
+        }
+
+        return array_intersect_key(
+            $this->connectedProductsCache[$stripeAccountId],
+            array_flip($uniqueProductIds)
+        );
+    }
+
+    /**
+     * @param  array<int, int>  $variantIds
+     * @return array<int, ProductVariant>
+     */
+    protected function getProductVariantsForAccount(string $stripeAccountId, array $variantIds): array
+    {
+        $uniqueVariantIds = array_values(array_unique(array_filter($variantIds)));
+        if ($uniqueVariantIds === []) {
+            return [];
+        }
+
+        if (! isset($this->productVariantsCache[$stripeAccountId])) {
+            $this->productVariantsCache[$stripeAccountId] = [];
+        }
+
+        $missingVariantIds = array_values(array_diff(
+            $uniqueVariantIds,
+            array_keys($this->productVariantsCache[$stripeAccountId])
+        ));
+
+        if ($missingVariantIds !== []) {
+            $fetchedVariants = ProductVariant::query()
+                ->where('stripe_account_id', $stripeAccountId)
+                ->whereIn('id', $missingVariantIds)
+                ->get()
+                ->keyBy('id')
+                ->all();
+
+            $this->productVariantsCache[$stripeAccountId] += $fetchedVariants;
+        }
+
+        return array_intersect_key(
+            $this->productVariantsCache[$stripeAccountId],
+            array_flip($uniqueVariantIds)
+        );
     }
 
     /**
@@ -1157,6 +1315,7 @@ class PurchasesController extends BaseApiController
             'cart' => ['required', 'array'],
             'cart.items' => ['required', 'array', 'min:1'],
             'cart.items.*.product_id' => ['required', 'integer'],
+            'cart.items.*.variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
@@ -1296,6 +1455,19 @@ class PurchasesController extends BaseApiController
             }
         }
 
+        // For Verifone terminal payments, require provider reference metadata
+        if (($validated['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+            $verifoneReference = $validated['metadata']['verifone_payment_reference']
+                ?? $validated['metadata']['provider_payment_reference']
+                ?? null;
+            if (! $verifoneReference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifone payment reference is required for Verifone payments',
+                ], 422);
+            }
+        }
+
         try {
             // Process purchase (posSession has posDevice loaded for cash-drawer check)
             $result = $this->purchaseService->processPurchase(
@@ -1334,6 +1506,13 @@ class PurchasesController extends BaseApiController
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'insufficient_stock',
+                'lines' => $e->lines,
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1348,24 +1527,9 @@ class PurchasesController extends BaseApiController
      *
      * @param  string|int  $id  Charge ID
      */
-    public function completePayment(Request $request, string|int $id): JsonResponse
+    public function completePayment(CompletePurchasePaymentRequest $request, string|int $id): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'payment_method_code' => ['required', 'string'],
-            'metadata' => ['nullable', 'array'],
-            'pos_session_id' => ['nullable', 'integer', 'exists:pos_sessions,id'],
-            'pos_device_id' => ['nullable', 'integer', 'exists:pos_devices,id'],
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
+        $validated = $request->validated();
 
         // Get charge
         $charge = ConnectedCharge::findOrFail($id);
@@ -1398,53 +1562,6 @@ class PurchasesController extends BaseApiController
                 'success' => false,
                 'message' => 'Charge is not pending or already paid',
             ], 422);
-        }
-
-        // Get payment method
-        $paymentMethod = PaymentMethod::where('store_id', $charge->store->id)
-            ->where('code', $validated['payment_method_code'])
-            ->first();
-
-        if (! $paymentMethod) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment method not found',
-            ], 404);
-        }
-
-        if (! $paymentMethod->enabled) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment method is not enabled',
-            ], 422);
-        }
-
-        if (! $paymentMethod->meetsMinimumAmount($charge->amount)) {
-            $minKr = $paymentMethod->minimum_amount_kroner;
-
-            return response()->json([
-                'success' => false,
-                'message' => "Minimum amount for this payment method is {$minKr} kr.",
-            ], 422);
-        }
-
-        $chargeSession = $charge->posSession;
-        if ($chargeSession && ! $paymentMethod->isAvailableOnDevice($chargeSession->pos_device_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This payment method is not available on the device for this session.',
-            ], 422);
-        }
-
-        // For Stripe payments, require payment_intent_id in metadata
-        if ($paymentMethod->provider === 'stripe') {
-            $paymentIntentId = $validated['metadata']['payment_intent_id'] ?? null;
-            if (! $paymentIntentId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Payment intent ID is required for Stripe payments',
-                ], 422);
-            }
         }
 
         // Get POS session: priority order:
@@ -1494,7 +1611,95 @@ class PurchasesController extends BaseApiController
                 ], 404);
             }
         }
-        // If neither pos_session_id nor pos_device_id provided, will use charge's original session (fallback)
+
+        if (! $posSession) {
+            $posSession = $charge->posSession;
+            if ($posSession) {
+                $posSession->load('posDevice');
+            }
+        }
+
+        // Get payment method
+        $paymentMethod = PaymentMethod::where('store_id', $charge->store->id)
+            ->where('code', $validated['payment_method_code'])
+            ->first();
+
+        if (! $paymentMethod) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment method not found',
+            ], 404);
+        }
+
+        if (! $paymentMethod->enabled) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment method is not enabled',
+            ], 422);
+        }
+
+        $completionAmount = isset($validated['cart']['total'])
+            ? (int) $validated['cart']['total']
+            : $charge->amount;
+
+        if (! $paymentMethod->meetsMinimumAmount($completionAmount)) {
+            $minKr = $paymentMethod->minimum_amount_kroner;
+
+            return response()->json([
+                'success' => false,
+                'message' => "Minimum amount for this payment method is {$minKr} kr.",
+            ], 422);
+        }
+
+        $sessionForDevice = $posSession ?? $charge->posSession;
+        if ($sessionForDevice && ! $paymentMethod->isAvailableOnDevice($sessionForDevice->pos_device_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This payment method is not available on the device for this session.',
+            ], 422);
+        }
+
+        // For Stripe payments, require payment_intent_id in metadata
+        if ($paymentMethod->provider === 'stripe') {
+            $paymentIntentId = $validated['metadata']['payment_intent_id'] ?? null;
+            if (! $paymentIntentId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment intent ID is required for Stripe payments',
+                ], 422);
+            }
+        }
+
+        if (($validated['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+            $verifoneReference = $validated['metadata']['verifone_payment_reference']
+                ?? $validated['metadata']['provider_payment_reference']
+                ?? null;
+            if (! $verifoneReference) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifone payment reference is required for Verifone payments',
+                ], 422);
+            }
+        }
+
+        if (isset($validated['cart']['customer_id']) && $validated['cart']['customer_id'] !== null && $validated['cart']['customer_id'] !== 0) {
+            $customerExists = \App\Models\ConnectedCustomer::query()
+                ->where('id', (int) $validated['cart']['customer_id'])
+                ->where('stripe_account_id', $charge->store->stripe_account_id)
+                ->exists();
+
+            if (! $customerExists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => [
+                        'cart.customer_id' => ['Customer not found or does not belong to this store'],
+                    ],
+                ], 422);
+            }
+        }
+
+        $cartPayload = $validated['cart'] ?? null;
 
         try {
             // Complete deferred payment
@@ -1502,11 +1707,14 @@ class PurchasesController extends BaseApiController
                 $charge,
                 $paymentMethod,
                 $validated['metadata'] ?? [],
-                $posSession
+                $posSession,
+                $cartPayload
             );
 
             return response()->json([
                 'success' => true,
+                // Top-level id for thin clients / JSONPath bindings that miss `data.receipt`.
+                'receipt_id' => $result['receipt']->id,
                 'data' => [
                     'charge' => [
                         'id' => $result['charge']->id,
@@ -1529,10 +1737,23 @@ class PurchasesController extends BaseApiController
                     ],
                 ],
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (CashDrawerDisabledException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+            ], 422);
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'insufficient_stock',
+                'lines' => $e->lines,
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
@@ -1556,6 +1777,7 @@ class PurchasesController extends BaseApiController
             'cart' => ['required', 'array'],
             'cart.items' => ['required', 'array', 'min:1'],
             'cart.items.*.product_id' => ['required', 'integer'],
+            'cart.items.*.variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'cart.items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'cart.items.*.unit_price' => ['required', 'integer', 'min:0'],
             'cart.items.*.description' => ['nullable', 'string', 'max:500'],
@@ -1702,6 +1924,18 @@ class PurchasesController extends BaseApiController
                     ], 422);
                 }
             }
+
+            if (($paymentData['metadata']['payment_provider'] ?? null) === 'verifone' || $paymentMethod->code === 'verifone_terminal') {
+                $verifoneReference = $paymentData['metadata']['verifone_payment_reference']
+                    ?? $paymentData['metadata']['provider_payment_reference']
+                    ?? null;
+                if (! $verifoneReference) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Verifone payment reference is required for Verifone payment at index {$index}",
+                    ], 422);
+                }
+            }
         }
 
         try {
@@ -1742,6 +1976,13 @@ class PurchasesController extends BaseApiController
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+            ], 422);
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'insufficient_stock',
+                'lines' => $e->lines,
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
@@ -1922,7 +2163,7 @@ class PurchasesController extends BaseApiController
             'reason' => ['nullable', 'string', 'max:500'],
             'items' => ['nullable', 'array'],
             'items.*.item_id' => ['nullable', 'string'],
-            'items.*.quantity' => ['nullable', 'integer', 'min:1'],
+            'items.*.quantity' => ['nullable', 'numeric', 'min:0.01'],
             'pos_device_id' => ['nullable', 'integer', 'exists:pos_devices,id'], // Optional: auto-detected if not provided
             'pos_session_id' => ['nullable', 'integer', 'exists:pos_sessions,id'], // Optional: auto-detected if not provided
         ]);
@@ -2134,6 +2375,12 @@ class PurchasesController extends BaseApiController
             'failure_message' => $purchase->failure_message,
             'created_at' => $this->formatDateTimeOslo($purchase->created_at),
         ];
+
+        $metadata = is_array($purchase->metadata) ? $purchase->metadata : [];
+        $payment['provider'] = $metadata['payment_provider'] ?? ($purchase->payment_method === 'verifone_terminal' ? 'verifone' : null);
+        $payment['provider_payment_reference'] = $metadata['provider_payment_reference']
+            ?? $metadata['verifone_payment_reference']
+            ?? null;
 
         // If there's a payment intent, try to get additional details
         if ($purchase->stripe_payment_intent_id) {

@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PosDeviceTerminalLocationsInner
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,74 +29,78 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * PosDeviceTerminalLocationsInner Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \JsonSerializable
+class PosDeviceTerminalLocationsInner implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'PosDevice_terminal_locations_inner';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'display_name' => 'string',
         'stripe_location_id' => 'string',
-        'readers_count' => 'int'
+        'readers_count' => 'int',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'display_name' => null,
         'stripe_location_id' => null,
-        'readers_count' => null
+        'readers_count' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'display_name' => false,
         'stripe_location_id' => true,
-        'readers_count' => false
+        'readers_count' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -119,8 +125,6 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -130,7 +134,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -140,7 +144,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -149,9 +153,6 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -160,9 +161,6 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -179,7 +177,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
         'id' => 'id',
         'display_name' => 'display_name',
         'stripe_location_id' => 'stripe_location_id',
-        'readers_count' => 'readers_count'
+        'readers_count' => 'readers_count',
     ];
 
     /**
@@ -191,7 +189,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
         'id' => 'setId',
         'display_name' => 'setDisplayName',
         'stripe_location_id' => 'setStripeLocationId',
-        'readers_count' => 'setReadersCount'
+        'readers_count' => 'setReadersCount',
     ];
 
     /**
@@ -203,7 +201,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
         'id' => 'getId',
         'display_name' => 'getDisplayName',
         'stripe_location_id' => 'getStripeLocationId',
-        'readers_count' => 'getReadersCount'
+        'readers_count' => 'getReadersCount',
     ];
 
     /**
@@ -247,7 +245,6 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -258,8 +255,8 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -270,14 +267,12 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -310,7 +305,6 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -324,8 +318,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
     /**
      * Sets id
      *
-     * @param int|null $id id
-     *
+     * @param  int|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -351,8 +344,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
     /**
      * Sets display_name
      *
-     * @param string|null $display_name display_name
-     *
+     * @param  string|null  $display_name  display_name
      * @return self
      */
     public function setDisplayName($display_name)
@@ -378,8 +370,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
     /**
      * Sets stripe_location_id
      *
-     * @param string|null $stripe_location_id stripe_location_id
-     *
+     * @param  string|null  $stripe_location_id  stripe_location_id
      * @return self
      */
     public function setStripeLocationId($stripe_location_id)
@@ -389,7 +380,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('stripe_location_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -412,8 +403,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
     /**
      * Sets readers_count
      *
-     * @param int|null $readers_count readers_count
-     *
+     * @param  int|null  $readers_count  readers_count
      * @return self
      */
     public function setReadersCount($readers_count)
@@ -425,12 +415,11 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -440,8 +429,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -453,10 +441,8 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -470,9 +456,7 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -481,15 +465,16 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -515,5 +500,3 @@ class PosDeviceTerminalLocationsInner implements ModelInterface, ArrayAccess, \J
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

@@ -17,9 +17,9 @@ class AddonsTable
         return $table
             ->columns([
                 TextColumn::make('type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->formatStateUsing(fn ($state) => $state instanceof AddonType ? $state->label() : AddonType::from($state)->label()),
-                IconColumn::make('is_active')->label('Active')->boolean(),
+                IconColumn::make('is_active')->label(__('Active'))->boolean(),
             ])
             ->filters([
                 //

@@ -147,6 +147,9 @@ class ReceiptTemplateService
             'customer_phone' => '123 45 678',
             'customer_email' => 'customer@example.com',
             'estimated_pickup_date' => null,
+            'order_note_section' => [
+                'lines' => ['Levering før kl. 15'],
+            ],
         ];
     }
 
@@ -824,6 +827,15 @@ class ReceiptTemplateService
         // Get estimated pickup date from receipt_data (for delivery receipts)
         $estimatedPickupDate = $receiptData['estimated_pickup_date'] ?? null;
 
+        $orderNote = $receiptData['order_note'] ?? null;
+        $orderNoteSection = null;
+        if (is_string($orderNote) && trim($orderNote) !== '') {
+            $wrapped = $this->buildReceiptOrderNoteLines(trim($orderNote));
+            if ($wrapped !== []) {
+                $orderNoteSection = ['lines' => $wrapped];
+            }
+        }
+
         // Get order number from receipt_data or use charge ID (purchase database ID)
         $orderNumber = $receiptData['order_number'] ?? null;
         if (! $orderNumber && $charge) {
@@ -888,7 +900,34 @@ class ReceiptTemplateService
             'customer_phone' => $customerPhone,
             'customer_email' => $customerEmail,
             'estimated_pickup_date' => $estimatedPickupDate,
+            'order_note_section' => $orderNoteSection,
         ];
+    }
+
+    /**
+     * Split whole-order note by newlines and hard-wrap long segments for narrow receipts.
+     *
+     * @return array<int, string>
+     */
+    protected function buildReceiptOrderNoteLines(string $note, int $maxWidth = 44): array
+    {
+        $lines = [];
+        foreach (preg_split('/\r\n|\r|\n/', $note) as $paragraph) {
+            $paragraph = trim($paragraph);
+            if ($paragraph === '') {
+                continue;
+            }
+            if (mb_strlen($paragraph) <= $maxWidth) {
+                $lines[] = $paragraph;
+
+                continue;
+            }
+            for ($offset = 0; $offset < mb_strlen($paragraph); $offset += $maxWidth) {
+                $lines[] = mb_substr($paragraph, $offset, $maxWidth);
+            }
+        }
+
+        return $lines;
     }
 
     /**

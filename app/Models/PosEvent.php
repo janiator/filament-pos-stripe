@@ -10,6 +10,11 @@ class PosEvent extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::observe(\App\Observers\PosEventObserver::class);
+    }
+
     protected $fillable = [
         'store_id',
         'pos_device_id',

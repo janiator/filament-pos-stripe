@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PurchasePurchaseReceipt
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,81 +29,86 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * PurchasePurchaseReceipt Class Doc Comment
  *
  * @category Class
+ *
  * @description Receipt information
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSerializable
+class PurchasePurchaseReceipt implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'Purchase_purchase_receipt';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'receipt_number' => 'string',
         'receipt_type' => 'string',
         'printed' => 'bool',
         'printed_at' => '\DateTime',
-        'reprint_count' => 'int'
+        'reprint_count' => 'int',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'receipt_number' => null,
         'receipt_type' => null,
         'printed' => null,
         'printed_at' => 'date-time',
-        'reprint_count' => null
+        'reprint_count' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'receipt_number' => false,
         'receipt_type' => false,
         'printed' => false,
         'printed_at' => true,
-        'reprint_count' => false
+        'reprint_count' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -126,8 +133,6 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -137,7 +142,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -147,7 +152,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -156,9 +161,6 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -167,9 +169,6 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -188,7 +187,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
         'receipt_type' => 'receipt_type',
         'printed' => 'printed',
         'printed_at' => 'printed_at',
-        'reprint_count' => 'reprint_count'
+        'reprint_count' => 'reprint_count',
     ];
 
     /**
@@ -202,7 +201,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
         'receipt_type' => 'setReceiptType',
         'printed' => 'setPrinted',
         'printed_at' => 'setPrintedAt',
-        'reprint_count' => 'setReprintCount'
+        'reprint_count' => 'setReprintCount',
     ];
 
     /**
@@ -216,7 +215,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
         'receipt_type' => 'getReceiptType',
         'printed' => 'getPrinted',
         'printed_at' => 'getPrintedAt',
-        'reprint_count' => 'getReprintCount'
+        'reprint_count' => 'getReprintCount',
     ];
 
     /**
@@ -260,7 +259,6 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -271,8 +269,8 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -285,14 +283,12 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -325,7 +321,6 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -339,8 +334,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Sets id
      *
-     * @param int|null $id id
-     *
+     * @param  int|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -366,8 +360,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Sets receipt_number
      *
-     * @param string|null $receipt_number receipt_number
-     *
+     * @param  string|null  $receipt_number  receipt_number
      * @return self
      */
     public function setReceiptNumber($receipt_number)
@@ -393,8 +386,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Sets receipt_type
      *
-     * @param string|null $receipt_type receipt_type
-     *
+     * @param  string|null  $receipt_type  receipt_type
      * @return self
      */
     public function setReceiptType($receipt_type)
@@ -420,8 +412,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Sets printed
      *
-     * @param bool|null $printed printed
-     *
+     * @param  bool|null  $printed  printed
      * @return self
      */
     public function setPrinted($printed)
@@ -447,8 +438,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Sets printed_at
      *
-     * @param \DateTime|null $printed_at printed_at
-     *
+     * @param  \DateTime|null  $printed_at  printed_at
      * @return self
      */
     public function setPrintedAt($printed_at)
@@ -458,7 +448,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('printed_at', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -481,8 +471,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Sets reprint_count
      *
-     * @param int|null $reprint_count reprint_count
-     *
+     * @param  int|null  $reprint_count  reprint_count
      * @return self
      */
     public function setReprintCount($reprint_count)
@@ -494,12 +483,11 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -509,8 +497,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -522,10 +509,8 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -539,9 +524,7 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -550,15 +533,16 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -584,5 +568,3 @@ class PurchasePurchaseReceipt implements ModelInterface, ArrayAccess, \JsonSeria
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

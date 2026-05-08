@@ -16,31 +16,31 @@ class PosEventsTable
         return $table
             ->columns([
                 TextColumn::make('event_code')
-                    ->label('Event Code')
+                    ->label(__('Event Code'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('event_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->searchable()
                     ->limit(50),
                 TextColumn::make('posSession.session_number')
-                    ->label('Session')
+                    ->label(__('Session'))
                     ->sortable(),
                 TextColumn::make('user.name')
-                    ->label('User')
+                    ->label(__('User'))
                     ->sortable(),
                 TextColumn::make('occurred_at')
-                    ->label('Occurred At')
+                    ->label(__('Occurred At'))
                     ->dateTime()
                     ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('event_code')
-                    ->label('Event Code')
+                    ->label(__('Event Code'))
                     ->options([
                         PosEvent::EVENT_APPLICATION_START => 'Application Start',
                         PosEvent::EVENT_APPLICATION_SHUTDOWN => 'Application Shutdown',
@@ -56,7 +56,7 @@ class PosEventsTable
                         PosEvent::EVENT_SESSION_CLOSED => 'Session Closed',
                     ]),
                 SelectFilter::make('event_type')
-                    ->label('Event Type')
+                    ->label(__('Event Type'))
                     ->options([
                         'application' => 'Application',
                         'user' => 'User',

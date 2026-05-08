@@ -16,25 +16,25 @@ class TerminalReaderInfolist
                     ->numeric(),
                 TextEntry::make('terminal_location_id')
                     ->numeric()
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
                 TextEntry::make('stripe_reader_id')
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
                 TextEntry::make('serial_number')
-                    ->label('Serial number')
-                    ->placeholder('-'),
+                    ->label(__('Serial number'))
+                    ->placeholder(__('-')),
                 TextEntry::make('label'),
                 IconEntry::make('tap_to_pay')
                     ->boolean(),
                 TextEntry::make('device_type')
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
                 TextEntry::make('status')
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
                 TextEntry::make('created_at')
                     ->dateTime()
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
                 TextEntry::make('updated_at')
                     ->dateTime()
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
             ]);
     }
 }

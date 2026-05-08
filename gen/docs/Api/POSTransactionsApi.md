@@ -1,4 +1,4 @@
-# OpenAPI\Client\POSTransactionsApi
+# OpenAPIClient\POSTransactionsApi
 
 
 
@@ -13,7 +13,7 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 ## `createCorrectionReceipt()`
 
 ```php
-createCorrectionReceipt($create_correction_receipt_request): \OpenAPI\Client\Model\CreateCorrectionReceipt201Response
+createCorrectionReceipt($create_correction_receipt_request): \OpenAPIClient\Model\CreateCorrectionReceipt201Response
 ```
 
 Create correction receipt
@@ -28,16 +28,16 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSTransactionsApi(
+$apiInstance = new OpenAPIClient\Api\POSTransactionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
-$create_correction_receipt_request = new \OpenAPI\Client\Model\CreateCorrectionReceiptRequest(); // \OpenAPI\Client\Model\CreateCorrectionReceiptRequest
+$create_correction_receipt_request = new \OpenAPIClient\Model\CreateCorrectionReceiptRequest(); // \OpenAPIClient\Model\CreateCorrectionReceiptRequest
 
 try {
     $result = $apiInstance->createCorrectionReceipt($create_correction_receipt_request);
@@ -51,11 +51,11 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **create_correction_receipt_request** | [**\OpenAPI\Client\Model\CreateCorrectionReceiptRequest**](../Model/CreateCorrectionReceiptRequest.md)|  | |
+| **create_correction_receipt_request** | [**\OpenAPIClient\Model\CreateCorrectionReceiptRequest**](../Model/CreateCorrectionReceiptRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\CreateCorrectionReceipt201Response**](../Model/CreateCorrectionReceipt201Response.md)
+[**\OpenAPIClient\Model\CreateCorrectionReceipt201Response**](../Model/CreateCorrectionReceipt201Response.md)
 
 ### Authorization
 
@@ -73,7 +73,7 @@ try {
 ## `voidTransaction()`
 
 ```php
-voidTransaction($charge_id, $void_transaction_request): \OpenAPI\Client\Model\VoidTransaction200Response
+voidTransaction($charge_id, $void_transaction_request): \OpenAPIClient\Model\VoidTransaction200Response
 ```
 
 Void transaction
@@ -88,17 +88,17 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSTransactionsApi(
+$apiInstance = new OpenAPIClient\Api\POSTransactionsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $charge_id = 56; // int
-$void_transaction_request = new \OpenAPI\Client\Model\VoidTransactionRequest(); // \OpenAPI\Client\Model\VoidTransactionRequest
+$void_transaction_request = new \OpenAPIClient\Model\VoidTransactionRequest(); // \OpenAPIClient\Model\VoidTransactionRequest
 
 try {
     $result = $apiInstance->voidTransaction($charge_id, $void_transaction_request);
@@ -113,11 +113,11 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **charge_id** | **int**|  | |
-| **void_transaction_request** | [**\OpenAPI\Client\Model\VoidTransactionRequest**](../Model/VoidTransactionRequest.md)|  | [optional] |
+| **void_transaction_request** | [**\OpenAPIClient\Model\VoidTransactionRequest**](../Model/VoidTransactionRequest.md)|  | [optional] |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\VoidTransaction200Response**](../Model/VoidTransaction200Response.md)
+[**\OpenAPIClient\Model\VoidTransaction200Response**](../Model/VoidTransaction200Response.md)
 
 ### Authorization
 

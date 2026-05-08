@@ -8,6 +8,7 @@ use App\Models\PosSession;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
@@ -65,6 +66,82 @@ test('single purchase with cart total 0 (freeticket) is accepted when payment me
     $response->assertStatus(201);
     $response->assertJsonPath('success', true);
     $response->assertJsonPath('data.charge.amount', 0);
+});
+
+test('single purchase persists and returns cart and item discounts', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_discounts']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    PaymentMethod::create([
+        'store_id' => $store->id,
+        'name' => 'Cash',
+        'code' => 'cash',
+        'provider' => 'cash',
+        'enabled' => true,
+        'pos_suitable' => true,
+        'sort_order' => 0,
+        'minimum_amount_kroner' => null,
+        'saf_t_payment_code' => '10000',
+        'saf_t_event_code' => '13016',
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $createResponse = $this->postJson('/api/purchases', [
+        'pos_session_id' => $session->id,
+        'payment_method_code' => 'cash',
+        'cart' => [
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 10000,
+                    'discount_amount' => 1500,
+                    'discount_reason' => 'Manual item discount',
+                ],
+            ],
+            'discounts' => [
+                [
+                    'type' => 'verdi',
+                    'amount' => 500,
+                    'reason' => 'Loyalty',
+                ],
+            ],
+            'subtotal' => 10000,
+            'total_discounts' => 2000,
+            'total_tax' => 1600,
+            'total' => 8000,
+            'currency' => 'nok',
+        ],
+        'metadata' => [],
+    ]);
+
+    $createResponse->assertCreated();
+    $purchaseId = $createResponse->json('data.charge.id');
+
+    $showResponse = $this->getJson("/api/purchases/{$purchaseId}");
+
+    $showResponse->assertOk()
+        ->assertJsonPath('purchase.purchase_discounts.0.type', 'verdi')
+        ->assertJsonPath('purchase.purchase_discounts.0.amount', 500)
+        ->assertJsonPath('purchase.purchase_total_discounts', 2000)
+        ->assertJsonPath('purchase.purchase_items.0.purchase_item_discount_amount', 1500)
+        ->assertJsonPath('purchase.purchase_items.0.purchase_item_discount_reason', 'Manual item discount')
+        ->assertJsonPath('purchase.purchase_items.0.purchase_item_line_total_ore', 8000);
 });
 
 test('get purchase returns purchase item quantities with decimals', function () {
@@ -255,4 +332,237 @@ test('kiosk sales report supports cursor and updated_since filters', function ()
     $response->assertJsonPath('data.0.net_amount_ore', 15000);
     $response->assertJsonPath('data.0.is_refund', true);
     $response->assertJsonPath('meta.cursor', $olderKioskCharge->id);
+});
+
+test('purchases index avoids repeated product lookup queries for metadata fallback enrichment', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_purchase_lookup_cache']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Lookup cache product',
+    ]);
+
+    foreach (range(1, 3) as $index) {
+        ConnectedCharge::factory()->create([
+            'stripe_account_id' => $store->stripe_account_id,
+            'pos_session_id' => $session->id,
+            'paid' => true,
+            'status' => 'succeeded',
+            'amount' => 1000 * $index,
+            'metadata' => [
+                'items' => [
+                    [
+                        'id' => 'item_'.$index,
+                        'product_id' => $product->id,
+                        'quantity' => 1,
+                        'unit_price' => 1000,
+                    ],
+                ],
+            ],
+        ]);
+    }
+
+    Sanctum::actingAs($user, ['*']);
+
+    $connectedProductQueries = 0;
+    DB::listen(function ($query) use (&$connectedProductQueries) {
+        if (str_contains($query->sql, 'from "connected_products"')) {
+            $connectedProductQueries++;
+        }
+    });
+
+    $response = $this->getJson('/api/purchases?per_page=20&page=0');
+
+    $response->assertOk();
+    expect($connectedProductQueries)->toBe(1);
+});
+
+test('purchase keeps product name as line title and stores distinct item description for receipts', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_line_desc']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    PaymentMethod::create([
+        'store_id' => $store->id,
+        'name' => 'Cash',
+        'code' => 'cash',
+        'provider' => 'cash',
+        'enabled' => true,
+        'pos_suitable' => true,
+        'sort_order' => 0,
+        'minimum_amount_kroner' => null,
+        'saf_t_payment_code' => '10000',
+        'saf_t_event_code' => '13016',
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Kaffe stor',
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->postJson('/api/purchases', [
+        'pos_session_id' => $session->id,
+        'payment_method_code' => 'cash',
+        'cart' => [
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 5000,
+                    'description' => 'Ekstra shot, soyamelk',
+                ],
+            ],
+            'subtotal' => 5000,
+            'total_discounts' => 0,
+            'total_tax' => 1000,
+            'total' => 5000,
+            'currency' => 'nok',
+        ],
+        'metadata' => [],
+    ]);
+
+    $response->assertCreated();
+
+    $charge = ConnectedCharge::query()->findOrFail($response->json('data.charge.id'));
+    $items = $charge->metadata['items'] ?? [];
+
+    expect($items)->toHaveCount(1)
+        ->and($items[0]['name'])->toBe('Kaffe stor')
+        ->and($items[0]['product_name'])->toBe('Kaffe stor')
+        ->and($items[0]['description'])->toBe('Ekstra shot, soyamelk');
+});
+
+test('purchase with cart note stores note on charge and on sales receipt data', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_cart_note']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    PaymentMethod::create([
+        'store_id' => $store->id,
+        'name' => 'Cash',
+        'code' => 'cash',
+        'provider' => 'cash',
+        'enabled' => true,
+        'pos_suitable' => true,
+        'sort_order' => 0,
+        'minimum_amount_kroner' => null,
+        'saf_t_payment_code' => '10000',
+        'saf_t_event_code' => '13016',
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Vare A',
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $response = $this->postJson('/api/purchases', [
+        'pos_session_id' => $session->id,
+        'payment_method_code' => 'cash',
+        'cart' => [
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 5000,
+                ],
+            ],
+            'subtotal' => 5000,
+            'total_discounts' => 0,
+            'total_tax' => 1000,
+            'total' => 5000,
+            'currency' => 'nok',
+            'note' => 'Ring kunden før levering',
+        ],
+        'metadata' => [],
+    ]);
+
+    $response->assertCreated();
+
+    $charge = ConnectedCharge::query()->findOrFail($response->json('data.charge.id'));
+    expect($charge->metadata['note'])->toBe('Ring kunden før levering');
+
+    $receipt = $charge->receipt;
+    expect($receipt)->not->toBeNull()
+        ->and($receipt->receipt_data['order_note'])->toBe('Ring kunden før levering');
+});
+
+test('get purchase maps purchase_note from metadata cart_note when note is absent', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_meta_cart_note']);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+    ]);
+
+    $charge = ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'status' => 'pending',
+        'paid' => false,
+        'metadata' => [
+            'items' => [
+                [
+                    'product_id' => (string) $product->id,
+                    'product_name' => 'Test',
+                    'quantity' => 1,
+                    'unit_price' => 1000,
+                    'discount_amount' => 0,
+                ],
+            ],
+            'subtotal' => 1000,
+            'total_discounts' => 0,
+            'total_tax' => 200,
+            'total' => 1000,
+            'cart_note' => 'Henting fredag',
+        ],
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $this->getJson("/api/purchases/{$charge->id}")
+        ->assertOk()
+        ->assertJsonPath('purchase.purchase_note', 'Henting fredag');
 });

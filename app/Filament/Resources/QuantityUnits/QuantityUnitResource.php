@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\QuantityUnits;
 
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\QuantityUnits\Pages\CreateQuantityUnit;
 use App\Filament\Resources\QuantityUnits\Pages\EditQuantityUnit;
 use App\Filament\Resources\QuantityUnits\Pages\ListQuantityUnits;
@@ -20,6 +21,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class QuantityUnitResource extends Resource
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $model = QuantityUnit::class;
 
     public static function getEloquentQuery(): Builder
@@ -86,7 +89,7 @@ class QuantityUnitResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('filament.navigation_groups.catalog');
+        return 'Katalog';
     }
 
     public static function getPages(): array

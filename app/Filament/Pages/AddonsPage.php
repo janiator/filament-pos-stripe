@@ -4,6 +4,8 @@ namespace App\Filament\Pages;
 
 use App\Actions\CleanupWebflowDataForStore;
 use App\Enums\AddonType;
+use App\Filament\Clusters\SettingsCluster;
+use App\Filament\Workflows\WorkflowResource;
 use App\Models\Addon;
 use App\Models\Store;
 use BackedEnum;
@@ -15,6 +17,8 @@ use Positiv\FilamentWebflow\Filament\Resources\WebflowSiteResource;
 
 class AddonsPage extends Page
 {
+    protected static ?string $cluster = SettingsCluster::class;
+
     protected static ?string $slug = 'add-ons';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
@@ -211,16 +215,35 @@ class AddonsPage extends Page
                 'label' => 'Open Transfers',
             ],
             AddonType::Workflows => [
-                'url' => \Leek\FilamentWorkflows\Resources\WorkflowResource::getUrl('index'),
+                'url' => WorkflowResource::getUrl('index'),
                 'label' => 'Open Workflows',
             ],
             AddonType::Pos => [
                 'url' => \App\Filament\Resources\PosSessions\PosSessionResource::getUrl('index'),
                 'label' => 'Open POS',
             ],
+            AddonType::PowerOfficeGo => [
+                'url' => \App\Filament\Resources\PowerOfficeIntegrations\PowerOfficeIntegrationResource::getUrl('index'),
+                'label' => 'Open PowerOffice',
+            ],
+            AddonType::Tripletex => [
+                'url' => \App\Filament\Resources\TripletexIntegrations\TripletexIntegrationResource::getUrl('index'),
+                'label' => 'Open Tripletex',
+            ],
+            AddonType::Inventory => [
+                'url' => \App\Filament\Resources\ConnectedProducts\ConnectedProductResource::getUrl('index'),
+                'label' => 'Open Products',
+            ],
             AddonType::MeranoBooking => null,
             AddonType::WebflowCms => null,
         };
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = Filament::auth()->user();
+
+        return $user !== null && $user->can('ViewAny:Addon');
     }
 
     public function typesWithWebflow(): array

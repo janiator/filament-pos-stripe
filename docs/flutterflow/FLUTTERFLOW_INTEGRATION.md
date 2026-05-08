@@ -191,3 +191,7 @@ print(deviceInfo);
 
 This will show you what information is available from the device.
 
+## Related
+
+- [PowerOffice Go integration](./POWEROFFICE_GO_INTEGRATION.md) — optional accounting sync and onboarding API for the POS app.
+

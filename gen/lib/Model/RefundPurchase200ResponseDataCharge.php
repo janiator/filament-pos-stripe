@@ -1,19 +1,21 @@
 <?php
+
 /**
  * RefundPurchase200ResponseDataCharge
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,36 +29,38 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * RefundPurchase200ResponseDataCharge Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess, \JsonSerializable
+class RefundPurchase200ResponseDataCharge implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'refundPurchase_200_response_data_charge';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
         'id' => 'int',
         'stripe_charge_id' => 'string',
@@ -65,16 +69,18 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
         'currency' => 'string',
         'status' => 'string',
         'refunded' => 'bool',
-        'payment_method' => 'string'
+        'payment_method' => 'string',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
         'id' => null,
         'stripe_charge_id' => null,
@@ -83,14 +89,14 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
         'currency' => null,
         'status' => null,
         'refunded' => null,
-        'payment_method' => null
+        'payment_method' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
         'id' => false,
         'stripe_charge_id' => true,
@@ -99,14 +105,14 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
         'currency' => false,
         'status' => false,
         'refunded' => false,
-        'payment_method' => false
+        'payment_method' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -131,8 +137,6 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -142,7 +146,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -152,7 +156,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -161,9 +165,6 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -172,9 +173,6 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -195,7 +193,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
         'currency' => 'currency',
         'status' => 'status',
         'refunded' => 'refunded',
-        'payment_method' => 'payment_method'
+        'payment_method' => 'payment_method',
     ];
 
     /**
@@ -211,7 +209,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
         'currency' => 'setCurrency',
         'status' => 'setStatus',
         'refunded' => 'setRefunded',
-        'payment_method' => 'setPaymentMethod'
+        'payment_method' => 'setPaymentMethod',
     ];
 
     /**
@@ -227,7 +225,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
         'currency' => 'getCurrency',
         'status' => 'getStatus',
         'refunded' => 'getRefunded',
-        'payment_method' => 'getPaymentMethod'
+        'payment_method' => 'getPaymentMethod',
     ];
 
     /**
@@ -272,9 +270,13 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     }
 
     public const STATUS_SUCCEEDED = 'succeeded';
+
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_FAILED = 'failed';
+
     public const STATUS_REFUNDED = 'refunded';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     /**
@@ -303,8 +305,8 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
@@ -319,14 +321,12 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -346,7 +346,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
         $invalidProperties = [];
 
         $allowedValues = $this->getStatusAllowableValues();
-        if (!is_null($this->container['status']) && !in_array($this->container['status'], $allowedValues, true)) {
+        if (! is_null($this->container['status']) && ! in_array($this->container['status'], $allowedValues, true)) {
             $invalidProperties[] = sprintf(
                 "invalid value '%s' for 'status', must be one of '%s'",
                 $this->container['status'],
@@ -368,7 +368,6 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
         return count($this->listInvalidProperties()) === 0;
     }
 
-
     /**
      * Gets id
      *
@@ -382,8 +381,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Sets id
      *
-     * @param int|null $id id
-     *
+     * @param  int|null  $id  id
      * @return self
      */
     public function setId($id)
@@ -409,8 +407,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Sets stripe_charge_id
      *
-     * @param string|null $stripe_charge_id stripe_charge_id
-     *
+     * @param  string|null  $stripe_charge_id  stripe_charge_id
      * @return self
      */
     public function setStripeChargeId($stripe_charge_id)
@@ -420,7 +417,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
         } else {
             $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
             $index = array_search('stripe_charge_id', $nullablesSetToNull);
-            if ($index !== FALSE) {
+            if ($index !== false) {
                 unset($nullablesSetToNull[$index]);
                 $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
             }
@@ -443,8 +440,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Sets amount
      *
-     * @param int|null $amount Original purchase amount in minor units (øre)
-     *
+     * @param  int|null  $amount  Original purchase amount in minor units (øre)
      * @return self
      */
     public function setAmount($amount)
@@ -470,8 +466,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Sets amount_refunded
      *
-     * @param int|null $amount_refunded Total amount refunded so far in minor units (øre)
-     *
+     * @param  int|null  $amount_refunded  Total amount refunded so far in minor units (øre)
      * @return self
      */
     public function setAmountRefunded($amount_refunded)
@@ -497,8 +492,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Sets currency
      *
-     * @param string|null $currency currency
-     *
+     * @param  string|null  $currency  currency
      * @return self
      */
     public function setCurrency($currency)
@@ -524,8 +518,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Sets status
      *
-     * @param string|null $status Purchase status (will be 'refunded' if fully refunded)
-     *
+     * @param  string|null  $status  Purchase status (will be 'refunded' if fully refunded)
      * @return self
      */
     public function setStatus($status)
@@ -534,7 +527,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
             throw new \InvalidArgumentException('non-nullable status cannot be null');
         }
         $allowedValues = $this->getStatusAllowableValues();
-        if (!in_array($status, $allowedValues, true)) {
+        if (! in_array($status, $allowedValues, true)) {
             throw new \InvalidArgumentException(
                 sprintf(
                     "Invalid value '%s' for 'status', must be one of '%s'",
@@ -561,8 +554,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Sets refunded
      *
-     * @param bool|null $refunded Whether purchase is fully refunded
-     *
+     * @param  bool|null  $refunded  Whether purchase is fully refunded
      * @return self
      */
     public function setRefunded($refunded)
@@ -588,8 +580,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Sets payment_method
      *
-     * @param string|null $payment_method payment_method
-     *
+     * @param  string|null  $payment_method  payment_method
      * @return self
      */
     public function setPaymentMethod($payment_method)
@@ -601,12 +592,11 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
 
         return $this;
     }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -616,8 +606,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -629,10 +618,8 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -646,9 +633,7 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -657,15 +642,16 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -691,5 +677,3 @@ class RefundPurchase200ResponseDataCharge implements ModelInterface, ArrayAccess
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

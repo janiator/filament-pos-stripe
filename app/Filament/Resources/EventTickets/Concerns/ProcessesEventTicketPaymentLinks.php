@@ -36,7 +36,7 @@ trait ProcessesEventTicketPaymentLinks
                 $data['ticket_1_price_id'] = $link->stripe_price_id;
             } else {
                 Notification::make()
-                    ->title('Ticket 1 payment link')
+                    ->title(__('Ticket 1 payment link'))
                     ->body('Failed to create payment link. Please try again or use an existing link.')
                     ->danger()
                     ->send();
@@ -68,7 +68,7 @@ trait ProcessesEventTicketPaymentLinks
                 $data['ticket_2_price_id'] = $link->stripe_price_id;
             } else {
                 Notification::make()
-                    ->title('Ticket 2 payment link')
+                    ->title(__('Ticket 2 payment link'))
                     ->body('Failed to create payment link. Please try again or use an existing link.')
                     ->danger()
                     ->send();

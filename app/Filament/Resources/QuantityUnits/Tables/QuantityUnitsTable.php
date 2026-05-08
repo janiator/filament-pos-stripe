@@ -22,58 +22,58 @@ class QuantityUnitsTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('Name'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
 
                 TextColumn::make('symbol')
-                    ->label('Symbol')
+                    ->label(__('Symbol'))
                     ->searchable()
                     ->sortable()
                     ->badge()
                     ->color('info'),
 
                 TextColumn::make('description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->searchable()
                     ->wrap()
                     ->limit(50)
                     ->toggleable(),
 
                 TextColumn::make('products_count')
-                    ->label('Products')
+                    ->label(__('Products'))
                     ->counts('products')
                     ->sortable()
                     ->badge()
                     ->color('success'),
 
                 IconColumn::make('is_standard')
-                    ->label('Standard')
+                    ->label(__('Standard'))
                     ->boolean()
                     ->sortable(),
 
                 IconColumn::make('active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->sortable(),
 
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 TernaryFilter::make('active')
-                    ->label('Active')
-                    ->placeholder('All')
+                    ->label(__('Active'))
+                    ->placeholder(__('All'))
                     ->trueLabel('Active only')
                     ->falseLabel('Inactive only'),
 
                 TernaryFilter::make('is_standard')
-                    ->label('Standard Units')
-                    ->placeholder('All')
+                    ->label(__('Standard Units'))
+                    ->placeholder(__('All'))
                     ->trueLabel('Standard only')
                     ->falseLabel('Custom only'),
             ])

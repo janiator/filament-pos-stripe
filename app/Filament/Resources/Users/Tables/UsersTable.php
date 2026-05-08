@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -26,13 +27,13 @@ class UsersTable
                     ->sortable(),
 
                 TextColumn::make('email')
-                    ->label('Email')
+                    ->label(__('Email'))
                     ->searchable()
                     ->sortable()
                     ->copyable(),
 
                 IconColumn::make('email_verified_at')
-                    ->label('Verified')
+                    ->label(__('Verified'))
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
@@ -41,43 +42,44 @@ class UsersTable
                     ->sortable(),
 
                 TextColumn::make('stores_count')
-                    ->label('Stores')
+                    ->label(__('Stores'))
                     ->counts('stores')
                     ->badge()
                     ->color('info')
                     ->sortable(),
 
                 TextColumn::make('roles.name')
-                    ->label('Roles')
+                    ->label(__('Roles'))
                     ->badge()
                     ->color('gray')
                     ->separator(','),
 
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label(__('Updated'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Filter::make('verified')
-                    ->label('Email Verified')
+                    ->label(__('Email Verified'))
                     ->query(fn ($query) => $query->whereNotNull('email_verified_at'))
                     ->toggle(),
 
                 Filter::make('unverified')
-                    ->label('Email Unverified')
+                    ->label(__('Email Unverified'))
                     ->query(fn ($query) => $query->whereNull('email_verified_at'))
                     ->toggle(),
             ])
             ->recordActions([
-                Impersonate::make(),
+                Impersonate::make()
+                    ->redirectTo(fn (User $record): string => $record->impersonationRedirectUrl()),
                 ViewAction::make(),
                 EditAction::make(),
             ])

@@ -9,7 +9,7 @@ Name | Type | Description | Notes
 **opened_at** | **\DateTime** |  | [optional]
 **closed_at** | **\DateTime** |  | [optional]
 **report_generated_at** | **\DateTime** |  | [optional]
-**store** | [**\OpenAPI\Client\Model\XReportStore**](XReportStore.md) |  | [optional]
+**store** | [**\OpenAPIClient\Model\XReportStore**](XReportStore.md) |  | [optional]
 **device** | **object** |  | [optional]
 **cashier** | **object** |  | [optional]
 **opening_balance** | **int** |  | [optional]

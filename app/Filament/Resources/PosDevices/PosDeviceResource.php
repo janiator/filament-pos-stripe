@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PosDevices;
 
 use App\Enums\AddonType;
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\PosDevices\Pages\CreatePosDevice;
 use App\Filament\Resources\PosDevices\Pages\EditPosDevice;
@@ -22,6 +23,8 @@ use Filament\Tables\Table;
 class PosDeviceResource extends Resource
 {
     use HasTenantScopedQuery;
+
+    protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $model = PosDevice::class;
 

@@ -5,15 +5,19 @@ namespace App\Filament\Resources\ConnectedProducts\Tables;
 use App\Actions\ConnectedProducts\CreateConnectedProductInStripe;
 use App\Actions\ConnectedProducts\ResolveProductVatRate;
 use App\Actions\ConnectedProducts\UpdateConnectedProductToStripe;
+use App\Enums\AddonType;
+use App\Models\Addon;
 use App\Models\ArticleGroupCode;
 use App\Models\ConnectedProduct;
 use App\Models\Vendor;
 use App\Services\ProductZipExporter;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
@@ -21,8 +25,10 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
+use Filament\Support\Enums\Alignment;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -32,18 +38,35 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
-use Shreejan\ActionableColumn\Tables\Columns\ActionableColumn;
 
 class ConnectedProductsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['store', 'prices', 'variants', 'vendor']))
+            ->modifyQueryUsing(fn ($query) => $query->with(['store', 'prices', 'variants', 'vendor', 'media']))
             ->columns([
+                ImageColumn::make('image')
+                    ->label(__('filament.connected_products.table.image'))
+                    ->getStateUsing(function (ConnectedProduct $record): ?string {
+                        $url = $record->getFirstMediaUrl('images');
+                        if ($url !== '') {
+                            return $url;
+                        }
+                        $images = $record->images;
+                        if (is_array($images) && isset($images[0]) && $images[0] !== '') {
+                            return $images[0];
+                        }
+
+                        return null;
+                    })
+                    ->square()
+                    ->imageSize(40)
+                    ->toggleable(isToggledHiddenByDefault: false),
+
                 // Primary Information Group
-                ActionableColumn::make('name')
-                    ->label('Name')
+                TextColumn::make('name')
+                    ->label(__('Name'))
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query->where(function (Builder $query) use ($search) {
                             $query->where('name', 'ilike', "%{$search}%")
@@ -60,78 +83,39 @@ class ConnectedProductsTable
                     })
                     ->sortable()
                     ->weight('bold')
-                    ->placeholder('-')
-                    ->actionIcon(Heroicon::PencilSquare)
-                    ->actionIconColor('primary')
-                    ->clickableColumn()
-                    ->tapAction(
-                        Action::make('editName')
-                            ->label('Edit Name')
-                            ->tooltip('Click to edit product name')
-                            ->schema([
-                                TextInput::make('name')
-                                    ->label('Product Name')
-                                    ->required()
-                                    ->maxLength(255),
-                            ])
-                            ->fillForm(fn (ConnectedProduct $record) => [
-                                'name' => $record->name,
-                            ])
-                            ->action(function (ConnectedProduct $record, array $data) {
-                                $record->update(['name' => $data['name']]);
+                    ->placeholder(__('-'))
+                    ->toggleable(isToggledHiddenByDefault: false),
 
-                                Notification::make()
-                                    ->success()
-                                    ->title('Product name updated')
-                                    ->body('The product name has been updated successfully.')
-                                    ->send();
-                            })
-                    ),
+                TextColumn::make('vendor.name')
+                    ->label(__('filament.connected_products.table.brand'))
+                    ->searchable()
+                    ->sortable()
+                    ->url(fn (ConnectedProduct $record) => $record->vendor
+                        ? \App\Filament\Resources\Vendors\VendorResource::getUrl('edit', ['record' => $record->vendor])
+                        : null)
+                    ->placeholder(__('—'))
+                    ->toggleable(),
 
                 TextColumn::make('description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->searchable()
                     ->wrap()
                     ->limit(50)
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
-                ActionableColumn::make('active')
-                    ->label('Active')
-                    ->badge()
-                    ->color(fn ($state) => $state ? 'success' : 'danger')
-                    ->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive')
+                IconColumn::make('active')
+                    ->label(__('filament.connected_products.table.visibility'))
+                    ->boolean()
+                    ->trueIcon(Heroicon::CheckCircle)
+                    ->falseIcon(Heroicon::XCircle)
+                    ->trueColor('success')
+                    ->falseColor('danger')
                     ->sortable()
-                    ->actionIcon(Heroicon::CheckCircle)
-                    ->actionIconColor('success')
-                    ->clickableColumn()
-                    ->tapAction(
-                        Action::make('toggleActive')
-                            ->label('Toggle Active Status')
-                            ->tooltip('Click to toggle active status')
-                            ->schema([
-                                Toggle::make('active')
-                                    ->label('Active')
-                                    ->helperText('Active products are visible in Stripe'),
-                            ])
-                            ->fillForm(fn (ConnectedProduct $record) => [
-                                'active' => $record->active,
-                            ])
-                            ->action(function (ConnectedProduct $record, array $data) {
-                                $record->update(['active' => $data['active']]);
-
-                                Notification::make()
-                                    ->success()
-                                    ->title('Product status updated')
-                                    ->body('The product active status has been updated successfully.')
-                                    ->send();
-                            })
-                    ),
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 // Pricing Group
-                ActionableColumn::make('price')
-                    ->label('Price')
-                    ->badge()
-                    ->color('success')
+                TextColumn::make('price')
+                    ->label(__('Price'))
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->orderByRaw("COALESCE(CAST(price AS NUMERIC), 0) {$direction}");
                     })
@@ -156,80 +140,33 @@ class ConnectedProductsTable
 
                         return $state ? (number_format((float) $state, 2, '.', '').' '.strtoupper($record->currency ?? 'NOK')) : '-';
                     })
-                    ->toggleable()
-                    ->actionIcon(Heroicon::CurrencyDollar)
-                    ->actionIconColor('success')
-                    ->clickableColumn()
-                    ->tapAction(
-                        Action::make('editPrice')
-                            ->label('Edit Price')
-                            ->tooltip('Click to edit product price')
-                            ->schema([
-                                TextInput::make('price')
-                                    ->label('Price')
-                                    ->numeric()
-                                    ->step(0.01)
-                                    ->prefix(fn ($get, $record) => strtoupper($get('currency') ?? ($record?->currency ?? 'NOK')))
-                                    ->helperText('Enter the product price. This will create or update the Stripe price automatically.'),
+                    ->alignment(Alignment::End)
+                    ->toggleable(),
 
-                                Select::make('currency')
-                                    ->label('Currency')
-                                    ->options([
-                                        'nok' => 'NOK (kr)',
-                                        'usd' => 'USD ($)',
-                                        'eur' => 'EUR (€)',
-                                        'sek' => 'SEK',
-                                        'dkk' => 'DKK',
-                                    ])
-                                    ->helperText('Currency for this product'),
-                            ])
-                            ->fillForm(function (ConnectedProduct $record) {
-                                // Get current price value
-                                $price = $record->price;
-                                if (! $price && $record->default_price && $record->stripe_account_id) {
-                                    $defaultPrice = \App\Models\ConnectedPrice::where('stripe_price_id', $record->default_price)
-                                        ->where('stripe_account_id', $record->stripe_account_id)
-                                        ->first();
+                TextColumn::make('product_code')
+                    ->label(__('filament.connected_products.table.sku'))
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->placeholder(__('—'))
+                    ->toggleable(isToggledHiddenByDefault: false),
 
-                                    if ($defaultPrice && $defaultPrice->unit_amount) {
-                                        $price = number_format($defaultPrice->unit_amount / 100, 2, '.', '');
-                                    }
-                                }
+                TextColumn::make('inventory_total')
+                    ->label(__('filament.connected_products.table.stock'))
+                    ->alignment(Alignment::End)
+                    ->state(function (ConnectedProduct $record): string {
+                        $variants = $record->variants;
+                        if ($variants->isEmpty()) {
+                            return '—';
+                        }
 
-                                return [
-                                    'price' => $price,
-                                    'currency' => $record->currency ?: 'nok',
-                                ];
-                            })
-                            ->action(function (ConnectedProduct $record, array $data) {
-                                $updates = [];
-
-                                // Convert price to string format for storage (handle empty values)
-                                if (isset($data['price']) && $data['price'] !== null && $data['price'] !== '') {
-                                    $updates['price'] = str_replace(',', '.', str_replace(' ', '', (string) $data['price']));
-                                } elseif (isset($data['price']) && ($data['price'] === null || $data['price'] === '')) {
-                                    // Allow clearing the price
-                                    $updates['price'] = null;
-                                }
-
-                                if (isset($data['currency'])) {
-                                    $updates['currency'] = $data['currency'];
-                                }
-
-                                if (! empty($updates)) {
-                                    $record->update($updates);
-
-                                    Notification::make()
-                                        ->success()
-                                        ->title('Product price updated')
-                                        ->body('The product price has been updated successfully.')
-                                        ->send();
-                                }
-                            })
-                    ),
+                        return (string) $variants->sum('inventory_quantity');
+                    })
+                    ->visible(fn (): bool => Addon::storeHasActiveAddon(Filament::getTenant()?->getKey(), AddonType::Inventory))
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('compare_at_price_amount')
-                    ->label('Compare at Price')
+                    ->label(__('Compare at Price'))
                     ->badge()
                     ->color('gray')
                     ->sortable()
@@ -241,10 +178,10 @@ class ConnectedProductsTable
 
                         return number_format($state / 100, 2, '.', '').' '.$currency;
                     })
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('discount_percentage')
-                    ->label('Discount')
+                    ->label(__('Discount'))
                     ->badge()
                     ->color('danger')
                     ->sortable(query: function (Builder $query, string $direction): Builder {
@@ -253,40 +190,28 @@ class ConnectedProductsTable
                     ->formatStateUsing(function ($state) {
                         return $state ? $state.'%' : '-';
                     })
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 // Product Details Group
                 TextColumn::make('variants_count')
-                    ->label('Variants')
+                    ->label(__('Variants'))
                     ->counts('variants')
                     ->badge()
                     ->color('info')
                     ->sortable()
                     ->formatStateUsing(fn ($state) => $state ?: '0')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state ? ucfirst($state) : 'Service')
                     ->color('gray')
                     ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('vendor.name')
-                    ->label('Vendor')
-                    ->searchable()
-                    ->sortable()
-                    ->badge()
-                    ->color('warning')
-                    ->url(fn (ConnectedProduct $record) => $record->vendor
-                        ? \App\Filament\Resources\Vendors\VendorResource::getUrl('edit', ['record' => $record->vendor])
-                        : null)
-                    ->placeholder('No vendor')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('store.name')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->searchable()
                     ->sortable()
                     ->badge()
@@ -294,78 +219,44 @@ class ConnectedProductsTable
                     ->url(fn (ConnectedProduct $record) => $record->store
                         ? \App\Filament\Resources\Stores\StoreResource::getUrl('view', ['record' => $record->store])
                         : null)
-                    ->toggleable(),
-
-                // Additional Information Group
-                ActionableColumn::make('product_code')
-                    ->label('Product Code')
-                    ->searchable()
-                    ->sortable()
-                    ->copyable()
-                    ->placeholder('-')
-                    ->actionIcon(Heroicon::Hashtag)
-                    ->actionIconColor('gray')
-                    ->clickableColumn()
-                    ->tapAction(
-                        Action::make('editProductCode')
-                            ->label('Edit Product Code')
-                            ->tooltip('Click to edit product code (PLU)')
-                            ->schema([
-                                TextInput::make('product_code')
-                                    ->label('Product Code (PLU)')
-                                    ->maxLength(50)
-                                    ->helperText('PLU code (BasicType-02)'),
-                            ])
-                            ->fillForm(fn (ConnectedProduct $record) => [
-                                'product_code' => $record->product_code,
-                            ])
-                            ->action(function (ConnectedProduct $record, array $data) {
-                                $record->update(['product_code' => $data['product_code'] ?? null]);
-
-                                Notification::make()
-                                    ->success()
-                                    ->title('Product code updated')
-                                    ->body('The product code has been updated successfully.')
-                                    ->send();
-                            })
-                    )
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                // Additional Information Group
                 TextColumn::make('article_group_code')
-                    ->label('Article Group')
+                    ->label(__('Article Group'))
                     ->searchable()
                     ->sortable()
                     ->badge()
                     ->color('gray')
-                    ->placeholder('-')
+                    ->placeholder(__('-'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('shippable')
-                    ->label('Shippable')
+                    ->label(__('Shippable'))
                     ->boolean()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('no_price_in_pos')
-                    ->label('No Price in POS')
+                    ->label(__('No Price in POS'))
                     ->boolean()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('stripe_product_id')
-                    ->label('Product ID')
+                    ->label(__('Product ID'))
                     ->searchable()
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label(__('Updated'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -373,33 +264,33 @@ class ConnectedProductsTable
             ->filters([
                 // Status Filters
                 TernaryFilter::make('active')
-                    ->label('Active')
-                    ->placeholder('All')
+                    ->label(__('Active'))
+                    ->placeholder(__('All'))
                     ->trueLabel('Active only')
                     ->falseLabel('Inactive only'),
 
                 TernaryFilter::make('shippable')
-                    ->label('Shippable')
-                    ->placeholder('All')
+                    ->label(__('Shippable'))
+                    ->placeholder(__('All'))
                     ->trueLabel('Shippable only')
                     ->falseLabel('Not shippable'),
 
                 TernaryFilter::make('no_price_in_pos')
-                    ->label('No Price in POS')
-                    ->placeholder('All')
+                    ->label(__('No Price in POS'))
+                    ->placeholder(__('All'))
                     ->trueLabel('No price in POS')
                     ->falseLabel('Has price in POS'),
 
                 // Relationship Filters
                 SelectFilter::make('stripe_account_id')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->relationship('store', 'name')
                     ->searchable()
                     ->preload()
                     ->multiple(),
 
                 SelectFilter::make('vendor_id')
-                    ->label('Vendor')
+                    ->label(__('Vendor'))
                     ->relationship('vendor', 'name', modifyQueryUsing: function ($query) {
                         try {
                             $tenant = \Filament\Facades\Filament::getTenant();
@@ -418,7 +309,7 @@ class ConnectedProductsTable
                     ->multiple(),
 
                 Filter::make('has_variants')
-                    ->label('Has Variants')
+                    ->label(__('Has Variants'))
                     ->query(function (Builder $query, array $data): Builder {
                         if (! isset($data['has_variants']) || $data['has_variants'] === null) {
                             return $query;
@@ -430,17 +321,17 @@ class ConnectedProductsTable
                     })
                     ->form([
                         Select::make('has_variants')
-                            ->label('Variants')
+                            ->label(__('Variants'))
                             ->options([
                                 true => 'Has variants',
                                 false => 'No variants',
                             ])
-                            ->placeholder('All'),
+                            ->placeholder(__('All')),
                     ]),
 
                 // Product Details Filters
                 SelectFilter::make('type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->options([
                         'service' => 'Service',
                         'good' => 'Good',
@@ -448,16 +339,16 @@ class ConnectedProductsTable
                     ->multiple(),
 
                 Filter::make('price_range')
-                    ->label('Price Range')
+                    ->label(__('Price Range'))
                     ->form([
                         TextInput::make('price_from')
-                            ->label('From')
+                            ->label(__('From'))
                             ->numeric()
-                            ->prefix('NOK'),
+                            ->prefix(__('NOK')),
                         TextInput::make('price_to')
-                            ->label('To')
+                            ->label(__('To'))
                             ->numeric()
-                            ->prefix('NOK'),
+                            ->prefix(__('NOK')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -472,7 +363,7 @@ class ConnectedProductsTable
                     }),
 
                 Filter::make('has_discount')
-                    ->label('Has Discount')
+                    ->label(__('Has Discount'))
                     ->query(function (Builder $query, array $data): Builder {
                         if (! isset($data['has_discount']) || $data['has_discount'] === null) {
                             return $query;
@@ -488,21 +379,21 @@ class ConnectedProductsTable
                     })
                     ->form([
                         Select::make('has_discount')
-                            ->label('Discount')
+                            ->label(__('Discount'))
                             ->options([
                                 true => 'Has discount',
                                 false => 'No discount',
                             ])
-                            ->placeholder('All'),
+                            ->placeholder(__('All')),
                     ]),
 
                 // Date Filters
                 Filter::make('created_at')
                     ->form([
                         DatePicker::make('created_from')
-                            ->label('Created from'),
+                            ->label(__('Created from')),
                         DatePicker::make('created_until')
-                            ->label('Created until'),
+                            ->label(__('Created until')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -517,9 +408,40 @@ class ConnectedProductsTable
                     }),
             ], layout: \Filament\Tables\Enums\FiltersLayout::AboveContentCollapsible)
             ->recordActions([
-                EditAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    Action::make('toggleActive')
+                        ->label(fn (ConnectedProduct $record): string => $record->active
+                            ? __('filament.connected_products.actions.deactivate')
+                            : __('filament.connected_products.actions.activate'))
+                        ->icon(fn (ConnectedProduct $record) => $record->active
+                            ? Heroicon::EyeSlash
+                            : Heroicon::Eye)
+                        ->color('gray')
+                        ->schema([
+                            Toggle::make('active')
+                                ->label(__('Active'))
+                                ->helperText(__('Active products are visible in Stripe')),
+                        ])
+                        ->fillForm(fn (ConnectedProduct $record): array => [
+                            'active' => $record->active,
+                        ])
+                        ->action(function (ConnectedProduct $record, array $data): void {
+                            $record->update(['active' => (bool) $data['active']]);
+
+                            Notification::make()
+                                ->success()
+                                ->title(__('filament.connected_products.notifications.status_updated_title'))
+                                ->body(__('filament.connected_products.notifications.status_updated_body'))
+                                ->send();
+                        }),
+                ])
+                    ->iconButton()
+                    ->icon(Heroicon::EllipsisVertical)
+                    ->tooltip(__('filament.connected_products.actions.row')),
             ])
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('name')
+            ->defaultPaginationPageOption(10)
             ->persistSortInSession()
             ->persistFiltersInSession()
             ->persistColumnSearchesInSession()
@@ -529,7 +451,7 @@ class ConnectedProductsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     BulkAction::make('bulkEdit')
-                        ->label('Bulk Edit')
+                        ->label(__('Bulk Edit'))
                         ->icon('heroicon-o-pencil-square')
                         ->color('primary')
                         ->form(function (Collection $records) {
@@ -538,7 +460,7 @@ class ConnectedProductsTable
                             return [
                                 // Info text
                                 TextInput::make('info')
-                                    ->label('Selected Products')
+                                    ->label(__('Selected Products'))
                                     ->default("You are editing {$count} product(s). Only fields you enable will be updated.")
                                     ->disabled()
                                     ->dehydrated(false)
@@ -546,43 +468,43 @@ class ConnectedProductsTable
 
                                 // Status & Visibility
                                 TextInput::make('status_section_label')
-                                    ->label('Status & Visibility')
+                                    ->label(__('Status & Visibility'))
                                     ->default('')
                                     ->disabled()
                                     ->dehydrated(false)
                                     ->columnSpanFull(),
 
                                 Checkbox::make('update_active')
-                                    ->label('Update Active Status')
+                                    ->label(__('Update Active Status'))
                                     ->live()
                                     ->columnSpan(1),
 
                                 Toggle::make('active')
-                                    ->label('Active')
+                                    ->label(__('Active'))
                                     ->default(true)
                                     ->disabled(fn ($get) => ! $get('update_active'))
                                     ->dehydrated(fn ($get) => $get('update_active'))
                                     ->columnSpan(1),
 
                                 Checkbox::make('update_shippable')
-                                    ->label('Update Shippable')
+                                    ->label(__('Update Shippable'))
                                     ->live()
                                     ->columnSpan(1),
 
                                 Toggle::make('shippable')
-                                    ->label('Shippable')
+                                    ->label(__('Shippable'))
                                     ->default(false)
                                     ->disabled(fn ($get) => ! $get('update_shippable'))
                                     ->dehydrated(fn ($get) => $get('update_shippable'))
                                     ->columnSpan(1),
 
                                 Checkbox::make('update_no_price_in_pos')
-                                    ->label('Update No Price in POS')
+                                    ->label(__('Update No Price in POS'))
                                     ->live()
                                     ->columnSpan(1),
 
                                 Toggle::make('no_price_in_pos')
-                                    ->label('No Price in POS')
+                                    ->label(__('No Price in POS'))
                                     ->default(false)
                                     ->disabled(fn ($get) => ! $get('update_no_price_in_pos'))
                                     ->dehydrated(fn ($get) => $get('update_no_price_in_pos'))
@@ -590,19 +512,19 @@ class ConnectedProductsTable
 
                                 // Product Details
                                 TextInput::make('product_details_section_label')
-                                    ->label('Product Details')
+                                    ->label(__('Product Details'))
                                     ->default('')
                                     ->disabled()
                                     ->dehydrated(false)
                                     ->columnSpanFull(),
 
                                 Checkbox::make('update_type')
-                                    ->label('Update Product Type')
+                                    ->label(__('Update Product Type'))
                                     ->live()
                                     ->columnSpan(1),
 
                                 Select::make('type')
-                                    ->label('Type')
+                                    ->label(__('Type'))
                                     ->options([
                                         'service' => 'Service',
                                         'good' => 'Good',
@@ -612,12 +534,12 @@ class ConnectedProductsTable
                                     ->columnSpan(1),
 
                                 Checkbox::make('update_vendor')
-                                    ->label('Update Vendor')
+                                    ->label(__('Update Vendor'))
                                     ->live()
                                     ->columnSpan(1),
 
                                 Select::make('vendor_id')
-                                    ->label('Vendor')
+                                    ->label(__('Vendor'))
                                     ->options(function () {
                                         try {
                                             $tenant = \Filament\Facades\Filament::getTenant();
@@ -636,30 +558,30 @@ class ConnectedProductsTable
                                         }
                                     })
                                     ->searchable()
-                                    ->placeholder('No vendor')
+                                    ->placeholder(__('No vendor'))
                                     ->disabled(fn ($get) => ! $get('update_vendor'))
                                     ->dehydrated(fn ($get) => $get('update_vendor'))
                                     ->columnSpan(1),
 
                                 Checkbox::make('update_product_code')
-                                    ->label('Update Product Code')
+                                    ->label(__('Update Product Code'))
                                     ->live()
                                     ->columnSpan(1),
 
                                 TextInput::make('product_code')
-                                    ->label('Product Code (PLU)')
+                                    ->label(__('Product Code (PLU)'))
                                     ->maxLength(50)
                                     ->disabled(fn ($get) => ! $get('update_product_code'))
                                     ->dehydrated(fn ($get) => $get('update_product_code'))
                                     ->columnSpan(1),
 
                                 Checkbox::make('update_article_group_code')
-                                    ->label('Update Article Group Code')
+                                    ->label(__('Update Article Group Code'))
                                     ->live()
                                     ->columnSpan(1),
 
                                 Select::make('article_group_code')
-                                    ->label('Article Group Code (SAF-T)')
+                                    ->label(__('Article Group Code (SAF-T)'))
                                     ->options(function () {
                                         // Get tenant's stripe_account_id
                                         $stripeAccountId = null;
@@ -742,36 +664,36 @@ class ConnectedProductsTable
                                     })
                                     ->searchable()
                                     ->preload()
-                                    ->placeholder('Select article group')
+                                    ->placeholder(__('Select article group'))
                                     ->disabled(fn ($get) => ! $get('update_article_group_code'))
                                     ->dehydrated(fn ($get) => $get('update_article_group_code'))
                                     ->columnSpan(1),
 
                                 // Pricing
                                 TextInput::make('pricing_section_label')
-                                    ->label('Pricing')
+                                    ->label(__('Pricing'))
                                     ->default('')
                                     ->disabled()
                                     ->dehydrated(false)
                                     ->columnSpanFull(),
 
                                 Checkbox::make('update_price')
-                                    ->label('Update Price')
+                                    ->label(__('Update Price'))
                                     ->live()
                                     ->columnSpanFull(),
 
                                 TextInput::make('price')
-                                    ->label('Price')
+                                    ->label(__('Price'))
                                     ->numeric()
                                     ->step(0.01)
-                                    ->prefix('kr')
+                                    ->prefix(__('kr'))
                                     ->disabled(fn ($get) => ! $get('update_price'))
                                     ->dehydrated(fn ($get) => $get('update_price'))
                                     ->columnSpan(1)
                                     ->visible(fn ($get) => $get('update_price')),
 
                                 Select::make('currency')
-                                    ->label('Currency')
+                                    ->label(__('Currency'))
                                     ->options([
                                         'nok' => 'NOK (kr)',
                                         'usd' => 'USD ($)',
@@ -786,16 +708,16 @@ class ConnectedProductsTable
                                     ->visible(fn ($get) => $get('update_price')),
 
                                 Checkbox::make('update_compare_at_price')
-                                    ->label('Update Compare at Price')
+                                    ->label(__('Update Compare at Price'))
                                     ->live()
                                     ->columnSpanFull(),
 
                                 TextInput::make('compare_at_price_decimal')
-                                    ->label('Compare at Price')
+                                    ->label(__('Compare at Price'))
                                     ->numeric()
                                     ->step(0.01)
-                                    ->prefix('kr')
-                                    ->helperText('Leave empty to clear compare at price')
+                                    ->prefix(__('kr'))
+                                    ->helperText(__('Leave empty to clear compare at price'))
                                     ->disabled(fn ($get) => ! $get('update_compare_at_price'))
                                     ->dehydrated(false)
                                     ->afterStateUpdated(function ($state, $set) {
@@ -809,8 +731,8 @@ class ConnectedProductsTable
                                     ->visible(fn ($get) => $get('update_compare_at_price')),
 
                                 Checkbox::make('clear_compare_at_price')
-                                    ->label('Clear compare at price for all products')
-                                    ->helperText('Check this to remove compare at price from all selected products')
+                                    ->label(__('Clear compare at price for all products'))
+                                    ->helperText(__('Check this to remove compare at price from all selected products'))
                                     ->disabled(fn ($get) => ! $get('update_compare_at_price'))
                                     ->dehydrated(fn ($get) => $get('update_compare_at_price') && $get('clear_compare_at_price'))
                                     ->columnSpanFull()
@@ -818,19 +740,19 @@ class ConnectedProductsTable
 
                                 // Collections
                                 TextInput::make('collections_section_label')
-                                    ->label('Collections')
+                                    ->label(__('Collections'))
                                     ->default('')
                                     ->disabled()
                                     ->dehydrated(false)
                                     ->columnSpanFull(),
 
                                 Checkbox::make('update_collections')
-                                    ->label('Update Collections')
+                                    ->label(__('Update Collections'))
                                     ->live()
                                     ->columnSpanFull(),
 
                                 CheckboxList::make('collections')
-                                    ->label('Collections')
+                                    ->label(__('Collections'))
                                     ->options(function () {
                                         try {
                                             $tenant = \Filament\Facades\Filament::getTenant();
@@ -849,15 +771,15 @@ class ConnectedProductsTable
                                         return [];
                                     })
                                     ->searchable()
-                                    ->helperText('Select collections to add to all products. Existing collections will be preserved unless you use "Replace Collections" mode.')
+                                    ->helperText(__('Select collections to add to all products. Existing collections will be preserved unless you use "Replace Collections" mode.'))
                                     ->disabled(fn ($get) => ! $get('update_collections'))
                                     ->dehydrated(fn ($get) => $get('update_collections'))
                                     ->columnSpanFull()
                                     ->visible(fn ($get) => $get('update_collections')),
 
                                 Checkbox::make('replace_collections')
-                                    ->label('Replace existing collections')
-                                    ->helperText('If checked, selected products will only have the collections you select above. If unchecked, collections will be added to existing ones.')
+                                    ->label(__('Replace existing collections'))
+                                    ->helperText(__('If checked, selected products will only have the collections you select above. If unchecked, collections will be added to existing ones.'))
                                     ->disabled(fn ($get) => ! $get('update_collections'))
                                     ->dehydrated(fn ($get) => $get('update_collections'))
                                     ->columnSpanFull()
@@ -865,25 +787,25 @@ class ConnectedProductsTable
 
                                 // Clear Fields
                                 TextInput::make('clear_fields_section_label')
-                                    ->label('Clear Fields')
+                                    ->label(__('Clear Fields'))
                                     ->default('Use these options to clear specific fields from all selected products')
                                     ->disabled()
                                     ->dehydrated(false)
                                     ->columnSpanFull(),
 
                                 Checkbox::make('clear_vendor')
-                                    ->label('Clear vendor (set to no vendor)')
-                                    ->helperText('Remove vendor assignment from all selected products')
+                                    ->label(__('Clear vendor (set to no vendor)'))
+                                    ->helperText(__('Remove vendor assignment from all selected products'))
                                     ->columnSpanFull(),
 
                                 Checkbox::make('clear_product_code')
-                                    ->label('Clear product code')
-                                    ->helperText('Remove product code from all selected products')
+                                    ->label(__('Clear product code'))
+                                    ->helperText(__('Remove product code from all selected products'))
                                     ->columnSpanFull(),
 
                                 Checkbox::make('clear_article_group_code')
-                                    ->label('Clear article group code')
-                                    ->helperText('Remove article group code from all selected products')
+                                    ->label(__('Clear article group code'))
+                                    ->helperText(__('Remove article group code from all selected products'))
                                     ->columnSpanFull(),
                             ];
                         })
@@ -993,30 +915,30 @@ class ConnectedProductsTable
 
                                 Notification::make()
                                     ->success()
-                                    ->title('Bulk edit completed')
+                                    ->title(__('Bulk edit completed'))
                                     ->body($message)
                                     ->send();
                             } else {
                                 Notification::make()
                                     ->warning()
-                                    ->title('No changes made')
+                                    ->title(__('No changes made'))
                                     ->body('Please enable at least one field to update.')
                                     ->send();
                             }
                         })
                         ->deselectRecordsAfterCompletion()
-                        ->modalHeading('Bulk Edit Products')
-                        ->modalDescription('Select which fields to update for the selected products')
-                        ->modalSubmitActionLabel('Apply Changes')
+                        ->modalHeading(__('Bulk Edit Products'))
+                        ->modalDescription(__('Select which fields to update for the selected products'))
+                        ->modalSubmitActionLabel(__('Apply Changes'))
                         ->modalWidth('4xl'),
 
                     BulkAction::make('setArticleGroupCode')
-                        ->label('Set Article Group Code')
+                        ->label(__('Set Article Group Code'))
                         ->icon('heroicon-o-tag')
                         ->color('info')
                         ->form([
                             Select::make('article_group_code')
-                                ->label('Article Group Code (SAF-T)')
+                                ->label(__('Article Group Code (SAF-T)'))
                                 ->options(function () {
                                     $stripeAccountId = \Filament\Facades\Filament::getTenant()?->stripe_account_id ?? null;
                                     $query = ArticleGroupCode::query();
@@ -1062,16 +984,16 @@ class ConnectedProductsTable
                                 })
                                 ->searchable()
                                 ->preload()
-                                ->placeholder('Select article group')
+                                ->placeholder(__('Select article group'))
                                 ->required()
-                                ->helperText('VAT rate will be updated from the article group default when set.'),
+                                ->helperText(__('VAT rate will be updated from the article group default when set.')),
                         ])
                         ->action(function (Collection $records, array $data): void {
                             $code = $data['article_group_code'] ?? null;
                             if (! $code) {
                                 Notification::make()
                                     ->danger()
-                                    ->title('Article group code required')
+                                    ->title(__('Article group code required'))
                                     ->send();
 
                                 return;
@@ -1087,7 +1009,7 @@ class ConnectedProductsTable
                             $updated = ConnectedProduct::whereIn('id', $records->pluck('id'))->update($updates);
                             Notification::make()
                                 ->success()
-                                ->title('Article group code set')
+                                ->title(__('Article group code set'))
                                 ->body("Article group code and VAT have been updated for {$updated} product(s).")
                                 ->send();
                         })
@@ -1095,12 +1017,12 @@ class ConnectedProductsTable
                         ->successNotificationTitle('Article group code set'),
 
                     BulkAction::make('setVendor')
-                        ->label('Set Vendor')
+                        ->label(__('Set Vendor'))
                         ->icon('heroicon-o-building-storefront')
                         ->color('info')
                         ->form([
                             Select::make('vendor_id')
-                                ->label('Vendor')
+                                ->label(__('Vendor'))
                                 ->options(function () {
                                     // Get stripe_account_id from tenant (all products in list are from same tenant)
                                     try {
@@ -1121,8 +1043,8 @@ class ConnectedProductsTable
                                     }
                                 })
                                 ->searchable()
-                                ->placeholder('Select a vendor')
-                                ->helperText('Select the vendor to assign to all selected products')
+                                ->placeholder(__('Select a vendor'))
+                                ->helperText(__('Select the vendor to assign to all selected products'))
                                 ->required()
                                 ->live(),
                         ])
@@ -1132,7 +1054,7 @@ class ConnectedProductsTable
                             if (! $vendorId) {
                                 Notification::make()
                                     ->danger()
-                                    ->title('Vendor selection required')
+                                    ->title(__('Vendor selection required'))
                                     ->body('Please select a vendor to assign.')
                                     ->send();
 
@@ -1144,7 +1066,7 @@ class ConnectedProductsTable
 
                             Notification::make()
                                 ->success()
-                                ->title('Vendor assigned')
+                                ->title(__('Vendor assigned'))
                                 ->body("Vendor has been assigned to {$updated} product(s).")
                                 ->send();
                         })
@@ -1152,7 +1074,7 @@ class ConnectedProductsTable
                         ->successNotificationTitle('Vendor assigned successfully'),
 
                     BulkAction::make('exportAsZip')
-                        ->label('Export as ZIP')
+                        ->label(__('Export as ZIP'))
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('gray')
                         ->action(function (Collection $records): void {
@@ -1160,7 +1082,7 @@ class ConnectedProductsTable
                             if (! $tenant || ! $tenant->slug) {
                                 Notification::make()
                                     ->danger()
-                                    ->title('Store required')
+                                    ->title(__('Store required'))
                                     ->body('Export is only available in a store context.')
                                     ->send();
 
@@ -1181,11 +1103,11 @@ class ConnectedProductsTable
 
                                 Notification::make()
                                     ->success()
-                                    ->title('Export ready')
+                                    ->title(__('Export ready'))
                                     ->body('Your product export ZIP is ready. Use the button below to download it. You can import this file in another store via Import ZIP.')
                                     ->actions([
                                         Action::make('download')
-                                            ->label('Download ZIP')
+                                            ->label(__('Download ZIP'))
                                             ->url($downloadUrl)
                                             ->openUrlInNewTab(),
                                     ])
@@ -1193,7 +1115,7 @@ class ConnectedProductsTable
                             } catch (\Throwable $e) {
                                 Notification::make()
                                     ->danger()
-                                    ->title('Export failed')
+                                    ->title(__('Export failed'))
                                     ->body($e->getMessage())
                                     ->send();
                             }
@@ -1201,12 +1123,12 @@ class ConnectedProductsTable
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('syncToStripe')
-                        ->label('Create/Update in Stripe')
+                        ->label(__('Create/Update in Stripe'))
                         ->icon('heroicon-o-cloud-arrow-up')
                         ->color('success')
-                        ->modalHeading('Create or update products in Stripe')
-                        ->modalDescription('Products without a Stripe ID will be created in Stripe. Products that already exist in Stripe will be updated. Requires a store (stripe_account_id).')
-                        ->modalSubmitActionLabel('Sync to Stripe')
+                        ->modalHeading(__('Create or update products in Stripe'))
+                        ->modalDescription(__('Products without a Stripe ID will be created in Stripe. Products that already exist in Stripe will be updated. Requires a store (stripe_account_id).'))
+                        ->modalSubmitActionLabel(__('Sync to Stripe'))
                         ->action(function (Collection $records): void {
                             $createAction = new CreateConnectedProductInStripe;
                             $updateAction = new UpdateConnectedProductToStripe;
@@ -1263,7 +1185,7 @@ class ConnectedProductsTable
                             }
 
                             $notification = Notification::make()
-                                ->title('Stripe sync completed')
+                                ->title(__('Stripe sync completed'))
                                 ->body($body);
                             if ($created > 0 || $updated > 0) {
                                 $notification->success();

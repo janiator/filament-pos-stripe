@@ -1,19 +1,21 @@
 <?php
+
 /**
  * BulkUpdateInventory200Response
  *
  * PHP version 8.1
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
  */
 
 /**
  * POS Stripe Connect API
  *
- * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance) - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - Terminal operations (connection tokens and payment intents)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
+ * API for managing Stripe Connect integration for POS systems.  This API provides endpoints for: - User authentication and authorization - Store management - Customer management - POS device registration and management - POS session management (Kassasystemforskriften compliance), including cash withdrawals/deposits and X/Z-report PDF downloads - POS event logging (audit trail) - POS transaction operations (void, correction) - Receipt generation and management - Receipt printer configuration and management - Product and inventory management - SAF-T file generation (Norwegian tax compliance) - PowerOffice Go onboarding and Z-report sync (optional per-store add-on) - Tripletex voucher sync for Z-reports and Stripe payouts (optional per-store add-on) - Terminal operations (connection tokens and payment intents) - Verifone terminal operations (payment start/status/abort)  All endpoints (except login and webhooks) require Bearer token authentication. Requests are automatically scoped to the authenticated user's accessible stores.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@visivo.no
@@ -27,71 +29,75 @@
  * Do not edit the class manually.
  */
 
-namespace OpenAPI\Client\Model;
+namespace OpenAPIClient\Model;
 
-use \ArrayAccess;
-use \OpenAPI\Client\ObjectSerializer;
+use ArrayAccess;
+use OpenAPIClient\ObjectSerializer;
 
 /**
  * BulkUpdateInventory200Response Class Doc Comment
  *
  * @category Class
- * @package  OpenAPI\Client
+ *
  * @author   OpenAPI Generator team
+ *
  * @link     https://openapi-generator.tech
+ *
  * @implements \ArrayAccess<string, mixed>
  */
-class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \JsonSerializable
+class BulkUpdateInventory200Response implements \JsonSerializable, ArrayAccess, ModelInterface
 {
     public const DISCRIMINATOR = null;
 
     /**
-      * The original name of the model.
-      *
-      * @var string
-      */
+     * The original name of the model.
+     *
+     * @var string
+     */
     protected static $openAPIModelName = 'bulkUpdateInventory_200_response';
 
     /**
-      * Array of property to type mappings. Used for (de)serialization
-      *
-      * @var string[]
-      */
+     * Array of property to type mappings. Used for (de)serialization
+     *
+     * @var string[]
+     */
     protected static $openAPITypes = [
-        'message' => 'string',
-        'updated' => 'int',
-        'failed' => 'int'
+        'updated' => 'object[]',
+        'errors' => 'object[]',
+        'summary' => '\OpenAPIClient\Model\BulkUpdateInventory200ResponseSummary',
     ];
 
     /**
-      * Array of property to format mappings. Used for (de)serialization
-      *
-      * @var string[]
-      * @phpstan-var array<string, string|null>
-      * @psalm-var array<string, string|null>
-      */
+     * Array of property to format mappings. Used for (de)serialization
+     *
+     * @var string[]
+     *
+     * @phpstan-var array<string, string|null>
+     *
+     * @psalm-var array<string, string|null>
+     */
     protected static $openAPIFormats = [
-        'message' => null,
         'updated' => null,
-        'failed' => null
+        'errors' => null,
+        'summary' => null,
     ];
 
     /**
-      * Array of nullable properties. Used for (de)serialization
-      *
-      * @var boolean[]
-      */
+     * Array of nullable properties. Used for (de)serialization
+     *
+     * @var bool[]
+     */
     protected static array $openAPINullables = [
-        'message' => false,
         'updated' => false,
-        'failed' => false
+        'errors' => false,
+        'summary' => false,
     ];
 
     /**
-      * If a nullable field gets set to null, insert it here
-      *
-      * @var boolean[]
-      */
+     * If a nullable field gets set to null, insert it here
+     *
+     * @var bool[]
+     */
     protected array $openAPINullablesSetToNull = [];
 
     /**
@@ -116,8 +122,6 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Array of nullable properties
-     *
-     * @return array
      */
     protected static function openAPINullables(): array
     {
@@ -127,7 +131,7 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
     /**
      * Array of nullable field names deliberately set to null
      *
-     * @return boolean[]
+     * @return bool[]
      */
     private function getOpenAPINullablesSetToNull(): array
     {
@@ -137,7 +141,7 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
     /**
      * Setter - Array of nullable field names deliberately set to null
      *
-     * @param boolean[] $openAPINullablesSetToNull
+     * @param  bool[]  $openAPINullablesSetToNull
      */
     private function setOpenAPINullablesSetToNull(array $openAPINullablesSetToNull): void
     {
@@ -146,9 +150,6 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Checks if a property is nullable
-     *
-     * @param string $property
-     * @return bool
      */
     public static function isNullable(string $property): bool
     {
@@ -157,9 +158,6 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Checks if a nullable property is set to null.
-     *
-     * @param string $property
-     * @return bool
      */
     public function isNullableSetToNull(string $property): bool
     {
@@ -173,9 +171,9 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
      * @var string[]
      */
     protected static $attributeMap = [
-        'message' => 'message',
         'updated' => 'updated',
-        'failed' => 'failed'
+        'errors' => 'errors',
+        'summary' => 'summary',
     ];
 
     /**
@@ -184,9 +182,9 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
      * @var string[]
      */
     protected static $setters = [
-        'message' => 'setMessage',
         'updated' => 'setUpdated',
-        'failed' => 'setFailed'
+        'errors' => 'setErrors',
+        'summary' => 'setSummary',
     ];
 
     /**
@@ -195,9 +193,9 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
      * @var string[]
      */
     protected static $getters = [
-        'message' => 'getMessage',
         'updated' => 'getUpdated',
-        'failed' => 'getFailed'
+        'errors' => 'getErrors',
+        'summary' => 'getSummary',
     ];
 
     /**
@@ -241,7 +239,6 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
         return self::$openAPIModelName;
     }
 
-
     /**
      * Associative array for storing property values
      *
@@ -252,25 +249,23 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
     /**
      * Constructor
      *
-     * @param mixed[]|null $data Associated array of property values
-     *                      initializing the model
+     * @param  mixed[]|null  $data  Associated array of property values
+     *                              initializing the model
      */
     public function __construct(?array $data = null)
     {
-        $this->setIfExists('message', $data ?? [], null);
         $this->setIfExists('updated', $data ?? [], null);
-        $this->setIfExists('failed', $data ?? [], null);
+        $this->setIfExists('errors', $data ?? [], null);
+        $this->setIfExists('summary', $data ?? [], null);
     }
 
     /**
-    * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
-    * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
-    * $this->openAPINullablesSetToNull array
-    *
-    * @param string $variableName
-    * @param array  $fields
-    * @param mixed  $defaultValue
-    */
+     * Sets $this->container[$variableName] to the given data or to the given default Value; if $variableName
+     * is nullable and its value is set to null in the $fields array, then mark it as "set to null" in the
+     * $this->openAPINullablesSetToNull array
+     *
+     * @param  mixed  $defaultValue
+     */
     private function setIfExists(string $variableName, array $fields, $defaultValue): void
     {
         if (self::isNullable($variableName) && array_key_exists($variableName, $fields) && is_null($fields[$variableName])) {
@@ -303,38 +298,10 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
         return count($this->listInvalidProperties()) === 0;
     }
 
-
-    /**
-     * Gets message
-     *
-     * @return string|null
-     */
-    public function getMessage()
-    {
-        return $this->container['message'];
-    }
-
-    /**
-     * Sets message
-     *
-     * @param string|null $message message
-     *
-     * @return self
-     */
-    public function setMessage($message)
-    {
-        if (is_null($message)) {
-            throw new \InvalidArgumentException('non-nullable message cannot be null');
-        }
-        $this->container['message'] = $message;
-
-        return $this;
-    }
-
     /**
      * Gets updated
      *
-     * @return int|null
+     * @return object[]|null
      */
     public function getUpdated()
     {
@@ -344,8 +311,7 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets updated
      *
-     * @param int|null $updated Number of variants updated
-     *
+     * @param  object[]|null  $updated  updated
      * @return self
      */
     public function setUpdated($updated)
@@ -359,37 +325,61 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
     }
 
     /**
-     * Gets failed
+     * Gets errors
      *
-     * @return int|null
+     * @return object[]|null
      */
-    public function getFailed()
+    public function getErrors()
     {
-        return $this->container['failed'];
+        return $this->container['errors'];
     }
 
     /**
-     * Sets failed
+     * Sets errors
      *
-     * @param int|null $failed Number of variants that failed to update
-     *
+     * @param  object[]|null  $errors  errors
      * @return self
      */
-    public function setFailed($failed)
+    public function setErrors($errors)
     {
-        if (is_null($failed)) {
-            throw new \InvalidArgumentException('non-nullable failed cannot be null');
+        if (is_null($errors)) {
+            throw new \InvalidArgumentException('non-nullable errors cannot be null');
         }
-        $this->container['failed'] = $failed;
+        $this->container['errors'] = $errors;
 
         return $this;
     }
+
+    /**
+     * Gets summary
+     *
+     * @return \OpenAPIClient\Model\BulkUpdateInventory200ResponseSummary|null
+     */
+    public function getSummary()
+    {
+        return $this->container['summary'];
+    }
+
+    /**
+     * Sets summary
+     *
+     * @param  \OpenAPIClient\Model\BulkUpdateInventory200ResponseSummary|null  $summary  summary
+     * @return self
+     */
+    public function setSummary($summary)
+    {
+        if (is_null($summary)) {
+            throw new \InvalidArgumentException('non-nullable summary cannot be null');
+        }
+        $this->container['summary'] = $summary;
+
+        return $this;
+    }
+
     /**
      * Returns true if offset exists. False otherwise.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return boolean
+     * @param  int|string  $offset  Offset
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -399,8 +389,7 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
     /**
      * Gets offset.
      *
-     * @param integer|string $offset Offset
-     *
+     * @param  int|string  $offset  Offset
      * @return mixed|null
      */
     #[\ReturnTypeWillChange]
@@ -412,10 +401,8 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
     /**
      * Sets value based on offset.
      *
-     * @param int|null $offset Offset
-     * @param mixed    $value  Value to be set
-     *
-     * @return void
+     * @param  int|null  $offset  Offset
+     * @param  mixed  $value  Value to be set
      */
     public function offsetSet($offset, $value): void
     {
@@ -429,9 +416,7 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
     /**
      * Unsets offset.
      *
-     * @param integer|string $offset Offset
-     *
-     * @return void
+     * @param  int|string  $offset  Offset
      */
     public function offsetUnset(mixed $offset): void
     {
@@ -440,15 +425,16 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
 
     /**
      * Serializes the object to a value that can be serialized natively by json_encode().
+     *
      * @link https://www.php.net/manual/en/jsonserializable.jsonserialize.php
      *
      * @return mixed Returns data which can be serialized by json_encode(), which is a value
-     * of any type other than a resource.
+     *               of any type other than a resource.
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-       return ObjectSerializer::sanitizeForSerialization($this);
+        return ObjectSerializer::sanitizeForSerialization($this);
     }
 
     /**
@@ -474,5 +460,3 @@ class BulkUpdateInventory200Response implements ModelInterface, ArrayAccess, \Js
         return json_encode(ObjectSerializer::sanitizeForSerialization($this));
     }
 }
-
-

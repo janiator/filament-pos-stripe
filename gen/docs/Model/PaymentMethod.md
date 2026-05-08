@@ -13,6 +13,8 @@ Name | Type | Description | Notes
 **enabled** | **bool** |  | [optional]
 **pos_suitable** | **bool** | Whether this payment method is suitable for physical POS | [optional]
 **sort_order** | **int** |  | [optional]
+**minimum_amount_ore** | **int** | Minimum payment amount in øre (e.g. 5000 for 50 kr). Null means no minimum. | [optional]
+**pos_device_ids** | **int[]** | When non-empty, this payment method is only available on these POS device IDs. When empty, available on all devices. | [optional]
 **background_color** | **string** | Accent background color for the payment method button (CSS hex format with alpha at end, e.g., | [optional]
 **icon_color** | **string** | Color for the payment method icon (hex, e.g., | [optional]
 **saf_t_payment_code** | **string** | SAF-T payment code (PredefinedBasicID-12) | [optional]

@@ -17,22 +17,22 @@ class SettingsForm
                 Section::make('Receipt Settings')
                     ->schema([
                         Toggle::make('auto_print_receipts')
-                            ->label('Auto Print Receipts')
-                            ->helperText('Automatically print receipts after successful purchases')
+                            ->label(__('Auto Print Receipts'))
+                            ->helperText(__('Automatically print receipts after successful purchases'))
                             ->default(false)
                             ->columnSpanFull(),
 
                         Select::make('default_receipt_template_id')
-                            ->label('Default Receipt Template')
+                            ->label(__('Default Receipt Template'))
                             ->relationship('defaultReceiptTemplate', 'template_type', fn ($query) => $query->where('template_type', 'sales'))
                             ->searchable()
                             ->preload()
                             ->nullable()
-                            ->helperText('Default template to use for sales receipts')
+                            ->helperText(__('Default template to use for sales receipts'))
                             ->columnSpanFull(),
 
                         Select::make('receipt_printer_type')
-                            ->label('Receipt Printer Type')
+                            ->label(__('Receipt Printer Type'))
                             ->options([
                                 'epson' => 'Epson ePOS',
                             ])
@@ -42,18 +42,18 @@ class SettingsForm
                             ->columnSpan(1),
 
                         TextInput::make('receipt_number_format')
-                            ->label('Receipt Number Format')
-                            ->helperText('Format: {store_id}-{type}-{number:06d}')
+                            ->label(__('Receipt Number Format'))
+                            ->helperText(__('Format: {store_id}-{type}-{number:06d}'))
                             ->default('{store_id}-{type}-{number:06d}')
                             ->required()
                             ->rules(['required', 'string', 'max:255'])
                             ->columnSpan(1),
 
                         TextInput::make('default_vat_rate')
-                            ->label('Default VAT Rate (%)')
+                            ->label(__('Default VAT Rate (%)'))
                             ->numeric()
                             ->default(25.0)
-                            ->suffix('%')
+                            ->suffix(__('%'))
                             ->required()
                             ->rules(['required', 'numeric', 'min:0', 'max:100'])
                             ->columnSpan(1),
@@ -65,16 +65,16 @@ class SettingsForm
                 Section::make('Cash Drawer Settings')
                     ->schema([
                         Toggle::make('cash_drawer_auto_open')
-                            ->label('Auto Open Cash Drawer')
-                            ->helperText('Automatically open cash drawer for cash payments')
+                            ->label(__('Auto Open Cash Drawer'))
+                            ->helperText(__('Automatically open cash drawer for cash payments'))
                             ->default(true)
                             ->columnSpan(1),
 
                         TextInput::make('cash_drawer_open_duration_ms')
-                            ->label('Cash Drawer Open Duration (ms)')
+                            ->label(__('Cash Drawer Open Duration (ms)'))
                             ->numeric()
                             ->default(250)
-                            ->suffix('ms')
+                            ->suffix(__('ms'))
                             ->required()
                             ->rules(['required', 'integer', 'min:0'])
                             ->columnSpan(1),
@@ -86,7 +86,7 @@ class SettingsForm
                 Section::make('General POS Settings')
                     ->schema([
                         Select::make('currency')
-                            ->label('Currency')
+                            ->label(__('Currency'))
                             ->options([
                                 'nok' => 'NOK - Norwegian Krone',
                                 'sek' => 'SEK - Swedish Krona',
@@ -100,7 +100,7 @@ class SettingsForm
                             ->columnSpan(1),
 
                         Select::make('timezone')
-                            ->label('Timezone')
+                            ->label(__('Timezone'))
                             ->options([
                                 'Europe/Oslo' => 'Europe/Oslo (Norway)',
                                 'Europe/Stockholm' => 'Europe/Stockholm (Sweden)',
@@ -115,7 +115,7 @@ class SettingsForm
                             ->columnSpan(1),
 
                         Select::make('locale')
-                            ->label('Locale')
+                            ->label(__('Locale'))
                             ->options([
                                 'nb' => 'Norwegian Bokmål',
                                 'nn' => 'Norwegian Nynorsk',
@@ -129,20 +129,20 @@ class SettingsForm
                             ->columnSpan(1),
 
                         Toggle::make('tax_included')
-                            ->label('Tax Included in Prices')
-                            ->helperText('Whether prices include tax by default')
+                            ->label(__('Tax Included in Prices'))
+                            ->helperText(__('Whether prices include tax by default'))
                             ->default(false)
                             ->columnSpan(1),
 
                         Toggle::make('tips_enabled')
-                            ->label('Enable Tips')
-                            ->helperText('Allow tips to be added to transactions. When disabled, tips will be hidden from reports.')
+                            ->label(__('Enable Tips'))
+                            ->helperText(__('Allow tips to be added to transactions. When disabled, tips will be hidden from reports.'))
                             ->default(true)
                             ->columnSpan(1),
 
                         Toggle::make('customers_enabled')
-                            ->label('Enable Customers in POS')
-                            ->helperText('When disabled, customer-related features are hidden in the POS app (e.g. linking customers to purchases).')
+                            ->label(__('Enable Customers in POS'))
+                            ->helperText(__('When disabled, customer-related features are hidden in the POS app (e.g. linking customers to purchases).'))
                             ->default(true)
                             ->columnSpan(1),
                     ])
@@ -153,12 +153,23 @@ class SettingsForm
                 Section::make('Gift Card Settings')
                     ->schema([
                         TextInput::make('gift_card_expiration_days')
-                            ->label('Default Gift Card Expiration (Days)')
+                            ->label(__('Default Gift Card Expiration (Days)'))
                             ->numeric()
                             ->default(365)
-                            ->helperText('Default number of days until gift cards expire. Leave empty for no expiration.')
+                            ->helperText(__('Default number of days until gift cards expire. Leave empty for no expiration.'))
                             ->minValue(1)
                             ->nullable()
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->collapsed(false),
+
+                Section::make('Register sessions')
+                    ->schema([
+                        Toggle::make('auto_close_open_sessions_daily')
+                            ->label(__('Auto-close open sessions daily'))
+                            ->helperText(__('When enabled for this store, still-open register sessions are closed once per day by the server schedule (requires POS_AUTO_CLOSE_SESSIONS_DAILY=true on the server; see deployment docs). Actual cash is set to expected cash.'))
+                            ->default(false)
                             ->columnSpanFull(),
                     ])
                     ->collapsible()

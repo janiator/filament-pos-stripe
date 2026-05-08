@@ -1,4 +1,4 @@
-# OpenAPI\Client\POSEventsApi
+# OpenAPIClient\POSEventsApi
 
 
 
@@ -14,7 +14,7 @@ All URIs are relative to https://pos.visivo.no/api, except if the operation defi
 ## `createPosEvent()`
 
 ```php
-createPosEvent($create_pos_event_request): \OpenAPI\Client\Model\CreatePosEvent201Response
+createPosEvent($create_pos_event_request): \OpenAPIClient\Model\CreatePosEvent201Response
 ```
 
 Create POS event
@@ -29,16 +29,16 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSEventsApi(
+$apiInstance = new OpenAPIClient\Api\POSEventsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
-$create_pos_event_request = new \OpenAPI\Client\Model\CreatePosEventRequest(); // \OpenAPI\Client\Model\CreatePosEventRequest
+$create_pos_event_request = new \OpenAPIClient\Model\CreatePosEventRequest(); // \OpenAPIClient\Model\CreatePosEventRequest
 
 try {
     $result = $apiInstance->createPosEvent($create_pos_event_request);
@@ -52,11 +52,11 @@ try {
 
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
-| **create_pos_event_request** | [**\OpenAPI\Client\Model\CreatePosEventRequest**](../Model/CreatePosEventRequest.md)|  | |
+| **create_pos_event_request** | [**\OpenAPIClient\Model\CreatePosEventRequest**](../Model/CreatePosEventRequest.md)|  | |
 
 ### Return type
 
-[**\OpenAPI\Client\Model\CreatePosEvent201Response**](../Model/CreatePosEvent201Response.md)
+[**\OpenAPIClient\Model\CreatePosEvent201Response**](../Model/CreatePosEvent201Response.md)
 
 ### Authorization
 
@@ -74,7 +74,7 @@ try {
 ## `getPosEvent()`
 
 ```php
-getPosEvent($id): \OpenAPI\Client\Model\GetPosEvent200Response
+getPosEvent($id): \OpenAPIClient\Model\GetPosEvent200Response
 ```
 
 Get POS event
@@ -89,10 +89,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSEventsApi(
+$apiInstance = new OpenAPIClient\Api\POSEventsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -116,7 +116,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\GetPosEvent200Response**](../Model/GetPosEvent200Response.md)
+[**\OpenAPIClient\Model\GetPosEvent200Response**](../Model/GetPosEvent200Response.md)
 
 ### Authorization
 
@@ -134,7 +134,7 @@ try {
 ## `listPosEvents()`
 
 ```php
-listPosEvents($event_code, $event_type, $pos_session_id, $from_date, $to_date, $per_page, $nullinnslag): \OpenAPI\Client\Model\ListPosEvents200Response
+listPosEvents($event_code, $event_type, $pos_session_id, $from_date, $to_date, $per_page, $nullinnslag): \OpenAPIClient\Model\ListPosEvents200Response
 ```
 
 List POS events
@@ -149,10 +149,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 
 // Configure Bearer (JWT) authorization: bearerAuth
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
+$config = OpenAPIClient\Configuration::getDefaultConfiguration()->setAccessToken('YOUR_ACCESS_TOKEN');
 
 
-$apiInstance = new OpenAPI\Client\Api\POSEventsApi(
+$apiInstance = new OpenAPIClient\Api\POSEventsApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
@@ -188,7 +188,7 @@ try {
 
 ### Return type
 
-[**\OpenAPI\Client\Model\ListPosEvents200Response**](../Model/ListPosEvents200Response.md)
+[**\OpenAPIClient\Model\ListPosEvents200Response**](../Model/ListPosEvents200Response.md)
 
 ### Authorization
 

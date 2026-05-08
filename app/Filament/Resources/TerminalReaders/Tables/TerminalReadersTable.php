@@ -21,26 +21,26 @@ class TerminalReadersTable
                     ->sortable(),
 
                 TextColumn::make('terminalLocation.display_name')
-                    ->label('Location')
+                    ->label(__('Location'))
                     ->sortable(),
 
                 IconColumn::make('tap_to_pay')
-                    ->label('Tap to Pay')
+                    ->label(__('Tap to Pay'))
                     ->boolean(),
 
                 TextColumn::make('stripe_reader_id')
-                    ->label('Stripe reader')
+                    ->label(__('Stripe reader'))
                     ->copyable()
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
 
                 TextColumn::make('serial_number')
-                    ->label('Serial number')
+                    ->label(__('Serial number'))
                     ->copyable()
-                    ->placeholder('-'),
+                    ->placeholder(__('-')),
 
                 TextColumn::make('status')
-                    ->label('Status')
-                    ->placeholder('-'),
+                    ->label(__('Status'))
+                    ->placeholder(__('-')),
 
                 TextColumn::make('created_at')
                     ->dateTime()
