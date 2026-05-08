@@ -139,6 +139,9 @@ test('complete deferred payment with revised cart updates charge amount and rest
         ->assertJsonPath('success', true)
         ->assertJsonPath('data.charge.amount', 10000);
 
+    expect($completeResponse->json('data.receipt.id'))->toBeInt()->toBeGreaterThan(0);
+    expect($completeResponse->json('receipt_id'))->toBe($completeResponse->json('data.receipt.id'));
+
     $variant->refresh();
     expect((float) $variant->inventory_quantity)->toEqual(9.0);
 
@@ -183,6 +186,8 @@ test('complete deferred payment without cart keeps original amount', function ()
 
     $completeResponse->assertOk()
         ->assertJsonPath('data.charge.amount', 15000);
+
+    expect($completeResponse->json('data.receipt.id'))->toBeInt()->toBeGreaterThan(0);
 });
 
 test('complete deferred with cart increasing qty beyond available stock returns 422', function () {
@@ -286,4 +291,74 @@ test('complete deferred with cart is rejected when charge is not a deferred purc
 
     $response->assertStatus(422)
         ->assertJsonPath('errors.cart.0', 'Cart revision is only allowed for deferred (pending) purchases');
+});
+
+test('complete deferred payment rejects deferred payment method code', function () {
+    extract(deferredCartTestSetup());
+
+    Sanctum::actingAs($user, ['*']);
+
+    $deferResponse = $this->postJson('/api/purchases', [
+        'pos_session_id' => $session->id,
+        'payment_method_code' => 'deferred',
+        'cart' => [
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'variant_id' => $variant->id,
+                    'quantity' => 1,
+                    'unit_price' => 5000,
+                ],
+            ],
+            'total' => 5000,
+            'currency' => 'nok',
+        ],
+        'metadata' => [],
+    ]);
+
+    $deferResponse->assertCreated();
+    $chargeId = $deferResponse->json('data.charge.id');
+
+    $response = $this->postJson("/api/purchases/{$chargeId}/complete-payment", [
+        'payment_method_code' => 'deferred',
+        'pos_session_id' => $session->id,
+        'metadata' => [],
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['payment_method_code']);
+});
+
+test('GET purchase maps description to purchase_note when metadata has no note', function () {
+    extract(deferredCartTestSetup());
+
+    $charge = \App\Models\ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'amount' => 3000,
+        'currency' => 'nok',
+        'status' => 'pending',
+        'paid' => false,
+        'payment_method' => 'deferred',
+        'description' => '  Pickup note from counter  ',
+        'metadata' => [
+            'deferred_payment' => true,
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'variant_id' => $variant->id,
+                    'quantity' => 1,
+                    'unit_price' => 3000,
+                ],
+            ],
+            'total' => 3000,
+            'currency' => 'nok',
+        ],
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $this->getJson("/api/purchases/{$charge->id}")
+        ->assertOk()
+        ->assertJsonPath('purchase.purchase_note', 'Pickup note from counter');
 });

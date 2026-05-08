@@ -39,10 +39,26 @@ Future<dynamic> receiptPrintAfterPosPurchase(
     return null;
   }
 
-  final receiptId = getJsonField(
+  dynamic receiptId = getJsonField(
     purchaseCompletedJson,
-    r'''$.data.receipt.id''',
+    r'''$.receiptId''',
   );
+  if (receiptId == null ||
+      '${receiptId}'.isEmpty ||
+      '${receiptId}' == 'null') {
+    receiptId = getJsonField(
+      purchaseCompletedJson,
+      r'''$.salesReceiptId''',
+    );
+  }
+  if (receiptId == null ||
+      '${receiptId}'.isEmpty ||
+      '${receiptId}' == 'null') {
+    receiptId = getJsonField(
+      purchaseCompletedJson,
+      r'''$.data.receipt.id''',
+    );
+  }
   final getReceiptResultCopy =
       await FilamentPOSPurchaseGroup.getReceiptCall.call(
     receiptId: receiptId,

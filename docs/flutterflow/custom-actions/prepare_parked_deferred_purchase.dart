@@ -5,8 +5,12 @@
 // 3) await updateCartTotals() so totals match the hydrated lines
 // 4) Returns cartJson (JSON string) suitable for completeDeferredPayment.cartJson
 //
-// Use on the **orders** page before navigating to **pos** (or opening deferred checkout):
-// persists resume context for getDeferredResumeContext; returns cartJson for APIs.
+// Use on the **orders** page **before** navigating to **pos** (recommended), or on **pos**
+// after navigation — if you navigate first, **pos** On Page Load runs before prefs exist,
+// so also chain **`getDeferredResumeContext`** after this action (or bind banner from the
+// return map `deferredResumeBannerText` / `deferredResumeBannerActive` to App State / page state).
+// Returns cartJson for APIs; sets resume prefs + banner mirror; merges deferred keys into
+// `cartMetadata.notes` as JSON (CartMetadataStruct is source / deviceId / notes only).
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -16,6 +20,20 @@ const String kPositivDeferredResumeChargeIdKey =
     'positiv_deferred_resume_charge_id';
 const String kPositivDeferredResumeOrderLabelKey =
     'positiv_deferred_resume_order_label';
+
+void mirrorDeferredResumeBannerToAppStateIfPresent({
+  required bool active,
+  required String bannerText,
+}) {
+  try {
+    final s = FFAppState();
+    s.update(() {
+      final d = s as dynamic;
+      d.deferredResumeBannerActive = active;
+      d.deferredResumeBannerText = bannerText;
+    });
+  } catch (_) {}
+}
 
 Future<dynamic> prepareParkedDeferredPurchase(
   int purchaseId,
@@ -168,6 +186,19 @@ Future<dynamic> prepareParkedDeferredPurchase(
 
     final current = FFAppState().cart;
 
+    final rawChargeId = purchase['id'];
+    final chargeId = rawChargeId is int
+        ? rawChargeId
+        : int.tryParse(rawChargeId.toString()) ?? purchaseId;
+    final receipt = purchase['purchase_receipt'];
+    final String orderDisplayReference;
+    if (receipt is Map) {
+      final rn = receipt['receipt_number']?.toString().trim() ?? '';
+      orderDisplayReference = rn.isNotEmpty ? rn : '#$chargeId';
+    } else {
+      orderDisplayReference = '#$chargeId';
+    }
+
     FFAppState().update(() {
       FFAppState().cart = ShoppingCartStruct(
         cartId: current.cartId,
@@ -179,9 +210,13 @@ Future<dynamic> prepareParkedDeferredPurchase(
         cartCustomerName: customerName,
         cartCreatedAt: current.cartCreatedAt,
         cartUpdatedAt: getCurrentTimestamp.toString(),
-        cartMetadata: current.cartMetadata,
-        // Prefer API note so the original order note survives hydration (avoid stale cart text).
-        cartNote: note.isNotEmpty ? note : current.cartNote,
+        cartMetadata: _mergedCartMetadata(
+          current,
+          chargeId,
+          orderDisplayReference,
+        ),
+        // Whole-order note from API only (clears stale cart text when the order has no note).
+        cartNote: note,
       );
     });
 
@@ -190,23 +225,15 @@ Future<dynamic> prepareParkedDeferredPurchase(
     final hydrated = FFAppState().cart;
     final cartJson = jsonEncode(_buildCartPayloadFromShoppingCart(hydrated));
 
-    final rawChargeId = purchase['id'];
-    final chargeId = rawChargeId is int
-        ? rawChargeId
-        : int.tryParse(rawChargeId.toString()) ?? purchaseId;
-
-    final receipt = purchase['purchase_receipt'];
-    final String orderDisplayReference;
-    if (receipt is Map) {
-      final rn = receipt['receipt_number']?.toString().trim() ?? '';
-      orderDisplayReference = rn.isNotEmpty ? rn : '#$chargeId';
-    } else {
-      orderDisplayReference = '#$chargeId';
-    }
-
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(kPositivDeferredResumeChargeIdKey, chargeId);
     await prefs.setString(kPositivDeferredResumeOrderLabelKey, orderDisplayReference);
+
+    final bannerText = 'Ordre $orderDisplayReference';
+    mirrorDeferredResumeBannerToAppStateIfPresent(
+      active: true,
+      bannerText: bannerText,
+    );
 
     return {
       'success': true,
@@ -214,6 +241,9 @@ Future<dynamic> prepareParkedDeferredPurchase(
       'chargeId': chargeId,
       'resumeDeferredChargeId': chargeId,
       'orderDisplayReference': orderDisplayReference,
+      'deferredResumeBannerText': bannerText,
+      'deferredResumeBannerActive': true,
+      'purchaseOrderNote': note,
       'isParkedDeferredResume': true,
       'cartJson': cartJson,
       'message': 'Cart hydrated for deferred completion',
@@ -229,23 +259,102 @@ Future<dynamic> prepareParkedDeferredPurchase(
 }
 
 /// Resolves whole-order note from GET /api/purchases/{id} payload (top-level
-/// [purchase_note], [purchase_metadata].note, or legacy [purchase_metadata].cart_note).
+/// [purchase_note], [note], [purchase_metadata] string or map, common keys).
 String _resolvePurchaseOrderNote(Map<String, dynamic> purchase) {
-  final direct = purchase['purchase_note']?.toString().trim() ?? '';
-  if (direct.isNotEmpty) {
-    return direct;
+  for (final key in ['purchase_note', 'note']) {
+    final v = purchase[key]?.toString().trim() ?? '';
+    if (v.isNotEmpty) {
+      return v;
+    }
   }
-  final meta = purchase['purchase_metadata'];
-  if (meta is Map) {
-    final m = Map<String, dynamic>.from(meta);
-    for (final key in ['note', 'cart_note']) {
-      final v = m[key]?.toString().trim() ?? '';
+
+  final desc = purchase['description']?.toString().trim() ?? '';
+  if (desc.isNotEmpty) {
+    return desc;
+  }
+
+  final metaMap = _purchaseMetadataAsMap(purchase['purchase_metadata']);
+  if (metaMap != null) {
+    for (final key in [
+      'note',
+      'cart_note',
+      'order_note',
+      'whole_order_note',
+      'orderNote',
+      'customer_note',
+    ]) {
+      final v = metaMap[key]?.toString().trim() ?? '';
       if (v.isNotEmpty) {
         return v;
       }
     }
   }
+
   return '';
+}
+
+Map<String, dynamic>? _purchaseMetadataAsMap(dynamic raw) {
+  if (raw == null) {
+    return null;
+  }
+  if (raw is Map<String, dynamic>) {
+    return raw;
+  }
+  if (raw is Map) {
+    return Map<String, dynamic>.from(raw);
+  }
+  if (raw is String && raw.trim().isNotEmpty) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
+/// Merges deferred resume hints into [CartMetadataStruct.notes] as JSON for widgets
+/// that read cart metadata; [source] / [deviceId] are preserved from [current].
+CartMetadataStruct _mergedCartMetadata(
+  ShoppingCartStruct current,
+  int chargeId,
+  String orderDisplayReference,
+) {
+  final m = current.cartMetadata;
+  final merged = <String, dynamic>{};
+
+  final notesTrim = m.notes.trim();
+  if (notesTrim.isNotEmpty) {
+    try {
+      final decoded = jsonDecode(notesTrim);
+      if (decoded is Map) {
+        for (final e in Map<String, dynamic>.from(decoded).entries) {
+          if (e.key == 'positiv_deferred_resume_charge_id' ||
+              e.key == 'positiv_deferred_order_display') {
+            continue;
+          }
+          merged[e.key] = e.value;
+        }
+      } else {
+        merged['positiv_metadata_notes_legacy'] = m.notes;
+      }
+    } catch (_) {
+      merged['positiv_metadata_notes_legacy'] = m.notes;
+    }
+  }
+
+  merged['positiv_deferred_resume_charge_id'] = chargeId;
+  merged['positiv_deferred_order_display'] = orderDisplayReference;
+
+  return CartMetadataStruct(
+    source: m.source.isNotEmpty ? m.source : 'positiv_deferred_resume',
+    deviceId: m.deviceId,
+    notes: jsonEncode(merged),
+  );
 }
 
 /// Same cart object shape as [completePosPurchase] / complete-payment `cart`.

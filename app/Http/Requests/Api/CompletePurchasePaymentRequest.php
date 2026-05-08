@@ -17,7 +17,8 @@ class CompletePurchasePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'payment_method_code' => ['required', 'string'],
+            // "deferred" is for creating unpaid pickup orders, not for settling them.
+            'payment_method_code' => ['required', 'string', 'not_in:deferred'],
             'metadata' => ['nullable', 'array'],
             'pos_session_id' => ['nullable', 'integer', 'exists:pos_sessions,id'],
             'pos_device_id' => ['nullable', 'integer', 'exists:pos_devices,id'],
@@ -46,6 +47,16 @@ class CompletePurchasePaymentRequest extends FormRequest
             'cart.customer_name' => ['nullable', 'string', 'max:255'],
             'cart.note' => ['nullable', 'string', 'max:1000'],
             'cart.tip_amount' => ['nullable', 'integer', 'min:0'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'payment_method_code.not_in' => 'The deferred payment method cannot be used to settle an existing deferred order. Choose cash, card, or another payment method.',
         ];
     }
 }

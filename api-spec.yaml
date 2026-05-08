@@ -3735,7 +3735,9 @@ paths:
               properties:
                 payment_method_code:
                   type: string
-                  description: Code of the payment method (e.g., "cash", "card", "card_present")
+                  description: |
+                    Code of the payment method used to **settle** the order (e.g. `cash`, `card_present`).
+                    Must **not** be `deferred` — that code is only for creating a new unpaid pickup purchase.
                   example: cash
                 pos_session_id:
                   type: integer
@@ -3783,6 +3785,10 @@ paths:
                   success:
                     type: boolean
                     example: true
+                  receipt_id:
+                    type: integer
+                    description: Sales receipt database id (duplicate of `data.receipt.id` for simple clients)
+                    example: 456
                   data:
                     type: object
                     properties:

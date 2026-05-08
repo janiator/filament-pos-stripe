@@ -670,11 +670,20 @@ class PurchasesController extends BaseApiController
         // Use metadata tip (or 0 if not set)
         $data['purchase_tip_amount'] = $metadataTip ?? 0;
 
-        // Whole-order note: prefer `note`, fall back to legacy `cart_note` in metadata
+        // Whole-order note: prefer `note`, fall back to legacy `cart_note` in metadata,
+        // then charge description (some POS flows store the order note only there).
         $noteCandidate = $cleanMetadata['note'] ?? $cleanMetadata['cart_note'] ?? null;
         $noteString = is_string($noteCandidate)
             ? trim($noteCandidate)
             : (is_scalar($noteCandidate) ? trim((string) $noteCandidate) : '');
+        if ($noteString === '') {
+            $desc = $purchase->description ?? null;
+            if (is_string($desc)) {
+                $noteString = trim($desc);
+            } elseif (is_scalar($desc)) {
+                $noteString = trim((string) $desc);
+            }
+        }
         $data['purchase_note'] = $noteString !== '' ? $noteString : null;
 
         // Add purchase payments - list of payments connected to this purchase
@@ -1704,6 +1713,8 @@ class PurchasesController extends BaseApiController
 
             return response()->json([
                 'success' => true,
+                // Top-level id for thin clients / JSONPath bindings that miss `data.receipt`.
+                'receipt_id' => $result['receipt']->id,
                 'data' => [
                     'charge' => [
                         'id' => $result['charge']->id,

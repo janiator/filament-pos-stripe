@@ -1,5 +1,5 @@
 // FlutterFlow Custom Action: Complete Deferred Payment Purchase
-// 
+//
 // This action completes payment for a purchase that was created with deferred payment
 // (e.g., dry cleaning, payment on pickup).
 //
@@ -39,6 +39,176 @@ Future<void> _clearPositivDeferredResumePrefs() async {
   } catch (_) {}
 }
 
+void mirrorDeferredResumeBannerToAppStateIfPresent({
+  required bool active,
+  required String bannerText,
+}) {
+  try {
+    final s = FFAppState();
+    s.update(() {
+      final d = s as dynamic;
+      d.deferredResumeBannerActive = active;
+      d.deferredResumeBannerText = bannerText;
+    });
+  } catch (_) {}
+}
+
+int? _parsePositiveInt(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is int) {
+    return value > 0 ? value : null;
+  }
+  if (value is num) {
+    final i = value.toInt();
+
+    return i > 0 ? i : null;
+  }
+
+  return int.tryParse(value.toString());
+}
+
+Future<void> _resetPosCartAfterDeferredCompletion() async {
+  try {
+    await clearCart(true);
+
+    return;
+  } catch (_) {}
+
+  try {
+    final cart = FFAppState().cart;
+
+    FFAppState().update(() {
+      FFAppState().cart = ShoppingCartStruct(
+        cartId: cart.cartId,
+        cartPosSessionId: cart.cartPosSessionId,
+        cartItems: <CartItemsStruct>[],
+        cartDiscounts: <CartDiscountsStruct>[],
+        cartTipAmount: 0,
+        cartCustomerId: null,
+        cartCustomerName: '',
+        cartCreatedAt: cart.cartCreatedAt,
+        cartUpdatedAt: getCurrentTimestamp.toString(),
+        cartMetadata: CartMetadataStruct(),
+        cartNote: '',
+      );
+      FFAppState().lastMeranoBookingResultJson = '';
+      FFAppState().meranoSeatmapOrderJson = '';
+    });
+
+    await updateCartTotals();
+  } catch (_) {}
+}
+
+void _bumpListRefreshCacheKey() {
+  try {
+    FFAppState().update(() {
+      FFAppState().cacheRefreshKey = DateTime.now().microsecondsSinceEpoch
+          .toString();
+    });
+  } catch (_) {}
+}
+
+/// Same rules as [receiptPrintAfterPosPurchase]: deferred checkout DSL does not
+/// chain the normal post-[completePosPurchase] receipt actions, so we print here.
+Future<void> _tryClientPrintDeferredSalesReceipt({
+  required String apiBaseUrl,
+  required String authToken,
+  required int receiptId,
+}) async {
+  if (receiptId <= 0) {
+    return;
+  }
+  try {
+    final device = FFAppState().activePosDevice;
+    String? eposUrl;
+    for (final p in device.receiptPrinters) {
+      if (p.id == device.defaultPrinterId && p.eposUrl.trim().isNotEmpty) {
+        eposUrl = p.eposUrl.trim();
+        break;
+      }
+    }
+
+    final allowAutoPrint = device.hasAutoPrintReceipt()
+        ? device.autoPrintReceipt
+        : true;
+    final shouldPrint =
+        allowAutoPrint &&
+        (FFAppState().receiptPrinter.isActive ||
+            (eposUrl != null && eposUrl.isNotEmpty));
+    if (!shouldPrint || eposUrl == null || eposUrl.isEmpty) {
+      return;
+    }
+
+    final base = apiBaseUrl.endsWith('/')
+        ? apiBaseUrl.substring(0, apiBaseUrl.length - 1)
+        : apiBaseUrl;
+    final xmlRes = await http.get(
+      Uri.parse('$base/api/receipts/$receiptId/xml'),
+      headers: {
+        'Authorization': 'Bearer $authToken',
+        'Accept': 'application/xml, text/xml, application/json, */*',
+      },
+    );
+    if (xmlRes.statusCode < 200 || xmlRes.statusCode >= 300) {
+      return;
+    }
+    final xmlBody = xmlRes.body;
+    if (xmlBody.isEmpty) {
+      return;
+    }
+
+    final printRes = await http.post(
+      Uri.parse(eposUrl),
+      headers: {'Content-Type': 'text/xml; charset=utf-8'},
+      body: xmlBody,
+    );
+    if (printRes.statusCode < 200 || printRes.statusCode >= 300) {
+      return;
+    }
+
+    await http.post(
+      Uri.parse('$base/api/receipts/$receiptId/mark-printed'),
+      headers: {
+        'Authorization': 'Bearer $authToken',
+        'Accept': 'application/json',
+      },
+    );
+  } catch (_) {}
+}
+
+Future<Map<String, dynamic>?> _cartFromJsonOrCurrent(String? cartJson) async {
+  final value = cartJson?.trim() ?? '';
+  if (value.isNotEmpty) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+
+      throw FormatException('cartJson must decode to a JSON object');
+    } catch (e) {
+      throw FormatException('Invalid cartJson: ${e.toString()}');
+    }
+  }
+
+  try {
+    final serialized = await serializeCartForCompleteDeferred();
+    if (serialized is Map && serialized['success'] == true) {
+      final serializedCartJson = serialized['cartJson']?.toString().trim();
+      if (serializedCartJson != null && serializedCartJson.isNotEmpty) {
+        final decoded = jsonDecode(serializedCartJson);
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+      }
+    }
+  } catch (_) {}
+
+  return null;
+}
+
 Future<dynamic> completeDeferredPayment(
   int chargeId,
   String paymentMethodCode,
@@ -63,73 +233,49 @@ Future<dynamic> completeDeferredPayment(
 
     // Validate charge ID
     if (chargeId <= 0) {
-      return {
-        'success': false,
-        'message': 'Invalid purchase/charge ID',
-      };
+      return {'success': false, 'message': 'Invalid purchase/charge ID'};
     }
-    
+
     // Validate API URL and auth token
     if (apiBaseUrl.isEmpty) {
-      return {
-        'success': false,
-        'message': 'API base URL is missing',
-      };
+      return {'success': false, 'message': 'API base URL is missing'};
     }
-    
+
     if (authToken.isEmpty) {
       return {
         'success': false,
         'message': 'Authentication token is missing. Please log in.',
       };
     }
-    
+
     if (paymentMethodCode.isEmpty) {
-      return {
-        'success': false,
-        'message': 'Payment method code is required',
-      };
+      return {'success': false, 'message': 'Payment method code is required'};
     }
 
     Map<String, dynamic>? cart;
-    if (cartJson != null && cartJson.trim().isNotEmpty) {
-      try {
-        final decoded = jsonDecode(cartJson);
-        if (decoded is Map<String, dynamic>) {
-          cart = decoded;
-        } else {
-          return {
-            'success': false,
-            'message': 'cartJson must decode to a JSON object',
-          };
-        }
-      } catch (e) {
-        return {
-          'success': false,
-          'message': 'Invalid cartJson: ${e.toString()}',
-        };
-      }
+    try {
+      cart = await _cartFromJsonOrCurrent(cartJson);
+    } on FormatException catch (e) {
+      return {'success': false, 'message': e.message};
     }
 
     // Build metadata object
-    final metadata = <String, dynamic>{
-      ...?additionalMetadata,
-    };
-    
+    final metadata = <String, dynamic>{...?additionalMetadata};
+
     // Add payment intent ID if provided (required for Stripe payments)
     if (paymentIntentId != null && paymentIntentId.isNotEmpty) {
       metadata['payment_intent_id'] = paymentIntentId;
     }
-    
+
     // Get current POS device/session from app state for compliance
     // This ensures the payment is completed on the current active session
     // Priority: pos_device_id (auto-detects current session) > pos_session_id > original session
     int? posDeviceId;
     int? posSessionId;
-    
+
     try {
       final appState = FFAppState();
-      
+
       // Try to get device ID from active POS device (preferred for compliance)
       // This will auto-detect the current active session for that device
       try {
@@ -140,7 +286,7 @@ Future<dynamic> completeDeferredPayment(
       } catch (e) {
         // Device ID not available, continue
       }
-      
+
       // Try to get session ID from current POS session (fallback if device ID not available)
       if (posDeviceId == null) {
         try {
@@ -157,18 +303,19 @@ Future<dynamic> completeDeferredPayment(
       // The backend will fall back to the original session where the deferred payment was created
       print('Warning: Could not get POS device/session from app state: $e');
     }
-    
+
     // Build request body
     final requestBody = <String, dynamic>{
       'payment_method_code': paymentMethodCode,
       // Add pos_device_id if available (recommended for compliance - auto-detects current active session)
       if (posDeviceId != null) 'pos_device_id': posDeviceId,
       // OR add pos_session_id if device ID not available but session ID is
-      if (posDeviceId == null && posSessionId != null) 'pos_session_id': posSessionId,
+      if (posDeviceId == null && posSessionId != null)
+        'pos_session_id': posSessionId,
       if (metadata.isNotEmpty) 'metadata': metadata,
       if (cart != null) 'cart': cart,
     };
-    
+
     // Make API request
     final response = await http.post(
       Uri.parse('$apiBaseUrl/api/purchases/$chargeId/complete-payment'),
@@ -179,16 +326,60 @@ Future<dynamic> completeDeferredPayment(
       },
       body: jsonEncode(requestBody),
     );
-    
+
     // Parse response
     final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-    
+
     // Check HTTP status code
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = responseData['data'];
+      int? receiptId;
+      String? receiptNumber;
+      int? completedChargeId;
+      String? chargeStatus;
+      if (data is Map<String, dynamic>) {
+        final receipt = data['receipt'];
+        if (receipt is Map<String, dynamic>) {
+          receiptId = _parsePositiveInt(receipt['id']);
+          final rn = receipt['receipt_number'];
+          if (rn != null) {
+            receiptNumber = rn.toString();
+          }
+        }
+        final chargeMap = data['charge'];
+        if (chargeMap is Map<String, dynamic>) {
+          completedChargeId = _parsePositiveInt(chargeMap['id']);
+          final st = chargeMap['status'];
+          if (st != null) {
+            chargeStatus = st.toString();
+          }
+        }
+      }
+      receiptId ??= _parsePositiveInt(responseData['receipt_id']);
+
       final ok = responseData['success'] != false;
       if (ok) {
-        await _clearPositivDeferredResumePrefs();
+        try {
+          await _clearPositivDeferredResumePrefs();
+          mirrorDeferredResumeBannerToAppStateIfPresent(
+            active: false,
+            bannerText: '',
+          );
+          await _resetPosCartAfterDeferredCompletion();
+        } catch (_) {}
+        final rid = receiptId ?? 0;
+        try {
+          await _tryClientPrintDeferredSalesReceipt(
+            apiBaseUrl: apiBaseUrl,
+            authToken: authToken,
+            receiptId: rid,
+          );
+        } catch (_) {}
+        try {
+          _bumpListRefreshCacheKey();
+        } catch (_) {}
       }
+
       // Success
       // The response will have:
       // - charge.status = "succeeded" (changed from "pending")
@@ -197,10 +388,19 @@ Future<dynamic> completeDeferredPayment(
       // - receipt.receipt_type = "sales" (replaced delivery receipt)
       // - receipt.receipt_number format: "{store_id}-S-{number}" (S = Sales)
       return {
-        'success': responseData['success'] ?? true,
+        'success': ok,
         'data': responseData['data'],
-        'message': responseData['message'] ?? 'Payment completed successfully',
+        'message':
+            responseData['message'] ??
+            (ok
+                ? 'Payment completed successfully'
+                : 'Payment completion failed'),
         'statusCode': response.statusCode,
+        'receiptId': receiptId,
+        'salesReceiptId': receiptId,
+        'receiptNumber': receiptNumber,
+        'completedChargeId': completedChargeId,
+        'chargeStatus': chargeStatus,
       };
     } else {
       // Error

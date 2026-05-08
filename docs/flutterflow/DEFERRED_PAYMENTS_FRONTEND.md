@@ -234,6 +234,19 @@ When completing a deferred payment, the response will look like:
 }
 ```
 
+### Custom action (`completeDeferredPayment`) extras
+
+The [`complete_deferred_payment.dart`](custom-actions/complete_deferred_payment.dart) action mirrors the API payload under **`data`** and, on success (`success` not false), also:
+
+- Clears **`FFAppState().cart`** (empty lines, discounts, tip, customer, note, metadata; clears Merano booking JSON mirrors) and runs **`updateCartTotals()`**, matching post-sale **`clearCart(afterSuccessfulPurchase: true)`** behavior so the POS cart is empty without a separate **`clearCart`** call.
+- Adds top-level fields so FlutterFlow can bind receipt URLs without fragile nested JSON paths:
+  - **`receiptId`** and **`salesReceiptId`**: database id of the **sales** receipt from `data.receipt.id` (use for `GET /api/receipts/{id}/xml` or pass the whole map to **`receiptPrintAfterPosPurchase`**).
+  - **`receiptNumber`**, **`completedChargeId`**, **`chargeStatus`**: when present in `data`.
+
+**Receipt URL:** If you interpolate `…/api/receipts/{id}/xml`, bind **`id`** to **`receiptId`** / **`salesReceiptId`** from the **completion** result. Using a stale id from the **delivery** receipt (create-deferred / prepare step) produces the wrong document; omitting or mis-binding **`id`** yields `…/receipts/null/xml`.
+
+**“Still waiting” on orders:** The backend sets the charge to **`succeeded`**. Refresh the purchases list (re-run the same query / reload the page) after a successful completion so the UI leaves the pending state.
+
 ## UI Flow Recommendations
 
 ### Creating Deferred Purchase
@@ -419,10 +432,11 @@ The FlutterFlow project exposes the **orders** page, the **`pos`** page, the **`
 
 | Action | Role |
 |--------|------|
-| [`prepare_parked_deferred_purchase.dart`](custom-actions/prepare_parked_deferred_purchase.dart) | `GET /api/purchases/{id}`, rebuilds **`FFAppState().cart`**, runs **`updateCartTotals()`**, persists **SharedPreferences** resume context (`chargeId` + display label), returns **`cartJson`**, **`chargeId`**, **`orderDisplayReference`**, etc. Requires **`shared_preferences`** in the FlutterFlow project. |
-| [`get_deferred_resume_context.dart`](custom-actions/get_deferred_resume_context.dart) | Reads prefs; returns **`active`**, **`resumeChargeId`**, **`orderLabel`**, **`bannerText`** (e.g. `Ordre 1-D-000001`) for **pos** UI. |
+| [`prepare_parked_deferred_purchase.dart`](custom-actions/prepare_parked_deferred_purchase.dart) | `GET /api/purchases/{id}`, rebuilds **`FFAppState().cart`** (note from **`purchase_note`** / metadata keys; **`cartMetadata`** is **`CartMetadataStruct`**: deferred keys live in **`cartMetadata.notes`** as JSON, e.g. `positiv_deferred_resume_charge_id` / `positiv_deferred_order_display`), **`updateCartTotals()`**, prefs + banner mirror, returns **`cartJson`**, **`orderDisplayReference`**, **`deferredResumeBannerText`**, **`deferredResumeBannerActive`**, **`purchaseOrderNote`**, etc. |
+| [`get_deferred_resume_context.dart`](custom-actions/get_deferred_resume_context.dart) | Reads prefs; returns **`active`**, **`resumeChargeId`**, **`orderLabel`**, **`bannerText`**; also syncs **FFAppState** mirror fields (see **§1a**) when present. |
 | [`serialize_cart_for_complete_deferred.dart`](custom-actions/serialize_cart_for_complete_deferred.dart) | Builds **`cartJson`** from the **current** `FFAppState().cart` (after edits on **pos**) for **`completeDeferredPayment`**. |
-| [`clear_deferred_resume_context.dart`](custom-actions/clear_deferred_resume_context.dart) | Clears resume prefs (also cleared automatically on successful **`completeDeferredPayment`** / **`completePosPurchase`** in the repo copies of those actions). |
+| [`clear_deferred_resume_context.dart`](custom-actions/clear_deferred_resume_context.dart) | Clears resume prefs; syncs banner **FFAppState** mirror off (§1a). |
+| [`clear_cart.dart`](custom-actions/clear_cart.dart) | **`clearCart`** clears cart, Merano JSON, resume prefs, **`cartMetadata`**, optional Merano **release**; syncs banner mirror off; returns **`deferredResumeBannerText`** / **`deferredResumeActive`** for optional “Update Page State”. MCP: `dsl/update_clear_cart.dart`. |
 | [`fetch_pos_purchase_for_cart_hydration.dart`](custom-actions/fetch_pos_purchase_for_cart_hydration.dart) | Optional if you only need JSON without hydrating app-state cart. |
 
 Push **`prepareParkedDeferredPurchase`**:
@@ -446,6 +460,20 @@ dart run dsl/upsert_deferred_resume_helpers.dart --project-id pointofsale-xrlz5i
 
 (Use FlutterFlow MCP **`validate`** / **`run`** with the same file if you prefer.)
 
+### 1a. “Ordre …” banner + **FFAppState** (MCP / DSL — preferred)
+
+**Why:** If the banner **Text** is bound only to **pos** page / widget state set on **On Page Load**, clearing SharedPreferences in **`clearCart`** does not rebuild that state — the old **`Ordre …`** string can stay on screen. Repo custom actions call **`mirrorDeferredResumeBannerToAppStateIfPresent`** for **`FFAppState.deferredResumeBannerText`** / **`deferredResumeBannerActive`**.
+
+**Automated wiring (POSitiv):** from `positiv_flutterflow_ai/` run (or MCP **`validate` / `run`** on the same file):
+
+```bash
+dart run dsl/wire_pos_deferred_resume_banner_app_state.dart --project-id pointofsale-xrlz5i
+```
+
+That script (idempotent) **creates the two App State fields** if missing, rebinds the **pos** banner **Text** widget (DSL key `6sy7nlgg`) from page state → **App State**, and rewires **`checkoutFlow`**’s **`deferredResumeBannerActive`** parameter on **`pos`** / **`posSession`** to read **App State** instead of page state. Re-inspect **pos** if FlutterFlow regens the banner node key.
+
+**Manual fallback:** add the same App State names in **App Settings → App State**, bind the banner and **`checkoutFlow`** param yourself, or chain **`getDeferredResumeContext`** after **`clearCart`** and **Update Page State**.
+
 ### 1b. One-shot DSL (recommended for POSitiv)
 
 From `positiv_flutterflow_ai/`, run:
@@ -456,22 +484,42 @@ dart run dsl/wire_orders_betaling_prepare_parked.dart --project-id pointofsale-x
 
 That script (idempotent) adds **`parkedCartJson`** on **`deferredPaymentCheckout`** if missing, wires **`completeDeferredPayment.cartJson`** to that parameter, inserts a **zero-height clipped container** whose child **Text** is bound to **`parkedCartJson`** (FlutterFlow R1), and replaces the **orders** page **Betaling** button (`Button_svzfzpi5`) with **`prepareParkedDeferredPurchase`** → success check → **Navigate to `pos`**. Re-inspect **orders** / **`pos`** if FlutterFlow regenerates node keys (`Scaffold_6umjp4qm` for **pos** in the script).
 
+**Action order (order label / banner):** **`prepareParkedDeferredPurchase` must finish before `pos` first reads prefs** — preferred: **Prepare → Navigate**. If your flow is **Navigate → Prepare** on **pos**, **`pos` On Page Load** may have run with empty prefs; fix by either (a) moving prepare to **orders** before navigation, or (b) after **Prepare** on **pos**, chain **`getDeferredResumeContext`** and **Update Page State** / **Set App State** from **`$.deferredResumeBannerText`** and **`$.deferredResumeBannerActive`** (the prepare return map includes these for binding).
+
 **Pos banner + page load (recommended after the above):**
 
 ```bash
 dart run dsl/wire_pos_deferred_resume_banner.dart --project-id pointofsale-xrlz5i
 ```
 
-That script (idempotent) adds **pos** page state **`deferredResumeBannerText`** / **`deferredResumeBannerActive`**, prepends **On Page Load** → **`getDeferredResumeContext`** → updates those fields from **`$.bannerText`** / **`$.active`**, and appends an **INFO**-colored **Text** banner (`deferredResumeBannerHost`) to the main **Stack** with visibility bound to **`deferredResumeBannerActive`**. Payment branching (normal vs **`completeDeferredPayment`**) still needs **Designer** wiring on **pos** if you want separate pay controls.
+That script (idempotent) adds **pos** page state **`deferredResumeBannerText`** / **`deferredResumeBannerActive`**, prepends **On Page Load** → **`getDeferredResumeContext`** → updates those fields from **`$.bannerText`** / **`$.active`**, and appends an **INFO**-colored **Text** banner (`deferredResumeBannerHost`) to the main **Stack** with visibility bound to **`deferredResumeBannerActive`**.
+
+**Checkout pay controls (normal vs deferred resume)** — DSL duplicate + visibility:
+
+```bash
+dart run dsl/wire_checkoutflow_deferred_pay_branch.dart --project-id pointofsale-xrlz5i
+```
+
+That script (idempotent) duplicates each **Fullfør handel** button in **`checkoutFlow`** and wires the duplicates to **`getDeferredResumeContext`** → **`serializeCartForCompleteDeferred`** → **`completeDeferredPayment`** (with **`chargeId`** from **`$.resumeChargeId`** on the tap-time context). It does **not** clone the normal post-`completePosPurchase` receipt action chain; **`completeDeferredPayment`** (repo) performs **client receipt print** (when a default printer `eposUrl` / auto-print rules apply) and bumps **`FFAppState().cacheRefreshKey`** after a successful API response. If FlutterFlow leaves **`cartJson`** blank on a checkout button, **`completeDeferredPayment`** now serializes the current **`FFAppState().cart`** immediately before `POST /complete-payment`, so staff edits to the resumed cart are still sent to the backend.
+
+The same script also:
+
+- Adds component parameter **`deferredResumeBannerActive`** (boolean, default `false`) on **`checkoutFlow`** if missing.
+- Binds **visibility** on the original vs deferred **Fullfør** buttons to that parameter (normal buttons when the flag is false; deferred duplicates when true).
+- When **`checkoutFlow`** is embedded on **`pos`** or **`posSession`**, wires that parameter from **pos** page widget state **`deferredResumeBannerActive`** (same field as the banner DSL), even if the embed lives on **`posSession`**, so the binding still reads **pos** scaffold state.
+
+If your **`checkoutFlow`** instance sits on another page, copy the parameter pass-through in FlutterFlow (**Set from variable** → **Widget State** → **pos** scaffold → **`deferredResumeBannerActive`**) or extend `_kPosPagesHostingCheckout` in `dsl/wire_checkoutflow_deferred_pay_branch.dart`.
+
+**Recommended:** use **1a** **`FFAppState.deferredResumeBannerActive`** / **`deferredResumeBannerText`** as the single source for the banner and **`checkoutFlow`** branching; repo actions keep them in sync with prefs.
 
 ### 2. **pos** page — banner and payment branching
 
 1. **On Page Load** + banner: either run **`wire_pos_deferred_resume_banner.dart`** (above) or manually call **`getDeferredResumeContext`** and bind UI to **`bannerText`** / **`active`**.
 2. **Payment / checkout**
-   - **New sale:** unchanged — your existing **`checkoutFlow`** / **`completePosPurchase`** path. Successful **`completePosPurchase`** clears resume prefs (repo `complete_pos_purchase.dart`).
-   - **Deferred resume:** when **`getDeferredResumeContext.active`** (or page state from the banner DSL), use **`serializeCartForCompleteDeferred`** → **`completeDeferredPayment`** with **`chargeId`** = **`resumeChargeId`**, **`cartJson`** from serialize output, same **`apiBaseUrl`** / **`authToken`** / **`paymentIntentId`** / **`paymentMethodCode`** as today. Hide or disable the “new sale” pay control when **`active`**, and vice versa, so staff always use the correct endpoint (**`POST /api/purchases`** vs **`POST …/complete-payment`**).
+   - **New sale:** unchanged — your existing **`checkoutFlow`** / **`completePosPurchase`** path (hidden while **`deferredResumeBannerActive`** when the checkout DSL above is applied). Successful **`completePosPurchase`** clears resume prefs (repo `complete_pos_purchase.dart`).
+   - **Deferred resume:** run **`wire_checkoutflow_deferred_pay_branch.dart`** (above) or manually: **`getDeferredResumeContext`** (for **`resumeChargeId`**) → **`serializeCartForCompleteDeferred`** → **`completeDeferredPayment`** with **`cartJson`** from serialize, same **`apiBaseUrl`** / **`authToken`** / **`paymentMethodCode`** / terminal / metadata wiring as **`completePosPurchase`**. Hide the normal pay controls when a resume session is active so staff use **`POST …/complete-payment`** instead of **`POST /api/purchases`**.
    - **Safety net (repo):** if staff still hit **`completePosPurchase`** while resume prefs are set, the action returns **`success: false`**, **`blockedDeferredResume: true`**, **`resumeChargeId`**, **`orderLabel`** — branch in FlutterFlow (e.g. snackbar + open deferred pay) or rely on hiding the wrong button as above.
-3. Optional **“Avbryt henting”**: call **`clearDeferredResumeContext`** and reset the cart if you need to abandon without paying.
+3. Optional **“Avbryt henting”**: call **`clearDeferredResumeContext`** and reset the cart if you need to abandon without paying — or rely on **`clearCart`** (repo [`clear_cart.dart`](custom-actions/clear_cart.dart)), which clears resume prefs when the cart is cleared.
 
 ### 3. `deferredPaymentCheckout` (small dialog) — optional
 

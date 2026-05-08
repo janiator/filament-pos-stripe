@@ -23,17 +23,19 @@
 // completePosPurchase should then receive provider metadata and include it under
 // requestBody.metadata when calling POST /api/purchases.
 //
-// Function signature (update in FlutterFlow):
-// Future<CreateTerminalPaymentIntentResponseStruct> createAndProcessTerminalPayment(
+// Function signature (update in FlutterFlow — use JSON or dynamic return, not a
+// generated struct name that FlutterFlow may rename/remove):
+// Future<dynamic> createAndProcessTerminalPayment(
 //   int amount,  // Amount in øre
 //   String apiBaseUrl,
 //   String authToken,
 //   String storeSlug,
 //   String? description,  // Optional payment description
-//   String provider,       // "stripe" or "verifone"
+//   // Optional (defaults): provider, verifone POIID, poll interval ms, max poll s
+//   [String provider = 'stripe',
 //   String? verifoneTerminalPoiid,
-//   int pollIntervalMs,
-//   int maxPollSeconds,
+//   int pollIntervalMs = 1500,
+//   int maxPollSeconds = 90]
 // ) async
 
 import 'dart:convert';
@@ -41,7 +43,7 @@ import 'package:http/http.dart' as http;
 import 'package:mek_stripe_terminal/mek_stripe_terminal.dart';
 import '/custom_code/stripe_terminal_singleton.dart';
 
-CreateTerminalPaymentIntentResponseStruct _normalizeTerminalPaymentResult(
+Map<String, dynamic> _normalizeTerminalPaymentResult(
   dynamic result, {
   required String defaultProvider,
 }) {
@@ -53,7 +55,7 @@ CreateTerminalPaymentIntentResponseStruct _normalizeTerminalPaymentResult(
       .toString()
       .toLowerCase();
 
-  return CreateTerminalPaymentIntentResponseStruct.fromMap({
+  return {
     'success': success,
     'provider': provider,
     'status': status,
@@ -65,20 +67,20 @@ CreateTerminalPaymentIntentResponseStruct _normalizeTerminalPaymentResult(
     'error': source['error']?.toString(),
     'errorCode': source['errorCode']?.toString(),
     'statusCode': source['statusCode'],
-  });
+  };
 }
 
-Future<CreateTerminalPaymentIntentResponseStruct> createAndProcessTerminalPayment(
+Future<dynamic> createAndProcessTerminalPayment(
   int amount,
   String apiBaseUrl,
   String authToken,
   String storeSlug,
-  String? description,
-  String provider,
-  String? verifoneTerminalPoiid, // POIID
-  int pollIntervalMs,
-  int maxPollSeconds,
-) async {
+  String? description, [
+  String provider = 'stripe',
+  String? verifoneTerminalPoiid,
+  int pollIntervalMs = 1500,
+  int maxPollSeconds = 90,
+]) async {
   final providerValue = provider.trim().toLowerCase();
 
   try {

@@ -114,6 +114,8 @@ Use `createAndProcessTerminalPayment` to handle the payment, then call `complete
 
 2. **Configure Parameters:**
 
+In custom Dart, the first five arguments are required; the next four are **optional positional** (defaults: `provider = 'stripe'`, `verifoneTerminalPoiid = null`, `pollIntervalMs = 1500`, `maxPollSeconds = 90`). Older FlutterFlow bindings that only pass the first five keep working.
+
 | Parameter Name | Type | Required | Default Value | Description |
 |----------------|------|----------|---------------|-------------|
 | `amount` | `Integer` | ✅ Yes | - | Amount in øre |
@@ -121,6 +123,10 @@ Use `createAndProcessTerminalPayment` to handle the payment, then call `complete
 | `authToken` | `String` | ✅ Yes | - | Authentication token |
 | `storeSlug` | `String` | ✅ Yes | - | Store slug |
 | `description` | `String` | ❌ No | `null` | Payment description |
+| `provider` | `String` | ❌ No | `stripe` | `stripe` or `verifone` |
+| `verifoneTerminalPoiid` | `String` | ❌ No | `null` | Verifone POIID (required when provider is `verifone`) |
+| `pollIntervalMs` | `Integer` | ❌ No | `1500` | Verifone status poll interval |
+| `maxPollSeconds` | `Integer` | ❌ No | `90` | Verifone status poll timeout |
 
 3. **Add Custom Code:**
    - Paste the code from `docs/flutterflow/custom-actions/create_and_process_terminal_payment.dart`
@@ -128,13 +134,14 @@ Use `createAndProcessTerminalPayment` to handle the payment, then call `complete
 ### Usage Example
 
 ```dart
-// Step 1: Create and process terminal payment
+// Step 1: Create and process terminal payment (positional; last four optional)
 final paymentResult = await createAndProcessTerminalPayment(
-  amount: FFAppState().cart.cartTotalCartPrice,
-  apiBaseUrl: 'https://your-api.com',
-  authToken: FFAppState().authToken,
-  storeSlug: FFAppState().currentStoreSlug,
-  description: 'POS Purchase',
+  FFAppState().cart.cartTotalCartPrice,
+  'https://your-api.com',
+  FFAppState().authToken,
+  FFAppState().currentStoreSlug,
+  'POS Purchase',
+  // optional: 'stripe', null, 1500, 90
 );
 
 if (paymentResult['success'] != true) {
@@ -253,10 +260,11 @@ For split payments that include Stripe Terminal:
 ```dart
 // Process Stripe payment first
 final paymentResult = await createAndProcessTerminalPayment(
-  amount: stripeAmount,  // Amount for this split
-  apiBaseUrl: apiBaseUrl,
-  authToken: authToken,
-  storeSlug: storeSlug,
+  stripeAmount,
+  apiBaseUrl,
+  authToken,
+  storeSlug,
+  null,
 );
 
 if (paymentResult['success'] != true) {
