@@ -51,5 +51,18 @@ return [
                 'sync_queued_body' => ':count job(s) were queued (batch #:batch). Refresh this page after workers finish.',
             ],
         ],
+        'store_stripe_payout' => [
+            'actions' => [
+                'sync_balance_for_payout' => 'Sync Stripe balance rows for this payout',
+                'sync_balance_for_payout_heading' => 'Sync balance transactions for this payout?',
+                'sync_balance_for_payout_description' => 'Fetches balance transactions from Stripe filtered to this payout id (reliable for fees and Tripletex payout voucher detail). Runs on the stripe-sync queue; refresh the Tripletex preview after the job finishes.',
+            ],
+            'notifications' => [
+                'sync_balance_for_payout_queued_title' => 'Payout balance sync queued',
+                'sync_balance_for_payout_queued_body' => 'Stripe balance transactions for :payout will be mirrored shortly.',
+                'sync_balance_for_payout_missing_store_title' => 'Cannot queue sync',
+                'sync_balance_for_payout_missing_store_body' => 'This payout has no store with a connected Stripe account.',
+            ],
+        ],
     ],
 ];

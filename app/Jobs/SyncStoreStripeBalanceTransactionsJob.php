@@ -27,12 +27,17 @@ class SyncStoreStripeBalanceTransactionsJob implements ShouldBeUnique, ShouldQue
 
     public function __construct(
         public Store $store,
+        public ?string $onlyStripePayoutId = null,
     ) {
         $this->onQueue('stripe-sync');
     }
 
     public function uniqueId(): string
     {
+        if ($this->onlyStripePayoutId !== null && str_starts_with($this->onlyStripePayoutId, 'po_')) {
+            return 'sync-store-stripe-balance-tx:'.$this->store->getKey().':'.$this->onlyStripePayoutId;
+        }
+
         return 'sync-store-stripe-balance-tx:'.$this->store->getKey();
     }
 
@@ -40,6 +45,7 @@ class SyncStoreStripeBalanceTransactionsJob implements ShouldBeUnique, ShouldQue
     {
         Log::info('Starting Stripe balance transaction sync for store', [
             'store_id' => $this->store->getKey(),
+            'only_stripe_payout_id' => $this->onlyStripePayoutId,
         ]);
 
         try {
@@ -53,7 +59,7 @@ class SyncStoreStripeBalanceTransactionsJob implements ShouldBeUnique, ShouldQue
                 return;
             }
 
-            $result = $sync($this->store, false);
+            $result = $sync($this->store, false, $this->onlyStripePayoutId);
 
             Log::info('Stripe balance transaction sync finished for store', [
                 'store_id' => $this->store->getKey(),

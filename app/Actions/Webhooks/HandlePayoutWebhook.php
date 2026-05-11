@@ -3,6 +3,7 @@
 namespace App\Actions\Webhooks;
 
 use App\Actions\Stripe\SyncStoreStripePayoutsFromStripe;
+use App\Jobs\SyncStoreStripeBalanceTransactionsJob;
 use App\Models\Store;
 use Stripe\Payout;
 
@@ -40,5 +41,9 @@ class HandlePayoutWebhook
         }
 
         $this->syncStoreStripePayoutsFromStripe->upsertSinglePayout($store, $payout);
+
+        if ($eventType === 'payout.paid' && is_string($payout->id) && str_starts_with($payout->id, 'po_')) {
+            SyncStoreStripeBalanceTransactionsJob::dispatch($store, $payout->id);
+        }
     }
 }

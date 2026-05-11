@@ -1008,6 +1008,7 @@ it('includes payout external ticket sales diagnostics on Tripletex payout previe
     $preview = app(TripletexSyncPreviewService::class)->previewPayout($payout, $integration, false);
 
     expect($preview['ok'])->toBeTrue()
+        ->and($preview['mirror_balance_transaction_count'])->toBe(0)
         ->and($preview['payout_external_ticket_sales'])->toBeArray()
         ->and($preview['payout_external_ticket_sales']['enabled'])->toBeFalse()
         ->and($preview['payout_external_ticket_sales']['notes'])->not->toBeEmpty();

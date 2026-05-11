@@ -44,11 +44,13 @@ Tripletex account numbers are resolved to Tripletex ledger account IDs per sync 
 
 Internal ledger payloads use **integer minor units** (e.g. NOK øre). `TripletexManualVoucherPayloadFactory` converts each line to Tripletex `amountGross` / `amountGrossCurrency` as a **major-unit float rounded to two decimals**: debits positive, credits negative. That matches the legacy Merano-Tripletex-Sync `voucherBuilder.js` convention (`signedAmt = l.credit ? -amt : amt` with `amt` from `toFixed(2)`), while avoiding float accumulation drift from the old script’s summed float `amount` values.
 
-**Payout preview diagnostics** — Filament and API payout previews include `payout_external_ticket_sales` with counts (charges in the payout mirror, without `pos_session_id`, matched for external-ticket lines) and short notes when web ticket lines are absent, so operators can see whether the feature is off, everything is POS-attributed, metadata/regex failed, or `connected_charges` rows are missing.
+**Payout preview diagnostics** — Filament and API payout previews include `mirror_balance_transaction_count` (all mirrored balance rows for that `stripe_payout_id`; when `0`, fee and external-ticket lines cannot appear until a payout-scoped or full balance sync runs) and `payout_external_ticket_sales` with counts and short notes when web ticket lines are absent.
 
 **`py_` (Payment) sources** — Some Connect flows (e.g. Klarna) use a Stripe **Payment** id (`py_…`) on the balance transaction `source` instead of a **Charge** id (`ch_…`). `SyncStoreStripeBalanceTransactionsFromStripe` stores that id on `store_stripe_balance_transactions.stripe_charge_id` and copies `source` metadata so it matches `connected_charges.stripe_charge_id` (your DB may store `py_…` in that column for the same row). After upgrading, **re-sync balance transactions** for affected payouts so existing mirror rows get `stripe_charge_id` populated; otherwise Tripletex payout logic cannot join to `connected_charges`.
 
 **Automatic balance-transaction sync** — `SyncStoreStripeBalanceTransactionsJob` runs on the `stripe-sync` queue. Laravel’s scheduler dispatches one job per store with a Stripe account about every 30 minutes (`routes/console.php`, toggle with `STRIPE_SYNC_BALANCE_TRANSACTIONS_SCHEDULE` / `config/stripe_sync.php`). The job is also included in `SyncEverythingFromStripeJob` and can be queued from Filament (batched).
+
+**Payout-scoped sync** — For paid payouts, the app also queues `SyncStoreStripeBalanceTransactionsJob` with the Stripe payout id (`payout.paid` Connect webhook) and can list balance transactions using Stripe’s **`payout` filter** (`GET /v1/balance_transactions?payout=po_…`). That backfills mirror rows even when a full “recent 100” sync never attached `stripe_payout_id` to older balance transactions. Filament **Stripe payout** view: action **Sync Stripe balance rows for this payout** queues the same job for manual repair.
 
 ## HTTP / env
 

@@ -6,7 +6,9 @@ use App\Enums\AddonType;
 use App\Enums\TripletexSyncRunStatus;
 use App\Filament\Actions\TripletexVoucherPreviewAction;
 use App\Filament\Resources\StoreStripePayouts\StoreStripePayoutResource;
+use App\Jobs\SyncStoreStripeBalanceTransactionsJob;
 use App\Models\Addon;
+use App\Models\Store;
 use App\Models\TripletexSyncRun;
 use App\Services\Tripletex\TripletexPayoutSync;
 use App\Services\Tripletex\TripletexSyncPreviewService;
@@ -26,6 +28,38 @@ class ViewStoreStripePayout extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('sync_stripe_balance_rows_for_payout')
+                ->label(__('filament.resources.store_stripe_payout.actions.sync_balance_for_payout'))
+                ->icon(Heroicon::OutlinedArrowPath)
+                ->color('gray')
+                ->visible(fn (): bool => filled($this->record->stripe_payout_id)
+                    && str_starts_with((string) $this->record->stripe_payout_id, 'po_')
+                    && filled($this->record->store?->stripe_account_id))
+                ->requiresConfirmation()
+                ->modalHeading(__('filament.resources.store_stripe_payout.actions.sync_balance_for_payout_heading'))
+                ->modalDescription(__('filament.resources.store_stripe_payout.actions.sync_balance_for_payout_description'))
+                ->action(function (): void {
+                    $store = $this->record->store;
+                    if (! $store instanceof Store || ! $store->stripe_account_id) {
+                        Notification::make()
+                            ->title(__('filament.resources.store_stripe_payout.notifications.sync_balance_for_payout_missing_store_title'))
+                            ->body(__('filament.resources.store_stripe_payout.notifications.sync_balance_for_payout_missing_store_body'))
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    SyncStoreStripeBalanceTransactionsJob::dispatch($store, $this->record->stripe_payout_id);
+
+                    Notification::make()
+                        ->title(__('filament.resources.store_stripe_payout.notifications.sync_balance_for_payout_queued_title'))
+                        ->body(__('filament.resources.store_stripe_payout.notifications.sync_balance_for_payout_queued_body', [
+                            'payout' => $this->record->stripe_payout_id,
+                        ]))
+                        ->success()
+                        ->send();
+                }),
             Action::make('preview_tripletex_voucher')
                 ->label(__('Preview Tripletex voucher'))
                 ->icon(Heroicon::OutlinedEye)

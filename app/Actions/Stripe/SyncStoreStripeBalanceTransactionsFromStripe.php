@@ -12,9 +12,10 @@ use Throwable;
 class SyncStoreStripeBalanceTransactionsFromStripe
 {
     /**
+     * @param  ?string  $onlyStripePayoutId  When set, lists balance transactions via Stripe's `payout` filter (reliable for paid payouts) instead of walking the full recent history.
      * @return array{total: int, created: int, updated: int, errors: list<string>}
      */
-    public function __invoke(Store $store, bool $notify = false): array
+    public function __invoke(Store $store, bool $notify = false, ?string $onlyStripePayoutId = null): array
     {
         $result = [
             'total' => 0,
@@ -55,11 +56,16 @@ class SyncStoreStripeBalanceTransactionsFromStripe
 
             $stripe = new StripeClient($secret);
 
+            $listParams = [
+                'limit' => 100,
+                'expand' => ['data.source'],
+            ];
+            if ($onlyStripePayoutId !== null && str_starts_with($onlyStripePayoutId, 'po_')) {
+                $listParams['payout'] = $onlyStripePayoutId;
+            }
+
             $transactions = $stripe->balanceTransactions->all(
-                [
-                    'limit' => 100,
-                    'expand' => ['data.source'],
-                ],
+                $listParams,
                 ['stripe_account' => $stripeAccountId]
             );
 
@@ -69,6 +75,9 @@ class SyncStoreStripeBalanceTransactionsFromStripe
                 try {
                     $chargeId = $this->resolveChargeId($bt);
                     $payoutId = $this->resolvePayoutId($bt);
+                    if ($payoutId === null && $onlyStripePayoutId !== null && str_starts_with($onlyStripePayoutId, 'po_')) {
+                        $payoutId = $onlyStripePayoutId;
+                    }
                     $chargeExtras = $this->extractChargeSourceExtras($bt);
 
                     $availableOn = null;

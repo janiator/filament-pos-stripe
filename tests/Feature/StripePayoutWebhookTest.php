@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Jobs\SyncStoreStripeBalanceTransactionsJob;
 use App\Models\Store;
 use App\Models\StoreStripePayout;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Lanos\CashierConnect\Models\ConnectMapping;
 
 uses(RefreshDatabase::class);
@@ -141,4 +143,60 @@ it('updates an existing payout row on payout.updated webhook', function (): void
     expect($existing->amount)->toBe(9999)
         ->and($existing->status)->toBe('in_transit')
         ->and($existing->arrival_date)->not->toBeNull();
+});
+
+it('queues payout-scoped balance transaction sync on payout.paid webhook', function (): void {
+    Queue::fake();
+
+    $secret = 'whsec_payout_bt_'.uniqid();
+    config()->set('cashierconnect.webhook.secret', $secret);
+
+    $accountId = 'acct_po_bt_'.uniqid();
+    $store = Store::factory()->create(['stripe_account_id' => $accountId]);
+
+    ConnectMapping::query()->create([
+        'model' => Store::class,
+        'model_id' => $store->id,
+        'stripe_account_id' => $accountId,
+        'type' => 'standard',
+    ]);
+
+    $payoutId = 'po_'.uniqid();
+    $arrival = strtotime('+1 day');
+    $created = time();
+
+    $payload = json_encode([
+        'id' => 'evt_'.uniqid(),
+        'object' => 'event',
+        'type' => 'payout.paid',
+        'account' => $accountId,
+        'data' => [
+            'object' => [
+                'id' => $payoutId,
+                'object' => 'payout',
+                'amount' => 5000,
+                'currency' => 'nok',
+                'status' => 'paid',
+                'arrival_date' => $arrival,
+                'created' => $created,
+                'automatic' => true,
+                'method' => 'standard',
+                'metadata' => [],
+            ],
+        ],
+    ], JSON_THROW_ON_ERROR);
+
+    $timestamp = time();
+    $signedPayload = "{$timestamp}.{$payload}";
+    $signature = hash_hmac('sha256', $signedPayload, $secret);
+    $signatureHeader = "t={$timestamp},v1={$signature}";
+
+    $this->withHeader('Stripe-Signature', $signatureHeader)
+        ->postJson('/api/connectWebhook', json_decode($payload, true, 512, JSON_THROW_ON_ERROR))
+        ->assertOk();
+
+    Queue::assertPushed(SyncStoreStripeBalanceTransactionsJob::class, function (SyncStoreStripeBalanceTransactionsJob $job) use ($store, $payoutId): bool {
+        return (int) $job->store->getKey() === (int) $store->getKey()
+            && $job->onlyStripePayoutId === $payoutId;
+    });
 });

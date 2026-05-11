@@ -26,10 +26,23 @@ it('invokes balance transaction sync action when job runs', function (): void {
     $sync = \Mockery::mock(SyncStoreStripeBalanceTransactionsFromStripe::class);
     $sync->shouldReceive('__invoke')
         ->once()
-        ->with(\Mockery::on(fn (Store $s): bool => (int) $s->getKey() === (int) $store->getKey()), false)
+        ->with(\Mockery::on(fn (Store $s): bool => (int) $s->getKey() === (int) $store->getKey()), false, null)
         ->andReturn(['total' => 3, 'created' => 0, 'updated' => 3, 'errors' => []]);
 
     $job = new SyncStoreStripeBalanceTransactionsJob($store);
+    $job->handle($sync);
+});
+
+it('passes stripe payout id to balance transaction sync when job is payout-scoped', function (): void {
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_test_sync_bt_payout']);
+
+    $sync = \Mockery::mock(SyncStoreStripeBalanceTransactionsFromStripe::class);
+    $sync->shouldReceive('__invoke')
+        ->once()
+        ->with(\Mockery::on(fn (Store $s): bool => (int) $s->getKey() === (int) $store->getKey()), false, 'po_scope_test')
+        ->andReturn(['total' => 5, 'created' => 1, 'updated' => 4, 'errors' => []]);
+
+    $job = new SyncStoreStripeBalanceTransactionsJob($store, 'po_scope_test');
     $job->handle($sync);
 });
 
