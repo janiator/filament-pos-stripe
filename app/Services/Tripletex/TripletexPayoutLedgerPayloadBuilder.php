@@ -125,6 +125,107 @@ class TripletexPayoutLedgerPayloadBuilder
     }
 
     /**
+     * Explains why external (web/advance) ticket lines may be missing from a payout voucher preview.
+     *
+     * @return array<string, mixed>
+     */
+    public function externalTicketSalesDiagnostics(
+        Store $store,
+        TripletexIntegration $integration,
+        StoreStripePayout $payout,
+    ): array {
+        $enabled = TripletexLedgerSettings::externalTicketSalesEnabled($integration);
+        $salesAccount = TripletexLedgerSettings::externalTicketSalesAccountNo($integration);
+        $clearingAccount = TripletexLedgerSettings::externalTicketSalesClearingAccountNo($integration);
+        $metadataKeys = TripletexLedgerSettings::externalTicketSalesRequireMetadataKeys($integration);
+        $hasRegex = TripletexLedgerSettings::externalTicketSalesDescriptionRegex($integration) !== null;
+
+        $rows = StoreStripeBalanceTransaction::query()
+            ->where('store_id', $store->getKey())
+            ->where('stripe_payout_id', $payout->stripe_payout_id)
+            ->orderBy('stripe_created')
+            ->get();
+
+        $chargeRows = 0;
+        $missingConnectedCharge = 0;
+        $linkedPosSession = 0;
+        $webCandidates = 0;
+        $zeroNetAmount = 0;
+        $failedRules = 0;
+        $matched = 0;
+
+        $chargeIds = $rows->where('type', 'charge')->pluck('stripe_charge_id')->filter()->unique()->values();
+        $stripeAccountId = (string) $store->stripe_account_id;
+        $charges = ConnectedCharge::query()
+            ->where('stripe_account_id', $stripeAccountId)
+            ->whereIn('stripe_charge_id', $chargeIds->all())
+            ->get()
+            ->keyBy('stripe_charge_id');
+
+        foreach ($rows as $bt) {
+            if ($bt->type !== 'charge' || empty($bt->stripe_charge_id)) {
+                continue;
+            }
+            $chargeRows++;
+            $charge = $charges->get($bt->stripe_charge_id);
+            if (! $charge instanceof ConnectedCharge) {
+                $missingConnectedCharge++;
+
+                continue;
+            }
+            if ($charge->pos_session_id !== null) {
+                $linkedPosSession++;
+
+                continue;
+            }
+            $webCandidates++;
+            $amountMinor = max(0, (int) $charge->amount - (int) $charge->amount_refunded);
+            if ($amountMinor <= 0) {
+                $zeroNetAmount++;
+
+                continue;
+            }
+            if (! TripletexExternalTicketSalesMatch::matches($integration, $charge, $bt)) {
+                $failedRules++;
+
+                continue;
+            }
+            $matched++;
+        }
+
+        $notes = [];
+        if (! $enabled) {
+            $notes[] = 'External ticket sales on Stripe payout vouchers is disabled. Turn it on under Tripletex ledger settings (with a sales account) to add web/advance ticket lines. Ticket revenue from the POS is posted on Z-report vouchers when a session closes, not on payout vouchers.';
+        } elseif (! $salesAccount || ! $clearingAccount) {
+            $notes[] = 'External ticket sales is enabled but a sales or clearing account is missing; configure sales (and optionally clearing) account numbers.';
+        } elseif ($chargeRows === 0) {
+            $notes[] = 'No charge-type balance transactions are mirrored for this payout yet. Sync Stripe balance transactions for the store, then preview again.';
+        } elseif ($webCandidates === 0 && $chargeRows > 0) {
+            $notes[] = 'Every mirrored charge in this payout is linked to a POS session (pos_session_id is set). Payout ticket lines only apply to web or advance sales without a POS session. Use the Z-report Tripletex preview for till ticket revenue.';
+        } elseif ($webCandidates > 0 && $matched === 0) {
+            $keys = implode(', ', $metadataKeys);
+            $notes[] = "This payout has {$webCandidates} charge(s) without a POS session, but none matched external-ticket rules (required metadata keys: {$keys}".($hasRegex ? '; description must match the configured regex' : '').').';
+        }
+
+        return [
+            'enabled' => $enabled,
+            'sales_account_configured' => filled($salesAccount),
+            'clearing_account_configured' => filled($clearingAccount),
+            'required_metadata_keys' => $metadataKeys,
+            'description_regex_configured' => $hasRegex,
+            'charge_balance_transactions' => $chargeRows,
+            'connected_charge_rows_loaded' => (int) $charges->count(),
+            'charges_without_pos_session' => $webCandidates,
+            'matched_for_voucher_lines' => $matched,
+            'skipped_no_connected_charge' => $missingConnectedCharge,
+            'skipped_linked_pos_session' => $linkedPosSession,
+            'skipped_zero_net_amount' => $zeroNetAmount,
+            'skipped_metadata_or_regex' => $failedRules,
+            'notes' => $notes,
+        ];
+    }
+
+    /**
      * @param  \Illuminate\Support\Collection<int, StoreStripeBalanceTransaction>  $rows
      * @return array{application_fee_minor: int, stripe_fee_minor: int, total_fee_minor: int}
      */

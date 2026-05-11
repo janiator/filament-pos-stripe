@@ -62,7 +62,7 @@ final class TripletexSyncPreviewService
             return $this->previewError('Payout does not belong to this integration store.', 'payout', null, $payout->id);
         }
 
-        return $this->finishLedgerPreview(
+        $preview = $this->finishLedgerPreview(
             'payout',
             null,
             $payout->id,
@@ -70,6 +70,16 @@ final class TripletexSyncPreviewService
             $integration,
             $resolveTripletexAccounts,
         );
+
+        if (($preview['ok'] ?? false) === true) {
+            $preview['payout_external_ticket_sales'] = $this->payoutLedger->externalTicketSalesDiagnostics(
+                $store,
+                $integration,
+                $payout,
+            );
+        }
+
+        return $preview;
     }
 
     /**

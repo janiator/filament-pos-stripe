@@ -83,6 +83,35 @@
                         @endif
                     </div>
 
+                    @if(($this->tripletexPreview['kind'] ?? '') === 'payout' && ! empty($this->tripletexPreview['payout_external_ticket_sales'] ?? null))
+                        @php
+                            $ext = $this->tripletexPreview['payout_external_ticket_sales'];
+                        @endphp
+                        <div class="rounded-lg border border-gray-200 bg-gray-50/80 p-3 text-xs dark:border-white/10 dark:bg-white/5">
+                            <h4 class="mb-2 font-semibold text-gray-950 dark:text-white">External / web ticket lines (payout)</h4>
+                            <dl class="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+                                <div><dt class="inline text-gray-500 dark:text-gray-400">Feature enabled</dt> <dd class="inline font-medium">{{ ($ext['enabled'] ?? false) ? 'Yes' : 'No' }}</dd></div>
+                                <div><dt class="inline text-gray-500 dark:text-gray-400">Sales account set</dt> <dd class="inline font-medium">{{ ($ext['sales_account_configured'] ?? false) ? 'Yes' : 'No' }}</dd></div>
+                                <div><dt class="inline text-gray-500 dark:text-gray-400">Charge rows in payout</dt> <dd class="inline font-mono">{{ (int) ($ext['charge_balance_transactions'] ?? 0) }}</dd></div>
+                                <div><dt class="inline text-gray-500 dark:text-gray-400">Without POS session</dt> <dd class="inline font-mono">{{ (int) ($ext['charges_without_pos_session'] ?? 0) }}</dd></div>
+                                <div><dt class="inline text-gray-500 dark:text-gray-400">Matched for voucher</dt> <dd class="inline font-mono">{{ (int) ($ext['matched_for_voucher_lines'] ?? 0) }}</dd></div>
+                                <div><dt class="inline text-gray-500 dark:text-gray-400">Skipped (no local charge)</dt> <dd class="inline font-mono">{{ (int) ($ext['skipped_no_connected_charge'] ?? 0) }}</dd></div>
+                                <div><dt class="inline text-gray-500 dark:text-gray-400">Skipped (POS session)</dt> <dd class="inline font-mono">{{ (int) ($ext['skipped_linked_pos_session'] ?? 0) }}</dd></div>
+                                <div><dt class="inline text-gray-500 dark:text-gray-400">Skipped (metadata / regex)</dt> <dd class="inline font-mono">{{ (int) ($ext['skipped_metadata_or_regex'] ?? 0) }}</dd></div>
+                            </dl>
+                            @if(! empty($ext['required_metadata_keys'] ?? []))
+                                <p class="mt-2 text-gray-600 dark:text-gray-300">Required metadata keys: <span class="font-mono">{{ implode(', ', $ext['required_metadata_keys']) }}</span></p>
+                            @endif
+                            @if(! empty($ext['notes'] ?? []))
+                                <ul class="mt-2 list-disc space-y-1 ps-4 text-gray-700 dark:text-gray-300">
+                                    @foreach($ext['notes'] as $note)
+                                        <li>{{ $note }}</li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </div>
+                    @endif
+
                     @if(filled($this->tripletexPreview['resolve_error'] ?? null))
                         <div class="rounded-lg border border-warning-200 bg-warning-50 p-3 text-sm text-warning-900 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-100">
                             {{ $this->tripletexPreview['resolve_error'] }}

@@ -44,6 +44,8 @@ Tripletex account numbers are resolved to Tripletex ledger account IDs per sync 
 
 Internal ledger payloads use **integer minor units** (e.g. NOK øre). `TripletexManualVoucherPayloadFactory` converts each line to Tripletex `amountGross` / `amountGrossCurrency` as a **major-unit float rounded to two decimals**: debits positive, credits negative. That matches the legacy Merano-Tripletex-Sync `voucherBuilder.js` convention (`signedAmt = l.credit ? -amt : amt` with `amt` from `toFixed(2)`), while avoiding float accumulation drift from the old script’s summed float `amount` values.
 
+**Payout preview diagnostics** — Filament and API payout previews include `payout_external_ticket_sales` with counts (charges in the payout mirror, without `pos_session_id`, matched for external-ticket lines) and short notes when web ticket lines are absent, so operators can see whether the feature is off, everything is POS-attributed, metadata/regex failed, or `connected_charges` rows are missing.
+
 ## HTTP / env
 
 - `TRIPLETEX_VOUCHER_POST_PATH` — default `/ledger/voucher`

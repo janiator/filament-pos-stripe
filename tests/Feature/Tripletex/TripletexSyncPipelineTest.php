@@ -925,6 +925,44 @@ it('maps minor units to Tripletex amountGross with two-decimal major units (lega
     expect($amounts)->toBe([199.99, -0.01, -123.45]);
 });
 
+it('includes payout external ticket sales diagnostics on Tripletex payout preview', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_diag_preview',
+        'amount' => 12_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    $preview = app(TripletexSyncPreviewService::class)->previewPayout($payout, $integration, false);
+
+    expect($preview['ok'])->toBeTrue()
+        ->and($preview['payout_external_ticket_sales'])->toBeArray()
+        ->and($preview['payout_external_ticket_sales']['enabled'])->toBeFalse()
+        ->and($preview['payout_external_ticket_sales']['notes'])->not->toBeEmpty();
+});
+
 it('splits Z-report ledger lines by calendar day when enabled and session charges exist', function () {
     $store = Store::factory()->create();
 
