@@ -64,5 +64,13 @@ return [
         'transfer.created',
         'transfer.updated',
         'transfer.reversed',
+
+        // Payout events (mirror `store_stripe_payouts` from Connect webhooks)
+        'payout.created',
+        'payout.updated',
+        'payout.paid',
+        'payout.failed',
+        'payout.canceled',
+        'payout.reconciliation_completed',
     ],
 ];
