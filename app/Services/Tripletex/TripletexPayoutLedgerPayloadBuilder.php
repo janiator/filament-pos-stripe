@@ -7,6 +7,7 @@ use App\Models\Store;
 use App\Models\StoreStripeBalanceTransaction;
 use App\Models\StoreStripePayout;
 use App\Models\TripletexIntegration;
+use App\Support\Tripletex\TripletexExternalTicketSalesMatch;
 use App\Support\Tripletex\TripletexLedgerSettings;
 use Carbon\Carbon;
 
@@ -231,7 +232,7 @@ class TripletexPayoutLedgerPayloadBuilder
             if ($charge->pos_session_id !== null) {
                 continue;
             }
-            if (! $this->externalTicketRulesMatch($integration, $charge, $bt)) {
+            if (! TripletexExternalTicketSalesMatch::matches($integration, $charge, $bt)) {
                 continue;
             }
 
@@ -280,36 +281,5 @@ class TripletexPayoutLedgerPayloadBuilder
         }
 
         return Carbon::createFromTimestamp($ts)->timezone((string) config('app.timezone'))->format('Y-m-d');
-    }
-
-    protected function externalTicketRulesMatch(
-        TripletexIntegration $integration,
-        ConnectedCharge $charge,
-        StoreStripeBalanceTransaction $bt,
-    ): bool {
-        $meta = $charge->metadata;
-        if (! is_array($meta) || $meta === []) {
-            $meta = $bt->source_metadata;
-        }
-        if (! is_array($meta)) {
-            $meta = [];
-        }
-
-        foreach (TripletexLedgerSettings::externalTicketSalesRequireMetadataKeys($integration) as $key) {
-            $v = $meta[$key] ?? null;
-            if ($v === null || $v === '' || $v === []) {
-                return false;
-            }
-        }
-
-        $regex = TripletexLedgerSettings::externalTicketSalesDescriptionRegex($integration);
-        if ($regex !== null) {
-            $haystack = (string) ($charge->description ?? '');
-            if (@preg_match($regex, $haystack) !== 1) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

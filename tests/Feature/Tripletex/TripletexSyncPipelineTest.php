@@ -1119,6 +1119,74 @@ it('adds external ticket lines only for charges without a POS session when enabl
     expect($externalCredits)->toBe(5_000);
 });
 
+it('matches external ticket metadata when booking_id is only on balance transaction source_metadata', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+                'external_ticket_sales' => [
+                    'enabled' => true,
+                    'sales_account_no' => '3200',
+                    'require_metadata_keys' => ['booking_id'],
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_ext_ticket_meta_merge',
+        'amount' => 5_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_charge_id' => 'ch_ext_web_meta_split',
+        'pos_session_id' => null,
+        'status' => 'succeeded',
+        'paid' => true,
+        'amount' => 5_000,
+        'metadata' => ['pos_enrichment_only' => '1'],
+    ]);
+
+    StoreStripeBalanceTransaction::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_balance_transaction_id' => 'txn_ext_meta_merge',
+        'type' => 'charge',
+        'amount' => 5_000,
+        'fee' => 0,
+        'net' => 5_000,
+        'currency' => 'nok',
+        'stripe_charge_id' => 'ch_ext_web_meta_split',
+        'stripe_payout_id' => $payout->stripe_payout_id,
+        'stripe_created' => (int) now()->timestamp,
+        'source_metadata' => ['booking_id' => 'b-merge-1'],
+    ]);
+
+    $payload = app(TripletexPayoutLedgerPayloadBuilder::class)->build($store, $integration, $payout);
+    $externalCredits = collect($payload['lines'] ?? [])
+        ->where('line_kind', 'external_ticket_sales')
+        ->sum('credit_minor');
+
+    expect($externalCredits)->toBe(5_000);
+});
+
 it('reconciles a successful payout sync payload against mirror totals', function () {
     $store = Store::factory()->create();
 

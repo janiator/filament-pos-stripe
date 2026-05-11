@@ -29,6 +29,9 @@ return [
             'track_inventory_help' => 'Når aktivert, håndheves variantantall ved utsjekk hvis Inventory-tillegget er på for butikken.',
         ],
     ],
+    'tripletex' => [
+        'payout_voucher_preview_description' => 'Kontoplan-linjer for denne Stripe-utbetalingen. Slå på kontoresolusjon for å kalle Tripletex og få eksakt JSON for POST /ledger/voucher. Billettomsetning fra kasse (POS) bokføres i Tripletex når en kasseøkt avsluttes (forhåndsvisning av Z-rapportbilag), ikke her. Forhånds- eller nettbillett-linjer vises på denne utbetalingen bare når «Eksterne billettsalg» er aktivert under Tripletex kontoinnstillinger og betalinger uten POS-økt oppfyller metadata (og valgfri beskrivelses-regex); metadata fra Stripe-belastningen og fra speilet av balansetransaksjoner slås sammen ved treffsjekk.',
+    ],
     // Navigation Groups
     'navigation_groups' => [
         'automation' => 'Automasjon',

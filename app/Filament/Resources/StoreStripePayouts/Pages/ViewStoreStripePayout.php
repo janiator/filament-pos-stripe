@@ -33,7 +33,7 @@ class ViewStoreStripePayout extends ViewRecord
                 ->visible(fn (): bool => TripletexVoucherPreviewAction::canPreviewPayout($this->record))
                 ->slideOver()
                 ->modalHeading(__('Tripletex voucher preview'))
-                ->modalDescription(__('Ledger lines for this Stripe payout. Turn on account resolution to call Tripletex and include the exact JSON for POST /ledger/voucher.'))
+                ->modalDescription(__('filament.tripletex.payout_voucher_preview_description'))
                 ->modalWidth('4xl')
                 ->fillForm(fn (): array => [
                     'resolve_tripletex_accounts' => false,
