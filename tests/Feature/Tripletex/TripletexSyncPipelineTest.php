@@ -456,6 +456,56 @@ it('resolves stripe payout id from Stripe balance transaction shapes', function 
     expect($method->invoke($action, (object) ['payout' => null]))->toBeNull();
 });
 
+it('resolves py_ payment ids from Stripe charge balance transactions for payout mirror joins', function () {
+    $action = new SyncStoreStripeBalanceTransactionsFromStripe;
+    $ref = new ReflectionClass($action);
+    $resolveChargeId = $ref->getMethod('resolveChargeId');
+    $resolveChargeId->setAccessible(true);
+
+    expect($resolveChargeId->invoke($action, (object) [
+        'type' => 'charge',
+        'source' => 'py_3TVtzBRu3Ljbb32R18cSlSBn',
+    ]))->toBe('py_3TVtzBRu3Ljbb32R18cSlSBn');
+
+    expect($resolveChargeId->invoke($action, (object) [
+        'type' => 'charge',
+        'source' => (object) [
+            'id' => 'py_3abc',
+            'object' => 'payment',
+        ],
+    ]))->toBe('py_3abc');
+
+    expect($resolveChargeId->invoke($action, (object) [
+        'type' => 'charge',
+        'source' => (object) [
+            'id' => 'ch_3abc',
+            'object' => 'charge',
+        ],
+    ]))->toBe('ch_3abc');
+});
+
+it('extracts source metadata from payment balance transaction sources', function () {
+    $action = new SyncStoreStripeBalanceTransactionsFromStripe;
+    $ref = new ReflectionClass($action);
+    $extract = $ref->getMethod('extractChargeSourceExtras');
+    $extract->setAccessible(true);
+
+    $bt = (object) [
+        'type' => 'charge',
+        'source' => (object) [
+            'object' => 'payment',
+            'id' => 'py_test',
+            'metadata' => (object) ['booking_id' => '6887', 'seats' => 'A1'],
+            'payment_intent' => 'pi_3TVtzBRu3Ljbb32R1VGaUNQC',
+        ],
+    ];
+
+    $out = $extract->invoke($action, $bt);
+
+    expect($out['source_metadata']['booking_id'])->toBe('6887')
+        ->and($out['stripe_payment_intent_id'])->toBe('pi_3TVtzBRu3Ljbb32R1VGaUNQC');
+});
+
 it('queues Tripletex Z-report sync from the API when the add-on and integration are ready', function () {
     Queue::fake();
 

@@ -46,6 +46,8 @@ Internal ledger payloads use **integer minor units** (e.g. NOK øre). `Tripletex
 
 **Payout preview diagnostics** — Filament and API payout previews include `payout_external_ticket_sales` with counts (charges in the payout mirror, without `pos_session_id`, matched for external-ticket lines) and short notes when web ticket lines are absent, so operators can see whether the feature is off, everything is POS-attributed, metadata/regex failed, or `connected_charges` rows are missing.
 
+**`py_` (Payment) sources** — Some Connect flows (e.g. Klarna) use a Stripe **Payment** id (`py_…`) on the balance transaction `source` instead of a **Charge** id (`ch_…`). `SyncStoreStripeBalanceTransactionsFromStripe` stores that id on `store_stripe_balance_transactions.stripe_charge_id` and copies `source` metadata so it matches `connected_charges.stripe_charge_id` (your DB may store `py_…` in that column for the same row). After upgrading, **re-sync balance transactions** for affected payouts so existing mirror rows get `stripe_charge_id` populated; otherwise Tripletex payout logic cannot join to `connected_charges`.
+
 ## HTTP / env
 
 - `TRIPLETEX_VOUCHER_POST_PATH` — default `/ledger/voucher`

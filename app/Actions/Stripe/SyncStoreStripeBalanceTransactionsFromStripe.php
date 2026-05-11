@@ -164,7 +164,8 @@ class SyncStoreStripeBalanceTransactionsFromStripe
             return $out;
         }
 
-        if (($source->object ?? null) !== 'charge') {
+        $objectType = (string) ($source->object ?? '');
+        if ($objectType !== 'charge' && $objectType !== 'payment') {
             return $out;
         }
 
@@ -209,12 +210,15 @@ class SyncStoreStripeBalanceTransactionsFromStripe
         }
 
         $source = $bt->source ?? null;
-        if (is_string($source) && str_starts_with($source, 'ch_')) {
+        if (is_string($source) && (str_starts_with($source, 'ch_') || str_starts_with($source, 'py_'))) {
             return $source;
         }
 
-        if (is_object($source) && isset($source->id) && is_string($source->id) && str_starts_with($source->id, 'ch_')) {
-            return $source->id;
+        if (is_object($source) && isset($source->id) && is_string($source->id)) {
+            $id = $source->id;
+            if (str_starts_with($id, 'ch_') || str_starts_with($id, 'py_')) {
+                return $id;
+            }
         }
 
         return null;
