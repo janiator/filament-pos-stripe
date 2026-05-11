@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\ConnectedCharges\Pages;
 
-use App\Actions\ConnectedCharges\SyncConnectedChargesFromStripe;
 use App\Filament\Resources\ConnectedCharges\ConnectedChargeResource;
+use App\Jobs\SyncStoreChargesFromStripeJob;
 use App\Models\Store;
+use App\Support\Filament\QueueStripeConnectedResourceSync;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -18,13 +19,13 @@ class ListConnectedCharges extends ListRecords
     {
         $query = parent::getTableQuery()
             ->with(['store']);
-        
+
         // Note: Customer relationship will be loaded but may not be filtered by account_id
         // This is acceptable as the relationship is defined to match on customer_id only
         if (class_exists(\App\Models\ConnectedCustomer::class)) {
             $query->with(['customer']);
         }
-        
+
         return $query;
     }
 
@@ -42,41 +43,11 @@ class ListConnectedCharges extends ListRecords
                 ->modalHeading('Sync Charges from Stripe')
                 ->modalDescription(fn () => $this->getSyncDescription('charges'))
                 ->action(function () {
-                    $syncAction = new SyncConnectedChargesFromStripe();
-                    $stores = Store::getStoresForSync();
-
-                    $totalCreated = 0;
-                    $totalUpdated = 0;
-                    $totalFound = 0;
-                    $errors = [];
-
-                    foreach ($stores as $store) {
-                        $result = $syncAction($store, false);
-                        $totalFound += $result['total'];
-                        $totalCreated += $result['created'];
-                        $totalUpdated += $result['updated'];
-                        $errors = array_merge($errors, $result['errors']);
-                    }
-
-                    if (! empty($errors)) {
-                        $errorDetails = implode("\n", array_slice($errors, 0, 5));
-                        if (count($errors) > 5) {
-                            $errorDetails .= "\n... and " . (count($errors) - 5) . " more error(s)";
-                        }
-
-                        \Filament\Notifications\Notification::make()
-                            ->title('Sync completed with errors')
-                            ->body("Found {$totalFound} charges. {$totalCreated} created, {$totalUpdated} updated.\n\nErrors:\n{$errorDetails}")
-                            ->warning()
-                            ->persistent()
-                            ->send();
-                    } else {
-                        \Filament\Notifications\Notification::make()
-                            ->title('Sync complete')
-                            ->body("Found {$totalFound} charges. {$totalCreated} created, {$totalUpdated} updated.")
-                            ->success()
-                            ->send();
-                    }
+                    QueueStripeConnectedResourceSync::dispatch(
+                        'Sync charges from Stripe',
+                        'charges',
+                        fn (Store $store): SyncStoreChargesFromStripeJob => new SyncStoreChargesFromStripeJob($store),
+                    );
 
                     $this->refresh();
                 }),
@@ -88,11 +59,12 @@ class ListConnectedCharges extends ListRecords
         try {
             $tenant = \Filament\Facades\Filament::getTenant();
             if ($tenant && $tenant->slug !== 'visivo-admin') {
-                return "This will sync all {$type} from the current team's Stripe account. This may take a moment.";
+                return "This will sync all {$type} from the current team's Stripe account. The sync runs in the background and may take several minutes.";
             }
         } catch (\Throwable $e) {
             // Fallback
         }
-        return "This will sync all {$type} from all connected Stripe accounts. This may take a moment.";
+
+        return "This will sync all {$type} from all connected Stripe accounts. Jobs run in the background and may take several minutes.";
     }
 }

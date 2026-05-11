@@ -56,7 +56,7 @@ A charge may have `pos_session_id = null` in these cases:
 
 1. **Stripe charge webhook** – `HandleChargeWebhook` creates or updates a charge from Stripe events (`charge.created`, `charge.succeeded`, etc.). It looks up by `stripe_payment_intent_id` first when present; when a row is found, it updates that row with webhook data and **preserves** `pos_session_id` and other POS fields (transaction_code, payment_code, tip_amount, article_group_code), so webhook and POS-created charges are merged without duplicates or lost session. When it **creates** a new record (no existing row by payment_intent_id or stripe_charge_id), the record has only Stripe fields and no `pos_session_id`. That can happen when the webhook runs before the POS flow saves the charge, or when the charge was created outside the POS (e.g. Payment Link, Stripe Dashboard).
 
-2. **Sync from Stripe** – `SyncConnectedChargesFromStripe` creates new `ConnectedCharge` rows for charges that exist in Stripe but not in the app. New rows are created with Stripe data only; `pos_session_id` is not set. Updates preserve existing `pos_session_id`.
+2. **Sync from Stripe** – `SyncConnectedChargesFromStripe` (run from the queued `SyncStoreChargesFromStripeJob` when triggered from Filament) creates new `ConnectedCharge` rows for charges that exist in Stripe but not in the app. New rows are created with Stripe data only; `pos_session_id` is not set. Updates preserve existing `pos_session_id`.
 
 3. **CreateConnectedChargeOnStripe** – Creating a charge directly on Stripe via this action (e.g. from Filament or another flow that does not use `PurchaseService`) creates a local record without `pos_session_id`.
 

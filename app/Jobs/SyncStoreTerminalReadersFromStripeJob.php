@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Actions\Stores\SyncStoreTerminalReadersFromStripe;
 use App\Models\Store;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class SyncStoreTerminalReadersFromStripeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * The number of times the job may be attempted.
@@ -51,7 +52,7 @@ class SyncStoreTerminalReadersFromStripeJob implements ShouldQueue
         ]);
 
         try {
-            $syncAction = new SyncStoreTerminalReadersFromStripe();
+            $syncAction = new SyncStoreTerminalReadersFromStripe;
             $result = $syncAction($this->store);
 
             Log::info('Sync terminal readers from Stripe completed for store', [
@@ -59,7 +60,7 @@ class SyncStoreTerminalReadersFromStripeJob implements ShouldQueue
                 'total' => $result['total'],
                 'created' => $result['created'],
                 'updated' => $result['updated'],
-                'has_error' => !empty($result['error']),
+                'has_error' => ! empty($result['error']),
             ]);
         } catch (\Throwable $e) {
             Log::error('Sync terminal readers from Stripe job failed for store', [

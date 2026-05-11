@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\ConnectedTransfers\Pages;
 
-use App\Actions\ConnectedTransfers\SyncConnectedTransfersFromStripe;
 use App\Filament\Resources\ConnectedTransfers\ConnectedTransferResource;
+use App\Jobs\SyncStoreTransfersFromStripeJob;
 use App\Models\Store;
+use App\Support\Filament\QueueStripeConnectedResourceSync;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -33,41 +34,11 @@ class ListConnectedTransfers extends ListRecords
                 ->modalHeading('Sync Transfers from Stripe')
                 ->modalDescription(fn () => $this->getSyncDescription('transfers'))
                 ->action(function () {
-                    $syncAction = new SyncConnectedTransfersFromStripe();
-                    $stores = Store::getStoresForSync();
-
-                    $totalCreated = 0;
-                    $totalUpdated = 0;
-                    $totalFound = 0;
-                    $errors = [];
-
-                    foreach ($stores as $store) {
-                        $result = $syncAction($store, false);
-                        $totalFound += $result['total'];
-                        $totalCreated += $result['created'];
-                        $totalUpdated += $result['updated'];
-                        $errors = array_merge($errors, $result['errors']);
-                    }
-
-                    if (! empty($errors)) {
-                        $errorDetails = implode("\n", array_slice($errors, 0, 5));
-                        if (count($errors) > 5) {
-                            $errorDetails .= "\n... and " . (count($errors) - 5) . " more error(s)";
-                        }
-
-                        \Filament\Notifications\Notification::make()
-                            ->title('Sync completed with errors')
-                            ->body("Found {$totalFound} transfers. {$totalCreated} created, {$totalUpdated} updated.\n\nErrors:\n{$errorDetails}")
-                            ->warning()
-                            ->persistent()
-                            ->send();
-                    } else {
-                        \Filament\Notifications\Notification::make()
-                            ->title('Sync complete')
-                            ->body("Found {$totalFound} transfers. {$totalCreated} created, {$totalUpdated} updated.")
-                            ->success()
-                            ->send();
-                    }
+                    QueueStripeConnectedResourceSync::dispatch(
+                        'Sync transfers from Stripe',
+                        'transfers',
+                        fn (Store $store): SyncStoreTransfersFromStripeJob => new SyncStoreTransfersFromStripeJob($store),
+                    );
 
                     $this->refresh();
                 }),
@@ -79,11 +50,12 @@ class ListConnectedTransfers extends ListRecords
         try {
             $tenant = \Filament\Facades\Filament::getTenant();
             if ($tenant && $tenant->slug !== 'visivo-admin') {
-                return "This will sync all {$type} from the current team's Stripe account. This may take a moment.";
+                return "This will sync all {$type} from the current team's Stripe account. The sync runs in the background and may take several minutes.";
             }
         } catch (\Throwable $e) {
             // Fallback
         }
-        return "This will sync all {$type} from all connected Stripe accounts. This may take a moment.";
+
+        return "This will sync all {$type} from all connected Stripe accounts. Jobs run in the background and may take several minutes.";
     }
 }
