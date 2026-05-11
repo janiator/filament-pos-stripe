@@ -4,6 +4,7 @@ namespace App\Actions\ConnectedPaymentIntents;
 
 use App\Models\ConnectedPaymentIntent;
 use App\Models\Store;
+use App\Support\Stripe\StripeMetadata;
 use Filament\Notifications\Notification;
 use Lanos\CashierConnect\Exceptions\AccountNotFoundException;
 use Stripe\StripeClient;
@@ -14,10 +15,10 @@ class SyncConnectedPaymentIntentsFromStripe
     public function __invoke(Store $store, bool $notify = false): array
     {
         $result = [
-            'total'   => 0,
+            'total' => 0,
             'created' => 0,
             'updated' => 0,
-            'errors'  => [],
+            'errors' => [],
         ];
 
         try {
@@ -66,6 +67,7 @@ class SyncConnectedPaymentIntentsFromStripe
                     // Ensure stripe_account_id is still valid
                     if (empty($stripeAccountId)) {
                         $result['errors'][] = "Payment Intent {$intent->id}: stripe_account_id is empty (store: {$store->id})";
+
                         continue;
                     }
 
@@ -83,7 +85,7 @@ class SyncConnectedPaymentIntentsFromStripe
                         'receipt_email' => $intent->receipt_email,
                         'statement_descriptor' => $intent->statement_descriptor,
                         'statement_descriptor_suffix' => $intent->statement_descriptor_suffix,
-                        'metadata' => $intent->metadata ? (array) $intent->metadata : null,
+                        'metadata' => StripeMetadata::toArray($intent->metadata),
                         'payment_method_options' => $intent->payment_method_options ? (array) $intent->payment_method_options : null,
                         'client_secret' => $intent->client_secret,
                         'canceled_at' => $intent->canceled_at ? date('Y-m-d H:i:s', $intent->canceled_at) : null,
@@ -94,6 +96,7 @@ class SyncConnectedPaymentIntentsFromStripe
                     // Double-check stripe_account_id is not null
                     if (empty($data['stripe_account_id'])) {
                         $result['errors'][] = "Payment Intent {$intent->id}: stripe_account_id is null after data preparation";
+
                         continue;
                     }
 
@@ -119,7 +122,7 @@ class SyncConnectedPaymentIntentsFromStripe
                 if (! empty($result['errors'])) {
                     $errorDetails = implode("\n", array_slice($result['errors'], 0, 5));
                     if (count($result['errors']) > 5) {
-                        $errorDetails .= "\n... and " . (count($result['errors']) - 5) . " more error(s)";
+                        $errorDetails .= "\n... and ".(count($result['errors']) - 5).' more error(s)';
                     }
                     Notification::make()
                         ->title('Sync completed with errors')
@@ -157,8 +160,8 @@ class SyncConnectedPaymentIntentsFromStripe
             }
 
             report($e);
+
             return $result;
         }
     }
 }
-

@@ -5133,7 +5133,7 @@ paths:
       summary: Preview Tripletex payout voucher lines
       description: |
         Same response shape as Z-report preview (`lines`, `lines_display` with optional `posting_date`/`line_kind`, optional resolved `tripletex_voucher_payload` / `tripletex_postings_display` with optional `date` per posting).
-        On success also includes `mirror_balance_transaction_count` (rows in `store_stripe_balance_transactions` for this `stripe_payout_id`) and `payout_external_ticket_sales` diagnostics when external-ticket rules apply.
+        On success also includes `mirror_balance_transaction_count` (rows in `store_stripe_balance_transactions` for this `stripe_payout_id`) and `payout_external_ticket_sales` diagnostics when external-ticket rules apply (e.g. `required_metadata_keys`, `default_any_of_metadata_keys`, match counts, notes).
         Payout must be `paid`. Read-only; does not require `sync_enabled`.
       operationId: tripletexPreviewPayout
       parameters:

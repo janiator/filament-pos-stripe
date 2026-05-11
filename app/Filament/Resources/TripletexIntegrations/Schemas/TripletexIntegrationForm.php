@@ -256,7 +256,8 @@ class TripletexIntegrationForm
                                     ->minValue(1),
                                 TextInput::make('ledger_external_ticket_metadata_keys')
                                     ->label(__('Required metadata keys (comma-separated)'))
-                                    ->placeholder(__('booking_id'))
+                                    ->placeholder(__('filament.tripletex.external_ticket_metadata_keys_placeholder'))
+                                    ->helperText(__('filament.tripletex.external_ticket_metadata_keys_help'))
                                     ->maxLength(512)
                                     ->columnSpanFull(),
                                 TextInput::make('ledger_external_ticket_description_regex')

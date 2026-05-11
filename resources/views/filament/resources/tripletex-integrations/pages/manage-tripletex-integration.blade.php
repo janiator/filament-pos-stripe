@@ -100,7 +100,9 @@
                                 <div><dt class="inline text-gray-500 dark:text-gray-400">Skipped (metadata / regex)</dt> <dd class="inline font-mono">{{ (int) ($ext['skipped_metadata_or_regex'] ?? 0) }}</dd></div>
                             </dl>
                             @if(! empty($ext['required_metadata_keys'] ?? []))
-                                <p class="mt-2 text-gray-600 dark:text-gray-300">Required metadata keys: <span class="font-mono">{{ implode(', ', $ext['required_metadata_keys']) }}</span></p>
+                                <p class="mt-2 text-gray-600 dark:text-gray-300">Required metadata keys (all must match): <span class="font-mono">{{ implode(', ', $ext['required_metadata_keys']) }}</span></p>
+                            @elseif(! empty($ext['default_any_of_metadata_keys'] ?? []))
+                                <p class="mt-2 text-gray-600 dark:text-gray-300">Default metadata rule (at least one): <span class="font-mono">{{ implode(', ', $ext['default_any_of_metadata_keys']) }}</span></p>
                             @endif
                             @if(! empty($ext['notes'] ?? []))
                                 <ul class="mt-2 list-disc space-y-1 ps-4 text-gray-700 dark:text-gray-300">

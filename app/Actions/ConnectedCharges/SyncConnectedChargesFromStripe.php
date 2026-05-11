@@ -4,6 +4,7 @@ namespace App\Actions\ConnectedCharges;
 
 use App\Models\ConnectedCharge;
 use App\Models\Store;
+use App\Support\Stripe\StripeMetadata;
 use Filament\Notifications\Notification;
 use Lanos\CashierConnect\Exceptions\AccountNotFoundException;
 use Stripe\StripeClient;
@@ -14,10 +15,10 @@ class SyncConnectedChargesFromStripe
     public function __invoke(Store $store, bool $notify = false): array
     {
         $result = [
-            'total'   => 0,
+            'total' => 0,
             'created' => 0,
             'updated' => 0,
-            'errors'  => [],
+            'errors' => [],
         ];
 
         try {
@@ -66,6 +67,7 @@ class SyncConnectedChargesFromStripe
                     // Ensure stripe_account_id is still valid
                     if (empty($stripeAccountId)) {
                         $result['errors'][] = "Charge {$charge->id}: stripe_account_id is empty (store: {$store->id})";
+
                         continue;
                     }
 
@@ -86,7 +88,7 @@ class SyncConnectedChargesFromStripe
                         'refunded' => $charge->refunded ?? false,
                         'paid' => $charge->paid ?? false,
                         'paid_at' => $charge->created ? date('Y-m-d H:i:s', $charge->created) : null,
-                        'metadata' => $charge->metadata ? (array) $charge->metadata : null,
+                        'metadata' => StripeMetadata::toArray($charge->metadata),
                         'outcome' => $charge->outcome ? (array) $charge->outcome : null,
                         'charge_type' => $charge->on_behalf_of ? 'destination' : 'direct',
                         'application_fee_amount' => $charge->application_fee_amount ?? null,
@@ -95,6 +97,7 @@ class SyncConnectedChargesFromStripe
                     // Double-check stripe_account_id is not null
                     if (empty($data['stripe_account_id'])) {
                         $result['errors'][] = "Charge {$charge->id}: stripe_account_id is null after data preparation";
+
                         continue;
                     }
 
@@ -112,19 +115,19 @@ class SyncConnectedChargesFromStripe
                             'tip_amount' => $chargeRecord->tip_amount,
                             'article_group_code' => $chargeRecord->article_group_code,
                         ];
-                        
+
                         // Update existing record - ensure stripe_account_id is set correctly
                         $chargeRecord->fill($data);
                         // Explicitly set stripe_account_id to ensure it's updated if it changed
                         $chargeRecord->stripe_account_id = $stripeAccountId;
-                        
+
                         // Restore preserved POS-specific fields
                         foreach ($preservedFields as $field => $value) {
                             if ($value !== null) {
                                 $chargeRecord->$field = $value;
                             }
                         }
-                        
+
                         $chargeRecord->save();
                         $result['updated']++;
                     } else {
@@ -142,7 +145,7 @@ class SyncConnectedChargesFromStripe
                 if (! empty($result['errors'])) {
                     $errorDetails = implode("\n", array_slice($result['errors'], 0, 5));
                     if (count($result['errors']) > 5) {
-                        $errorDetails .= "\n... and " . (count($result['errors']) - 5) . " more error(s)";
+                        $errorDetails .= "\n... and ".(count($result['errors']) - 5).' more error(s)';
                     }
                     Notification::make()
                         ->title('Sync completed with errors')
@@ -180,6 +183,7 @@ class SyncConnectedChargesFromStripe
             }
 
             report($e);
+
             return $result;
         }
     }

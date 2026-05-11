@@ -24,7 +24,28 @@ final class TripletexExternalTicketSalesMatch
         $fromSource = is_array($bt->source_metadata) ? $bt->source_metadata : [];
         $fromCharge = is_array($charge->metadata) ? $charge->metadata : [];
 
-        return array_merge($fromSource, $fromCharge);
+        return self::sanitizeMetadataKeys(array_merge($fromSource, $fromCharge));
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     * @return array<string, mixed>
+     */
+    protected static function sanitizeMetadataKeys(array $meta): array
+    {
+        $out = [];
+        foreach ($meta as $k => $v) {
+            if (! is_string($k) || $k === '') {
+                continue;
+            }
+            if (str_contains($k, "\0")) {
+                continue;
+            }
+
+            $out[$k] = $v;
+        }
+
+        return $out;
     }
 
     public static function matches(
@@ -34,11 +55,15 @@ final class TripletexExternalTicketSalesMatch
     ): bool {
         $meta = self::mergedMetadata($charge, $bt);
 
-        foreach (TripletexLedgerSettings::externalTicketSalesRequireMetadataKeys($integration) as $key) {
-            $v = $meta[$key] ?? null;
-            if ($v === null || $v === '' || $v === []) {
-                return false;
+        $explicitKeys = TripletexLedgerSettings::externalTicketSalesExplicitRequireMetadataKeys($integration);
+        if ($explicitKeys !== null) {
+            foreach ($explicitKeys as $key) {
+                if (! self::metadataKeyNonEmpty($meta, $key)) {
+                    return false;
+                }
             }
+        } elseif (! self::metadataHasAnyNonEmpty($meta, TripletexLedgerSettings::externalTicketSalesDefaultAnyOfKeys())) {
+            return false;
         }
 
         $regex = TripletexLedgerSettings::externalTicketSalesDescriptionRegex($integration);
@@ -47,6 +72,34 @@ final class TripletexExternalTicketSalesMatch
             if (@preg_match($regex, $haystack) !== 1) {
                 return false;
             }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     * @param  list<string>  $keys
+     */
+    protected static function metadataHasAnyNonEmpty(array $meta, array $keys): bool
+    {
+        foreach ($keys as $key) {
+            if (self::metadataKeyNonEmpty($meta, $key)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     */
+    protected static function metadataKeyNonEmpty(array $meta, string $key): bool
+    {
+        $v = $meta[$key] ?? null;
+        if ($v === null || $v === '' || $v === []) {
+            return false;
         }
 
         return true;

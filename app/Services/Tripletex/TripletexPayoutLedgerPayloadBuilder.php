@@ -137,7 +137,8 @@ class TripletexPayoutLedgerPayloadBuilder
         $enabled = TripletexLedgerSettings::externalTicketSalesEnabled($integration);
         $salesAccount = TripletexLedgerSettings::externalTicketSalesAccountNo($integration);
         $clearingAccount = TripletexLedgerSettings::externalTicketSalesClearingAccountNo($integration);
-        $metadataKeys = TripletexLedgerSettings::externalTicketSalesRequireMetadataKeys($integration);
+        $explicitMetadataKeys = TripletexLedgerSettings::externalTicketSalesExplicitRequireMetadataKeys($integration);
+        $defaultAnyOfKeys = TripletexLedgerSettings::externalTicketSalesDefaultAnyOfKeys();
         $hasRegex = TripletexLedgerSettings::externalTicketSalesDescriptionRegex($integration) !== null;
 
         $rows = StoreStripeBalanceTransaction::query()
@@ -203,15 +204,20 @@ class TripletexPayoutLedgerPayloadBuilder
         } elseif ($webCandidates === 0 && $chargeRows > 0) {
             $notes[] = 'Every mirrored charge in this payout is linked to a POS session (pos_session_id is set). Payout ticket lines only apply to web or advance sales without a POS session. Use the Z-report Tripletex preview for till ticket revenue.';
         } elseif ($webCandidates > 0 && $matched === 0) {
-            $keys = implode(', ', $metadataKeys);
-            $notes[] = "This payout has {$webCandidates} charge(s) without a POS session, but none matched external-ticket rules (required metadata keys: {$keys}".($hasRegex ? '; description must match the configured regex' : '').').';
+            if ($explicitMetadataKeys !== null) {
+                $keys = 'all of: '.implode(', ', $explicitMetadataKeys);
+            } else {
+                $keys = 'at least one of (default): '.implode(', ', $defaultAnyOfKeys);
+            }
+            $notes[] = "This payout has {$webCandidates} charge(s) without a POS session, but none matched external-ticket rules (metadata: {$keys}".($hasRegex ? '; description must match the configured regex' : '').').';
         }
 
         return [
             'enabled' => $enabled,
             'sales_account_configured' => filled($salesAccount),
             'clearing_account_configured' => filled($clearingAccount),
-            'required_metadata_keys' => $metadataKeys,
+            'required_metadata_keys' => $explicitMetadataKeys ?? [],
+            'default_any_of_metadata_keys' => $explicitMetadataKeys === null ? $defaultAnyOfKeys : null,
             'description_regex_configured' => $hasRegex,
             'charge_balance_transactions' => $chargeRows,
             'connected_charge_rows_loaded' => (int) $charges->count(),
