@@ -48,6 +48,8 @@ Internal ledger payloads use **integer minor units** (e.g. NOK øre). `Tripletex
 
 **`py_` (Payment) sources** — Some Connect flows (e.g. Klarna) use a Stripe **Payment** id (`py_…`) on the balance transaction `source` instead of a **Charge** id (`ch_…`). `SyncStoreStripeBalanceTransactionsFromStripe` stores that id on `store_stripe_balance_transactions.stripe_charge_id` and copies `source` metadata so it matches `connected_charges.stripe_charge_id` (your DB may store `py_…` in that column for the same row). After upgrading, **re-sync balance transactions** for affected payouts so existing mirror rows get `stripe_charge_id` populated; otherwise Tripletex payout logic cannot join to `connected_charges`.
 
+**Automatic balance-transaction sync** — `SyncStoreStripeBalanceTransactionsJob` runs on the `stripe-sync` queue. Laravel’s scheduler dispatches one job per store with a Stripe account about every 30 minutes (`routes/console.php`, toggle with `STRIPE_SYNC_BALANCE_TRANSACTIONS_SCHEDULE` / `config/stripe_sync.php`). The job is also included in `SyncEverythingFromStripeJob` and can be queued from Filament (batched).
+
 ## HTTP / env
 
 - `TRIPLETEX_VOUCHER_POST_PATH` — default `/ledger/voucher`

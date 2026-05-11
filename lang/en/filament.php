@@ -36,5 +36,20 @@ return [
         'store' => [
             'tenant_menu' => 'Store information',
         ],
+        'store_stripe_balance_transaction' => [
+            'actions' => [
+                'sync' => 'Sync from Stripe',
+                'sync_heading' => 'Sync balance transactions from Stripe',
+                'sync_description_tenant' => 'Queues one background job per store (stripe-sync queue). Refresh when workers finish.',
+                'sync_description_all' => 'Queues background jobs for every connected Stripe account. May take a while to complete.',
+            ],
+            'notifications' => [
+                'sync_no_stores_title' => 'No stores to sync',
+                'sync_no_stores_body' => 'No store with a Stripe Connect account was found for this context.',
+                'sync_batch_name' => 'Filament: Stripe balance transactions',
+                'sync_queued_title' => 'Balance transaction sync queued',
+                'sync_queued_body' => ':count job(s) were queued (batch #:batch). Refresh this page after workers finish.',
+            ],
+        ],
     ],
 ];
