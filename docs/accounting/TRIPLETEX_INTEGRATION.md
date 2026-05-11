@@ -40,6 +40,10 @@ On the Filament **Tripletex** page, when a store has **no** mapping rows yet and
 
 Tripletex account numbers are resolved to Tripletex ledger account IDs per sync via `GET /ledger/account?number=…` before posting.
 
+## Amounts (decimals)
+
+Internal ledger payloads use **integer minor units** (e.g. NOK øre). `TripletexManualVoucherPayloadFactory` converts each line to Tripletex `amountGross` / `amountGrossCurrency` as a **major-unit float rounded to two decimals**: debits positive, credits negative. That matches the legacy Merano-Tripletex-Sync `voucherBuilder.js` convention (`signedAmt = l.credit ? -amt : amt` with `amt` from `toFixed(2)`), while avoiding float accumulation drift from the old script’s summed float `amount` values.
+
 ## HTTP / env
 
 - `TRIPLETEX_VOUCHER_POST_PATH` — default `/ledger/voucher`

@@ -5,6 +5,12 @@ namespace App\Services\Tripletex;
 /**
  * Maps internal ledger lines (minor units, debit/credit) to Tripletex voucher JSON.
  *
+ * Amounts: {@see $ledgerPayload} lines use **integer minor units** (e.g. NOK øre). Each posting
+ * uses `amountGross` / `amountGrossCurrency` as a major-unit float with two decimals, **debit
+ * positive and credit negative**, matching the legacy Merano-Tripletex-Sync `voucherBuilder.js`
+ * (`signedAmt = l.credit ? -amt : amt` after `Math.abs(parseFloat(l.amount.toFixed(2)))`).
+ * Integer minors avoid float drift from the old script’s summed float `amount` field.
+ *
  * @see https://tripletex.no/v2/docs/ — ledger voucher
  */
 class TripletexManualVoucherPayloadFactory
@@ -44,8 +50,8 @@ class TripletexManualVoucherPayloadFactory
             }
 
             $amountMajor = $debitMinor > 0
-                ? round($debitMinor / 100, 2)
-                : -1 * round($creditMinor / 100, 2);
+                ? self::minorUnitsToMajorFloat($debitMinor)
+                : -1 * self::minorUnitsToMajorFloat($creditMinor);
 
             if (abs($amountMajor) < 0.0001) {
                 continue;
@@ -102,5 +108,15 @@ class TripletexManualVoucherPayloadFactory
             'voucherType' => ['id' => 0],
             'postings' => $postings,
         ];
+    }
+
+    /**
+     * Convert non-negative integer minor units to a major-currency float with two decimals.
+     * Uses {@see round()} to two places so results align with Tripletex expectations and the
+     * legacy script’s `toFixed(2)` output for representable cent values.
+     */
+    private static function minorUnitsToMajorFloat(int $minor): float
+    {
+        return round($minor / 100, 2);
     }
 }

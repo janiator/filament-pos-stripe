@@ -884,7 +884,45 @@ it('maps ledger lines to Tripletex voucher JSON with posting_date, vatType, supp
     expect($voucher['date'])->toBe('2026-05-11')
         ->and($voucher['postings'][0]['date'])->toBe('2026-05-11')
         ->and($voucher['postings'][0]['vatType']['id'])->toBe(44)
-        ->and($voucher['postings'][0]['supplier']['id'])->toBe(9);
+        ->and($voucher['postings'][0]['supplier']['id'])->toBe(9)
+        ->and($voucher['postings'][0]['amountGross'])->toBe(-1.0)
+        ->and($voucher['postings'][0]['amountGrossCurrency'])->toBe(-1.0);
+});
+
+it('maps minor units to Tripletex amountGross with two-decimal major units (legacy script parity)', function () {
+    $factory = app(TripletexManualVoucherPayloadFactory::class);
+    $account = ['id' => 1, 'number' => 3000, 'name' => 'Sales'];
+    $accountMap = ['3000' => $account, '1900' => $account];
+
+    $voucher = $factory->build([
+        'document_date' => '2026-06-01',
+        'currency' => 'NOK',
+        'description' => 'Decimal check',
+        'lines' => [
+            [
+                'account' => '3000',
+                'debit_minor' => 19_999,
+                'credit_minor' => 0,
+                'description' => 'Debit 199.99',
+            ],
+            [
+                'account' => '1900',
+                'debit_minor' => 0,
+                'credit_minor' => 1,
+                'description' => 'Credit 0.01',
+            ],
+            [
+                'account' => '3000',
+                'debit_minor' => 0,
+                'credit_minor' => 12_345,
+                'description' => 'Credit 123.45',
+            ],
+        ],
+    ], $accountMap);
+
+    $amounts = collect($voucher['postings'])->pluck('amountGross')->all();
+
+    expect($amounts)->toBe([199.99, -0.01, -123.45]);
 });
 
 it('splits Z-report ledger lines by calendar day when enabled and session charges exist', function () {
