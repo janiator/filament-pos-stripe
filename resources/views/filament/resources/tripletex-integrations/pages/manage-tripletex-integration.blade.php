@@ -1,4 +1,19 @@
 <x-filament-panels::page>
+    @if($this->tripletexPeriodPreviewLoading)
+        <div wire:poll.3s="pollTripletexPeriodPreview" class="sr-only" aria-hidden="true"></div>
+    @endif
+
+    @if($this->tripletexPeriodPreviewLoading && empty($this->tripletexPeriodPreview))
+        <x-filament::section class="mb-6">
+            <x-slot name="heading">
+                {{ __('Building period preview…') }}
+            </x-slot>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+                {{ __('This runs as a queued job so long ranges do not block the browser. Ensure a queue worker is running; with `QUEUE_CONNECTION=sync`, the job may still hit PHP limits for very large periods.') }}
+            </p>
+        </x-filament::section>
+    @endif
+
     <form wire:submit="saveSettings">
         {{ $this->form }}
 

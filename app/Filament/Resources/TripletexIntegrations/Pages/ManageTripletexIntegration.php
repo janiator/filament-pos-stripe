@@ -7,6 +7,7 @@ use App\Enums\TripletexIntegrationStatus;
 use App\Filament\Resources\TripletexIntegrations\Schemas\TripletexIntegrationForm;
 use App\Filament\Resources\TripletexIntegrations\TripletexIntegrationResource;
 use App\Filament\Resources\TripletexSyncRuns\TripletexSyncRunResource;
+use App\Jobs\BuildTripletexPeriodPreviewJob;
 use App\Jobs\SyncTripletexZReportJob;
 use App\Models\PosSession;
 use App\Models\StoreStripePayout;
@@ -15,7 +16,6 @@ use App\Models\TripletexIntegration;
 use App\Models\TripletexSyncRun;
 use App\Services\Tripletex\TripletexApiClient;
 use App\Services\Tripletex\TripletexHistoricalSyncService;
-use App\Services\Tripletex\TripletexPeriodPreviewService;
 use App\Services\Tripletex\TripletexSyncPreviewService;
 use App\Support\PowerOffice\PowerOfficeStandardVatRates;
 use App\Support\Tripletex\TripletexMeranoLegacyFormDefaults;
@@ -33,6 +33,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class ManageTripletexIntegration extends Page implements HasActions, HasForms
 {
@@ -53,6 +54,8 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
     /** @var array<string, mixed>|null */
     public ?array $tripletexPeriodPreview = null;
 
+    public bool $tripletexPeriodPreviewLoading = false;
+
     public function mount(): void
     {
         abort_unless(TripletexIntegrationResource::canAccess(), 403);
@@ -68,11 +71,80 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
         $this->fillSettingsForm();
         $this->tripletexPreview = null;
         $this->tripletexPeriodPreview = null;
+        $this->tripletexPeriodPreviewLoading = false;
+        $this->hydrateTripletexPeriodPreviewFromCache();
+    }
+
+    protected function hydrateTripletexPeriodPreviewFromCache(): void
+    {
+        $store = Filament::getTenant();
+        if (! $store) {
+            return;
+        }
+
+        $cached = Cache::get(BuildTripletexPeriodPreviewJob::cacheKeyFor((int) $store->getKey()));
+        if (! is_array($cached)) {
+            return;
+        }
+
+        $status = $cached['status'] ?? '';
+        if ($status === 'processing') {
+            $this->tripletexPeriodPreviewLoading = true;
+        }
+
+        if ($status === 'complete' && isset($cached['result']) && is_array($cached['result'])) {
+            $this->tripletexPeriodPreview = $cached['result'];
+            $this->tripletexPeriodPreviewLoading = false;
+        }
+    }
+
+    public function pollTripletexPeriodPreview(): void
+    {
+        if (! $this->tripletexPeriodPreviewLoading) {
+            return;
+        }
+
+        $store = Filament::getTenant();
+        if (! $store) {
+            return;
+        }
+
+        $cached = Cache::get(BuildTripletexPeriodPreviewJob::cacheKeyFor((int) $store->getKey()));
+        if (! is_array($cached)) {
+            return;
+        }
+
+        $status = $cached['status'] ?? '';
+        if ($status === 'complete' && isset($cached['result']) && is_array($cached['result'])) {
+            $this->tripletexPeriodPreview = $cached['result'];
+            $this->tripletexPeriodPreviewLoading = false;
+            Notification::make()
+                ->title(__('Period preview ready'))
+                ->body(__('Scroll to the period preview section below.'))
+                ->success()
+                ->send();
+
+            return;
+        }
+
+        if ($status === 'failed') {
+            $this->tripletexPeriodPreviewLoading = false;
+            Notification::make()
+                ->title(__('Period preview failed'))
+                ->body((string) ($cached['error'] ?? __('Unknown error')))
+                ->danger()
+                ->send();
+        }
     }
 
     public function clearTripletexPeriodPreview(): void
     {
         $this->tripletexPeriodPreview = null;
+        $this->tripletexPeriodPreviewLoading = false;
+        $store = Filament::getTenant();
+        if ($store) {
+            Cache::forget(BuildTripletexPeriodPreviewJob::cacheKeyFor((int) $store->getKey()));
+        }
     }
 
     public function clearTripletexPreview(): void
@@ -642,7 +714,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                 ->color('primary')
                 ->slideOver()
                 ->modalHeading(__('Tripletex period preview'))
-                ->modalDescription(__('Read-only rollups for closed sessions (Z) by `closed_at` and paid payouts by `arrival_date`, matching historical sync windows. Does not post vouchers or require sync to be enabled.'))
+                ->modalDescription(__('Read-only rollups for closed sessions (Z) by `closed_at` and paid payouts by `arrival_date`, matching historical sync windows. Does not post vouchers or require sync to be enabled. Large ranges run in the **background queue** (job timeout 15 minutes); this page polls every few seconds until results appear. Use a real queue worker and set `QUEUE_CONNECTION` to something other than `sync` for heavy months—otherwise work still runs inside the web request and can time out.'))
                 ->modalWidth('2xl')
                 ->visible(fn (): bool => $this->integration?->isConnected() ?? false)
                 ->form([
@@ -676,24 +748,35 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         ->helperText(__('Larger Livewire payload; leave off for per-voucher totals and line-kind rollups only.'))
                         ->default(false),
                 ])
-                ->action(function (array $data, TripletexPeriodPreviewService $periodPreview): void {
+                ->action(function (array $data): void {
                     $store = Filament::getTenant();
                     if (! $store || ! $this->integration) {
                         return;
                     }
-                    $this->tripletexPeriodPreview = $periodPreview->previewPeriod(
-                        $store,
-                        $this->integration,
-                        Carbon::parse($data['from'])->startOfDay(),
-                        Carbon::parse($data['to'])->endOfDay(),
+
+                    $key = BuildTripletexPeriodPreviewJob::cacheKeyFor((int) $store->getKey());
+                    Cache::forget($key);
+                    Cache::put($key, [
+                        'status' => 'processing',
+                        'updated_at' => now()->toIso8601String(),
+                    ], now()->addHours(2));
+
+                    $this->tripletexPeriodPreview = null;
+                    $this->tripletexPeriodPreviewLoading = true;
+
+                    BuildTripletexPeriodPreviewJob::dispatch(
+                        (int) $store->getKey(),
+                        Carbon::parse($data['from'])->toDateString(),
+                        Carbon::parse($data['to'])->toDateString(),
                         (bool) ($data['resolve_tripletex_accounts'] ?? false),
                         (int) ($data['limit_z'] ?? 100),
                         (int) ($data['limit_payouts'] ?? 100),
                         (bool) ($data['detailed_previews'] ?? false),
                     );
+
                     Notification::make()
-                        ->title(__('Period preview ready'))
-                        ->body(__('Scroll to the period preview section below.'))
+                        ->title(__('Period preview queued'))
+                        ->body(__('Results appear below when the job finishes. You can leave and return within two hours — completed previews stay in cache while this page reloads them.'))
                         ->success()
                         ->send();
                 }),
