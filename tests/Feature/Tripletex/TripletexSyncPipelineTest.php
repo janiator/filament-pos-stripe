@@ -1379,7 +1379,149 @@ it('matches external ticket sales with eventKey when require_metadata_keys is no
     expect($externalCredits)->toBe(13_800);
 });
 
-it('does not match kiosk-style charges without booking_id or eventKey under default metadata rule', function () {
+it('matches external ticket sales with event_key when require_metadata_keys is not configured', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+                'external_ticket_sales' => [
+                    'enabled' => true,
+                    'sales_account_no' => '3200',
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_ext_ticket_event_snake',
+        'amount' => 50_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_charge_id' => 'ch_ext_web_event_snake',
+        'pos_session_id' => null,
+        'status' => 'succeeded',
+        'paid' => true,
+        'amount' => 9_900,
+        'metadata' => [
+            'event_key' => '534cbf13-7309-4e9b-bd57-8226cbab5846',
+            'seats' => 'A1',
+        ],
+    ]);
+
+    StoreStripeBalanceTransaction::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_balance_transaction_id' => 'txn_ext_event_snake',
+        'type' => 'charge',
+        'amount' => 9_900,
+        'fee' => 0,
+        'net' => 9_900,
+        'currency' => 'nok',
+        'stripe_charge_id' => 'ch_ext_web_event_snake',
+        'stripe_payout_id' => $payout->stripe_payout_id,
+        'stripe_created' => (int) now()->timestamp,
+    ]);
+
+    $payload = app(TripletexPayoutLedgerPayloadBuilder::class)->build($store, $integration, $payout);
+    $externalCredits = collect($payload['lines'] ?? [])
+        ->where('line_kind', 'external_ticket_sales')
+        ->sum('credit_minor');
+
+    expect($externalCredits)->toBe(9_900);
+});
+
+it('adds external ticket lines for Stripe balance transaction type payment with py_ id (Klarna-style)', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+                'external_ticket_sales' => [
+                    'enabled' => true,
+                    'sales_account_no' => '3200',
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_ext_ticket_py_klarna',
+        'amount' => 200_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_charge_id' => 'py_ext_klarna_web_1',
+        'pos_session_id' => null,
+        'status' => 'succeeded',
+        'paid' => true,
+        'amount' => 142_800,
+        'metadata' => [
+            'booking_id' => '7056',
+            'event_key' => 'finnsnes-heimlymyra-1905-1800-1777980729',
+        ],
+    ]);
+
+    StoreStripeBalanceTransaction::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_balance_transaction_id' => 'txn_ext_py_klarna',
+        'type' => 'payment',
+        'amount' => 142_800,
+        'fee' => 3_360,
+        'net' => 139_440,
+        'currency' => 'nok',
+        'stripe_charge_id' => 'py_ext_klarna_web_1',
+        'stripe_payout_id' => $payout->stripe_payout_id,
+        'stripe_created' => (int) now()->timestamp,
+        'source_metadata' => [
+            'booking_id' => '7056',
+            'event_key' => 'finnsnes-heimlymyra-1905-1800-1777980729',
+        ],
+    ]);
+
+    $payload = app(TripletexPayoutLedgerPayloadBuilder::class)->build($store, $integration, $payout);
+    $externalCredits = collect($payload['lines'] ?? [])
+        ->where('line_kind', 'external_ticket_sales')
+        ->sum('credit_minor');
+
+    expect($externalCredits)->toBe(142_800);
+});
+
+it('does not match kiosk-style charges without default ticket metadata keys under default metadata rule', function () {
     $store = Store::factory()->create();
 
     $integration = TripletexIntegration::factory()->connected()->create([

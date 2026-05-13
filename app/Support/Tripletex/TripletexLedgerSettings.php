@@ -204,13 +204,14 @@ final class TripletexLedgerSettings
     }
 
     /**
-     * Default “web or advance ticket” identifiers on Stripe metadata (Merano web uses {@code eventKey}; other flows may use {@code booking_id}).
+     * Default “web or advance ticket” identifiers on Stripe metadata (OR): {@code booking_id}, camelCase {@code eventKey},
+     * or snake_case {@code event_key} from some web checkouts.
      *
      * @return list<string>
      */
     public static function externalTicketSalesDefaultAnyOfKeys(): array
     {
-        return ['booking_id', 'eventKey'];
+        return ['booking_id', 'eventKey', 'event_key'];
     }
 
     public static function externalTicketSalesDescriptionRegex(TripletexIntegration $integration): ?string

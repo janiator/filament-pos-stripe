@@ -31,8 +31,8 @@ return [
     ],
     'tripletex' => [
         'payout_voucher_preview_description' => 'Kontoplan-linjer for denne Stripe-utbetalingen. Slå på kontoresolusjon for å kalle Tripletex og få eksakt JSON for POST /ledger/voucher. Billettomsetning fra kasse (POS) bokføres i Tripletex når en kasseøkt avsluttes (forhåndsvisning av Z-rapportbilag), ikke her. Forhånds- eller nettbillett-linjer vises på denne utbetalingen bare når «Eksterne billettsalg» er aktivert under Tripletex kontoinnstillinger og betalinger uten POS-økt oppfyller metadata (og valgfri beskrivelses-regex); metadata fra Stripe-belastningen og fra speilet av balansetransaksjoner slås sammen ved treffsjekk.',
-        'external_ticket_metadata_keys_placeholder' => 'Tomt = standard (booking_id eller eventKey)',
-        'external_ticket_metadata_keys_help' => 'Tomt: en betaling kvalifiserer hvis enten booking_id eller eventKey er satt i slått-sammen metadata (Merano web bruker eventKey). Hvis du fyller inn nøkler, må alle listene være tilstede (OG). Kommaseparert.',
+        'external_ticket_metadata_keys_placeholder' => 'Tomt = standard (booking_id, eventKey eller event_key)',
+        'external_ticket_metadata_keys_help' => 'Tomt: en betaling kvalifiserer hvis minst én av booking_id, eventKey eller event_key er satt i slått-sammen metadata (ELLER). Hvis du fyller inn nøkler, må alle oppførte nøkler være satt (OG). Kommaseparert.',
     ],
     // Navigation Groups
     'navigation_groups' => [

@@ -155,7 +155,11 @@ class TripletexPayoutLedgerPayloadBuilder
         $failedRules = 0;
         $matched = 0;
 
-        $chargeIds = $rows->where('type', 'charge')->pluck('stripe_charge_id')->filter()->unique()->values();
+        $chargeIds = $rows->filter(fn (StoreStripeBalanceTransaction $r): bool => $r->isPayoutSaleSourceMirrorRow())
+            ->pluck('stripe_charge_id')
+            ->filter()
+            ->unique()
+            ->values();
         $stripeAccountId = (string) $store->stripe_account_id;
         $charges = ConnectedCharge::query()
             ->where('stripe_account_id', $stripeAccountId)
@@ -164,7 +168,7 @@ class TripletexPayoutLedgerPayloadBuilder
             ->keyBy('stripe_charge_id');
 
         foreach ($rows as $bt) {
-            if ($bt->type !== 'charge' || empty($bt->stripe_charge_id)) {
+            if (! $bt->isPayoutSaleSourceMirrorRow()) {
                 continue;
             }
             $chargeRows++;
@@ -200,16 +204,16 @@ class TripletexPayoutLedgerPayloadBuilder
         } elseif (! $salesAccount || ! $clearingAccount) {
             $notes[] = 'External ticket sales is enabled but a sales or clearing account is missing; configure sales (and optionally clearing) account numbers.';
         } elseif ($chargeRows === 0) {
-            $notes[] = 'No charge-type balance transactions are mirrored for this payout yet. Sync Stripe balance transactions for the store, then preview again.';
+            $notes[] = 'No charge- or payment-type balance transactions with a source id (ch_/py_) are mirrored for this payout yet. Sync Stripe balance transactions for this payout or the store, then preview again.';
         } elseif ($webCandidates === 0 && $chargeRows > 0) {
-            $notes[] = 'Every mirrored charge in this payout is linked to a POS session (pos_session_id is set). Payout ticket lines only apply to web or advance sales without a POS session. Use the Z-report Tripletex preview for till ticket revenue.';
+            $notes[] = 'Every mirrored sale in this payout is linked to a POS session (pos_session_id is set). Payout ticket lines only apply to web or advance sales without a POS session. Use the Z-report Tripletex preview for till ticket revenue.';
         } elseif ($webCandidates > 0 && $matched === 0) {
             if ($explicitMetadataKeys !== null) {
                 $keys = 'all of: '.implode(', ', $explicitMetadataKeys);
             } else {
                 $keys = 'at least one of (default): '.implode(', ', $defaultAnyOfKeys);
             }
-            $notes[] = "This payout has {$webCandidates} charge(s) without a POS session, but none matched external-ticket rules (metadata: {$keys}".($hasRegex ? '; description must match the configured regex' : '').').';
+            $notes[] = "This payout has {$webCandidates} sale(s) without a POS session, but none matched external-ticket rules (metadata: {$keys}".($hasRegex ? '; description must match the configured regex' : '').').';
         }
 
         return [
@@ -245,7 +249,7 @@ class TripletexPayoutLedgerPayloadBuilder
         $hasFeeDetailsOnCharge = false;
 
         foreach ($rows as $r) {
-            if ($r->type !== 'charge') {
+            if (! in_array($r->type, ['charge', 'payment'], true)) {
                 continue;
             }
             $details = $r->fee_details;
@@ -315,7 +319,11 @@ class TripletexPayoutLedgerPayloadBuilder
             return [];
         }
 
-        $chargeIds = $rows->where('type', 'charge')->pluck('stripe_charge_id')->filter()->unique()->values();
+        $chargeIds = $rows->filter(fn (StoreStripeBalanceTransaction $r): bool => $r->isPayoutSaleSourceMirrorRow())
+            ->pluck('stripe_charge_id')
+            ->filter()
+            ->unique()
+            ->values();
         if ($chargeIds->isEmpty()) {
             return [];
         }
@@ -329,7 +337,7 @@ class TripletexPayoutLedgerPayloadBuilder
 
         $lines = [];
         foreach ($rows as $bt) {
-            if ($bt->type !== 'charge' || empty($bt->stripe_charge_id)) {
+            if (! $bt->isPayoutSaleSourceMirrorRow()) {
                 continue;
             }
             $charge = $charges->get($bt->stripe_charge_id);

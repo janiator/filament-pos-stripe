@@ -43,6 +43,15 @@ class StoreStripeBalanceTransaction extends Model
         return $this->belongsTo(Store::class);
     }
 
+    /**
+     * Stripe balance transaction types that represent a settled card/wallet payment with a {@code ch_} or {@code py_} source id.
+     */
+    public function isPayoutSaleSourceMirrorRow(): bool
+    {
+        return in_array((string) $this->type, ['charge', 'payment'], true)
+            && filled($this->stripe_charge_id);
+    }
+
     public function getFormattedAmountAttribute(): string
     {
         return number_format($this->amount / 100, 2).' '.strtoupper((string) $this->currency);

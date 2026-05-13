@@ -92,7 +92,7 @@
                             <dl class="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
                                 <div><dt class="inline text-gray-500 dark:text-gray-400">Feature enabled</dt> <dd class="inline font-medium">{{ ($ext['enabled'] ?? false) ? 'Yes' : 'No' }}</dd></div>
                                 <div><dt class="inline text-gray-500 dark:text-gray-400">Sales account set</dt> <dd class="inline font-medium">{{ ($ext['sales_account_configured'] ?? false) ? 'Yes' : 'No' }}</dd></div>
-                                <div><dt class="inline text-gray-500 dark:text-gray-400">Charge rows in payout</dt> <dd class="inline font-mono">{{ (int) ($ext['charge_balance_transactions'] ?? 0) }}</dd></div>
+                                <div><dt class="inline text-gray-500 dark:text-gray-400">Sale source rows in payout</dt> <dd class="inline font-mono">{{ (int) ($ext['charge_balance_transactions'] ?? 0) }}</dd></div>
                                 <div><dt class="inline text-gray-500 dark:text-gray-400">Without POS session</dt> <dd class="inline font-mono">{{ (int) ($ext['charges_without_pos_session'] ?? 0) }}</dd></div>
                                 <div><dt class="inline text-gray-500 dark:text-gray-400">Matched for voucher</dt> <dd class="inline font-mono">{{ (int) ($ext['matched_for_voucher_lines'] ?? 0) }}</dd></div>
                                 <div><dt class="inline text-gray-500 dark:text-gray-400">Skipped (no local charge)</dt> <dd class="inline font-mono">{{ (int) ($ext['skipped_no_connected_charge'] ?? 0) }}</dd></div>

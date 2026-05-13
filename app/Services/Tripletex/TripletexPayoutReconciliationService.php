@@ -187,7 +187,7 @@ final class TripletexPayoutReconciliationService
         $rows = StoreStripeBalanceTransaction::query()
             ->where('store_id', $store->getKey())
             ->where('stripe_payout_id', $payout->stripe_payout_id)
-            ->where('type', 'charge')
+            ->whereIn('type', ['charge', 'payment'])
             ->get();
 
         $chargeIds = $rows->pluck('stripe_charge_id')->filter()->unique()->values();

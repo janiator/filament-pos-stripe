@@ -164,7 +164,7 @@ class SyncStoreStripeBalanceTransactionsFromStripe
             'stripe_payment_intent_id' => null,
         ];
 
-        if (($bt->type ?? null) !== 'charge') {
+        if (! in_array($bt->type ?? null, ['charge', 'payment'], true)) {
             return $out;
         }
 
@@ -214,7 +214,7 @@ class SyncStoreStripeBalanceTransactionsFromStripe
 
     protected function resolveChargeId(object $bt): ?string
     {
-        if (($bt->type ?? null) !== 'charge') {
+        if (! in_array($bt->type ?? null, ['charge', 'payment'], true)) {
             return null;
         }
 
