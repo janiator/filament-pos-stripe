@@ -1014,6 +1014,47 @@ it('includes payout external ticket sales diagnostics on Tripletex payout previe
         ->and($preview['payout_external_ticket_sales']['notes'])->not->toBeEmpty();
 });
 
+it('hydrates payout-scoped balance transactions before Tripletex payout preview when sale source rows are missing', function () {
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_tripletex_preview_hydrate']);
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_preview_hydrate',
+        'amount' => 12_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    $sync = \Mockery::mock(SyncStoreStripeBalanceTransactionsFromStripe::class);
+    $sync->shouldReceive('__invoke')
+        ->once()
+        ->with(\Mockery::on(fn (Store $s): bool => (int) $s->getKey() === (int) $store->getKey()), false, 'po_preview_hydrate')
+        ->andReturn(['total' => 0, 'created' => 0, 'updated' => 0, 'errors' => []]);
+    app()->instance(SyncStoreStripeBalanceTransactionsFromStripe::class, $sync);
+
+    $preview = app(TripletexSyncPreviewService::class)->previewPayout($payout, $integration, false);
+
+    expect($preview['ok'])->toBeTrue()
+        ->and($preview['payout_balance_transaction_sync']['attempted'])->toBeTrue()
+        ->and($preview['payout_balance_transaction_sync']['reason'])->toBe('missing_usable_sale_source_rows')
+        ->and($preview['payout_balance_transaction_sync']['result']['total'])->toBe(0);
+});
+
 it('attributes external ticket diagnostics to metadata rules before zero net amount', function () {
     $store = Store::factory()->create();
 

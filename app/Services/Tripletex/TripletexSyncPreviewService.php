@@ -16,6 +16,7 @@ final class TripletexSyncPreviewService
         protected TripletexZReportSync $zReportSync,
         protected TripletexZReportLedgerPayloadBuilder $zReportLedger,
         protected TripletexPayoutLedgerPayloadBuilder $payoutLedger,
+        protected TripletexPayoutBalanceTransactionHydrator $payoutBalanceTransactionHydrator,
         protected TripletexApiClient $apiClient,
         protected TripletexAccountResolver $accountResolver,
         protected TripletexManualVoucherPayloadFactory $manualVoucherPayloadFactory,
@@ -63,6 +64,8 @@ final class TripletexSyncPreviewService
             return $this->previewError('Payout does not belong to this integration store.', 'payout', null, $payout->id);
         }
 
+        $mirrorSync = $this->payoutBalanceTransactionHydrator->hydrateIfMissing($store, $payout);
+
         $preview = $this->finishLedgerPreview(
             'payout',
             null,
@@ -73,6 +76,7 @@ final class TripletexSyncPreviewService
         );
 
         if (($preview['ok'] ?? false) === true) {
+            $preview['payout_balance_transaction_sync'] = $mirrorSync;
             $preview['mirror_balance_transaction_count'] = StoreStripeBalanceTransaction::query()
                 ->where('store_id', $store->getKey())
                 ->where('stripe_payout_id', $payout->stripe_payout_id)

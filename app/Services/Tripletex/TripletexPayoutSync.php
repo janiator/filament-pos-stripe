@@ -17,6 +17,7 @@ class TripletexPayoutSync
 {
     public function __construct(
         protected TripletexPayoutLedgerPayloadBuilder $ledgerPayloadBuilder,
+        protected TripletexPayoutBalanceTransactionHydrator $payoutBalanceTransactionHydrator,
         protected TripletexApiClient $apiClient,
         protected TripletexAccountResolver $accountResolver,
         protected TripletexManualVoucherPayloadFactory $manualVoucherPayloadFactory,
@@ -112,6 +113,8 @@ class TripletexPayoutSync
 
             return false;
         }
+
+        $this->payoutBalanceTransactionHydrator->hydrateIfMissing($store, $payout);
 
         $syncRun = TripletexSyncRun::query()->firstOrCreate(
             ['idempotency_key' => $idempotencyKey],

@@ -104,6 +104,20 @@
                             @elseif(! empty($ext['default_any_of_metadata_keys'] ?? []))
                                 <p class="mt-2 text-gray-600 dark:text-gray-300">Default metadata rule (at least one): <span class="font-mono">{{ implode(', ', $ext['default_any_of_metadata_keys']) }}</span></p>
                             @endif
+                            @if(! empty($this->tripletexPreview['payout_balance_transaction_sync'] ?? null))
+                                @php
+                                    $mirrorSync = $this->tripletexPreview['payout_balance_transaction_sync'];
+                                    $mirrorSyncResult = $mirrorSync['result'] ?? null;
+                                @endphp
+                                <p class="mt-2 text-gray-600 dark:text-gray-300">
+                                    Payout mirror sync:
+                                    <span class="font-mono">{{ ($mirrorSync['attempted'] ?? false) ? 'attempted' : 'skipped' }}</span>
+                                    <span class="font-mono">({{ $mirrorSync['reason'] ?? 'unknown' }})</span>
+                                    @if(is_array($mirrorSyncResult))
+                                        <span class="font-mono">found {{ (int) ($mirrorSyncResult['total'] ?? 0) }}, created {{ (int) ($mirrorSyncResult['created'] ?? 0) }}, updated {{ (int) ($mirrorSyncResult['updated'] ?? 0) }}</span>
+                                    @endif
+                                </p>
+                            @endif
                             @if(! empty($ext['notes'] ?? []))
                                 <ul class="mt-2 list-disc space-y-1 ps-4 text-gray-700 dark:text-gray-300">
                                     @foreach($ext['notes'] as $note)
