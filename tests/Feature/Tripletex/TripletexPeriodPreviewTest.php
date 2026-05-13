@@ -157,7 +157,9 @@ it('writes completed period preview to tripletex integration when job finishes',
         ->and($state['status'])->toBe('complete')
         ->and($state['result']['ok'])->toBeTrue()
         ->and($state['result']['rollup']['z_reports']['ok'])->toBe(1)
-        ->and($state['result']['aggregate_vouchers']['z_reports']['ok'] ?? false)->toBeTrue();
+        ->and($state['result']['aggregate_vouchers']['z_reports']['ok'] ?? false)->toBeTrue()
+        ->and($state['storage_meta'])->toBeArray()
+        ->and($state['storage_meta'])->toHaveKeys(['steps', 'approx_bytes_before', 'approx_bytes_after', 'max_bytes_target']);
 });
 
 it('builds aggregate Z voucher totals from merged successful session previews and skips payouts when none exist', function () {

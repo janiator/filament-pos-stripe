@@ -57,6 +57,9 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
 
     public ?string $tripletexPeriodPreviewJobError = null;
 
+    /** @var array<string, mixed>|null */
+    public ?array $tripletexPeriodPreviewStorageMeta = null;
+
     public function mount(): void
     {
         abort_unless(TripletexIntegrationResource::canAccess(), 403);
@@ -84,6 +87,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
 
         $this->integration->refresh();
         $state = $this->integration->period_preview_state;
+        $this->tripletexPeriodPreviewStorageMeta = null;
 
         if (! is_array($state) || $state === []) {
             $this->tripletexPeriodPreviewLoading = false;
@@ -105,6 +109,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
             $this->tripletexPeriodPreview = $state['result'];
             $this->tripletexPeriodPreviewLoading = false;
             $this->tripletexPeriodPreviewJobError = null;
+            $this->tripletexPeriodPreviewStorageMeta = is_array($state['storage_meta'] ?? null) ? $state['storage_meta'] : null;
 
             return;
         }
@@ -113,12 +118,14 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
             $this->tripletexPeriodPreviewLoading = false;
             $this->tripletexPeriodPreview = null;
             $this->tripletexPeriodPreviewJobError = (string) ($state['error'] ?? __('Unknown error'));
+            $this->tripletexPeriodPreviewStorageMeta = null;
 
             return;
         }
 
         $this->tripletexPeriodPreviewLoading = false;
         $this->tripletexPeriodPreviewJobError = null;
+        $this->tripletexPeriodPreviewStorageMeta = null;
     }
 
     public function pollTripletexPeriodPreview(): void
@@ -153,6 +160,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
         $this->tripletexPeriodPreview = null;
         $this->tripletexPeriodPreviewLoading = false;
         $this->tripletexPeriodPreviewJobError = null;
+        $this->tripletexPeriodPreviewStorageMeta = null;
         $this->integration?->update(['period_preview_state' => null]);
     }
 

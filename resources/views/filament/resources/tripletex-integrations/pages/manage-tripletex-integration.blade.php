@@ -243,6 +243,23 @@
                 </button>
             </div>
 
+            @php
+                $storageMeta = is_array($this->tripletexPeriodPreviewStorageMeta ?? null) ? $this->tripletexPeriodPreviewStorageMeta : [];
+                $storageSteps = $storageMeta['steps'] ?? [];
+                $storageNoisySteps = array_values(array_diff($storageSteps, ['removed_tripletex_voucher_payload_fields']));
+                $storageShowCompactionBanner = $storageNoisySteps !== []
+                    || (($storageMeta['approx_bytes_after'] ?? 0) > 900_000);
+            @endphp
+            @if($storageShowCompactionBanner)
+                <div class="mb-4 rounded-lg border border-warning-200 bg-warning-50 p-3 text-xs text-warning-950 dark:border-warning-500/40 dark:bg-warning-500/10 dark:text-warning-100">
+                    <p class="font-semibold">{{ __('Stored preview was compacted') }}</p>
+                    <p class="mt-1 text-warning-900/90 dark:text-warning-100/90">
+                        {{ __('Heavy fields were removed or row lists were shortened so the result fits the database and the page can load. Rollups and visible tables should still match the job output; re-run with a shorter range or lower row limits if something looks incomplete. Approximate stored size: :after bytes (target limit :max).', ['after' => (int) ($storageMeta['approx_bytes_after'] ?? 0), 'max' => (int) ($storageMeta['max_bytes_target'] ?? 0)]) }}
+                    </p>
+                    <p class="mt-1 font-mono text-[11px] text-warning-800 dark:text-warning-200/90">{{ implode(', ', $storageSteps) }}</p>
+                </div>
+            @endif
+
             <p class="mb-4 text-xs text-gray-600 dark:text-gray-400">
                 {{ $pp['rollup']['interpretation'] ?? '' }}
             </p>

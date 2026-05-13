@@ -21,6 +21,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Period preview (Filament / queue job)
+    |--------------------------------------------------------------------------
+    |
+    | Stored JSON is capped so DB writes and Livewire hydration stay reliable
+    | when "resolve Tripletex accounts" embeds draft voucher payloads.
+    |
+    */
+    'period_preview' => [
+        'max_stored_json_bytes' => (int) env('TRIPLETEX_PERIOD_PREVIEW_MAX_STORED_JSON_BYTES', 1_500_000),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Voucher posting
     |--------------------------------------------------------------------------
     |

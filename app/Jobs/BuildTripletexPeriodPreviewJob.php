@@ -5,10 +5,12 @@ namespace App\Jobs;
 use App\Models\Store;
 use App\Models\TripletexIntegration;
 use App\Services\Tripletex\TripletexPeriodPreviewService;
+use App\Support\Tripletex\TripletexPeriodPreviewPayloadForStorage;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -74,13 +76,28 @@ final class BuildTripletexPeriodPreviewJob implements ShouldBeUnique, ShouldQueu
                 $this->detailedPreviews,
             );
 
-            $integration->update([
-                'period_preview_state' => [
-                    'status' => 'complete',
-                    'result' => $payload,
-                    'updated_at' => now()->toIso8601String(),
-                ],
-            ]);
+            [$storedPayload, $storageMeta] = TripletexPeriodPreviewPayloadForStorage::prepare($payload);
+
+            $state = [
+                'status' => 'complete',
+                'result' => $storedPayload,
+                'storage_meta' => $storageMeta,
+                'updated_at' => now()->toIso8601String(),
+            ];
+
+            try {
+                $integration->update(['period_preview_state' => $state]);
+            } catch (QueryException $e) {
+                Log::warning('Tripletex period preview DB write failed, retrying with minimal payload', [
+                    'store_id' => $this->storeId,
+                    'message' => $e->getMessage(),
+                ]);
+                [$storedPayload, $storageMeta] = TripletexPeriodPreviewPayloadForStorage::prepare($payload, true);
+                $storageMeta['steps'][] = 'retry_after_query_exception';
+                $state['result'] = $storedPayload;
+                $state['storage_meta'] = $storageMeta;
+                $integration->update(['period_preview_state' => $state]);
+            }
         } catch (Throwable $e) {
             Log::error('Tripletex period preview job failed', [
                 'store_id' => $this->storeId,
