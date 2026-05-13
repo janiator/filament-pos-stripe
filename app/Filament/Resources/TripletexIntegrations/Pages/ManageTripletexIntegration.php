@@ -15,6 +15,7 @@ use App\Models\TripletexIntegration;
 use App\Models\TripletexSyncRun;
 use App\Services\Tripletex\TripletexApiClient;
 use App\Services\Tripletex\TripletexHistoricalSyncService;
+use App\Services\Tripletex\TripletexPeriodPreviewService;
 use App\Services\Tripletex\TripletexSyncPreviewService;
 use App\Support\PowerOffice\PowerOfficeStandardVatRates;
 use App\Support\Tripletex\TripletexMeranoLegacyFormDefaults;
@@ -49,6 +50,9 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
     /** @var array<string, mixed>|null */
     public ?array $tripletexPreview = null;
 
+    /** @var array<string, mixed>|null */
+    public ?array $tripletexPeriodPreview = null;
+
     public function mount(): void
     {
         abort_unless(TripletexIntegrationResource::canAccess(), 403);
@@ -63,6 +67,12 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
 
         $this->fillSettingsForm();
         $this->tripletexPreview = null;
+        $this->tripletexPeriodPreview = null;
+    }
+
+    public function clearTripletexPeriodPreview(): void
+    {
+        $this->tripletexPeriodPreview = null;
     }
 
     public function clearTripletexPreview(): void
@@ -625,6 +635,67 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         (bool) ($data['resolve_tripletex_accounts'] ?? false),
                     );
                     Notification::make()->title(__('Payout voucher preview ready'))->body('Scroll to the preview section below.')->success()->send();
+                }),
+            Action::make('previewPeriod')
+                ->label(__('Preview period (Z + payouts)'))
+                ->icon('heroicon-o-calendar-days')
+                ->color('primary')
+                ->slideOver()
+                ->modalHeading(__('Tripletex period preview'))
+                ->modalDescription(__('Read-only rollups for closed sessions (Z) by `closed_at` and paid payouts by `arrival_date`, matching historical sync windows. Does not post vouchers or require sync to be enabled.'))
+                ->modalWidth('2xl')
+                ->visible(fn (): bool => $this->integration?->isConnected() ?? false)
+                ->form([
+                    DatePicker::make('from')
+                        ->label(__('From (date)'))
+                        ->required()
+                        ->default(now()->startOfMonth()->toDateString()),
+                    DatePicker::make('to')
+                        ->label(__('To (date)'))
+                        ->required()
+                        ->default(now()->toDateString()),
+                    TextInput::make('limit_z')
+                        ->label(__('Max Z sessions'))
+                        ->numeric()
+                        ->default(100)
+                        ->minValue(1)
+                        ->maxValue(500)
+                        ->required(),
+                    TextInput::make('limit_payouts')
+                        ->label(__('Max payouts'))
+                        ->numeric()
+                        ->default(100)
+                        ->minValue(1)
+                        ->maxValue(500)
+                        ->required(),
+                    Toggle::make('resolve_tripletex_accounts')
+                        ->label(__('Resolve Tripletex account IDs (calls Tripletex API)'))
+                        ->default(false),
+                    Toggle::make('detailed_previews')
+                        ->label(__('Include full voucher lines per session/payout'))
+                        ->helperText(__('Larger Livewire payload; leave off for per-voucher totals and line-kind rollups only.'))
+                        ->default(false),
+                ])
+                ->action(function (array $data, TripletexPeriodPreviewService $periodPreview): void {
+                    $store = Filament::getTenant();
+                    if (! $store || ! $this->integration) {
+                        return;
+                    }
+                    $this->tripletexPeriodPreview = $periodPreview->previewPeriod(
+                        $store,
+                        $this->integration,
+                        Carbon::parse($data['from'])->startOfDay(),
+                        Carbon::parse($data['to'])->endOfDay(),
+                        (bool) ($data['resolve_tripletex_accounts'] ?? false),
+                        (int) ($data['limit_z'] ?? 100),
+                        (int) ($data['limit_payouts'] ?? 100),
+                        (bool) ($data['detailed_previews'] ?? false),
+                    );
+                    Notification::make()
+                        ->title(__('Period preview ready'))
+                        ->body(__('Scroll to the period preview section below.'))
+                        ->success()
+                        ->send();
                 }),
             Action::make('historicalZReports')
                 ->label(__('Queue historical Z-reports'))

@@ -183,6 +183,155 @@
         </x-filament::section>
     @endif
 
+    @if($this->tripletexPeriodPreview)
+        @php
+            $pp = $this->tripletexPeriodPreview;
+            $rz = $pp['rollup']['z_reports'] ?? [];
+            $rp = $pp['rollup']['payouts'] ?? [];
+            $re = $pp['rollup']['external_ticket_sales'] ?? [];
+        @endphp
+        <x-filament::section class="mt-8">
+            <x-slot name="heading">
+                Period preview (Z-reports + payouts, not posted)
+            </x-slot>
+            <x-slot name="description">
+                <span class="text-gray-600 dark:text-gray-300">
+                    {{ ($pp['period']['from'] ?? '—') }} → {{ ($pp['period']['to'] ?? '—') }}
+                    @if(!empty($pp['limits']['z_reports_truncated']) || !empty($pp['limits']['payouts_truncated']))
+                        <span class="ms-2 font-medium text-warning-700 dark:text-warning-400">(truncated to limits — raise max rows)</span>
+                    @endif
+                </span>
+            </x-slot>
+            <div class="mb-3 flex justify-end">
+                <button
+                    type="button"
+                    wire:click="clearTripletexPeriodPreview"
+                    class="fi-btn fi-btn-size-sm fi-btn-color-gray relative inline-grid grid-flow-col items-center justify-center gap-x-1 rounded-lg px-3 py-2 text-sm font-semibold shadow-sm"
+                >
+                    Clear period preview
+                </button>
+            </div>
+
+            <p class="mb-4 text-xs text-gray-600 dark:text-gray-400">
+                {{ $pp['rollup']['interpretation'] ?? '' }}
+            </p>
+
+            <div class="mb-6 grid gap-4 sm:grid-cols-2">
+                <div class="rounded-lg border border-gray-200 p-3 text-sm dark:border-white/10">
+                    <h4 class="mb-2 font-semibold text-gray-950 dark:text-white">Z-reports (closed_at window)</h4>
+                    <dl class="space-y-1 text-xs">
+                        <div class="flex justify-between gap-2"><dt>Rows in preview</dt><dd class="font-mono">{{ (int) ($rz['preview_rows'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>OK / failed</dt><dd class="font-mono">{{ (int) ($rz['ok'] ?? 0) }} / {{ (int) ($rz['failed'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Σ debit (minor)</dt><dd class="font-mono">{{ (int) ($rz['debit_total_minor'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Σ credit (minor)</dt><dd class="font-mono">{{ (int) ($rz['credit_total_minor'] ?? 0) }}</dd></div>
+                    </dl>
+                </div>
+                <div class="rounded-lg border border-gray-200 p-3 text-sm dark:border-white/10">
+                    <h4 class="mb-2 font-semibold text-gray-950 dark:text-white">Payouts (arrival_date window)</h4>
+                    <dl class="space-y-1 text-xs">
+                        <div class="flex justify-between gap-2"><dt>Rows in preview</dt><dd class="font-mono">{{ (int) ($rp['preview_rows'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>OK / failed</dt><dd class="font-mono">{{ (int) ($rp['ok'] ?? 0) }} / {{ (int) ($rp['failed'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Σ debit (minor)</dt><dd class="font-mono">{{ (int) ($rp['debit_total_minor'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Σ credit (minor)</dt><dd class="font-mono">{{ (int) ($rp['credit_total_minor'] ?? 0) }}</dd></div>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="mb-6 rounded-lg border border-gray-200 bg-gray-50/80 p-3 text-xs dark:border-white/10 dark:bg-white/5">
+                <h4 class="mb-2 font-semibold text-gray-950 dark:text-white">External / web ticket lines (payout roll-up)</h4>
+                <dl class="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+                    <div><dt class="inline text-gray-500 dark:text-gray-400">Matched charges (voucher lines)</dt> <dd class="inline font-mono">{{ (int) ($re['matched_charges_count_across_payouts'] ?? 0) }}</dd></div>
+                    <div><dt class="inline text-gray-500 dark:text-gray-400">Without POS session (candidates)</dt> <dd class="inline font-mono">{{ (int) ($re['charges_without_pos_session_count_across_payouts'] ?? 0) }}</dd></div>
+                    <div><dt class="inline text-gray-500 dark:text-gray-400">external_ticket_sales credit (minor)</dt> <dd class="inline font-mono">{{ (int) ($re['external_ticket_sales_credit_minor'] ?? 0) }}</dd></div>
+                    <div><dt class="inline text-gray-500 dark:text-gray-400">external_ticket_clearing (minor)</dt> <dd class="inline font-mono">D {{ (int) ($re['external_ticket_clearing_debit_minor'] ?? 0) }} · C {{ (int) ($re['external_ticket_clearing_credit_minor'] ?? 0) }}</dd></div>
+                </dl>
+            </div>
+
+            <div class="overflow-x-auto">
+                <h4 class="mb-2 text-sm font-semibold text-gray-950 dark:text-white">Sessions</h4>
+                <table class="mb-6 w-full text-xs">
+                    <thead class="border-b border-gray-200 text-left dark:border-white/10">
+                        <tr>
+                            <th class="pb-2 pr-2 font-medium">#</th>
+                            <th class="pb-2 pr-2 font-medium">Closed</th>
+                            <th class="pb-2 pr-2 font-medium">Eligible</th>
+                            <th class="pb-2 pr-2 font-medium">Preview</th>
+                            <th class="pb-2 pr-2 font-medium text-end">Debit</th>
+                            <th class="pb-2 pr-2 font-medium text-end">Credit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($pp['z_reports'] ?? [] as $row)
+                            @php $pr = $row['preview'] ?? []; @endphp
+                            <tr class="border-b border-gray-100 dark:border-white/5" wire:key="tripletex-period-z-{{ $row['pos_session_id'] ?? $loop->index }}">
+                                <td class="py-1.5 pr-2 font-mono">{{ $row['pos_session_id'] ?? '—' }}</td>
+                                <td class="py-1.5 pr-2">{{ \Illuminate\Support\Str::limit($row['closed_at'] ?? '—', 19, '') }}</td>
+                                <td class="py-1.5 pr-2">{{ ($row['eligible_for_sync'] ?? false) ? 'Yes' : 'No' }}</td>
+                                <td class="py-1.5 pr-2">
+                                    @if($pr['ok'] ?? false)
+                                        <span class="text-success-700 dark:text-success-400">OK</span>
+                                        @if(($pr['balanced'] ?? false))
+                                            <span class="text-gray-500">· balanced</span>
+                                        @else
+                                            <span class="text-danger-600">· not balanced</span>
+                                        @endif
+                                    @else
+                                        <span class="text-danger-600">{{ $pr['error'] ?? 'Failed' }}</span>
+                                    @endif
+                                </td>
+                                <td class="py-1.5 pr-2 text-end font-mono">{{ number_format(((int) ($pr['debit_total_minor'] ?? 0)) / 100, 2) }}</td>
+                                <td class="py-1.5 pr-2 text-end font-mono">{{ number_format(((int) ($pr['credit_total_minor'] ?? 0)) / 100, 2) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+
+                <h4 class="mb-2 text-sm font-semibold text-gray-950 dark:text-white">Payouts</h4>
+                <table class="w-full text-xs">
+                    <thead class="border-b border-gray-200 text-left dark:border-white/10">
+                        <tr>
+                            <th class="pb-2 pr-2 font-medium">#</th>
+                            <th class="pb-2 pr-2 font-medium">Arrival</th>
+                            <th class="pb-2 pr-2 font-medium">Stripe</th>
+                            <th class="pb-2 pr-2 font-medium">Preview</th>
+                            <th class="pb-2 pr-2 font-medium text-end">Debit</th>
+                            <th class="pb-2 pr-2 font-medium text-end">Credit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($pp['payouts'] ?? [] as $row)
+                            @php $pr = $row['preview'] ?? []; @endphp
+                            <tr class="border-b border-gray-100 dark:border-white/5" wire:key="tripletex-period-po-{{ $row['store_stripe_payout_id'] ?? $loop->index }}">
+                                <td class="py-1.5 pr-2 font-mono">{{ $row['store_stripe_payout_id'] ?? '—' }}</td>
+                                <td class="py-1.5 pr-2">{{ \Illuminate\Support\Str::limit($row['arrival_date'] ?? '—', 19, '') }}</td>
+                                <td class="py-1.5 pr-2 font-mono text-[10px]">{{ \Illuminate\Support\Str::limit($row['stripe_payout_id'] ?? '—', 18) }}</td>
+                                <td class="py-1.5 pr-2">
+                                    @if($pr['ok'] ?? false)
+                                        <span class="text-success-700 dark:text-success-400">OK</span>
+                                        @if(($pr['balanced'] ?? false))
+                                            <span class="text-gray-500">· balanced</span>
+                                        @else
+                                            <span class="text-danger-600">· not balanced</span>
+                                        @endif
+                                    @else
+                                        <span class="text-danger-600">{{ $pr['error'] ?? 'Failed' }}</span>
+                                    @endif
+                                </td>
+                                <td class="py-1.5 pr-2 text-end font-mono">{{ number_format(((int) ($pr['debit_total_minor'] ?? 0)) / 100, 2) }}</td>
+                                <td class="py-1.5 pr-2 text-end font-mono">{{ number_format(((int) ($pr['credit_total_minor'] ?? 0)) / 100, 2) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <details class="mt-4">
+                <summary class="cursor-pointer text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Raw period preview JSON</summary>
+                <pre class="mt-2 max-h-96 overflow-auto rounded-lg bg-gray-950 p-4 text-xs text-gray-100 dark:bg-black/40">{{ json_encode($pp, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
+            </details>
+        </x-filament::section>
+    @endif
+
     <x-filament::section class="mt-8">
         <x-slot name="heading">
             Recent syncs

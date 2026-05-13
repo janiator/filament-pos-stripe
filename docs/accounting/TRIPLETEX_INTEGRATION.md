@@ -74,9 +74,11 @@ Same auth as other tenant APIs (see `api-spec.yaml` **Tripletex** tag):
 
 `TripletexSyncPreviewService` builds the same internal ledger payload as a real sync (`lines`: account number, `debit_minor` / `credit_minor`, description, optional `posting_date`, `tripletex_vat_type_id`, `tripletex_supplier_id`, `line_kind` for payout payloads, document date, currency). `lines_display` echoes optional `posting_date` and `line_kind`. It does **not** create or update `tripletex_sync_runs` and does **not** call Tripletex unless `resolve_accounts=true` (then it runs session token + ledger account GET + voucher payload factory only—still no `POST` voucher).
 
+`TripletexPeriodPreviewService` loops eligible sessions and payouts for a calendar range and reuses the same preview builders; compact mode strips raw `lines` to keep responses smaller while `rollup` merges debit/credit totals and `line_kinds` across the period.
+
 `TripletexManualVoucherPayloadFactory` maps internal lines to Tripletex voucher JSON: per-line `date` from `posting_date` or `document_date`, optional `vatType` / `supplier`, voucher header `date` = minimum effective line date when any line sets `posting_date`.
 
-Filament **Tripletex** page: voucher preview actions (latest Z / latest payout) and **Clear preview**; session and payout view pages also expose previews.
+Filament **Tripletex** page: voucher preview actions (latest Z / latest payout), **Preview period (Z + payouts)** for a date window (rollups + per-row status), and **Clear preview**; session and payout view pages also expose previews.
 
 ## Historical backfill
 
