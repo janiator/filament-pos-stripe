@@ -215,6 +215,11 @@
             $rz = $pp['rollup']['z_reports'] ?? [];
             $rp = $pp['rollup']['payouts'] ?? [];
             $re = $pp['rollup']['external_ticket_sales'] ?? [];
+            $aggZ = $pp['aggregate_vouchers']['z_reports'] ?? [];
+            $aggP = $pp['aggregate_vouchers']['payouts'] ?? [];
+            $apz = is_array($aggZ['preview'] ?? null) ? $aggZ['preview'] : null;
+            $app = is_array($aggP['preview'] ?? null) ? $aggP['preview'] : null;
+            $fmtMinorToMajor = static fn (mixed $minor): string => number_format(((int) ($minor ?? 0)) / 100, 2);
         @endphp
         <x-filament::section class="mt-8">
             <x-slot name="heading">
@@ -241,6 +246,9 @@
             <p class="mb-4 text-xs text-gray-600 dark:text-gray-400">
                 {{ $pp['rollup']['interpretation'] ?? '' }}
             </p>
+            <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                {{ __('Debit and credit figures in the summary boxes and tables use major currency units (two decimals). The raw JSON below still uses integer minor units.') }}
+            </p>
 
             <div class="mb-6 grid gap-4 sm:grid-cols-2">
                 <div class="rounded-lg border border-gray-200 p-3 text-sm dark:border-white/10">
@@ -248,8 +256,8 @@
                     <dl class="space-y-1 text-xs">
                         <div class="flex justify-between gap-2"><dt>Rows in preview</dt><dd class="font-mono">{{ (int) ($rz['preview_rows'] ?? 0) }}</dd></div>
                         <div class="flex justify-between gap-2"><dt>OK / failed</dt><dd class="font-mono">{{ (int) ($rz['ok'] ?? 0) }} / {{ (int) ($rz['failed'] ?? 0) }}</dd></div>
-                        <div class="flex justify-between gap-2"><dt>Σ debit (minor)</dt><dd class="font-mono">{{ (int) ($rz['debit_total_minor'] ?? 0) }}</dd></div>
-                        <div class="flex justify-between gap-2"><dt>Σ credit (minor)</dt><dd class="font-mono">{{ (int) ($rz['credit_total_minor'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Σ debit</dt><dd class="text-end font-mono">{{ $fmtMinorToMajor($rz['debit_total_minor'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Σ credit</dt><dd class="text-end font-mono">{{ $fmtMinorToMajor($rz['credit_total_minor'] ?? 0) }}</dd></div>
                     </dl>
                 </div>
                 <div class="rounded-lg border border-gray-200 p-3 text-sm dark:border-white/10">
@@ -257,8 +265,8 @@
                     <dl class="space-y-1 text-xs">
                         <div class="flex justify-between gap-2"><dt>Rows in preview</dt><dd class="font-mono">{{ (int) ($rp['preview_rows'] ?? 0) }}</dd></div>
                         <div class="flex justify-between gap-2"><dt>OK / failed</dt><dd class="font-mono">{{ (int) ($rp['ok'] ?? 0) }} / {{ (int) ($rp['failed'] ?? 0) }}</dd></div>
-                        <div class="flex justify-between gap-2"><dt>Σ debit (minor)</dt><dd class="font-mono">{{ (int) ($rp['debit_total_minor'] ?? 0) }}</dd></div>
-                        <div class="flex justify-between gap-2"><dt>Σ credit (minor)</dt><dd class="font-mono">{{ (int) ($rp['credit_total_minor'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Σ debit</dt><dd class="text-end font-mono">{{ $fmtMinorToMajor($rp['debit_total_minor'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Σ credit</dt><dd class="text-end font-mono">{{ $fmtMinorToMajor($rp['credit_total_minor'] ?? 0) }}</dd></div>
                     </dl>
                 </div>
             </div>
@@ -268,10 +276,129 @@
                 <dl class="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
                     <div><dt class="inline text-gray-500 dark:text-gray-400">Matched charges (voucher lines)</dt> <dd class="inline font-mono">{{ (int) ($re['matched_charges_count_across_payouts'] ?? 0) }}</dd></div>
                     <div><dt class="inline text-gray-500 dark:text-gray-400">Without POS session (candidates)</dt> <dd class="inline font-mono">{{ (int) ($re['charges_without_pos_session_count_across_payouts'] ?? 0) }}</dd></div>
-                    <div><dt class="inline text-gray-500 dark:text-gray-400">external_ticket_sales credit (minor)</dt> <dd class="inline font-mono">{{ (int) ($re['external_ticket_sales_credit_minor'] ?? 0) }}</dd></div>
-                    <div><dt class="inline text-gray-500 dark:text-gray-400">external_ticket_clearing (minor)</dt> <dd class="inline font-mono">D {{ (int) ($re['external_ticket_clearing_debit_minor'] ?? 0) }} · C {{ (int) ($re['external_ticket_clearing_credit_minor'] ?? 0) }}</dd></div>
+                    <div><dt class="inline text-gray-500 dark:text-gray-400">external_ticket_sales credit</dt> <dd class="inline font-mono">{{ $fmtMinorToMajor($re['external_ticket_sales_credit_minor'] ?? 0) }}</dd></div>
+                    <div><dt class="inline text-gray-500 dark:text-gray-400">external_ticket_clearing</dt> <dd class="inline font-mono">D {{ $fmtMinorToMajor($re['external_ticket_clearing_debit_minor'] ?? 0) }} · C {{ $fmtMinorToMajor($re['external_ticket_clearing_credit_minor'] ?? 0) }}</dd></div>
                 </dl>
             </div>
+
+            @if(!empty($pp['aggregate_vouchers'] ?? null))
+                <div class="mb-6 grid gap-4 lg:grid-cols-2">
+                    <div class="rounded-lg border border-gray-200 p-3 text-sm dark:border-white/10">
+                        <h4 class="mb-1 font-semibold text-gray-950 dark:text-white">{{ __('Aggregate Z (all sessions in range)') }}</h4>
+                        <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">{{ $aggZ['disclaimer'] ?? '' }}</p>
+                        <p class="mb-2 text-xs text-gray-600 dark:text-gray-300">
+                            {{ __('Successful previews merged: :ok of :total', ['ok' => (int) ($aggZ['successful_previews_count'] ?? 0), 'total' => (int) ($aggZ['source_previews_count'] ?? 0)]) }}
+                        </p>
+                        @if($aggZ['ok'] ?? false)
+                            @if($apz)
+                                <p class="mb-2 text-xs">
+                                    @if($apz['balanced'] ?? false)
+                                        <span class="text-success-700 dark:text-success-400">{{ __('Balanced') }}</span>
+                                    @else
+                                        <span class="text-danger-600">{{ __('Not balanced') }}</span>
+                                    @endif
+                                    <span class="ms-2 font-mono text-gray-700 dark:text-gray-200">
+                                        Σ {{ __('debit') }} {{ $fmtMinorToMajor($apz['debit_total_minor'] ?? 0) }}
+                                        · {{ __('credit') }} {{ $fmtMinorToMajor($apz['credit_total_minor'] ?? 0) }}
+                                    </span>
+                                </p>
+                            @endif
+                            @if(filled($aggZ['resolve_error'] ?? null))
+                                <p class="mb-2 text-xs text-warning-700 dark:text-warning-400">{{ $aggZ['resolve_error'] }}</p>
+                            @endif
+                            @if(!empty($aggZ['lines_display'] ?? []))
+                                <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
+                                    <table class="w-full text-xs">
+                                        <thead class="bg-gray-50 text-left dark:bg-white/5">
+                                            <tr>
+                                                <th class="px-2 py-1.5 font-medium">{{ __('Account') }}</th>
+                                                <th class="px-2 py-1.5 font-medium">{{ __('Description') }}</th>
+                                                <th class="px-2 py-1.5 font-medium text-end">{{ __('Debit') }}</th>
+                                                <th class="px-2 py-1.5 font-medium text-end">{{ __('Credit') }}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($aggZ['lines_display'] as $row)
+                                                <tr class="border-t border-gray-100 dark:border-white/5" wire:key="tripletex-agg-z-line-{{ $loop->index }}">
+                                                    <td class="px-2 py-1 font-mono">{{ $row['account'] ?? '' }}</td>
+                                                    <td class="px-2 py-1 text-gray-700 dark:text-gray-300">{{ \Illuminate\Support\Str::limit((string) ($row['description'] ?? ''), 48) }}</td>
+                                                    <td class="px-2 py-1 text-end font-mono tabular-nums">{{ ($row['debit'] ?? 0) > 0 ? number_format((float) $row['debit'], 2, '.', ' ') : '—' }}</td>
+                                                    <td class="px-2 py-1 text-end font-mono tabular-nums">{{ ($row['credit'] ?? 0) > 0 ? number_format((float) $row['credit'], 2, '.', ' ') : '—' }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                            @if(!empty($aggZ['tripletex_voucher_payload'] ?? null))
+                                <details class="mt-2">
+                                    <summary class="cursor-pointer text-xs font-medium text-gray-600 dark:text-gray-400">{{ __('Draft Tripletex voucher JSON (aggregate Z)') }}</summary>
+                                    <pre class="mt-2 max-h-48 overflow-auto rounded-lg bg-gray-950 p-3 text-[10px] text-gray-100 dark:bg-black/40">{{ json_encode($aggZ['tripletex_voucher_payload'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
+                                </details>
+                            @endif
+                        @else
+                            <p class="text-xs text-danger-600 dark:text-danger-400">{{ $aggZ['error'] ?? __('Aggregate Z unavailable.') }}</p>
+                        @endif
+                    </div>
+                    <div class="rounded-lg border border-gray-200 p-3 text-sm dark:border-white/10">
+                        <h4 class="mb-1 font-semibold text-gray-950 dark:text-white">{{ __('Aggregate payouts (all payouts in range)') }}</h4>
+                        <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">{{ $aggP['disclaimer'] ?? '' }}</p>
+                        <p class="mb-2 text-xs text-gray-600 dark:text-gray-300">
+                            {{ __('Successful previews merged: :ok of :total', ['ok' => (int) ($aggP['successful_previews_count'] ?? 0), 'total' => (int) ($aggP['source_previews_count'] ?? 0)]) }}
+                        </p>
+                        @if($aggP['ok'] ?? false)
+                            @if($app)
+                                <p class="mb-2 text-xs">
+                                    @if($app['balanced'] ?? false)
+                                        <span class="text-success-700 dark:text-success-400">{{ __('Balanced') }}</span>
+                                    @else
+                                        <span class="text-danger-600">{{ __('Not balanced') }}</span>
+                                    @endif
+                                    <span class="ms-2 font-mono text-gray-700 dark:text-gray-200">
+                                        Σ {{ __('debit') }} {{ $fmtMinorToMajor($app['debit_total_minor'] ?? 0) }}
+                                        · {{ __('credit') }} {{ $fmtMinorToMajor($app['credit_total_minor'] ?? 0) }}
+                                    </span>
+                                </p>
+                            @endif
+                            @if(filled($aggP['resolve_error'] ?? null))
+                                <p class="mb-2 text-xs text-warning-700 dark:text-warning-400">{{ $aggP['resolve_error'] }}</p>
+                            @endif
+                            @if(!empty($aggP['lines_display'] ?? []))
+                                <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
+                                    <table class="w-full text-xs">
+                                        <thead class="bg-gray-50 text-left dark:bg-white/5">
+                                            <tr>
+                                                <th class="px-2 py-1.5 font-medium">{{ __('Account') }}</th>
+                                                <th class="px-2 py-1.5 font-medium">{{ __('Description') }}</th>
+                                                <th class="px-2 py-1.5 font-medium text-end">{{ __('Debit') }}</th>
+                                                <th class="px-2 py-1.5 font-medium text-end">{{ __('Credit') }}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($aggP['lines_display'] as $row)
+                                                <tr class="border-t border-gray-100 dark:border-white/5" wire:key="tripletex-agg-p-line-{{ $loop->index }}">
+                                                    <td class="px-2 py-1 font-mono">{{ $row['account'] ?? '' }}</td>
+                                                    <td class="px-2 py-1 text-gray-700 dark:text-gray-300">{{ \Illuminate\Support\Str::limit((string) ($row['description'] ?? ''), 48) }}</td>
+                                                    <td class="px-2 py-1 text-end font-mono tabular-nums">{{ ($row['debit'] ?? 0) > 0 ? number_format((float) $row['debit'], 2, '.', ' ') : '—' }}</td>
+                                                    <td class="px-2 py-1 text-end font-mono tabular-nums">{{ ($row['credit'] ?? 0) > 0 ? number_format((float) $row['credit'], 2, '.', ' ') : '—' }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                            @if(!empty($aggP['tripletex_voucher_payload'] ?? null))
+                                <details class="mt-2">
+                                    <summary class="cursor-pointer text-xs font-medium text-gray-600 dark:text-gray-400">{{ __('Draft Tripletex voucher JSON (aggregate payouts)') }}</summary>
+                                    <pre class="mt-2 max-h-48 overflow-auto rounded-lg bg-gray-950 p-3 text-[10px] text-gray-100 dark:bg-black/40">{{ json_encode($aggP['tripletex_voucher_payload'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
+                                </details>
+                            @endif
+                        @else
+                            <p class="text-xs text-danger-600 dark:text-danger-400">{{ $aggP['error'] ?? __('Aggregate payouts unavailable.') }}</p>
+                        @endif
+                    </div>
+                </div>
+            @endif
 
             <div class="overflow-x-auto">
                 <h4 class="mb-2 text-sm font-semibold text-gray-950 dark:text-white">Sessions</h4>
@@ -305,8 +432,8 @@
                                         <span class="text-danger-600">{{ $pr['error'] ?? 'Failed' }}</span>
                                     @endif
                                 </td>
-                                <td class="py-1.5 pr-2 text-end font-mono">{{ number_format(((int) ($pr['debit_total_minor'] ?? 0)) / 100, 2) }}</td>
-                                <td class="py-1.5 pr-2 text-end font-mono">{{ number_format(((int) ($pr['credit_total_minor'] ?? 0)) / 100, 2) }}</td>
+                                <td class="py-1.5 pr-2 text-end font-mono">{{ $fmtMinorToMajor($pr['debit_total_minor'] ?? 0) }}</td>
+                                <td class="py-1.5 pr-2 text-end font-mono">{{ $fmtMinorToMajor($pr['credit_total_minor'] ?? 0) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -343,8 +470,8 @@
                                         <span class="text-danger-600">{{ $pr['error'] ?? 'Failed' }}</span>
                                     @endif
                                 </td>
-                                <td class="py-1.5 pr-2 text-end font-mono">{{ number_format(((int) ($pr['debit_total_minor'] ?? 0)) / 100, 2) }}</td>
-                                <td class="py-1.5 pr-2 text-end font-mono">{{ number_format(((int) ($pr['credit_total_minor'] ?? 0)) / 100, 2) }}</td>
+                                <td class="py-1.5 pr-2 text-end font-mono">{{ $fmtMinorToMajor($pr['debit_total_minor'] ?? 0) }}</td>
+                                <td class="py-1.5 pr-2 text-end font-mono">{{ $fmtMinorToMajor($pr['credit_total_minor'] ?? 0) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

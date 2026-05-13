@@ -9,6 +9,7 @@ use App\Models\Store;
 use App\Models\TripletexAccountMapping;
 use App\Models\TripletexIntegration;
 use App\Services\Tripletex\TripletexPeriodPreviewService;
+use App\Services\Tripletex\TripletexSyncPreviewService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -155,5 +156,102 @@ it('writes completed period preview to tripletex integration when job finishes',
     expect($state)->toBeArray()
         ->and($state['status'])->toBe('complete')
         ->and($state['result']['ok'])->toBeTrue()
-        ->and($state['result']['rollup']['z_reports']['ok'])->toBe(1);
+        ->and($state['result']['rollup']['z_reports']['ok'])->toBe(1)
+        ->and($state['result']['aggregate_vouchers']['z_reports']['ok'] ?? false)->toBeTrue();
+});
+
+it('builds aggregate Z voucher totals from merged successful session previews and skips payouts when none exist', function () {
+    $store = Store::factory()->create();
+
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::Tripletex,
+        'is_active' => true,
+    ]);
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Vat,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+            ],
+        ],
+    ]);
+
+    TripletexAccountMapping::factory()->create([
+        'store_id' => $store->id,
+        'tripletex_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Vat,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'vat_account_no' => '2700',
+        'cash_account_no' => '1920',
+        'card_clearing_account_no' => '1921',
+    ]);
+
+    $zReport = [
+        'net_amount' => 100,
+        'vat_amount' => 25,
+        'vat_rate' => 25,
+        'total_tips' => 0,
+        'net_cash_amount' => 100,
+        'net_card_amount' => 0,
+        'net_mobile_amount' => 0,
+        'net_other_amount' => 0,
+        'store' => ['id' => $store->id, 'name' => $store->name],
+    ];
+
+    $sessionA = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'status' => 'closed',
+        'closed_at' => Carbon::parse('2026-04-01 10:00:00'),
+        'closing_data' => ['z_report_data' => $zReport],
+    ]);
+
+    $sessionB = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'status' => 'closed',
+        'closed_at' => Carbon::parse('2026-04-02 10:00:00'),
+        'closing_data' => ['z_report_data' => $zReport],
+    ]);
+
+    $previewA = app(TripletexSyncPreviewService::class)->previewZReport($sessionA, $integration, false);
+    $previewB = app(TripletexSyncPreviewService::class)->previewZReport($sessionB, $integration, false);
+    expect($previewA['ok'] ?? false)->toBeTrue()
+        ->and($previewB['ok'] ?? false)->toBeTrue();
+
+    $sumLinesA = array_sum(array_map(fn (array $ln): int => (int) ($ln['debit_minor'] ?? 0), $previewA['lines']));
+    $sumLinesB = array_sum(array_map(fn (array $ln): int => (int) ($ln['debit_minor'] ?? 0), $previewB['lines']));
+    expect($sumLinesA)->toBe((int) $previewA['debit_total_minor'])
+        ->and($sumLinesB)->toBe((int) $previewB['debit_total_minor']);
+
+    $expectedDebit = (int) $previewA['debit_total_minor'] + (int) $previewB['debit_total_minor'];
+    $expectedCredit = (int) $previewA['credit_total_minor'] + (int) $previewB['credit_total_minor'];
+
+    $out = app(TripletexPeriodPreviewService::class)->previewPeriod(
+        $store,
+        $integration,
+        Carbon::parse('2026-04-01')->startOfDay(),
+        Carbon::parse('2026-04-30')->endOfDay(),
+        false,
+        10,
+        10,
+        false,
+    );
+
+    expect(count($out['z_reports']))->toBe(2);
+
+    $aggZ = $out['aggregate_vouchers']['z_reports'];
+    expect($aggZ['ok'])->toBeTrue()
+        ->and($aggZ['successful_previews_count'])->toBe(2)
+        ->and($aggZ['preview']['debit_total_minor'])->toBe($expectedDebit)
+        ->and($aggZ['preview']['credit_total_minor'])->toBe($expectedCredit);
+
+    $aggP = $out['aggregate_vouchers']['payouts'];
+    expect($aggP['ok'])->toBeFalse()
+        ->and($aggP['successful_previews_count'])->toBe(0);
 });

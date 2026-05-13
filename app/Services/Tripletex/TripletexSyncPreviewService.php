@@ -92,6 +92,28 @@ final class TripletexSyncPreviewService
     }
 
     /**
+     * Preview a pre-built ledger payload (e.g. period aggregate: merged lines from many Z or payout previews).
+     *
+     * @param  array<string, mixed>  $ledgerPayload  Same shape as {@see TripletexZReportLedgerPayloadBuilder::build()} / payout builder: currency, document_date, description, lines.
+     * @return array<string, mixed>
+     */
+    public function previewLedgerPayload(
+        array $ledgerPayload,
+        TripletexIntegration $integration,
+        bool $resolveTripletexAccounts,
+        string $kind,
+    ): array {
+        return $this->finishLedgerPreview(
+            $kind,
+            null,
+            null,
+            static fn (): array => $ledgerPayload,
+            $integration,
+            $resolveTripletexAccounts,
+        );
+    }
+
+    /**
      * @param  callable(): array<string, mixed>  $buildPayload
      * @return array<string, mixed>
      */

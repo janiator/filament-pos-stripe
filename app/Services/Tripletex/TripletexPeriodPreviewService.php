@@ -51,11 +51,13 @@ final class TripletexPeriodPreviewService
             ->get();
 
         $zRows = [];
+        $zRawPreviews = [];
         foreach ($zSessions as $session) {
             if (! $session instanceof PosSession) {
                 continue;
             }
             $preview = $this->previewService->previewZReport($session, $integration, $resolveTripletexAccounts);
+            $zRawPreviews[] = $preview;
             $zRows[] = [
                 'pos_session_id' => $session->id,
                 'closed_at' => $session->closed_at?->toIso8601String(),
@@ -77,11 +79,13 @@ final class TripletexPeriodPreviewService
             ->get();
 
         $pRows = [];
+        $pRawPreviews = [];
         foreach ($payouts as $payout) {
             if (! $payout instanceof StoreStripePayout) {
                 continue;
             }
             $preview = $this->previewService->previewPayout($payout, $integration, $resolveTripletexAccounts);
+            $pRawPreviews[] = $preview;
             $pRows[] = [
                 'store_stripe_payout_id' => $payout->id,
                 'stripe_payout_id' => $payout->stripe_payout_id,
@@ -108,6 +112,26 @@ final class TripletexPeriodPreviewService
             'z_reports' => $zRows,
             'payouts' => $pRows,
             'rollup' => $this->buildRollup($zRows, $pRows),
+            'aggregate_vouchers' => [
+                'z_reports' => $this->buildAggregateVoucherPreview(
+                    $zRawPreviews,
+                    'aggregate_z_report',
+                    $to->toDateString(),
+                    'Period aggregate — all Z-reports in range (preview only, not postable)',
+                    $integration,
+                    $resolveTripletexAccounts,
+                    $detailedPreviews,
+                ),
+                'payouts' => $this->buildAggregateVoucherPreview(
+                    $pRawPreviews,
+                    'aggregate_payout',
+                    $to->toDateString(),
+                    'Period aggregate — all payouts in range (preview only, not postable)',
+                    $integration,
+                    $resolveTripletexAccounts,
+                    $detailedPreviews,
+                ),
+            ],
         ];
     }
 
@@ -288,5 +312,204 @@ final class TripletexPeriodPreviewService
             $into[$kind]['debit_minor'] += (int) ($totals['debit_minor'] ?? 0);
             $into[$kind]['credit_minor'] += (int) ($totals['credit_minor'] ?? 0);
         }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rawPreviews  Full outputs from {@see TripletexSyncPreviewService::previewZReport()} or {@see TripletexSyncPreviewService::previewPayout()}.
+     * @return array<string, mixed>
+     */
+    protected function buildAggregateVoucherPreview(
+        array $rawPreviews,
+        string $ledgerKind,
+        string $documentDate,
+        string $description,
+        TripletexIntegration $integration,
+        bool $resolveTripletexAccounts,
+        bool $detailedPreviews,
+    ): array {
+        $successful = 0;
+        foreach ($rawPreviews as $p) {
+            if (is_array($p) && ($p['ok'] ?? false) === true) {
+                $successful++;
+            }
+        }
+        $merged = $this->mergeLedgerLinesFromSuccessfulPreviews($rawPreviews);
+
+        $disclaimer = 'Illustrative merged ledger lines only. Actual Tripletex posting remains one voucher per closed session (Z) or per paid payout; do not post this aggregate as a single voucher.';
+
+        if ($merged === []) {
+            $message = $ledgerKind === 'aggregate_z_report'
+                ? 'No successful Z-report previews in this period to aggregate.'
+                : 'No successful payout previews in this period to aggregate.';
+
+            return [
+                'ok' => false,
+                'kind' => $ledgerKind,
+                'source_previews_count' => count($rawPreviews),
+                'successful_previews_count' => $successful,
+                'error' => $message,
+                'preview' => null,
+                'lines_display' => [],
+                'tripletex_voucher_payload' => null,
+                'tripletex_postings_display' => [],
+                'resolve_error' => null,
+                'disclaimer' => $disclaimer,
+            ];
+        }
+
+        $currency = 'NOK';
+        foreach ($rawPreviews as $p) {
+            if (! is_array($p)) {
+                continue;
+            }
+            if (($p['ok'] ?? false) === true && filled($p['currency'] ?? null)) {
+                $currency = strtoupper((string) $p['currency']);
+                break;
+            }
+        }
+
+        $ledgerPayload = [
+            'source' => $ledgerKind,
+            'document_date' => $documentDate,
+            'description' => $description,
+            'currency' => $currency,
+            'lines' => $merged,
+        ];
+
+        $full = $this->previewService->previewLedgerPayload(
+            $ledgerPayload,
+            $integration,
+            $resolveTripletexAccounts,
+            $ledgerKind,
+        );
+
+        if (($full['ok'] ?? false) !== true) {
+            return [
+                'ok' => false,
+                'kind' => $ledgerKind,
+                'source_previews_count' => count($rawPreviews),
+                'successful_previews_count' => $successful,
+                'error' => (string) ($full['error'] ?? 'Aggregate preview failed.'),
+                'preview' => null,
+                'lines_display' => [],
+                'tripletex_voucher_payload' => null,
+                'tripletex_postings_display' => [],
+                'resolve_error' => null,
+                'disclaimer' => $disclaimer,
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'kind' => $ledgerKind,
+            'source_previews_count' => count($rawPreviews),
+            'successful_previews_count' => $successful,
+            'error' => null,
+            'preview' => $this->shapePreviewForPeriod($full, $detailedPreviews),
+            'lines_display' => is_array($full['lines_display'] ?? null) ? $full['lines_display'] : [],
+            'tripletex_voucher_payload' => $full['tripletex_voucher_payload'] ?? null,
+            'tripletex_postings_display' => is_array($full['tripletex_postings_display'] ?? null) ? $full['tripletex_postings_display'] : [],
+            'resolve_error' => $full['resolve_error'] ?? null,
+            'disclaimer' => $disclaimer,
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rawPreviews
+     * @return list<array<string, mixed>>
+     */
+    protected function mergeLedgerLinesFromSuccessfulPreviews(array $rawPreviews): array
+    {
+        $byKey = [];
+        foreach ($rawPreviews as $preview) {
+            if (! is_array($preview) || ($preview['ok'] ?? false) !== true) {
+                continue;
+            }
+            $lines = $preview['lines'] ?? [];
+            if (! is_array($lines)) {
+                continue;
+            }
+            foreach ($lines as $line) {
+                if (! is_array($line)) {
+                    continue;
+                }
+                $key = $this->mergeKeyForLedgerLine($line);
+                if (! isset($byKey[$key])) {
+                    $byKey[$key] = $this->cloneLineForAggregateMergeTemplate($line);
+                    $byKey[$key]['debit_minor'] = 0;
+                    $byKey[$key]['credit_minor'] = 0;
+                }
+                $byKey[$key]['debit_minor'] += (int) ($line['debit_minor'] ?? 0);
+                $byKey[$key]['credit_minor'] += (int) ($line['credit_minor'] ?? 0);
+            }
+        }
+
+        $out = [];
+        foreach ($byKey as $line) {
+            $netted = $this->netDebitCreditOnMergedLine($line);
+            if ($netted !== null) {
+                $out[] = $netted;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $line
+     */
+    protected function mergeKeyForLedgerLine(array $line): string
+    {
+        $account = trim((string) ($line['account'] ?? ''));
+        $vat = isset($line['tripletex_vat_type_id']) && is_numeric($line['tripletex_vat_type_id'])
+            ? (string) (int) $line['tripletex_vat_type_id']
+            : '';
+        $supplier = isset($line['tripletex_supplier_id']) && is_numeric($line['tripletex_supplier_id'])
+            ? (string) (int) $line['tripletex_supplier_id']
+            : '';
+        $kind = (string) ($line['line_kind'] ?? '');
+
+        return $account."\t".$vat."\t".$supplier."\t".$kind;
+    }
+
+    /**
+     * @param  array<string, mixed>  $line
+     * @return array<string, mixed>
+     */
+    protected function cloneLineForAggregateMergeTemplate(array $line): array
+    {
+        $copy = $line;
+        unset($copy['posting_date']);
+
+        return $copy;
+    }
+
+    /**
+     * @param  array<string, mixed>  $line
+     * @return array<string, mixed>|null
+     */
+    protected function netDebitCreditOnMergedLine(array $line): ?array
+    {
+        $debit = (int) ($line['debit_minor'] ?? 0);
+        $credit = (int) ($line['credit_minor'] ?? 0);
+        if ($debit <= 0 && $credit <= 0) {
+            return null;
+        }
+        if ($debit > 0 && $credit > 0) {
+            if ($debit >= $credit) {
+                $debit -= $credit;
+                $credit = 0;
+            } else {
+                $credit -= $debit;
+                $debit = 0;
+            }
+        }
+        if ($debit <= 0 && $credit <= 0) {
+            return null;
+        }
+        $line['debit_minor'] = $debit;
+        $line['credit_minor'] = $credit;
+
+        return $line;
     }
 }
