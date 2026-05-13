@@ -41,6 +41,6 @@ class PulseRedirectPage extends Page
 
     public function mount(): RedirectResponse
     {
-        return redirect('/pulse');
+        return new RedirectResponse(url('/pulse'));
     }
 }

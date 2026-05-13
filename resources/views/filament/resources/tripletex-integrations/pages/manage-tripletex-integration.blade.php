@@ -14,6 +14,17 @@
         </x-filament::section>
     @endif
 
+    @if(filled($this->tripletexPeriodPreviewJobError) && empty($this->tripletexPeriodPreview))
+        <x-filament::section class="mb-6">
+            <x-slot name="heading">
+                {{ __('Period preview failed') }}
+            </x-slot>
+            <p class="text-sm text-danger-600 dark:text-danger-400">
+                {{ $this->tripletexPeriodPreviewJobError }}
+            </p>
+        </x-filament::section>
+    @endif
+
     <form wire:submit="saveSettings">
         {{ $this->form }}
 

@@ -29,6 +29,7 @@ class TripletexIntegration extends Model
         'last_synced_at',
         'last_error',
         'settings',
+        'period_preview_state',
     ];
 
     /**
@@ -48,6 +49,7 @@ class TripletexIntegration extends Model
             'z_report_include_settlement' => 'boolean',
             'last_synced_at' => 'datetime',
             'settings' => 'array',
+            'period_preview_state' => 'array',
         ];
     }
 

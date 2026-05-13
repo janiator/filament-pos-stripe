@@ -41,6 +41,6 @@ class HorizonRedirectPage extends Page
 
     public function mount(): RedirectResponse
     {
-        return redirect('/horizon');
+        return new RedirectResponse(url('/horizon'));
     }
 }

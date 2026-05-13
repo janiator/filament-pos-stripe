@@ -33,7 +33,6 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 
 class ManageTripletexIntegration extends Page implements HasActions, HasForms
 {
@@ -56,6 +55,8 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
 
     public bool $tripletexPeriodPreviewLoading = false;
 
+    public ?string $tripletexPeriodPreviewJobError = null;
+
     public function mount(): void
     {
         abort_unless(TripletexIntegrationResource::canAccess(), 403);
@@ -71,31 +72,53 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
         $this->fillSettingsForm();
         $this->tripletexPreview = null;
         $this->tripletexPeriodPreview = null;
-        $this->tripletexPeriodPreviewLoading = false;
-        $this->hydrateTripletexPeriodPreviewFromCache();
+        $this->tripletexPeriodPreviewJobError = null;
+        $this->syncTripletexPeriodPreviewFromIntegration();
     }
 
-    protected function hydrateTripletexPeriodPreviewFromCache(): void
+    protected function syncTripletexPeriodPreviewFromIntegration(): void
     {
-        $store = Filament::getTenant();
-        if (! $store) {
+        if (! $this->integration) {
             return;
         }
 
-        $cached = Cache::get(BuildTripletexPeriodPreviewJob::cacheKeyFor((int) $store->getKey()));
-        if (! is_array($cached)) {
+        $this->integration->refresh();
+        $state = $this->integration->period_preview_state;
+
+        if (! is_array($state) || $state === []) {
+            $this->tripletexPeriodPreviewLoading = false;
+            $this->tripletexPeriodPreviewJobError = null;
+
             return;
         }
 
-        $status = $cached['status'] ?? '';
+        $status = $state['status'] ?? '';
+
         if ($status === 'processing') {
             $this->tripletexPeriodPreviewLoading = true;
+            $this->tripletexPeriodPreviewJobError = null;
+
+            return;
         }
 
-        if ($status === 'complete' && isset($cached['result']) && is_array($cached['result'])) {
-            $this->tripletexPeriodPreview = $cached['result'];
+        if ($status === 'complete' && isset($state['result']) && is_array($state['result'])) {
+            $this->tripletexPeriodPreview = $state['result'];
             $this->tripletexPeriodPreviewLoading = false;
+            $this->tripletexPeriodPreviewJobError = null;
+
+            return;
         }
+
+        if ($status === 'failed') {
+            $this->tripletexPeriodPreviewLoading = false;
+            $this->tripletexPeriodPreview = null;
+            $this->tripletexPeriodPreviewJobError = (string) ($state['error'] ?? __('Unknown error'));
+
+            return;
+        }
+
+        $this->tripletexPeriodPreviewLoading = false;
+        $this->tripletexPeriodPreviewJobError = null;
     }
 
     public function pollTripletexPeriodPreview(): void
@@ -104,34 +127,22 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
             return;
         }
 
-        $store = Filament::getTenant();
-        if (! $store) {
-            return;
-        }
+        $wasLoading = $this->tripletexPeriodPreviewLoading;
+        $this->integration?->refresh();
+        $this->syncTripletexPeriodPreviewFromIntegration();
 
-        $cached = Cache::get(BuildTripletexPeriodPreviewJob::cacheKeyFor((int) $store->getKey()));
-        if (! is_array($cached)) {
-            return;
-        }
-
-        $status = $cached['status'] ?? '';
-        if ($status === 'complete' && isset($cached['result']) && is_array($cached['result'])) {
-            $this->tripletexPeriodPreview = $cached['result'];
-            $this->tripletexPeriodPreviewLoading = false;
+        if ($wasLoading && ! $this->tripletexPeriodPreviewLoading && $this->tripletexPeriodPreview !== null) {
             Notification::make()
                 ->title(__('Period preview ready'))
                 ->body(__('Scroll to the period preview section below.'))
                 ->success()
                 ->send();
-
-            return;
         }
 
-        if ($status === 'failed') {
-            $this->tripletexPeriodPreviewLoading = false;
+        if ($wasLoading && ! $this->tripletexPeriodPreviewLoading && filled($this->tripletexPeriodPreviewJobError)) {
             Notification::make()
                 ->title(__('Period preview failed'))
-                ->body((string) ($cached['error'] ?? __('Unknown error')))
+                ->body($this->tripletexPeriodPreviewJobError)
                 ->danger()
                 ->send();
         }
@@ -141,10 +152,8 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
     {
         $this->tripletexPeriodPreview = null;
         $this->tripletexPeriodPreviewLoading = false;
-        $store = Filament::getTenant();
-        if ($store) {
-            Cache::forget(BuildTripletexPeriodPreviewJob::cacheKeyFor((int) $store->getKey()));
-        }
+        $this->tripletexPeriodPreviewJobError = null;
+        $this->integration?->update(['period_preview_state' => null]);
     }
 
     public function clearTripletexPreview(): void
@@ -714,7 +723,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                 ->color('primary')
                 ->slideOver()
                 ->modalHeading(__('Tripletex period preview'))
-                ->modalDescription(__('Read-only rollups for closed sessions (Z) by `closed_at` and paid payouts by `arrival_date`, matching historical sync windows. Does not post vouchers or require sync to be enabled. Large ranges run in the **background queue** (job timeout 15 minutes); this page polls every few seconds until results appear. Use a real queue worker and set `QUEUE_CONNECTION` to something other than `sync` for heavy months—otherwise work still runs inside the web request and can time out.'))
+                ->modalDescription(__('Read-only rollups for closed sessions (Z) by `closed_at` and paid payouts by `arrival_date`, matching historical sync windows. Does not post vouchers or require sync to be enabled. Large ranges run in the **background queue** (job timeout 15 minutes); this page polls every few seconds until results appear. Completed previews are stored on the Tripletex integration row so they survive refresh and match what queue workers wrote. Use a real queue worker and set `QUEUE_CONNECTION` to something other than `sync` for heavy months—otherwise work still runs inside the web request and can time out.'))
                 ->modalWidth('2xl')
                 ->visible(fn (): bool => $this->integration?->isConnected() ?? false)
                 ->form([
@@ -754,14 +763,16 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         return;
                     }
 
-                    $key = BuildTripletexPeriodPreviewJob::cacheKeyFor((int) $store->getKey());
-                    Cache::forget($key);
-                    Cache::put($key, [
-                        'status' => 'processing',
-                        'updated_at' => now()->toIso8601String(),
-                    ], now()->addHours(2));
+                    $this->integration->update([
+                        'period_preview_state' => [
+                            'status' => 'processing',
+                            'updated_at' => now()->toIso8601String(),
+                        ],
+                    ]);
+                    $this->integration->refresh();
 
                     $this->tripletexPeriodPreview = null;
+                    $this->tripletexPeriodPreviewJobError = null;
                     $this->tripletexPeriodPreviewLoading = true;
 
                     BuildTripletexPeriodPreviewJob::dispatch(
@@ -776,7 +787,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
 
                     Notification::make()
                         ->title(__('Period preview queued'))
-                        ->body(__('Results appear below when the job finishes. You can leave and return within two hours — completed previews stay in cache while this page reloads them.'))
+                        ->body(__('Results appear below when the job finishes. You can leave and return — the latest preview is stored with this store’s Tripletex integration.'))
                         ->success()
                         ->send();
                 }),

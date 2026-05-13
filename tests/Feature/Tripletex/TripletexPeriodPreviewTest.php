@@ -12,7 +12,6 @@ use App\Services\Tripletex\TripletexPeriodPreviewService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
@@ -86,7 +85,7 @@ it('marks z_reports_truncated when more sessions exist than limit_z', function (
         ->and(count($out['z_reports']))->toBe(2);
 });
 
-it('writes completed period preview to cache when job finishes', function () {
+it('writes completed period preview to tripletex integration when job finishes', function () {
     $store = Store::factory()->create();
 
     Addon::query()->create([
@@ -140,8 +139,6 @@ it('writes completed period preview to cache when job finishes', function () {
         'closing_data' => ['z_report_data' => $zReport],
     ]);
 
-    Cache::flush();
-
     Bus::dispatchSync(new BuildTripletexPeriodPreviewJob(
         $store->id,
         '2026-04-01',
@@ -152,10 +149,11 @@ it('writes completed period preview to cache when job finishes', function () {
         false,
     ));
 
-    $cached = Cache::get(BuildTripletexPeriodPreviewJob::cacheKeyFor($store->id));
+    $integration->refresh();
+    $state = $integration->period_preview_state;
 
-    expect($cached)->toBeArray()
-        ->and($cached['status'])->toBe('complete')
-        ->and($cached['result']['ok'])->toBeTrue()
-        ->and($cached['result']['rollup']['z_reports']['ok'])->toBe(1);
+    expect($state)->toBeArray()
+        ->and($state['status'])->toBe('complete')
+        ->and($state['result']['ok'])->toBeTrue()
+        ->and($state['result']['rollup']['z_reports']['ok'])->toBe(1);
 });
