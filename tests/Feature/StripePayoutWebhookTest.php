@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Actions\Stripe\SyncStoreStripePayoutsFromStripe;
 use App\Jobs\SyncStoreStripeBalanceTransactionsJob;
 use App\Models\Store;
 use App\Models\StoreStripePayout;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Lanos\CashierConnect\Models\ConnectMapping;
+use Stripe\Payout as StripePayout;
+use Stripe\StripeObject;
 
 uses(RefreshDatabase::class);
 
@@ -71,6 +74,44 @@ it('creates store_stripe_payouts from a signed Connect payout.paid webhook', fun
         ->and($row->status)->toBe('paid')
         ->and($row->method)->toBe('standard')
         ->and($row->stripe_created)->toBe($created);
+});
+
+it('stores payout metadata from Stripe objects as plain JSON', function (): void {
+    $accountId = 'acct_po_meta_'.uniqid();
+    $store = Store::factory()->create(['stripe_account_id' => $accountId]);
+
+    ConnectMapping::query()->create([
+        'model' => Store::class,
+        'model_id' => $store->id,
+        'stripe_account_id' => $accountId,
+        'type' => 'standard',
+    ]);
+
+    $payout = StripePayout::constructFrom([
+        'id' => 'po_meta_'.uniqid(),
+        'object' => 'payout',
+        'amount' => 12_345,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => strtotime('+1 day'),
+        'created' => time(),
+        'automatic' => true,
+        'method' => 'standard',
+        'metadata' => StripeObject::constructFrom([
+            'batch' => 'tickets',
+            'eventKey' => '534cbf13-7309-4e9b-bd57-8226cbab5846',
+        ]),
+    ]);
+
+    (new SyncStoreStripePayoutsFromStripe)->upsertSinglePayout($store, $payout);
+
+    $row = StoreStripePayout::query()->where('stripe_payout_id', $payout->id)->first();
+
+    expect($row)->not->toBeNull()
+        ->and($row->metadata)->toBe([
+            'batch' => 'tickets',
+            'eventKey' => '534cbf13-7309-4e9b-bd57-8226cbab5846',
+        ]);
 });
 
 it('updates an existing payout row on payout.updated webhook', function (): void {

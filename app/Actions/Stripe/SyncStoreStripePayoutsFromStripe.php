@@ -4,6 +4,7 @@ namespace App\Actions\Stripe;
 
 use App\Models\Store;
 use App\Models\StoreStripePayout;
+use App\Support\Stripe\StripeMetadata;
 use Filament\Notifications\Notification;
 use Lanos\CashierConnect\Exceptions\AccountNotFoundException;
 use Stripe\Payout as StripePayout;
@@ -45,7 +46,7 @@ class SyncStoreStripePayoutsFromStripe
             'statement_descriptor' => $payout->statement_descriptor ?? null,
             'automatic' => (bool) ($payout->automatic ?? true),
             'stripe_created' => (int) $payout->created,
-            'metadata' => $payout->metadata ? (array) $payout->metadata : null,
+            'metadata' => StripeMetadata::toArray($payout->metadata),
         ];
 
         $record = StoreStripePayout::query()

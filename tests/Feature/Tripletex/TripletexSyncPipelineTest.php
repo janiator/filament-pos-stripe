@@ -1014,6 +1014,70 @@ it('includes payout external ticket sales diagnostics on Tripletex payout previe
         ->and($preview['payout_external_ticket_sales']['notes'])->not->toBeEmpty();
 });
 
+it('attributes external ticket diagnostics to metadata rules before zero net amount', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'external_ticket_sales' => [
+                    'enabled' => true,
+                    'sales_account_no' => '3200',
+                    'require_metadata_keys' => ['booking_id'],
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_diag_filter_order',
+        'amount' => 12_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_charge_id' => 'ch_diag_filter_order',
+        'pos_session_id' => null,
+        'status' => 'succeeded',
+        'paid' => true,
+        'amount' => 5_000,
+        'amount_refunded' => 5_000,
+        'metadata' => [],
+    ]);
+
+    StoreStripeBalanceTransaction::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_balance_transaction_id' => 'txn_diag_filter_order',
+        'type' => 'charge',
+        'amount' => 5_000,
+        'fee' => 0,
+        'net' => 5_000,
+        'currency' => 'nok',
+        'stripe_charge_id' => 'ch_diag_filter_order',
+        'stripe_payout_id' => $payout->stripe_payout_id,
+        'stripe_created' => (int) now()->timestamp,
+    ]);
+
+    $diagnostics = app(TripletexPayoutLedgerPayloadBuilder::class)
+        ->externalTicketSalesDiagnostics($store, $integration, $payout);
+
+    expect($diagnostics['matched_for_voucher_lines'])->toBe(0)
+        ->and($diagnostics['skipped_metadata_or_regex'])->toBe(1)
+        ->and($diagnostics['skipped_zero_net_amount'])->toBe(0);
+});
+
 it('splits Z-report ledger lines by calendar day when enabled and session charges exist', function () {
     $store = Store::factory()->create();
 

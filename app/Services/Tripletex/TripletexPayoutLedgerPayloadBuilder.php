@@ -180,14 +180,14 @@ class TripletexPayoutLedgerPayloadBuilder
                 continue;
             }
             $webCandidates++;
-            $amountMinor = max(0, (int) $charge->amount - (int) $charge->amount_refunded);
-            if ($amountMinor <= 0) {
-                $zeroNetAmount++;
+            if (! TripletexExternalTicketSalesMatch::matches($integration, $charge, $bt)) {
+                $failedRules++;
 
                 continue;
             }
-            if (! TripletexExternalTicketSalesMatch::matches($integration, $charge, $bt)) {
-                $failedRules++;
+            $amountMinor = max(0, (int) $charge->amount - (int) $charge->amount_refunded);
+            if ($amountMinor <= 0) {
+                $zeroNetAmount++;
 
                 continue;
             }
