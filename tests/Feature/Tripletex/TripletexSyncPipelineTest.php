@@ -1351,6 +1351,85 @@ it('adds external ticket lines only for charges without a POS session when enabl
     expect($externalCredits)->toBe(5_000);
 });
 
+it('combines external ticket payout lines per calendar day', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+                'external_ticket_sales' => [
+                    'enabled' => true,
+                    'sales_account_no' => '3200',
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_ext_ticket_by_day',
+        'amount' => 20_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    foreach ([
+        ['id' => 'ch_ext_web_day_1a', 'amount' => 5_000, 'created' => Carbon::parse('2026-05-11 09:00:00', config('app.timezone'))->timestamp],
+        ['id' => 'ch_ext_web_day_1b', 'amount' => 7_000, 'created' => Carbon::parse('2026-05-11 14:00:00', config('app.timezone'))->timestamp],
+        ['id' => 'ch_ext_web_day_2a', 'amount' => 3_000, 'created' => Carbon::parse('2026-05-12 10:00:00', config('app.timezone'))->timestamp],
+    ] as $row) {
+        ConnectedCharge::factory()->create([
+            'stripe_account_id' => $store->stripe_account_id,
+            'stripe_charge_id' => $row['id'],
+            'pos_session_id' => null,
+            'status' => 'succeeded',
+            'paid' => true,
+            'amount' => $row['amount'],
+            'metadata' => ['booking_id' => $row['id']],
+        ]);
+
+        StoreStripeBalanceTransaction::query()->create([
+            'store_id' => $store->id,
+            'stripe_account_id' => (string) $store->stripe_account_id,
+            'stripe_balance_transaction_id' => 'txn_'.$row['id'],
+            'type' => 'charge',
+            'amount' => $row['amount'],
+            'fee' => 0,
+            'net' => $row['amount'],
+            'currency' => 'nok',
+            'stripe_charge_id' => $row['id'],
+            'stripe_payout_id' => $payout->stripe_payout_id,
+            'stripe_created' => $row['created'],
+        ]);
+    }
+
+    $payload = app(TripletexPayoutLedgerPayloadBuilder::class)->build($store, $integration, $payout);
+    $externalSales = collect($payload['lines'] ?? [])
+        ->where('line_kind', 'external_ticket_sales')
+        ->values();
+    $externalClearing = collect($payload['lines'] ?? [])
+        ->where('line_kind', 'external_ticket_clearing')
+        ->values();
+
+    expect($externalSales)->toHaveCount(2)
+        ->and($externalClearing)->toHaveCount(2)
+        ->and($externalSales->pluck('posting_date')->all())->toBe(['2026-05-11', '2026-05-12'])
+        ->and($externalSales->pluck('credit_minor')->all())->toBe([12_000, 3_000])
+        ->and($externalClearing->pluck('debit_minor')->all())->toBe([12_000, 3_000]);
+});
+
 it('matches external ticket sales with eventKey when require_metadata_keys is not configured', function () {
     $store = Store::factory()->create();
 

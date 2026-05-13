@@ -335,7 +335,7 @@ class TripletexPayoutLedgerPayloadBuilder
             ->get()
             ->keyBy('stripe_charge_id');
 
-        $lines = [];
+        $amountsByPostingDate = [];
         foreach ($rows as $bt) {
             if (! $bt->isPayoutSaleSourceMirrorRow()) {
                 continue;
@@ -357,6 +357,17 @@ class TripletexPayoutLedgerPayloadBuilder
             }
 
             $postingDate = $this->postingDateFromBalanceTransaction($bt);
+            $amountsByPostingDate[$postingDate] = ($amountsByPostingDate[$postingDate] ?? 0) + $amountMinor;
+        }
+
+        if ($amountsByPostingDate === []) {
+            return [];
+        }
+
+        ksort($amountsByPostingDate);
+
+        $lines = [];
+        foreach ($amountsByPostingDate as $postingDate => $amountMinor) {
             $vatTypeId = TripletexLedgerSettings::externalTicketSalesVatTypeId($integration);
 
             $desc = 'Salg billetter (forhånd / web) '.$payout->stripe_payout_id;
