@@ -213,7 +213,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
         $extMetaKeys = is_array($ext['require_metadata_keys'] ?? null) ? $ext['require_metadata_keys'] : [];
         $extMetaKeysStr = $extMetaKeys !== []
             ? implode(', ', array_map(static fn ($k): string => (string) $k, $extMetaKeys))
-            : 'booking_id';
+            : '';
 
         $out = [
             'ledger_default_sales_account_no' => (string) ($l['default_sales_account_no'] ?? ''),

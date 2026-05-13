@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Actions\ConnectedProducts\SyncConnectedProductsFromStripe;
 use App\Models\Store;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class SyncStoreProductsFromStripeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * The number of times the job may be attempted.
@@ -53,16 +54,17 @@ class SyncStoreProductsFromStripeJob implements ShouldQueue
         try {
             // Refresh the store to ensure we have the latest data
             $this->store->refresh();
-            
+
             // Skip if store doesn't have stripe_account_id
-            if (!$this->store->stripe_account_id) {
+            if (! $this->store->stripe_account_id) {
                 Log::warning('Skipping sync - store does not have stripe_account_id', [
                     'store_id' => $this->store->id,
                 ]);
+
                 return;
             }
 
-            $syncAction = new SyncConnectedProductsFromStripe();
+            $syncAction = new SyncConnectedProductsFromStripe;
             $result = $syncAction($this->store, false); // Don't send notifications from job
 
             Log::info('Sync products from Stripe completed for store', [

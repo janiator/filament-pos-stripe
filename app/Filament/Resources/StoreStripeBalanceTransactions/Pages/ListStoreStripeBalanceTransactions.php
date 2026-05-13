@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\StoreStripeBalanceTransactions\Pages;
 
-use App\Actions\Stripe\SyncStoreStripeBalanceTransactionsFromStripe;
 use App\Filament\Resources\StoreStripeBalanceTransactions\StoreStripeBalanceTransactionResource;
+use App\Jobs\SyncStoreStripeBalanceTransactionsJob;
 use App\Models\Store;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Bus;
 
 class ListStoreStripeBalanceTransactions extends ListRecords
 {
@@ -28,51 +30,34 @@ class ListStoreStripeBalanceTransactions extends ListRecords
                 ->requiresConfirmation()
                 ->modalHeading(__('filament.resources.store_stripe_balance_transaction.actions.sync_heading'))
                 ->modalDescription(fn () => $this->syncModalDescription())
-                ->action(function () {
-                    $sync = new SyncStoreStripeBalanceTransactionsFromStripe;
-                    $stores = Store::getStoresForSync();
+                ->action(function (): void {
+                    $stores = Store::getStoresForSync()->filter(fn (Store $store): bool => filled($store->stripe_account_id));
 
-                    $totalCreated = 0;
-                    $totalUpdated = 0;
-                    $totalFound = 0;
-                    $errors = [];
-
-                    foreach ($stores as $store) {
-                        $result = $sync($store, false);
-                        $totalFound += $result['total'];
-                        $totalCreated += $result['created'];
-                        $totalUpdated += $result['updated'];
-                        $errors = array_merge($errors, $result['errors']);
-                    }
-
-                    if ($errors !== []) {
-                        $errorDetails = implode("\n", array_slice($errors, 0, 5));
-                        if (count($errors) > 5) {
-                            $errorDetails .= "\n... and ".(count($errors) - 5).' more error(s)';
-                        }
-
-                        \Filament\Notifications\Notification::make()
-                            ->title(__('filament.resources.store_stripe_balance_transaction.notifications.sync_errors_title'))
-                            ->body(__('filament.resources.store_stripe_balance_transaction.notifications.sync_errors_body', [
-                                'total' => $totalFound,
-                                'created' => $totalCreated,
-                                'updated' => $totalUpdated,
-                                'errors' => $errorDetails,
-                            ]))
+                    if ($stores->isEmpty()) {
+                        Notification::make()
+                            ->title(__('filament.resources.store_stripe_balance_transaction.notifications.sync_no_stores_title'))
+                            ->body(__('filament.resources.store_stripe_balance_transaction.notifications.sync_no_stores_body'))
                             ->warning()
-                            ->persistent()
                             ->send();
-                    } else {
-                        \Filament\Notifications\Notification::make()
-                            ->title(__('filament.resources.store_stripe_balance_transaction.notifications.sync_ok_title'))
-                            ->body(__('filament.resources.store_stripe_balance_transaction.notifications.sync_ok_body', [
-                                'total' => $totalFound,
-                                'created' => $totalCreated,
-                                'updated' => $totalUpdated,
-                            ]))
-                            ->success()
-                            ->send();
+
+                        return;
                     }
+
+                    $jobs = $stores->map(fn (Store $store): SyncStoreStripeBalanceTransactionsJob => new SyncStoreStripeBalanceTransactionsJob($store))->all();
+
+                    $batch = Bus::batch($jobs)
+                        ->name(__('filament.resources.store_stripe_balance_transaction.notifications.sync_batch_name'))
+                        ->allowFailures()
+                        ->dispatch();
+
+                    Notification::make()
+                        ->title(__('filament.resources.store_stripe_balance_transaction.notifications.sync_queued_title'))
+                        ->body(__('filament.resources.store_stripe_balance_transaction.notifications.sync_queued_body', [
+                            'count' => count($jobs),
+                            'batch' => $batch->id,
+                        ]))
+                        ->success()
+                        ->send();
 
                     $this->refresh();
                 }),

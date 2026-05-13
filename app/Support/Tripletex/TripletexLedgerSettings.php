@@ -181,13 +181,17 @@ final class TripletexLedgerSettings
     }
 
     /**
-     * @return list<string>
+     * When external ticket sales omits `require_metadata_keys` in ledger settings, payout matching uses
+     * {@see self::externalTicketSalesDefaultAnyOfKeys()} (any non-empty key qualifies). When the integration stores a non-empty list,
+     * every listed key must be present (AND).
+     *
+     * @return list<string>|null
      */
-    public static function externalTicketSalesRequireMetadataKeys(TripletexIntegration $integration): array
+    public static function externalTicketSalesExplicitRequireMetadataKeys(TripletexIntegration $integration): ?array
     {
         $keys = self::externalTicketSalesSettings($integration)['require_metadata_keys'] ?? null;
-        if (! is_array($keys) || $keys === []) {
-            return ['booking_id'];
+        if (! is_array($keys)) {
+            return null;
         }
         $out = [];
         foreach ($keys as $k) {
@@ -196,7 +200,17 @@ final class TripletexLedgerSettings
             }
         }
 
-        return $out !== [] ? $out : ['booking_id'];
+        return $out === [] ? null : $out;
+    }
+
+    /**
+     * Default “web or advance ticket” identifiers on Stripe metadata (Merano web uses {@code eventKey}; other flows may use {@code booking_id}).
+     *
+     * @return list<string>
+     */
+    public static function externalTicketSalesDefaultAnyOfKeys(): array
+    {
+        return ['booking_id', 'eventKey'];
     }
 
     public static function externalTicketSalesDescriptionRegex(TripletexIntegration $integration): ?string

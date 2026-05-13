@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Actions\Stores\SyncStoreTerminalLocationsFromStripe;
 use App\Models\Store;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class SyncStoreTerminalLocationsFromStripeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * The number of times the job may be attempted.
@@ -51,7 +52,7 @@ class SyncStoreTerminalLocationsFromStripeJob implements ShouldQueue
         ]);
 
         try {
-            $syncAction = new SyncStoreTerminalLocationsFromStripe();
+            $syncAction = new SyncStoreTerminalLocationsFromStripe;
             $result = $syncAction($this->store);
 
             Log::info('Sync terminal locations from Stripe completed for store', [
@@ -59,7 +60,7 @@ class SyncStoreTerminalLocationsFromStripeJob implements ShouldQueue
                 'total' => $result['total'],
                 'created' => $result['created'],
                 'updated' => $result['updated'],
-                'has_error' => !empty($result['error']),
+                'has_error' => ! empty($result['error']),
             ]);
         } catch (\Throwable $e) {
             Log::error('Sync terminal locations from Stripe job failed for store', [

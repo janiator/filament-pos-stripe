@@ -55,7 +55,7 @@ class SyncEverythingFromStripeJob implements ShouldQueue
             // First, sync stores synchronously to ensure we have the latest store data
             // This is important because new stores might exist in Stripe
             Log::info('Syncing stores from Stripe');
-            $storeSyncJob = new SyncStoresFromStripeJob();
+            $storeSyncJob = new SyncStoresFromStripeJob;
             $storeSyncJob->handle();
 
             // Get stores after syncing to get any newly created stores
@@ -63,6 +63,7 @@ class SyncEverythingFromStripeJob implements ShouldQueue
 
             if ($stores->isEmpty()) {
                 Log::warning('No stores found for sync after syncing stores');
+
                 return;
             }
 
@@ -79,10 +80,11 @@ class SyncEverythingFromStripeJob implements ShouldQueue
                 $store->refresh();
 
                 // Skip if store doesn't have stripe_account_id
-                if (!$store->stripe_account_id) {
+                if (! $store->stripe_account_id) {
                     Log::debug('Skipping store without stripe_account_id', [
                         'store_id' => $store->id,
                     ]);
+
                     continue;
                 }
 
@@ -93,6 +95,7 @@ class SyncEverythingFromStripeJob implements ShouldQueue
                     new SyncStoreSubscriptionsFromStripeJob($store),
                     new SyncStorePaymentIntentsFromStripeJob($store),
                     new SyncStoreChargesFromStripeJob($store),
+                    new SyncStoreStripeBalanceTransactionsJob($store),
                     new SyncStoreTransfersFromStripeJob($store),
                     new SyncStorePaymentMethodsFromStripeJob($store),
                     new SyncStorePaymentLinksFromStripeJob($store),
@@ -103,6 +106,7 @@ class SyncEverythingFromStripeJob implements ShouldQueue
 
             if ($jobs->isEmpty()) {
                 Log::warning('No sync jobs to dispatch - all stores may be missing stripe_account_id');
+
                 return;
             }
 
@@ -115,7 +119,7 @@ class SyncEverythingFromStripeJob implements ShouldQueue
             $batchesCreated = 0;
             $jobs->chunk($this->batchSize)->each(function (Collection $chunk) use (&$batchesCreated) {
                 Bus::batch($chunk->toArray())
-                    ->name('Sync from Stripe - Batch ' . ($batchesCreated + 1))
+                    ->name('Sync from Stripe - Batch '.($batchesCreated + 1))
                     ->dispatch();
                 $batchesCreated++;
             });
@@ -134,4 +138,3 @@ class SyncEverythingFromStripeJob implements ShouldQueue
         }
     }
 }
-

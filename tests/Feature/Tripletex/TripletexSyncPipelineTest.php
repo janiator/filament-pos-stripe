@@ -456,6 +456,56 @@ it('resolves stripe payout id from Stripe balance transaction shapes', function 
     expect($method->invoke($action, (object) ['payout' => null]))->toBeNull();
 });
 
+it('resolves py_ payment ids from Stripe charge balance transactions for payout mirror joins', function () {
+    $action = new SyncStoreStripeBalanceTransactionsFromStripe;
+    $ref = new ReflectionClass($action);
+    $resolveChargeId = $ref->getMethod('resolveChargeId');
+    $resolveChargeId->setAccessible(true);
+
+    expect($resolveChargeId->invoke($action, (object) [
+        'type' => 'charge',
+        'source' => 'py_3TVtzBRu3Ljbb32R18cSlSBn',
+    ]))->toBe('py_3TVtzBRu3Ljbb32R18cSlSBn');
+
+    expect($resolveChargeId->invoke($action, (object) [
+        'type' => 'charge',
+        'source' => (object) [
+            'id' => 'py_3abc',
+            'object' => 'payment',
+        ],
+    ]))->toBe('py_3abc');
+
+    expect($resolveChargeId->invoke($action, (object) [
+        'type' => 'charge',
+        'source' => (object) [
+            'id' => 'ch_3abc',
+            'object' => 'charge',
+        ],
+    ]))->toBe('ch_3abc');
+});
+
+it('extracts source metadata from payment balance transaction sources', function () {
+    $action = new SyncStoreStripeBalanceTransactionsFromStripe;
+    $ref = new ReflectionClass($action);
+    $extract = $ref->getMethod('extractChargeSourceExtras');
+    $extract->setAccessible(true);
+
+    $bt = (object) [
+        'type' => 'charge',
+        'source' => (object) [
+            'object' => 'payment',
+            'id' => 'py_test',
+            'metadata' => (object) ['booking_id' => '6887', 'seats' => 'A1'],
+            'payment_intent' => 'pi_3TVtzBRu3Ljbb32R1VGaUNQC',
+        ],
+    ];
+
+    $out = $extract->invoke($action, $bt);
+
+    expect($out['source_metadata']['booking_id'])->toBe('6887')
+        ->and($out['stripe_payment_intent_id'])->toBe('pi_3TVtzBRu3Ljbb32R1VGaUNQC');
+});
+
 it('queues Tripletex Z-report sync from the API when the add-on and integration are ready', function () {
     Queue::fake();
 
@@ -884,7 +934,148 @@ it('maps ledger lines to Tripletex voucher JSON with posting_date, vatType, supp
     expect($voucher['date'])->toBe('2026-05-11')
         ->and($voucher['postings'][0]['date'])->toBe('2026-05-11')
         ->and($voucher['postings'][0]['vatType']['id'])->toBe(44)
-        ->and($voucher['postings'][0]['supplier']['id'])->toBe(9);
+        ->and($voucher['postings'][0]['supplier']['id'])->toBe(9)
+        ->and($voucher['postings'][0]['amountGross'])->toBe(-1.0)
+        ->and($voucher['postings'][0]['amountGrossCurrency'])->toBe(-1.0);
+});
+
+it('maps minor units to Tripletex amountGross with two-decimal major units (legacy script parity)', function () {
+    $factory = app(TripletexManualVoucherPayloadFactory::class);
+    $account = ['id' => 1, 'number' => 3000, 'name' => 'Sales'];
+    $accountMap = ['3000' => $account, '1900' => $account];
+
+    $voucher = $factory->build([
+        'document_date' => '2026-06-01',
+        'currency' => 'NOK',
+        'description' => 'Decimal check',
+        'lines' => [
+            [
+                'account' => '3000',
+                'debit_minor' => 19_999,
+                'credit_minor' => 0,
+                'description' => 'Debit 199.99',
+            ],
+            [
+                'account' => '1900',
+                'debit_minor' => 0,
+                'credit_minor' => 1,
+                'description' => 'Credit 0.01',
+            ],
+            [
+                'account' => '3000',
+                'debit_minor' => 0,
+                'credit_minor' => 12_345,
+                'description' => 'Credit 123.45',
+            ],
+        ],
+    ], $accountMap);
+
+    $amounts = collect($voucher['postings'])->pluck('amountGross')->all();
+
+    expect($amounts)->toBe([199.99, -0.01, -123.45]);
+});
+
+it('includes payout external ticket sales diagnostics on Tripletex payout preview', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_diag_preview',
+        'amount' => 12_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    $preview = app(TripletexSyncPreviewService::class)->previewPayout($payout, $integration, false);
+
+    expect($preview['ok'])->toBeTrue()
+        ->and($preview['mirror_balance_transaction_count'])->toBe(0)
+        ->and($preview['payout_external_ticket_sales'])->toBeArray()
+        ->and($preview['payout_external_ticket_sales']['enabled'])->toBeFalse()
+        ->and($preview['payout_external_ticket_sales']['notes'])->not->toBeEmpty();
+});
+
+it('attributes external ticket diagnostics to metadata rules before zero net amount', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'external_ticket_sales' => [
+                    'enabled' => true,
+                    'sales_account_no' => '3200',
+                    'require_metadata_keys' => ['booking_id'],
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_diag_filter_order',
+        'amount' => 12_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_charge_id' => 'ch_diag_filter_order',
+        'pos_session_id' => null,
+        'status' => 'succeeded',
+        'paid' => true,
+        'amount' => 5_000,
+        'amount_refunded' => 5_000,
+        'metadata' => [],
+    ]);
+
+    StoreStripeBalanceTransaction::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_balance_transaction_id' => 'txn_diag_filter_order',
+        'type' => 'charge',
+        'amount' => 5_000,
+        'fee' => 0,
+        'net' => 5_000,
+        'currency' => 'nok',
+        'stripe_charge_id' => 'ch_diag_filter_order',
+        'stripe_payout_id' => $payout->stripe_payout_id,
+        'stripe_created' => (int) now()->timestamp,
+    ]);
+
+    $diagnostics = app(TripletexPayoutLedgerPayloadBuilder::class)
+        ->externalTicketSalesDiagnostics($store, $integration, $payout);
+
+    expect($diagnostics['matched_for_voucher_lines'])->toBe(0)
+        ->and($diagnostics['skipped_metadata_or_regex'])->toBe(1)
+        ->and($diagnostics['skipped_zero_net_amount'])->toBe(0);
 });
 
 it('splits Z-report ledger lines by calendar day when enabled and session charges exist', function () {
@@ -1109,6 +1300,210 @@ it('adds external ticket lines only for charges without a POS session when enabl
         'stripe_charge_id' => 'ch_ext_web',
         'stripe_payout_id' => $payout->stripe_payout_id,
         'stripe_created' => (int) now()->timestamp,
+    ]);
+
+    $payload = app(TripletexPayoutLedgerPayloadBuilder::class)->build($store, $integration, $payout);
+    $externalCredits = collect($payload['lines'] ?? [])
+        ->where('line_kind', 'external_ticket_sales')
+        ->sum('credit_minor');
+
+    expect($externalCredits)->toBe(5_000);
+});
+
+it('matches external ticket sales with eventKey when require_metadata_keys is not configured', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+                'external_ticket_sales' => [
+                    'enabled' => true,
+                    'sales_account_no' => '3200',
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_ext_ticket_eventkey',
+        'amount' => 50_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_charge_id' => 'ch_ext_web_eventkey',
+        'pos_session_id' => null,
+        'status' => 'succeeded',
+        'paid' => true,
+        'amount' => 13_800,
+        'metadata' => [
+            'eventKey' => '534cbf13-7309-4e9b-bd57-8226cbab5846',
+            'seats' => '7-8,7-7',
+        ],
+    ]);
+
+    StoreStripeBalanceTransaction::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_balance_transaction_id' => 'txn_ext_eventkey',
+        'type' => 'charge',
+        'amount' => 13_800,
+        'fee' => 0,
+        'net' => 13_800,
+        'currency' => 'nok',
+        'stripe_charge_id' => 'ch_ext_web_eventkey',
+        'stripe_payout_id' => $payout->stripe_payout_id,
+        'stripe_created' => (int) now()->timestamp,
+    ]);
+
+    $payload = app(TripletexPayoutLedgerPayloadBuilder::class)->build($store, $integration, $payout);
+    $externalCredits = collect($payload['lines'] ?? [])
+        ->where('line_kind', 'external_ticket_sales')
+        ->sum('credit_minor');
+
+    expect($externalCredits)->toBe(13_800);
+});
+
+it('does not match kiosk-style charges without booking_id or eventKey under default metadata rule', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+                'external_ticket_sales' => [
+                    'enabled' => true,
+                    'sales_account_no' => '3200',
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_ext_ticket_kiosk',
+        'amount' => 10_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_charge_id' => 'ch_ext_kiosk',
+        'pos_session_id' => null,
+        'status' => 'succeeded',
+        'paid' => true,
+        'amount' => 5_900,
+        'description' => 'Kioskvarer',
+        'metadata' => [],
+    ]);
+
+    StoreStripeBalanceTransaction::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_balance_transaction_id' => 'txn_ext_kiosk',
+        'type' => 'charge',
+        'amount' => 5_900,
+        'fee' => 0,
+        'net' => 5_900,
+        'currency' => 'nok',
+        'stripe_charge_id' => 'ch_ext_kiosk',
+        'stripe_payout_id' => $payout->stripe_payout_id,
+        'stripe_created' => (int) now()->timestamp,
+    ]);
+
+    $payload = app(TripletexPayoutLedgerPayloadBuilder::class)->build($store, $integration, $payout);
+    $externalCredits = collect($payload['lines'] ?? [])
+        ->where('line_kind', 'external_ticket_sales')
+        ->sum('credit_minor');
+
+    expect($externalCredits)->toBe(0);
+});
+
+it('matches external ticket metadata when booking_id is only on balance transaction source_metadata', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+                'external_ticket_sales' => [
+                    'enabled' => true,
+                    'sales_account_no' => '3200',
+                    'require_metadata_keys' => ['booking_id'],
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_ext_ticket_meta_merge',
+        'amount' => 5_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_charge_id' => 'ch_ext_web_meta_split',
+        'pos_session_id' => null,
+        'status' => 'succeeded',
+        'paid' => true,
+        'amount' => 5_000,
+        'metadata' => ['pos_enrichment_only' => '1'],
+    ]);
+
+    StoreStripeBalanceTransaction::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_balance_transaction_id' => 'txn_ext_meta_merge',
+        'type' => 'charge',
+        'amount' => 5_000,
+        'fee' => 0,
+        'net' => 5_000,
+        'currency' => 'nok',
+        'stripe_charge_id' => 'ch_ext_web_meta_split',
+        'stripe_payout_id' => $payout->stripe_payout_id,
+        'stripe_created' => (int) now()->timestamp,
+        'source_metadata' => ['booking_id' => 'b-merge-1'],
     ]);
 
     $payload = app(TripletexPayoutLedgerPayloadBuilder::class)->build($store, $integration, $payout);

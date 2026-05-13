@@ -12,9 +12,10 @@ use Throwable;
 class SyncStoreStripeBalanceTransactionsFromStripe
 {
     /**
+     * @param  ?string  $onlyStripePayoutId  When set, lists balance transactions via Stripe's `payout` filter (reliable for paid payouts) instead of walking the full recent history.
      * @return array{total: int, created: int, updated: int, errors: list<string>}
      */
-    public function __invoke(Store $store, bool $notify = false): array
+    public function __invoke(Store $store, bool $notify = false, ?string $onlyStripePayoutId = null): array
     {
         $result = [
             'total' => 0,
@@ -55,11 +56,16 @@ class SyncStoreStripeBalanceTransactionsFromStripe
 
             $stripe = new StripeClient($secret);
 
+            $listParams = [
+                'limit' => 100,
+                'expand' => ['data.source'],
+            ];
+            if ($onlyStripePayoutId !== null && str_starts_with($onlyStripePayoutId, 'po_')) {
+                $listParams['payout'] = $onlyStripePayoutId;
+            }
+
             $transactions = $stripe->balanceTransactions->all(
-                [
-                    'limit' => 100,
-                    'expand' => ['data.source'],
-                ],
+                $listParams,
                 ['stripe_account' => $stripeAccountId]
             );
 
@@ -69,6 +75,9 @@ class SyncStoreStripeBalanceTransactionsFromStripe
                 try {
                     $chargeId = $this->resolveChargeId($bt);
                     $payoutId = $this->resolvePayoutId($bt);
+                    if ($payoutId === null && $onlyStripePayoutId !== null && str_starts_with($onlyStripePayoutId, 'po_')) {
+                        $payoutId = $onlyStripePayoutId;
+                    }
                     $chargeExtras = $this->extractChargeSourceExtras($bt);
 
                     $availableOn = null;
@@ -164,7 +173,8 @@ class SyncStoreStripeBalanceTransactionsFromStripe
             return $out;
         }
 
-        if (($source->object ?? null) !== 'charge') {
+        $objectType = (string) ($source->object ?? '');
+        if ($objectType !== 'charge' && $objectType !== 'payment') {
             return $out;
         }
 
@@ -209,12 +219,15 @@ class SyncStoreStripeBalanceTransactionsFromStripe
         }
 
         $source = $bt->source ?? null;
-        if (is_string($source) && str_starts_with($source, 'ch_')) {
+        if (is_string($source) && (str_starts_with($source, 'ch_') || str_starts_with($source, 'py_'))) {
             return $source;
         }
 
-        if (is_object($source) && isset($source->id) && is_string($source->id) && str_starts_with($source->id, 'ch_')) {
-            return $source->id;
+        if (is_object($source) && isset($source->id) && is_string($source->id)) {
+            $id = $source->id;
+            if (str_starts_with($id, 'ch_') || str_starts_with($id, 'py_')) {
+                return $id;
+            }
         }
 
         return null;

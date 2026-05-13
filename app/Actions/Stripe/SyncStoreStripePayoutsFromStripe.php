@@ -4,13 +4,67 @@ namespace App\Actions\Stripe;
 
 use App\Models\Store;
 use App\Models\StoreStripePayout;
+use App\Support\Stripe\StripeMetadata;
 use Filament\Notifications\Notification;
 use Lanos\CashierConnect\Exceptions\AccountNotFoundException;
+use Stripe\Payout as StripePayout;
 use Stripe\StripeClient;
 use Throwable;
 
 class SyncStoreStripePayoutsFromStripe
 {
+    /**
+     * Upsert one payout row from a Stripe Payout object (e.g. Connect webhook payload).
+     *
+     * @return array{created: bool, updated: bool}
+     */
+    public function upsertSinglePayout(Store $store, StripePayout $payout): array
+    {
+        $store->refresh();
+        $stripeAccountId = $store->stripe_account_id;
+
+        if (empty($stripeAccountId) || ! $store->hasStripeAccount()) {
+            return ['created' => false, 'updated' => false];
+        }
+
+        $arrivalDate = null;
+        if (! empty($payout->arrival_date)) {
+            $arrivalDate = \Carbon\Carbon::createFromTimestamp((int) $payout->arrival_date);
+        }
+
+        $data = [
+            'store_id' => $store->id,
+            'stripe_account_id' => $stripeAccountId,
+            'stripe_payout_id' => $payout->id,
+            'amount' => (int) $payout->amount,
+            'currency' => (string) $payout->currency,
+            'status' => (string) $payout->status,
+            'arrival_date' => $arrivalDate,
+            'method' => $payout->method ?? null,
+            'failure_code' => $payout->failure_code ?? null,
+            'failure_message' => $payout->failure_message ?? null,
+            'statement_descriptor' => $payout->statement_descriptor ?? null,
+            'automatic' => (bool) ($payout->automatic ?? true),
+            'stripe_created' => (int) $payout->created,
+            'metadata' => StripeMetadata::toArray($payout->metadata),
+        ];
+
+        $record = StoreStripePayout::query()
+            ->where('stripe_payout_id', $payout->id)
+            ->first();
+
+        if ($record) {
+            $record->fill($data);
+            $record->save();
+
+            return ['created' => false, 'updated' => true];
+        }
+
+        StoreStripePayout::query()->create($data);
+
+        return ['created' => true, 'updated' => false];
+    }
+
     /**
      * @return array{total: int, created: int, updated: int, errors: list<string>}
      */
@@ -64,39 +118,12 @@ class SyncStoreStripePayoutsFromStripe
                 $result['total']++;
 
                 try {
-                    $arrivalDate = null;
-                    if (! empty($payout->arrival_date)) {
-                        $arrivalDate = \Carbon\Carbon::createFromTimestamp((int) $payout->arrival_date);
-                    }
-
-                    $data = [
-                        'store_id' => $store->id,
-                        'stripe_account_id' => $stripeAccountId,
-                        'stripe_payout_id' => $payout->id,
-                        'amount' => (int) $payout->amount,
-                        'currency' => (string) $payout->currency,
-                        'status' => (string) $payout->status,
-                        'arrival_date' => $arrivalDate,
-                        'method' => $payout->method ?? null,
-                        'failure_code' => $payout->failure_code ?? null,
-                        'failure_message' => $payout->failure_message ?? null,
-                        'statement_descriptor' => $payout->statement_descriptor ?? null,
-                        'automatic' => (bool) ($payout->automatic ?? true),
-                        'stripe_created' => (int) $payout->created,
-                        'metadata' => $payout->metadata ? (array) $payout->metadata : null,
-                    ];
-
-                    $record = StoreStripePayout::query()
-                        ->where('stripe_payout_id', $payout->id)
-                        ->first();
-
-                    if ($record) {
-                        $record->fill($data);
-                        $record->save();
-                        $result['updated']++;
-                    } else {
-                        StoreStripePayout::query()->create($data);
+                    $outcome = $this->upsertSinglePayout($store, $payout);
+                    if ($outcome['created']) {
                         $result['created']++;
+                    }
+                    if ($outcome['updated']) {
+                        $result['updated']++;
                     }
                 } catch (Throwable $e) {
                     $result['errors'][] = "Payout {$payout->id}: {$e->getMessage()}";

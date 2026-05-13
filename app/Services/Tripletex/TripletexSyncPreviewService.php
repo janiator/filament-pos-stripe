@@ -6,6 +6,7 @@ use App\Exceptions\Tripletex\MissingTripletexMappingException;
 use App\Exceptions\Tripletex\TripletexUnresolvedLedgerAccountsException;
 use App\Models\PosSession;
 use App\Models\Store;
+use App\Models\StoreStripeBalanceTransaction;
 use App\Models\StoreStripePayout;
 use App\Models\TripletexIntegration;
 
@@ -62,7 +63,7 @@ final class TripletexSyncPreviewService
             return $this->previewError('Payout does not belong to this integration store.', 'payout', null, $payout->id);
         }
 
-        return $this->finishLedgerPreview(
+        $preview = $this->finishLedgerPreview(
             'payout',
             null,
             $payout->id,
@@ -70,6 +71,20 @@ final class TripletexSyncPreviewService
             $integration,
             $resolveTripletexAccounts,
         );
+
+        if (($preview['ok'] ?? false) === true) {
+            $preview['mirror_balance_transaction_count'] = StoreStripeBalanceTransaction::query()
+                ->where('store_id', $store->getKey())
+                ->where('stripe_payout_id', $payout->stripe_payout_id)
+                ->count();
+            $preview['payout_external_ticket_sales'] = $this->payoutLedger->externalTicketSalesDiagnostics(
+                $store,
+                $integration,
+                $payout,
+            );
+        }
+
+        return $preview;
     }
 
     /**

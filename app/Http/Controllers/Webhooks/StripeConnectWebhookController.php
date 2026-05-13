@@ -7,6 +7,7 @@ use App\Actions\Webhooks\HandleChargeWebhook;
 use App\Actions\Webhooks\HandleCustomerWebhook;
 use App\Actions\Webhooks\HandlePaymentLinkWebhook;
 use App\Actions\Webhooks\HandlePaymentMethodWebhook;
+use App\Actions\Webhooks\HandlePayoutWebhook;
 use App\Actions\Webhooks\HandlePriceWebhook;
 use App\Actions\Webhooks\HandleProductWebhook;
 use App\Actions\Webhooks\HandleSubscriptionWebhook;
@@ -19,6 +20,7 @@ use Stripe\Customer;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\PaymentLink;
 use Stripe\PaymentMethod;
+use Stripe\Payout;
 use Stripe\Price;
 use Stripe\Product;
 use Stripe\Subscription;
@@ -38,7 +40,8 @@ class StripeConnectWebhookController extends Controller
         HandlePriceWebhook $priceHandler,
         HandlePaymentMethodWebhook $paymentMethodHandler,
         HandlePaymentLinkWebhook $paymentLinkHandler,
-        HandleTransferWebhook $transferHandler
+        HandleTransferWebhook $transferHandler,
+        HandlePayoutWebhook $payoutHandler
     ) {
         // Get raw payload - must be raw content, not parsed JSON
         // Use getContent() first, fallback to php://input if empty (in case middleware consumed it)
@@ -424,6 +427,27 @@ class StripeConnectWebhookController extends Controller
                     $transferHandler->handle($transfer, $event->type, $accountId);
                     $result['processed'] = true;
                     $result['message'] = "Transfer {$transfer->id} ({$event->type}) processed";
+                    break;
+
+                case 'payout.created':
+                case 'payout.updated':
+                case 'payout.paid':
+                case 'payout.failed':
+                case 'payout.canceled':
+                case 'payout.reconciliation_completed':
+                    $payoutObject = $event->data->object;
+                    if (! $payoutObject instanceof Payout) {
+                        $result['warnings'][] = "Unexpected webhook object for {$event->type}: ".get_debug_type($payoutObject);
+                        $result['message'] = "Skipped {$event->type} because payload object was not a payout";
+                        break;
+                    }
+                    $payout = $payoutObject;
+                    if (! $accountId) {
+                        $result['warnings'][] = 'No account ID found in event';
+                    }
+                    $payoutHandler->handle($payout, $event->type, $accountId);
+                    $result['processed'] = true;
+                    $result['message'] = "Payout {$payout->id} ({$event->type}) processed";
                     break;
 
                 default:

@@ -1,5 +1,7 @@
 <?php
 
+use App\Jobs\SyncStoreStripeBalanceTransactionsJob;
+use App\Models\Store;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -28,3 +30,19 @@ Schedule::command('pos:auto-close-open-sessions')
 
 // Workflow engine: process scheduled workflow triggers
 Schedule::command('workflows:process-scheduled')->everyMinute();
+
+// Mirror Stripe Connect balance transactions (charges, fees, payout links, py_/ch_ sources)
+Schedule::call(function (): void {
+    if (! (bool) config('stripe_sync.balance_transactions.schedule_enabled', true)) {
+        return;
+    }
+
+    Store::query()
+        ->whereNotNull('stripe_account_id')
+        ->each(function (Store $store): void {
+            SyncStoreStripeBalanceTransactionsJob::dispatch($store);
+        });
+})
+    ->everyThirtyMinutes()
+    ->name('stripe:balance-transactions')
+    ->withoutOverlapping();
