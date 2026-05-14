@@ -897,6 +897,41 @@ it('historical service skips ineligible closed sessions', function () {
     expect($result['queued'])->toBe(0)->and($result['skipped'])->toBe(1);
 });
 
+it('queues historical payout jobs with skip bank transfer when requested', function () {
+    Queue::fake();
+
+    $store = Store::factory()->create();
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::Tripletex,
+        'is_active' => true,
+    ]);
+
+    TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'sync_enabled' => true,
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_hist_skip_bank_flag',
+        'amount' => 1_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    app(TripletexHistoricalSyncService::class)->queuePayouts($store, null, null, 10, false, true);
+
+    Queue::assertPushed(SyncTripletexPayoutJob::class, function (SyncTripletexPayoutJob $job) use ($payout): bool {
+        return $job->storeStripePayoutId === $payout->id
+            && $job->force === true
+            && $job->skipPayoutBankTransfer === true;
+    });
+});
+
 it('maps ledger lines to Tripletex voucher JSON with posting_date, vatType, supplier, and header min date', function () {
     $factory = app(TripletexManualVoucherPayloadFactory::class);
     $accountMap = [
@@ -1188,6 +1223,101 @@ it('splits Z-report ledger lines by calendar day when enabled and session charge
     expect($dates->count())->toBeGreaterThanOrEqual(2);
 });
 
+it('balances VAT-basis non-cash clearing per posting date when charges use card_present only', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Vat,
+        'settings' => [
+            'ledger' => [
+                'z_report_split_lines_by_calendar_day' => true,
+                'payment_debits' => [
+                    'cash' => '1920',
+                    'card' => '1921',
+                ],
+            ],
+        ],
+    ]);
+
+    TripletexAccountMapping::factory()->create([
+        'store_id' => $store->id,
+        'tripletex_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Vat,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'vat_account_no' => '2700',
+        'cash_account_no' => '1920',
+        'card_clearing_account_no' => '1921',
+    ]);
+
+    $zReport = [
+        'net_amount' => 10_000,
+        'vat_amount' => 0,
+        'vat_rate' => 25,
+        'total_tips' => 0,
+        'net_cash_amount' => 5_000,
+        'net_card_amount' => 5_000,
+        'net_mobile_amount' => 0,
+        'net_other_amount' => 0,
+    ];
+
+    $session = PosSession::factory()->forStore($store)->create([
+        'status' => 'closed',
+        'closed_at' => Carbon::parse('2026-05-04 12:00:00', 'UTC'),
+        'closing_data' => ['z_report_data' => $zReport],
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'status' => 'succeeded',
+        'paid' => true,
+        'amount' => 5_000,
+        'amount_refunded' => 0,
+        'application_fee_amount' => 0,
+        'payment_method' => 'cash',
+        'paid_at' => Carbon::parse('2026-05-02 10:00:00', 'UTC'),
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'status' => 'succeeded',
+        'paid' => true,
+        'amount' => 5_000,
+        'amount_refunded' => 0,
+        'application_fee_amount' => 0,
+        'payment_method' => 'card_present',
+        'paid_at' => Carbon::parse('2026-05-03 10:00:00', 'UTC'),
+    ]);
+
+    $payload = app(TripletexZReportLedgerPayloadBuilder::class)->build($session, $integration, $zReport);
+    $lines = $payload['lines'] ?? [];
+
+    $byDate = [];
+    foreach ($lines as $line) {
+        $d = $line['posting_date'] ?? null;
+        if (! is_string($d) || $d === '') {
+            continue;
+        }
+        $byDate[$d] = ($byDate[$d] ?? 0) + (int) ($line['debit_minor'] ?? 0) - (int) ($line['credit_minor'] ?? 0);
+    }
+
+    foreach ($byDate as $date => $net) {
+        expect($net)->toBe(0, "Postings for {$date} should net to zero (debits = credits)");
+    }
+
+    $cardClearingByDate = collect($lines)
+        ->filter(fn (array $l): bool => ($l['account'] ?? '') === '1921')
+        ->groupBy('posting_date')
+        ->map(fn ($group) => $group->sum('debit_minor'))
+        ->all();
+
+    expect($cardClearingByDate['2026-05-02'] ?? 0)->toBe(0)
+        ->and($cardClearingByDate['2026-05-03'] ?? 0)->toBe(5_000);
+});
+
 it('splits payout fees into application fee and Stripe processing fee when mirror fee_details exist', function () {
     $store = Store::factory()->create();
 
@@ -1244,6 +1374,100 @@ it('splits payout fees into application fee and Stripe processing fee when mirro
 
     expect($kinds)->toContain('application_fee_expense')
         ->and($kinds)->toContain('stripe_processing_fee_expense');
+});
+
+it('omits clearing-to-bank payout lines when skip payout bank transfer is true', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+                'application_fee' => [
+                    'debit_account_no' => '2400',
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_skip_bank_lines',
+        'amount' => 50_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    StoreStripeBalanceTransaction::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_balance_transaction_id' => 'txn_skip_bank_lines_1',
+        'type' => 'charge',
+        'amount' => 60_000,
+        'fee' => 500,
+        'net' => 59_500,
+        'currency' => 'nok',
+        'stripe_charge_id' => 'ch_skip_bank_lines_1',
+        'stripe_payout_id' => $payout->stripe_payout_id,
+        'stripe_created' => (int) now()->subDay()->timestamp,
+        'fee_details' => [
+            ['type' => 'application_fee', 'amount' => 100],
+            ['type' => 'stripe_fee', 'amount' => 400],
+        ],
+    ]);
+
+    $payload = app(TripletexPayoutLedgerPayloadBuilder::class)->build($store, $integration, $payout, true);
+    $kinds = collect($payload['lines'])->pluck('line_kind')->all();
+
+    expect($payload['skip_payout_bank_transfer'] ?? false)->toBeTrue()
+        ->and($kinds)->not->toContain('payout_bank')
+        ->and($kinds)->not->toContain('payout_clearing')
+        ->and($kinds)->toContain('application_fee_expense');
+});
+
+it('throws when skip payout bank transfer would leave an empty payout voucher', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_skip_bank_empty',
+        'amount' => 50_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    expect(fn () => app(TripletexPayoutLedgerPayloadBuilder::class)->build($store, $integration, $payout, true))
+        ->toThrow(\InvalidArgumentException::class, 'empty');
 });
 
 it('adds external ticket lines only for charges without a POS session when enabled', function () {

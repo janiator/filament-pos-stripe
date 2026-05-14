@@ -334,6 +334,52 @@ class TripletexZReportLedgerPayloadBuilder
     }
 
     /**
+     * Weights per calendar day for splitting the aggregated non-cash clearing line
+     * (net_card + net_mobile + net_other under VAT basis without by_payment_method_net).
+     *
+     * Using only {@see $byMethod}['card'] misses card_present/mobile/vipps/etc., which then
+     * incorrectly fell back to {@see $byDayTotal} and put card clearing on cash-only days —
+     * Tripletex rejects vouchers where postings for a given line date do not sum to zero.
+     *
+     * @param  array<string, array<string, int>>  $byMethod
+     * @param  array<string, int>  $byDayTotal
+     * @return array<string, int>
+     */
+    protected function nonCashPaymentSplitWeights(array $byMethod, array $byDayTotal): array
+    {
+        $merged = [];
+        foreach ($byMethod as $method => $weights) {
+            if ($method === 'cash' || ! is_array($weights)) {
+                continue;
+            }
+            foreach ($weights as $day => $v) {
+                $n = (int) $v;
+                if ($n <= 0) {
+                    continue;
+                }
+                $merged[$day] = ($merged[$day] ?? 0) + $n;
+            }
+        }
+        if (array_sum($merged) > 0) {
+            return $merged;
+        }
+
+        $cash = $byMethod['cash'] ?? [];
+        $cash = is_array($cash) ? $cash : [];
+        foreach ($byDayTotal as $day => $total) {
+            $rest = max(0, (int) $total - (int) ($cash[$day] ?? 0));
+            if ($rest > 0) {
+                $merged[$day] = $rest;
+            }
+        }
+        if (array_sum($merged) > 0) {
+            return $merged;
+        }
+
+        return $byDayTotal;
+    }
+
+    /**
      * @return array{by_day_total: array<string, int>, by_day_by_method: array<string, array<string, int>>}|null
      */
     protected function sessionChargeDayWeights(PosSession $session): ?array
@@ -514,9 +560,11 @@ class TripletexZReportLedgerPayloadBuilder
             if ($amount <= 0) {
                 continue;
             }
-            $weights = (is_array($byMethod[$method] ?? null) && array_sum($byMethod[$method]) > 0)
-                ? $byMethod[$method]
-                : $byDayTotal;
+            $weights = $method === 'card'
+                ? $this->nonCashPaymentSplitWeights($byMethod, $byDayTotal)
+                : ((is_array($byMethod[$method] ?? null) && array_sum($byMethod[$method]) > 0)
+                    ? $byMethod[$method]
+                    : $byDayTotal);
             $account = $this->resolvePaymentDebitAccount($integration, $basis, $fallback, $method);
             if (! $account) {
                 continue;

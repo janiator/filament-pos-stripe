@@ -16,10 +16,14 @@ class TripletexPayoutLedgerPayloadBuilder
     /**
      * @return array<string, mixed>
      */
-    public function build(Store $store, TripletexIntegration $integration, StoreStripePayout $payout): array
-    {
+    public function build(
+        Store $store,
+        TripletexIntegration $integration,
+        StoreStripePayout $payout,
+        bool $skipPayoutBankTransfer = false,
+    ): array {
         $payoutAccounts = TripletexLedgerSettings::payoutAccounts($integration);
-        if (! $payoutAccounts['credit'] || ! $payoutAccounts['debit']) {
+        if (! $skipPayoutBankTransfer && (! $payoutAccounts['credit'] || ! $payoutAccounts['debit'])) {
             throw new \InvalidArgumentException('Tripletex ledger routing: payout credit and debit bank accounts must be configured.');
         }
 
@@ -33,24 +37,27 @@ class TripletexPayoutLedgerPayloadBuilder
             ? Carbon::instance($arrival)->format('Y-m-d')
             : now()->format('Y-m-d');
 
-        $lines = [
-            [
-                'account' => $payoutAccounts['debit'],
-                'debit_minor' => $amountMinor,
-                'credit_minor' => 0,
-                'posting_date' => $postingDate,
-                'description' => 'Stripe payout '.$payout->stripe_payout_id.' (bank)',
-                'line_kind' => 'payout_bank',
-            ],
-            [
-                'account' => $payoutAccounts['credit'],
-                'debit_minor' => 0,
-                'credit_minor' => $amountMinor,
-                'posting_date' => $postingDate,
-                'description' => 'Stripe payout '.$payout->stripe_payout_id.' (clearing)',
-                'line_kind' => 'payout_clearing',
-            ],
-        ];
+        $lines = [];
+        if (! $skipPayoutBankTransfer) {
+            $lines = [
+                [
+                    'account' => $payoutAccounts['debit'],
+                    'debit_minor' => $amountMinor,
+                    'credit_minor' => 0,
+                    'posting_date' => $postingDate,
+                    'description' => 'Stripe payout '.$payout->stripe_payout_id.' (bank)',
+                    'line_kind' => 'payout_bank',
+                ],
+                [
+                    'account' => $payoutAccounts['credit'],
+                    'debit_minor' => 0,
+                    'credit_minor' => $amountMinor,
+                    'posting_date' => $postingDate,
+                    'description' => 'Stripe payout '.$payout->stripe_payout_id.' (clearing)',
+                    'line_kind' => 'payout_clearing',
+                ],
+            ];
+        }
 
         $rows = StoreStripeBalanceTransaction::query()
             ->where('store_id', $store->getKey())
@@ -113,6 +120,12 @@ class TripletexPayoutLedgerPayloadBuilder
             $lines = array_merge($lines, $this->externalTicketLines($store, $integration, $payout, $rows));
         }
 
+        if ($lines === []) {
+            throw new \InvalidArgumentException(
+                'Tripletex payout voucher would be empty with clearing-to-bank transfer skipped. This payout has no application fees, Stripe processing fees, or external ticket lines to post; leave the option off or add mirror balance transactions first.',
+            );
+        }
+
         return [
             'source' => 'positiv_stripe_payout_tripletex',
             'store_stripe_payout_id' => $payout->id,
@@ -120,6 +133,7 @@ class TripletexPayoutLedgerPayloadBuilder
             'document_date' => $postingDate,
             'description' => 'Stripe payout '.$payout->stripe_payout_id,
             'currency' => strtoupper((string) $payout->currency),
+            'skip_payout_bank_transfer' => $skipPayoutBankTransfer,
             'lines' => $lines,
         ];
     }

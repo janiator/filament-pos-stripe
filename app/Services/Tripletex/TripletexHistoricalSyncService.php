@@ -72,6 +72,7 @@ final class TripletexHistoricalSyncService
     /**
      * Queue payout sync jobs for paid Stripe payout rows (force), optionally only where no successful Tripletex payout run exists.
      *
+     * @param  bool  $skipPayoutBankTransfer  When true, each job omits the main clearing-to-bank voucher pair (for closed bank periods).
      * @return array{queued: int, skipped: int}
      */
     public function queuePayouts(
@@ -80,6 +81,7 @@ final class TripletexHistoricalSyncService
         ?CarbonInterface $to,
         int $limit,
         bool $onlyWithoutSuccessfulRun = true,
+        bool $skipPayoutBankTransfer = false,
     ): array {
         $limit = max(1, min($limit, 500));
 
@@ -103,7 +105,7 @@ final class TripletexHistoricalSyncService
             if (! $payout instanceof StoreStripePayout) {
                 continue;
             }
-            SyncTripletexPayoutJob::dispatch($payout->id, true);
+            SyncTripletexPayoutJob::dispatch($payout->id, true, $skipPayoutBankTransfer);
             $queued++;
         }
 

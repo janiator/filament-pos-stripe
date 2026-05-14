@@ -17,10 +17,11 @@ class SyncTripletexPayoutJob implements ShouldQueue
     public function __construct(
         public int $storeStripePayoutId,
         public bool $force = false,
+        public bool $skipPayoutBankTransfer = false,
     ) {}
 
     public function handle(TripletexPayoutSync $sync): void
     {
-        $sync->sync($this->storeStripePayoutId, $this->force);
+        $sync->sync($this->storeStripePayoutId, $this->force, $this->skipPayoutBankTransfer);
     }
 }

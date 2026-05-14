@@ -28,8 +28,9 @@ class TripletexPayoutSync
      * Post a Tripletex voucher for a paid Stripe payout mirror row.
      *
      * @param  bool  $force  When true, sync even if auto_sync_payouts is disabled.
+     * @param  bool  $skipPayoutBankTransfer  When true, omit the clearing-to-bank pair (e.g. 1901 credit / 1920 debit); post only fees and other payout lines.
      */
-    public function sync(int $storeStripePayoutId, bool $force = false): bool
+    public function sync(int $storeStripePayoutId, bool $force = false, bool $skipPayoutBankTransfer = false): bool
     {
         $payout = StoreStripePayout::query()->with('store')->find($storeStripePayoutId);
         if (! $payout) {
@@ -140,7 +141,7 @@ class TripletexPayoutSync
         ]);
 
         try {
-            $payload = $this->ledgerPayloadBuilder->build($store, $integration, $payout);
+            $payload = $this->ledgerPayloadBuilder->build($store, $integration, $payout, $skipPayoutBankTransfer);
         } catch (\Throwable $e) {
             $this->failRun($syncRun, $integration, $e->getMessage());
 

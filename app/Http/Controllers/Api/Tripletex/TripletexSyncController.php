@@ -234,6 +234,7 @@ class TripletexSyncController extends BaseApiController
             'to' => 'nullable|date',
             'limit' => 'nullable|integer|min:1|max:500',
             'only_missing' => 'nullable|boolean',
+            'skip_payout_bank_transfer' => 'nullable|boolean',
         ]);
 
         $from = isset($data['from']) ? Carbon::parse($data['from'])->startOfDay() : null;
@@ -243,11 +244,12 @@ class TripletexSyncController extends BaseApiController
         }
         $limit = (int) ($data['limit'] ?? 50);
         $onlyMissing = (bool) ($data['only_missing'] ?? true);
+        $skipPayoutBankTransfer = (bool) ($data['skip_payout_bank_transfer'] ?? false);
 
         $service = app(TripletexHistoricalSyncService::class);
 
         if ($data['type'] === 'payout') {
-            $result = $service->queuePayouts($store, $from, $to, $limit, $onlyMissing);
+            $result = $service->queuePayouts($store, $from, $to, $limit, $onlyMissing, $skipPayoutBankTransfer);
 
             return response()->json([
                 'message' => 'Tripletex payout historical sync jobs queued.',

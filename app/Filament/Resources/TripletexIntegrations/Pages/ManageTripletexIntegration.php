@@ -4,6 +4,7 @@ namespace App\Filament\Resources\TripletexIntegrations\Pages;
 
 use App\Enums\PowerOfficeMappingBasis;
 use App\Enums\TripletexIntegrationStatus;
+use App\Filament\Concerns\BuildsClusterWideSubNavigation;
 use App\Filament\Resources\TripletexIntegrations\Schemas\TripletexIntegrationForm;
 use App\Filament\Resources\TripletexIntegrations\TripletexIntegrationResource;
 use App\Filament\Resources\TripletexSyncRuns\TripletexSyncRunResource;
@@ -36,6 +37,7 @@ use Illuminate\Support\Collection;
 
 class ManageTripletexIntegration extends Page implements HasActions, HasForms
 {
+    use BuildsClusterWideSubNavigation;
     use InteractsWithActions;
     use InteractsWithForms;
 
@@ -172,6 +174,11 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
     public function getTitle(): string
     {
         return 'Tripletex';
+    }
+
+    public function getSubNavigation(): array
+    {
+        return $this->clusterWideSubNavigationMergedWith([]);
     }
 
     public function form(Schema $schema): Schema
@@ -850,6 +857,10 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                     Toggle::make('only_missing')
                         ->label(__('Skip payouts already synced successfully'))
                         ->default(true),
+                    Toggle::make('skip_payout_bank_transfer')
+                        ->label(__('Skip clearing-to-bank transfer'))
+                        ->helperText(__('Omit the main Stripe payout voucher pair (clearing to bank, e.g. 1901 → 1920). Use when the Tripletex bank period is closed; record the bank movement manually. Application fees, Stripe processing fees, and external ticket lines are still posted when present.'))
+                        ->default(false),
                 ])
                 ->action(function (array $data, TripletexHistoricalSyncService $historical): void {
                     $store = Filament::getTenant();
@@ -860,10 +871,13 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                     $to = filled($data['to'] ?? null) ? Carbon::parse($data['to'])->endOfDay() : null;
                     $limit = (int) ($data['limit'] ?? 25);
                     $onlyMissing = (bool) ($data['only_missing'] ?? true);
-                    $result = $historical->queuePayouts($store, $from, $to, $limit, $onlyMissing);
+                    $skipBank = (bool) ($data['skip_payout_bank_transfer'] ?? false);
+                    $result = $historical->queuePayouts($store, $from, $to, $limit, $onlyMissing, $skipBank);
                     Notification::make()
                         ->title(__('Historical payouts queued'))
-                        ->body("Queued {$result['queued']} payout job(s).")
+                        ->body($skipBank
+                            ? __('Queued :count payout job(s) without clearing-to-bank transfer.', ['count' => $result['queued']])
+                            : __('Queued :count payout job(s).', ['count' => $result['queued']]))
                         ->success()
                         ->send();
                 }),

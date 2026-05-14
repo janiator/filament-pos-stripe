@@ -5196,6 +5196,13 @@ paths:
                   type: boolean
                   default: true
                   description: When true, skip rows that already have a successful Tripletex sync run
+                skip_payout_bank_transfer:
+                  type: boolean
+                  default: false
+                  description: |
+                    For `type=payout` only. When true, each queued job omits the main clearing-to-bank voucher pair
+                    (configured ledger payout credit vs debit bank accounts, often 1901 → 1920) so fees and other
+                    payout lines can still post when the Tripletex bank period is closed.
       responses:
         '200':
           description: Jobs queued

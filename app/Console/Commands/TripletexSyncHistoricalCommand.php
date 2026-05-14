@@ -17,7 +17,8 @@ class TripletexSyncHistoricalCommand extends Command
         {--from= : Inclusive start date (Y-m-d) on closed_at (Z) or arrival_date (payout)}
         {--to= : Inclusive end date (Y-m-d)}
         {--limit=50 : Max jobs to queue (1–500)}
-        {--all : Also queue rows that already have a successful Tripletex sync}';
+        {--all : Also queue rows that already have a successful Tripletex sync}
+        {--skip-payout-bank-transfer : For payout type only: omit clearing-to-bank lines on each voucher}';
 
     protected $description = 'Queue Tripletex Z-report or payout sync jobs for historical POS / Stripe mirror rows';
 
@@ -41,11 +42,13 @@ class TripletexSyncHistoricalCommand extends Command
         $to = $this->option('to') ? Carbon::parse((string) $this->option('to'))->endOfDay() : null;
         $limit = (int) $this->option('limit');
         $onlyMissing = ! (bool) $this->option('all');
+        $skipBank = (bool) $this->option('skip-payout-bank-transfer');
 
         $type = strtolower(trim((string) $this->option('type')));
         if ($type === 'payout') {
-            $result = $historical->queuePayouts($store, $from, $to, $limit, $onlyMissing);
-            $this->info("Queued {$result['queued']} payout sync job(s).");
+            $result = $historical->queuePayouts($store, $from, $to, $limit, $onlyMissing, $skipBank);
+            $suffix = $skipBank ? ' (without clearing-to-bank transfer)' : '';
+            $this->info("Queued {$result['queued']} payout sync job(s){$suffix}.");
 
             return self::SUCCESS;
         }
