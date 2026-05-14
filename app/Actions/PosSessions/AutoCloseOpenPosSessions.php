@@ -2,6 +2,7 @@
 
 namespace App\Actions\PosSessions;
 
+use App\Filament\Resources\PosSessions\Tables\PosSessionsTable;
 use App\Models\PosSession;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
@@ -50,6 +51,18 @@ class AutoCloseOpenPosSessions
                         $stats['failed']++;
                         Log::warning('pos.auto_close_sessions: failed to close session', [
                             'pos_session_id' => $session->id,
+                        ]);
+
+                        continue;
+                    }
+
+                    try {
+                        PosSessionsTable::persistZReportSnapshotAfterClose($session->fresh());
+                    } catch (\Throwable $e) {
+                        $stats['failed']++;
+                        Log::warning('pos.auto_close_sessions: session closed but Z-report snapshot failed', [
+                            'pos_session_id' => $session->id,
+                            'error' => $e->getMessage(),
                         ]);
 
                         continue;

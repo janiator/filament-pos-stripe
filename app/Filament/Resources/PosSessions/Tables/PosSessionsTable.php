@@ -757,6 +757,23 @@ class PosSessionsTable
                         $success = $record->close($actualCash, $data['closing_notes'] ?? null);
 
                         if ($success) {
+                            try {
+                                self::persistZReportSnapshotAfterClose($record->fresh());
+                            } catch (\Throwable $e) {
+                                Log::error('Filament POS session close: Z-report snapshot failed after close', [
+                                    'pos_session_id' => $record->id,
+                                    'error' => $e->getMessage(),
+                                ]);
+
+                                Notification::make()
+                                    ->title(__('Session closed'))
+                                    ->warning()
+                                    ->body(__('Session :number was closed, but the Z-report could not be saved. Regenerate it from the session row when ready.', ['number' => $record->session_number]))
+                                    ->send();
+
+                                return;
+                            }
+
                             Notification::make()
                                 ->title(__('Session closed'))
                                 ->success()
@@ -1201,6 +1218,46 @@ class PosSessionsTable
             'cash_withdrawals' => $cashWithdrawals,
             'cash_deposits' => $cashDeposits,
         ];
+    }
+
+    /**
+     * After closing a session outside the POS API (Filament, scheduled auto-close), ensure the Z-report
+     * snapshot is persisted into {@see PosSession::$closing_data} by running {@see generateZReport} with
+     * relationships loaded. Normally {@see PosSessionObserver} also generates the report and records the
+     * Z-report journal event (13009) on close; if that did not happen, this method appends the journal entry.
+     *
+     * @return array<string, mixed>
+     */
+    public static function persistZReportSnapshotAfterClose(PosSession $session): array
+    {
+        $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
+        $report = self::generateZReport($session);
+
+        $hasZReportJournal = PosEvent::query()
+            ->where('pos_session_id', $session->id)
+            ->where('event_code', PosEvent::EVENT_Z_REPORT)
+            ->exists();
+
+        if (! $hasZReportJournal) {
+            PosEvent::create([
+                'store_id' => $session->store_id,
+                'pos_device_id' => $session->pos_device_id,
+                'pos_session_id' => $session->id,
+                'user_id' => auth()->id() ?? $session->user_id,
+                'event_code' => PosEvent::EVENT_Z_REPORT,
+                'event_type' => 'report',
+                'description' => "Z-report for session {$session->session_number}",
+                'event_data' => [
+                    'report_type' => 'Z-Report',
+                    'session_number' => $session->session_number,
+                    'report_data' => $report,
+                    'auto_generated_after_close' => true,
+                ],
+                'occurred_at' => now(),
+            ]);
+        }
+
+        return $report;
     }
 
     /**

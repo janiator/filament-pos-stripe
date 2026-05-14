@@ -64,6 +64,7 @@ class PosSessionObserver
 
             if (! $hasZReportEvent) {
                 try {
+                    $session->load(['charges', 'posDevice', 'user', 'store', 'events', 'receipts']);
                     $report = PosSessionsTable::generateZReport($session);
 
                     PosEvent::create([

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\PosDevice;
+use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\Setting;
 use App\Models\Store;
@@ -36,6 +37,8 @@ it('closes open sessions when store toggle is on without any global master flag'
     $session->refresh();
     expect($session->status)->toBe('closed');
     expect($session->closing_notes)->toBe('Scheduled auto-close.');
+    expect(data_get($session->closing_data, 'z_report_data'))->toBeArray();
+    expect(PosEvent::query()->where('pos_session_id', $session->id)->where('event_code', PosEvent::EVENT_Z_REPORT)->count())->toBe(1);
 });
 
 it('does not close sessions when store toggle is off', function (): void {
@@ -73,5 +76,8 @@ it('closes open sessions with --force even when store toggle is off', function (
     $this->artisan('pos:auto-close-open-sessions', ['--force' => true])
         ->assertSuccessful();
 
-    expect($session->fresh()->status)->toBe('closed');
+    $session = $session->fresh();
+    expect($session->status)->toBe('closed');
+    expect(data_get($session->closing_data, 'z_report_data'))->toBeArray();
+    expect(PosEvent::query()->where('pos_session_id', $session->id)->where('event_code', PosEvent::EVENT_Z_REPORT)->count())->toBe(1);
 });

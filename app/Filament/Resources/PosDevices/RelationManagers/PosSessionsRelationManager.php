@@ -9,9 +9,9 @@ use Filament\Actions\ViewAction;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Log;
 
 class PosSessionsRelationManager extends RelationManager
 {
@@ -75,7 +75,7 @@ class PosSessionsRelationManager extends RelationManager
                     ->before(function (PosSession $record) {
                         // Generate report data first
                         $report = PosSessionsTable::generateXReport($record);
-                        
+
                         // Log X-report event (13008) per § 2-8-2
                         \App\Models\PosEvent::create([
                             'store_id' => $record->store_id,
@@ -108,7 +108,7 @@ class PosSessionsRelationManager extends RelationManager
                     ->before(function (PosSession $record) {
                         // Generate report data first
                         $report = PosSessionsTable::generateZReport($record);
-                        
+
                         // Log Z-report event (13009) per § 2-8-3
                         \App\Models\PosEvent::create([
                             'store_id' => $record->store_id,
@@ -155,12 +155,13 @@ class PosSessionsRelationManager extends RelationManager
                     ])
                     ->visible(fn (PosSession $record): bool => $record->status === 'open')
                     ->action(function (PosSession $record, array $data): void {
-                        if (!$record->canBeClosed()) {
+                        if (! $record->canBeClosed()) {
                             Notification::make()
                                 ->title('Cannot close session')
                                 ->danger()
                                 ->body('This session cannot be closed.')
                                 ->send();
+
                             return;
                         }
 
@@ -172,6 +173,23 @@ class PosSessionsRelationManager extends RelationManager
                         $success = $record->close($actualCash, $data['closing_notes'] ?? null);
 
                         if ($success) {
+                            try {
+                                PosSessionsTable::persistZReportSnapshotAfterClose($record->fresh());
+                            } catch (\Throwable $e) {
+                                Log::error('Filament POS session close (device relation): Z-report snapshot failed after close', [
+                                    'pos_session_id' => $record->id,
+                                    'error' => $e->getMessage(),
+                                ]);
+
+                                Notification::make()
+                                    ->title('Session closed')
+                                    ->warning()
+                                    ->body("Session {$record->session_number} was closed, but the Z-report could not be saved. Regenerate it from the session list when ready.")
+                                    ->send();
+
+                                return;
+                            }
+
                             Notification::make()
                                 ->title('Session closed')
                                 ->success()
@@ -214,15 +232,16 @@ class PosSessionsRelationManager extends RelationManager
                         if ($record->status !== 'closed') {
                             return false;
                         }
-                        
+
                         $user = auth()->user();
-                        if (!$user) {
+                        if (! $user) {
                             return false;
                         }
-                        
+
                         // Check if user is super admin
                         $tenant = \Filament\Facades\Filament::getTenant();
-                        return $tenant 
+
+                        return $tenant
                             ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
                             : $user->hasRole('super_admin');
                     })
@@ -232,18 +251,18 @@ class PosSessionsRelationManager extends RelationManager
                         $actualCash = isset($data['actual_cash']) && $data['actual_cash'] !== '' && $data['actual_cash'] !== null
                             ? (int) round((float) $data['actual_cash'] * 100)
                             : null;
-                        
+
                         // Update the session
                         $record->opening_balance = $openingBalance;
                         $record->actual_cash = $actualCash;
-                        
+
                         // Recalculate expected cash and cash difference
                         $record->expected_cash = $record->calculateExpectedCash();
                         $record->cash_difference = $actualCash !== null ? ($actualCash - $record->expected_cash) : null;
-                        
+
                         // Save the session
                         $record->save();
-                        
+
                         // Update Z-report data in closing_data without regenerating entire report
                         // This preserves historical transaction data, event summaries, etc.
                         $closingData = $record->closing_data ?? [];
@@ -254,7 +273,7 @@ class PosSessionsRelationManager extends RelationManager
                             $closingData['z_report_data']['actual_cash'] = $actualCash ? $actualCash / 100 : null;
                             $closingData['z_report_data']['cash_difference'] = $record->cash_difference ? $record->cash_difference / 100 : null;
                             $closingData['z_report_generated_at'] = now()->toISOString();
-                            
+
                             // Save updated closing_data
                             $record->closing_data = $closingData;
                             $record->saveQuietly();
@@ -262,7 +281,7 @@ class PosSessionsRelationManager extends RelationManager
                             // If no existing report, generate a new one
                             PosSessionsTable::generateZReport($record);
                         }
-                        
+
                         Notification::make()
                             ->title('Balances updated')
                             ->success()
@@ -275,4 +294,3 @@ class PosSessionsRelationManager extends RelationManager
             ]);
     }
 }
-
