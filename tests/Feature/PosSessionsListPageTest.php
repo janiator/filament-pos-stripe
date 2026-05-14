@@ -92,3 +92,26 @@ it('mounts the z-report table action for a closed session', function () {
         ->mountTableAction('z_report', $session)
         ->assertSet('mountedActions.0.name', 'z_report');
 });
+
+it('clears the list table record url so clicks use the x/z report record action', function () {
+    $device = PosDevice::factory()->create(['store_id' => $this->store->id]);
+    $openSession = PosSession::factory()->create([
+        'pos_device_id' => $device->id,
+        'user_id' => $this->user->id,
+        'status' => 'open',
+        'closed_at' => null,
+    ]);
+    $closedSession = PosSession::factory()->create([
+        'pos_device_id' => $device->id,
+        'user_id' => $this->user->id,
+        'status' => 'closed',
+        'closed_at' => now(),
+    ]);
+
+    $table = livewire(ListPosSessions::class)->instance()->getTable();
+
+    expect($table->getRecordUrl($openSession))->toBeNull()
+        ->and($table->getRecordUrl($closedSession))->toBeNull()
+        ->and($table->getRecordAction($openSession))->toBe('x_report')
+        ->and($table->getRecordAction($closedSession))->toBe('z_report');
+});

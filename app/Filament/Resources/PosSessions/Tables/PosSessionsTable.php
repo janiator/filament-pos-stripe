@@ -375,6 +375,8 @@ class PosSessionsTable
                     }),
             ])
             ->defaultSort('closed_at', 'desc') // Sort by closed date for Z-reports (most recent first)
+            // ListRecords sets a default recordUrl (view page) when ViewAction has a URL; clear it so row click uses recordAction.
+            ->recordUrl(null)
             ->recordAction(fn (PosSession $record): string => $record->status === 'open' ? 'x_report' : 'z_report')
             ->recordActions([
                 ViewAction::make()
@@ -633,72 +635,72 @@ class PosSessionsTable
                                 ->persistent()
                                 ->send();
                         }),
-                ])
-                    ->label(__('Z-report / Tripletex'))
-                    ->icon('heroicon-o-ellipsis-vertical')
-                    ->color('gray')
-                    ->tooltip(__('Regenerate Z-report, Tripletex preview, and sync')),
-                Action::make('sync_poweroffice')
-                    ->label(__('Sync PowerOffice'))
-                    ->icon('heroicon-o-cloud-arrow-up')
-                    ->color('success')
-                    ->visible(fn (PosSession $record): bool => self::canSyncToPowerOffice($record))
-                    ->action(function (PosSession $record): void {
-                        Log::info('Filament PowerOffice sync clicked', [
-                            'pos_session_id' => $record->id,
-                            'session_number' => $record->session_number,
-                        ]);
-
-                        Notification::make()
-                            ->title(__('Syncing with PowerOffice...'))
-                            ->body("Session {$record->session_number}")
-                            ->info()
-                            ->send();
-
-                        try {
-                            $sync = app(PowerOfficeZReportSync::class);
-                            $ok = $sync->sync($record->id, true);
-                            $run = PowerOfficeSyncRun::query()
-                                ->where('pos_session_id', $record->id)
-                                ->latest('id')
-                                ->first();
-                        } catch (\Throwable $e) {
-                            Notification::make()
-                                ->title(__('PowerOffice sync failed'))
-                                ->body($e->getMessage())
-                                ->danger()
-                                ->send();
-
-                            Log::error('Filament PowerOffice sync action failed', [
+                    Action::make('sync_poweroffice')
+                        ->label(__('Sync PowerOffice'))
+                        ->icon('heroicon-o-cloud-arrow-up')
+                        ->color('success')
+                        ->visible(fn (PosSession $record): bool => self::canSyncToPowerOffice($record))
+                        ->action(function (PosSession $record): void {
+                            Log::info('Filament PowerOffice sync clicked', [
                                 'pos_session_id' => $record->id,
-                                'exception' => $e->getMessage(),
+                                'session_number' => $record->session_number,
                             ]);
 
-                            return;
-                        }
-
-                        if (! $ok || $run?->status !== PowerOfficeSyncRunStatus::Success) {
                             Notification::make()
-                                ->title(__('PowerOffice sync failed'))
-                                ->body($run?->error_message ?? 'See PowerOffice sync runs for details.')
-                                ->danger()
-                                ->persistent()
+                                ->title(__('Syncing with PowerOffice...'))
+                                ->body("Session {$record->session_number}")
+                                ->info()
                                 ->send();
 
-                            return;
-                        }
+                            try {
+                                $sync = app(PowerOfficeZReportSync::class);
+                                $ok = $sync->sync($record->id, true);
+                                $run = PowerOfficeSyncRun::query()
+                                    ->where('pos_session_id', $record->id)
+                                    ->latest('id')
+                                    ->first();
+                            } catch (\Throwable $e) {
+                                Notification::make()
+                                    ->title(__('PowerOffice sync failed'))
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
 
-                        $journalNo = $run->journal_voucher_no
-                            ?? data_get($run->response_payload, 'VoucherNo')
-                            ?? data_get($run->response_payload, 'voucherNo');
+                                Log::error('Filament PowerOffice sync action failed', [
+                                    'pos_session_id' => $record->id,
+                                    'exception' => $e->getMessage(),
+                                ]);
 
-                        Notification::make()
-                            ->title(__('Synced to PowerOffice'))
-                            ->body((is_numeric($journalNo) && (int) $journalNo > 0) ? "Bilagsnr #{$journalNo}" : 'Z-report synced successfully.')
-                            ->success()
-                            ->persistent()
-                            ->send();
-                    }),
+                                return;
+                            }
+
+                            if (! $ok || $run?->status !== PowerOfficeSyncRunStatus::Success) {
+                                Notification::make()
+                                    ->title(__('PowerOffice sync failed'))
+                                    ->body($run?->error_message ?? 'See PowerOffice sync runs for details.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                return;
+                            }
+
+                            $journalNo = $run->journal_voucher_no
+                                ?? data_get($run->response_payload, 'VoucherNo')
+                                ?? data_get($run->response_payload, 'voucherNo');
+
+                            Notification::make()
+                                ->title(__('Synced to PowerOffice'))
+                                ->body((is_numeric($journalNo) && (int) $journalNo > 0) ? "Bilagsnr #{$journalNo}" : 'Z-report synced successfully.')
+                                ->success()
+                                ->persistent()
+                                ->send();
+                        }),
+                ])
+                    ->label(__('Z-report / accounting'))
+                    ->icon('heroicon-o-ellipsis-vertical')
+                    ->color('gray')
+                    ->tooltip(__('Regenerate Z-report, Tripletex, PowerOffice')),
                 Action::make('send_z_report_email')
                     ->label(__('Send Z-Report Email'))
                     ->icon('heroicon-o-envelope')
