@@ -22,10 +22,9 @@ Schedule::command('horizon:snapshot')->everyFiveMinutes()->withoutOverlapping();
 // Runs every 5 minutes to check for devices that haven't sent heartbeats
 Schedule::command('pos:check-inactive-devices')->everyFiveMinutes()->withoutOverlapping();
 
-// Close any still-open POS sessions once per day (opt-in via POS_AUTO_CLOSE_SESSIONS_DAILY)
+// Close still-open POS sessions once per day for stores that enabled it in Settings
 Schedule::command('pos:auto-close-open-sessions')
     ->dailyAt(config('pos.auto_close_sessions.time'))
-    ->when(fn (): bool => (bool) config('pos.auto_close_sessions.enabled'))
     ->withoutOverlapping();
 
 // Workflow engine: process scheduled workflow triggers

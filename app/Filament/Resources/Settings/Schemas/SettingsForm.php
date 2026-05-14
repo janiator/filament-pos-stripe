@@ -168,7 +168,7 @@ class SettingsForm
                     ->schema([
                         Toggle::make('auto_close_open_sessions_daily')
                             ->label(__('Auto-close open sessions daily'))
-                            ->helperText(__('When enabled for this store, still-open register sessions are closed once per day by the server schedule (requires POS_AUTO_CLOSE_SESSIONS_DAILY=true on the server; see deployment docs). Actual cash is set to expected cash.'))
+                            ->helperText(__('When enabled for this store, still-open register sessions are closed once per day by the server schedule (see POS_AUTO_CLOSE_SESSIONS_TIME in deployment config). Actual cash is set to expected cash. Requires Laravel scheduler (e.g. cron running `schedule:run`).'))
                             ->default(false)
                             ->columnSpanFull(),
                     ])

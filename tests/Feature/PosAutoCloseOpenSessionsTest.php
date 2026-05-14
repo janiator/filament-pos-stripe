@@ -16,9 +16,10 @@ beforeEach(function (): void {
     $this->device = PosDevice::factory()->create(['store_id' => $this->store->id]);
 });
 
-it('exits without closing sessions when disabled and not forced', function (): void {
-    Config::set('pos.auto_close_sessions.enabled', false);
+it('closes open sessions when store toggle is on without any global master flag', function (): void {
     Config::set('pos.auto_close_sessions.closing_notes', 'Scheduled auto-close.');
+
+    Setting::getForStore($this->store->id)->update(['auto_close_open_sessions_daily' => true]);
 
     $session = PosSession::factory()->create([
         'store_id' => $this->store->id,
@@ -26,18 +27,18 @@ it('exits without closing sessions when disabled and not forced', function (): v
         'user_id' => $this->user->id,
         'status' => 'open',
         'session_number' => '900001',
+        'opening_balance' => 0,
     ]);
-
-    Setting::getForStore($this->store->id)->update(['auto_close_open_sessions_daily' => true]);
 
     $this->artisan('pos:auto-close-open-sessions')
         ->assertSuccessful();
 
-    expect($session->fresh()->status)->toBe('open');
+    $session->refresh();
+    expect($session->status)->toBe('closed');
+    expect($session->closing_notes)->toBe('Scheduled auto-close.');
 });
 
-it('does not close sessions when global is on but store toggle is off', function (): void {
-    Config::set('pos.auto_close_sessions.enabled', true);
+it('does not close sessions when store toggle is off', function (): void {
     Config::set('pos.auto_close_sessions.closing_notes', 'Scheduled auto-close.');
 
     Setting::getForStore($this->store->id)->update(['auto_close_open_sessions_daily' => false]);
@@ -56,32 +57,7 @@ it('does not close sessions when global is on but store toggle is off', function
     expect($session->fresh()->status)->toBe('open');
 });
 
-it('closes open sessions when global is on and store toggle is on', function (): void {
-    Config::set('pos.auto_close_sessions.enabled', true);
-    Config::set('pos.auto_close_sessions.closing_notes', 'Scheduled auto-close.');
-
-    Setting::getForStore($this->store->id)->update(['auto_close_open_sessions_daily' => true]);
-
-    $session = PosSession::factory()->create([
-        'store_id' => $this->store->id,
-        'pos_device_id' => $this->device->id,
-        'user_id' => $this->user->id,
-        'status' => 'open',
-        'session_number' => '900002',
-        'opening_balance' => 0,
-    ]);
-
-    $this->artisan('pos:auto-close-open-sessions')
-        ->assertSuccessful();
-
-    $session->refresh();
-    expect($session->status)->toBe('closed');
-    expect($session->closing_notes)->toBe('Scheduled auto-close.');
-    expect($session->closed_at)->not->toBeNull();
-});
-
-it('closes open sessions with --force when disabled in config', function (): void {
-    Config::set('pos.auto_close_sessions.enabled', false);
+it('closes open sessions with --force even when store toggle is off', function (): void {
     Config::set('pos.auto_close_sessions.closing_notes', 'Forced auto-close.');
 
     Setting::getForStore($this->store->id)->update(['auto_close_open_sessions_daily' => false]);

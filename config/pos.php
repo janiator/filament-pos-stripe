@@ -32,16 +32,15 @@ return [
     | Daily auto-close of open POS sessions
     |--------------------------------------------------------------------------
     |
-    | When enabled, the scheduler runs `pos:auto-close-open-sessions` once per
-    | day (see POS_AUTO_CLOSE_SESSIONS_TIME, app timezone). Only stores with
+    | The scheduler runs `pos:auto-close-open-sessions` once per day (see
+    | POS_AUTO_CLOSE_SESSIONS_TIME, app timezone). Only stores with
     | "Auto-close open sessions daily" turned on in Settings are processed.
     | Sessions are closed with actual cash set to expected cash. Use
     | `pos:auto-close-open-sessions --force` to close every open session
-    | (ignores this env flag and the per-store toggle).
+    | (ignores the per-store toggle).
     |
     */
     'auto_close_sessions' => [
-        'enabled' => env('POS_AUTO_CLOSE_SESSIONS_DAILY', false),
         'time' => env('POS_AUTO_CLOSE_SESSIONS_TIME', '00:30'),
         'closing_notes' => env(
             'POS_AUTO_CLOSE_SESSIONS_NOTES',
