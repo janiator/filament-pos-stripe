@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Receipts\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\Receipts\ReceiptResource;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreateReceipt extends CreateRecord
 {
@@ -18,7 +18,7 @@ class CreateReceipt extends CreateRecord
         }
 
         // Ensure store_id is set
-        if (!isset($data['store_id'])) {
+        if (! isset($data['store_id'])) {
             $data['store_id'] = $tenant?->id ?? auth()->user()?->currentStore()?->id;
         }
 

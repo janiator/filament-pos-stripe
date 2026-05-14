@@ -4,9 +4,9 @@ namespace App\Filament\Resources\ConnectedPaymentLinks\Pages;
 
 use App\Actions\ConnectedPaymentLinks\UpdateConnectedPaymentLinkInStripe;
 use App\Filament\Resources\ConnectedPaymentLinks\ConnectedPaymentLinkResource;
+use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditConnectedPaymentLink extends EditRecord
 {
@@ -25,7 +25,7 @@ class EditConnectedPaymentLink extends EditRecord
                     $this->record->active = false;
                     $this->record->save();
 
-                    $action = new UpdateConnectedPaymentLinkInStripe();
+                    $action = new UpdateConnectedPaymentLinkInStripe;
                     $action($this->record, true);
 
                     $this->redirect($this->getResource()::getUrl('index'));
@@ -41,7 +41,7 @@ class EditConnectedPaymentLink extends EditRecord
     protected function afterSave(): void
     {
         // Sync active status changes to Stripe
-        $action = new UpdateConnectedPaymentLinkInStripe();
+        $action = new UpdateConnectedPaymentLinkInStripe;
         $action($this->record, true);
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Vendors\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\Vendors\VendorResource;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreateVendor extends CreateRecord
 {

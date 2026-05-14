@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\Addons\Pages;
 
 use App\Filament\Resources\Addons\AddonResource;
+use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditAddon extends EditRecord
 {

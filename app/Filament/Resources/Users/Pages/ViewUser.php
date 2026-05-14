@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\Users\Pages;
 
+use App\Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\Users\UserResource;
 use Filament\Actions\EditAction;
-use Filament\Resources\Pages\ViewRecord;
 use STS\FilamentImpersonate\Actions\Impersonate;
 
 class ViewUser extends ViewRecord

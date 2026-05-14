@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\PowerOfficeAccountMappings\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\PowerOfficeAccountMappings\PowerOfficeAccountMappingResource;
 use App\Models\PowerOfficeIntegration;
 use Filament\Facades\Filament;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreatePowerOfficeAccountMapping extends CreateRecord
 {

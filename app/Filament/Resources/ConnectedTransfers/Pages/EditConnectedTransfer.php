@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\ConnectedTransfers\Pages;
 
 use App\Filament\Resources\ConnectedTransfers\ConnectedTransferResource;
+use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditConnectedTransfer extends EditRecord
 {

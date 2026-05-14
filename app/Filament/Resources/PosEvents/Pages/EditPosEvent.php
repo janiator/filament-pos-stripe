@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\PosEvents\Pages;
 
+use App\Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\PosEvents\PosEventResource;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditPosEvent extends EditRecord
 {

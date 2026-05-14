@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\ConnectedCharges\Pages;
 
 use App\Filament\Resources\ConnectedCharges\ConnectedChargeResource;
+use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditConnectedCharge extends EditRecord
 {

@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ConnectedSubscriptions\Pages;
 
 use App\Filament\Resources\ConnectedSubscriptions\ConnectedSubscriptionResource;
-use Filament\Resources\Pages\CreateRecord;
+use App\Filament\Resources\Pages\CreateRecord;
 
 class CreateConnectedSubscription extends CreateRecord
 {

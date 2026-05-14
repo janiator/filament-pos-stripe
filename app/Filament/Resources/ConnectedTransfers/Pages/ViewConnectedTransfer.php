@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\ConnectedTransfers\Pages;
 
 use App\Filament\Resources\ConnectedTransfers\ConnectedTransferResource;
+use App\Filament\Resources\Pages\ViewRecord;
 use Filament\Actions\EditAction;
-use Filament\Resources\Pages\ViewRecord;
 
 class ViewConnectedTransfer extends ViewRecord
 {

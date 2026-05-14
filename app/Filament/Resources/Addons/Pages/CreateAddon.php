@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Addons\Pages;
 
 use App\Filament\Resources\Addons\AddonResource;
-use Filament\Resources\Pages\CreateRecord;
+use App\Filament\Resources\Pages\CreateRecord;
 
 class CreateAddon extends CreateRecord
 {

@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\Collections\Pages;
 
 use App\Filament\Resources\Collections\CollectionResource;
-use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Str;
+use App\Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CreateCollection extends CreateRecord
 {
@@ -21,7 +21,7 @@ class CreateCollection extends CreateRecord
         }
 
         // Auto-generate handle from name if not provided
-        if (empty($data['handle']) && !empty($data['name'])) {
+        if (empty($data['handle']) && ! empty($data['name'])) {
             $data['handle'] = Str::slug($data['name']);
         }
 
@@ -37,4 +37,3 @@ class CreateCollection extends CreateRecord
         return $data;
     }
 }
-

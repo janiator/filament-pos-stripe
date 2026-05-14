@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\ArticleGroupCodes\Pages;
 
 use App\Filament\Resources\ArticleGroupCodes\ArticleGroupCodeResource;
+use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditArticleGroupCode extends EditRecord
 {

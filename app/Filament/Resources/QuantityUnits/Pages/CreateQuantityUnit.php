@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\QuantityUnits\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\QuantityUnits\QuantityUnitResource;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreateQuantityUnit extends CreateRecord
 {

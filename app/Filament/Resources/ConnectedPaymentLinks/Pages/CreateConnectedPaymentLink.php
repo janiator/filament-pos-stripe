@@ -4,9 +4,9 @@ namespace App\Filament\Resources\ConnectedPaymentLinks\Pages;
 
 use App\Actions\ConnectedPaymentLinks\CreateConnectedPaymentLinkOnStripe;
 use App\Filament\Resources\ConnectedPaymentLinks\ConnectedPaymentLinkResource;
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Models\ConnectedPaymentLink;
 use App\Models\Store;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreateConnectedPaymentLink extends CreateRecord
 {
@@ -30,13 +30,13 @@ class CreateConnectedPaymentLink extends CreateRecord
                 // Fallback
             }
         }
-        
+
         if (empty($data['stripe_account_id'])) {
             throw new \Exception('Store (stripe_account_id) is required to create a payment link.');
         }
-        
+
         $store = Store::where('stripe_account_id', $data['stripe_account_id'])->firstOrFail();
-        
+
         // Prepare line items for Stripe
         $lineItem = [
             'price' => $data['stripe_price_id'],
@@ -44,7 +44,7 @@ class CreateConnectedPaymentLink extends CreateRecord
         ];
 
         // Add adjustable quantity if enabled
-        if (!empty($data['adjustable_quantity_enabled'])) {
+        if (! empty($data['adjustable_quantity_enabled'])) {
             $lineItem['adjustable_quantity'] = [
                 'enabled' => true,
             ];
@@ -72,14 +72,14 @@ class CreateConnectedPaymentLink extends CreateRecord
         // Add application fee (works for both direct and destination links)
         // Check if the price is recurring
         $price = null;
-        if (!empty($data['stripe_price_id'])) {
+        if (! empty($data['stripe_price_id'])) {
             $price = \App\Models\ConnectedPrice::where('stripe_price_id', $data['stripe_price_id'])
                 ->where('stripe_account_id', $data['stripe_account_id'])
                 ->first();
         }
-        
+
         $isRecurring = $price && $price->type === 'recurring';
-        
+
         if ($isRecurring) {
             // For recurring prices, use application_fee_percent
             if (isset($data['application_fee_percent']) && $data['application_fee_percent'] !== null && $data['application_fee_percent'] !== '') {
@@ -100,7 +100,7 @@ class CreateConnectedPaymentLink extends CreateRecord
             }
         }
 
-        $action = new CreateConnectedPaymentLinkOnStripe();
+        $action = new CreateConnectedPaymentLinkOnStripe;
         $paymentLink = $action($store, $linkData, true);
 
         if (! $paymentLink) {

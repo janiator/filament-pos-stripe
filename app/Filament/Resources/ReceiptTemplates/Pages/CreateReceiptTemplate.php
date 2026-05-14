@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\ReceiptTemplates\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\ReceiptTemplates\ReceiptTemplateResource;
-use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\File;
 
 class CreateReceiptTemplate extends CreateRecord

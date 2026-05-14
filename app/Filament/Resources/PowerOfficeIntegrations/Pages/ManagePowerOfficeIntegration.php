@@ -4,6 +4,7 @@ namespace App\Filament\Resources\PowerOfficeIntegrations\Pages;
 
 use App\Enums\PowerOfficeEnvironment;
 use App\Enums\PowerOfficeMappingBasis;
+use App\Filament\Concerns\BuildsClusterWideSubNavigation;
 use App\Filament\Resources\PowerOfficeIntegrations\PowerOfficeIntegrationResource;
 use App\Jobs\SyncPowerOfficeZReportJob;
 use App\Models\Collection as ProductCollection;
@@ -33,6 +34,7 @@ use Illuminate\Support\Collection;
 
 class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
 {
+    use BuildsClusterWideSubNavigation;
     use InteractsWithActions;
     use InteractsWithForms;
 
@@ -102,6 +104,11 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
     public function getTitle(): string
     {
         return $this->shouldShowSettings() ? 'PowerOffice' : 'Set up PowerOffice';
+    }
+
+    public function getSubNavigation(): array
+    {
+        return $this->clusterWideSubNavigationMergedWith([]);
     }
 
     /**

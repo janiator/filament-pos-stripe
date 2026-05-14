@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\ReceiptTemplates\Pages;
 
+use App\Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\ReceiptTemplates\ReceiptTemplateResource;
 use App\Filament\Resources\ReceiptTemplates\Widgets\ReceiptTemplatePreviewWidget;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\File;
 
 class EditReceiptTemplate extends EditRecord

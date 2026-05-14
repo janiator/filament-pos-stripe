@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\QuantityUnits\Pages;
 
+use App\Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\QuantityUnits\QuantityUnitResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditQuantityUnit extends EditRecord
 {

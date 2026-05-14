@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\ConnectedSubscriptions\Pages;
 
 use App\Filament\Resources\ConnectedSubscriptions\ConnectedSubscriptionResource;
+use App\Filament\Resources\Pages\ViewRecord;
 use Filament\Actions\EditAction;
-use Filament\Resources\Pages\ViewRecord;
 
 class ViewConnectedSubscription extends ViewRecord
 {

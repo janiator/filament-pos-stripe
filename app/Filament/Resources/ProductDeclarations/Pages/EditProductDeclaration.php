@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\ProductDeclarations\Pages;
 
+use App\Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\ProductDeclarations\ProductDeclarationResource;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditProductDeclaration extends EditRecord
 {

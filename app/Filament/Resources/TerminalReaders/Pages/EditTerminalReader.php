@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\TerminalReaders\Pages;
 
+use App\Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\TerminalReaders\TerminalReaderResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditTerminalReader extends EditRecord
 {

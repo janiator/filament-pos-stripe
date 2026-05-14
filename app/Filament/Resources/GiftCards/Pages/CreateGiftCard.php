@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\GiftCards\Pages;
 
 use App\Filament\Resources\GiftCards\GiftCardResource;
-use Filament\Resources\Pages\CreateRecord;
+use App\Filament\Resources\Pages\CreateRecord;
 
 class CreateGiftCard extends CreateRecord
 {
@@ -12,7 +12,7 @@ class CreateGiftCard extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // Set store_id from tenant if not set
-        if (!isset($data['store_id'])) {
+        if (! isset($data['store_id'])) {
             $tenant = \Filament\Facades\Filament::getTenant();
             if ($tenant) {
                 $data['store_id'] = $tenant->id;
@@ -20,10 +20,10 @@ class CreateGiftCard extends CreateRecord
         }
 
         // Set default expiration if purchased_at is set
-        if (isset($data['purchased_at']) && !isset($data['expires_at'])) {
+        if (isset($data['purchased_at']) && ! isset($data['expires_at'])) {
             $storeId = $data['store_id'] ?? null;
             $expirationDays = 365; // Default 1 year
-            
+
             if ($storeId) {
                 $store = \App\Models\Store::find($storeId);
                 if ($store) {
@@ -31,7 +31,7 @@ class CreateGiftCard extends CreateRecord
                     $expirationDays = $settings->gift_card_expiration_days ?? 365;
                 }
             }
-            
+
             $purchasedAt = \Carbon\Carbon::parse($data['purchased_at']);
             $data['expires_at'] = $purchasedAt->copy()->addDays($expirationDays);
         }

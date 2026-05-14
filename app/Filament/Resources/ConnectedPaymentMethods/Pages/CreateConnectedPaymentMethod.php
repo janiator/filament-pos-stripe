@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ConnectedPaymentMethods\Pages;
 
 use App\Filament\Resources\ConnectedPaymentMethods\ConnectedPaymentMethodResource;
-use Filament\Resources\Pages\CreateRecord;
+use App\Filament\Resources\Pages\CreateRecord;
 
 class CreateConnectedPaymentMethod extends CreateRecord
 {

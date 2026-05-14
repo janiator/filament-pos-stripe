@@ -2,11 +2,11 @@
 
 namespace App\Filament\Resources\PosSessions\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\PosSessions\PosSessionResource;
 use App\Models\PosDevice;
 use App\Models\PosSession;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreatePosSession extends CreateRecord
 {

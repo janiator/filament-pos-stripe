@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\QuantityUnits\Pages;
 
+use App\Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\QuantityUnits\QuantityUnitResource;
 use Filament\Actions\EditAction;
-use Filament\Resources\Pages\ViewRecord;
 
 class ViewQuantityUnit extends ViewRecord
 {

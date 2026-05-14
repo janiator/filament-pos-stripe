@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\ConnectedPaymentIntents\Pages;
 
 use App\Filament\Resources\ConnectedPaymentIntents\ConnectedPaymentIntentResource;
+use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditConnectedPaymentIntent extends EditRecord
 {

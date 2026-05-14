@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\ReceiptPrinters\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\ReceiptPrinters\ReceiptPrinterResource;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreateReceiptPrinter extends CreateRecord
 {

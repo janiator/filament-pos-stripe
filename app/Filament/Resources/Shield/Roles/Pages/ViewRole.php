@@ -4,10 +4,20 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Shield\Roles\Pages;
 
+use App\Filament\Concerns\BuildsClusterWideSubNavigation;
 use App\Filament\Resources\Shield\Roles\RoleResource;
 use BezhanSalleh\FilamentShield\Resources\Roles\Pages\ViewRole as BaseViewRole;
 
 class ViewRole extends BaseViewRole
 {
+    use BuildsClusterWideSubNavigation;
+
     protected static string $resource = RoleResource::class;
+
+    public function getSubNavigation(): array
+    {
+        return $this->clusterWideSubNavigationMergedWith(
+            static::getResource()::getRecordSubNavigation($this),
+        );
+    }
 }

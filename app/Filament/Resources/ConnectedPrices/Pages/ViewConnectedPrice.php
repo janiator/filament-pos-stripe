@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\ConnectedPrices\Pages;
 
 use App\Filament\Resources\ConnectedPrices\ConnectedPriceResource;
+use App\Filament\Resources\Pages\ViewRecord;
 use Filament\Actions\EditAction;
-use Filament\Resources\Pages\ViewRecord;
 
 class ViewConnectedPrice extends ViewRecord
 {

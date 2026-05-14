@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\PosPurchases\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\PosPurchases\PosPurchaseResource;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreatePosPurchase extends CreateRecord
 {

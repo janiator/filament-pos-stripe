@@ -2,11 +2,11 @@
 
 namespace App\Filament\Resources\Users\Pages;
 
+use App\Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\Users\UserResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\EditRecord;
 use STS\FilamentImpersonate\Actions\Impersonate;
 
 class EditUser extends EditRecord

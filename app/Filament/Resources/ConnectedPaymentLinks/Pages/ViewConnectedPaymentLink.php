@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\ConnectedPaymentLinks\Pages;
 
 use App\Filament\Resources\ConnectedPaymentLinks\ConnectedPaymentLinkResource;
+use App\Filament\Resources\Pages\ViewRecord;
 use Filament\Actions\EditAction;
-use Filament\Resources\Pages\ViewRecord;
 
 class ViewConnectedPaymentLink extends ViewRecord
 {

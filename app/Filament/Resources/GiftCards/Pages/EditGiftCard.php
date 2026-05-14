@@ -3,10 +3,10 @@
 namespace App\Filament\Resources\GiftCards\Pages;
 
 use App\Filament\Resources\GiftCards\GiftCardResource;
+use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditGiftCard extends EditRecord
 {

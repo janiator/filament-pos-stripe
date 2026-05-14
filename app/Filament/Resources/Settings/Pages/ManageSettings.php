@@ -2,25 +2,23 @@
 
 namespace App\Filament\Resources\Settings\Pages;
 
+use App\Filament\Concerns\BuildsClusterWideSubNavigation;
 use App\Filament\Resources\Settings\SettingsResource;
 use App\Models\Setting;
-use Filament\Resources\Pages\Page;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
-use Filament\Schemas\Components\Section;
-use Filament\Notifications\Notification;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\Page;
 use Filament\Schemas\Schema;
 
-class ManageSettings extends Page implements HasForms, HasActions
+class ManageSettings extends Page implements HasActions, HasForms
 {
-    use InteractsWithForms;
+    use BuildsClusterWideSubNavigation;
     use InteractsWithActions;
+    use InteractsWithForms;
 
     protected static string $resource = SettingsResource::class;
 
@@ -33,14 +31,14 @@ class ManageSettings extends Page implements HasForms, HasActions
     public function mount(): void
     {
         $tenant = \Filament\Facades\Filament::getTenant();
-        
-        if (!$tenant) {
+
+        if (! $tenant) {
             abort(403, 'No tenant selected');
         }
 
         // Get or create settings for the current store
         $this->record = Setting::getForStore($tenant->id);
-        
+
         // Fill form with record data
         $this->form->fill($this->record->toArray());
     }
@@ -48,6 +46,11 @@ class ManageSettings extends Page implements HasForms, HasActions
     public function getTitle(): string
     {
         return 'Settings';
+    }
+
+    public function getSubNavigation(): array
+    {
+        return $this->clusterWideSubNavigationMergedWith([]);
     }
 
     public function form(Schema $schema): Schema
@@ -68,7 +71,7 @@ class ManageSettings extends Page implements HasForms, HasActions
     public function save(): void
     {
         $data = $this->form->getState();
-        
+
         $tenant = \Filament\Facades\Filament::getTenant();
         if ($tenant) {
             $data['store_id'] = $tenant->id;

@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\ConnectedCustomers\Pages;
 
 use App\Filament\Resources\ConnectedCustomers\ConnectedCustomerResource;
+use App\Filament\Resources\Pages\ViewRecord;
 use Filament\Actions\EditAction;
-use Filament\Resources\Pages\ViewRecord;
 
 class ViewConnectedCustomer extends ViewRecord
 {

@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\ConnectedPrices\Pages;
 
 use App\Filament\Resources\ConnectedPrices\ConnectedPriceResource;
+use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditConnectedPrice extends EditRecord
 {

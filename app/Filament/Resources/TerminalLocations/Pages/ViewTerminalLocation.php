@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\TerminalLocations\Pages;
 
+use App\Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\TerminalLocations\TerminalLocationResource;
 use Filament\Actions\EditAction;
-use Filament\Resources\Pages\ViewRecord;
 
 class ViewTerminalLocation extends ViewRecord
 {

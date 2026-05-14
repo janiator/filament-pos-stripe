@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\PosDevices\Pages;
 
+use App\Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\PosDevices\PosDeviceResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
 
 class EditPosDevice extends EditRecord
 {

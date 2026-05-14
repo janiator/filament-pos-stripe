@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\Discounts\Pages;
 
 use App\Filament\Resources\Discounts\DiscountResource;
+use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditDiscount extends EditRecord
 {

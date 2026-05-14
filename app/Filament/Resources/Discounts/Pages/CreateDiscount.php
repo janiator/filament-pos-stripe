@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Discounts\Pages;
 
 use App\Filament\Resources\Discounts\DiscountResource;
-use Filament\Resources\Pages\CreateRecord;
+use App\Filament\Resources\Pages\CreateRecord;
 
 class CreateDiscount extends CreateRecord
 {

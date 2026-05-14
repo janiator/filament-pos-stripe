@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\TerminalLocations\Pages;
 
+use App\Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\TerminalLocations\TerminalLocationResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditTerminalLocation extends EditRecord
 {

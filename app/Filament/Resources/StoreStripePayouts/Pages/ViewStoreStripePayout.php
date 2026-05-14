@@ -5,6 +5,7 @@ namespace App\Filament\Resources\StoreStripePayouts\Pages;
 use App\Enums\AddonType;
 use App\Enums\TripletexSyncRunStatus;
 use App\Filament\Actions\TripletexVoucherPreviewAction;
+use App\Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\StoreStripePayouts\StoreStripePayoutResource;
 use App\Jobs\SyncStoreStripeBalanceTransactionsJob;
 use App\Models\Addon;
@@ -17,7 +18,6 @@ use Filament\Facades\Filament;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
 

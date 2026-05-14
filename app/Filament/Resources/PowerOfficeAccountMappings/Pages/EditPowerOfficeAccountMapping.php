@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\PowerOfficeAccountMappings\Pages;
 
+use App\Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\PowerOfficeAccountMappings\PowerOfficeAccountMappingResource;
-use Filament\Resources\Pages\EditRecord;
 
 class EditPowerOfficeAccountMapping extends EditRecord
 {

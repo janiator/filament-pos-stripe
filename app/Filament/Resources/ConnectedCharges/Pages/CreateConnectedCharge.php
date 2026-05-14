@@ -4,8 +4,8 @@ namespace App\Filament\Resources\ConnectedCharges\Pages;
 
 use App\Actions\ConnectedCharges\CreateConnectedChargeOnStripe;
 use App\Filament\Resources\ConnectedCharges\ConnectedChargeResource;
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Models\Store;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreateConnectedCharge extends CreateRecord
 {
@@ -14,7 +14,7 @@ class CreateConnectedCharge extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $store = Store::where('stripe_account_id', $data['stripe_account_id'])->firstOrFail();
-        $action = new CreateConnectedChargeOnStripe();
+        $action = new CreateConnectedChargeOnStripe;
         $charge = $action($store, $data, true);
 
         if (! $charge) {

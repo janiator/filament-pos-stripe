@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\ConnectedProducts\Pages;
 
 use App\Filament\Resources\ConnectedProducts\ConnectedProductResource;
+use App\Filament\Resources\Pages\ViewRecord;
 use Filament\Actions\EditAction;
-use Filament\Resources\Pages\ViewRecord;
 
 class ViewConnectedProduct extends ViewRecord
 {

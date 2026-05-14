@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\PosDevices\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\PosDevices\PosDeviceResource;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreatePosDevice extends CreateRecord
 {

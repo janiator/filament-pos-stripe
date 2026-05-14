@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ConnectedCustomers\Pages;
 
 use App\Filament\Resources\ConnectedCustomers\ConnectedCustomerResource;
-use Filament\Resources\Pages\CreateRecord;
+use App\Filament\Resources\Pages\CreateRecord;
 
 class CreateConnectedCustomer extends CreateRecord
 {

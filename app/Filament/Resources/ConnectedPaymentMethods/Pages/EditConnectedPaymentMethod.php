@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\ConnectedPaymentMethods\Pages;
 
 use App\Filament\Resources\ConnectedPaymentMethods\ConnectedPaymentMethodResource;
+use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
-use Filament\Resources\Pages\EditRecord;
 
 class EditConnectedPaymentMethod extends EditRecord
 {

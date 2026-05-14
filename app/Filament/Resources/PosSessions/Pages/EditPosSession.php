@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\PosSessions\Pages;
 
+use App\Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\PosSessions\PosSessionResource;
-use Filament\Resources\Pages\EditRecord;
 use Filament\Notifications\Notification;
 
 class EditPosSession extends EditRecord

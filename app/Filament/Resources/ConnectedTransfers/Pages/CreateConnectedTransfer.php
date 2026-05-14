@@ -4,8 +4,8 @@ namespace App\Filament\Resources\ConnectedTransfers\Pages;
 
 use App\Actions\ConnectedTransfers\CreateConnectedTransferOnStripe;
 use App\Filament\Resources\ConnectedTransfers\ConnectedTransferResource;
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Models\Store;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreateConnectedTransfer extends CreateRecord
 {
@@ -14,7 +14,7 @@ class CreateConnectedTransfer extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $store = Store::where('stripe_account_id', $data['stripe_account_id'])->firstOrFail();
-        $action = new CreateConnectedTransferOnStripe();
+        $action = new CreateConnectedTransferOnStripe;
         $transfer = $action($store, $data, true);
 
         if (! $transfer) {

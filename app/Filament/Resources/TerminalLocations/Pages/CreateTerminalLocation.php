@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\TerminalLocations\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\TerminalLocations\TerminalLocationResource;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreateTerminalLocation extends CreateRecord
 {
@@ -13,8 +13,8 @@ class CreateTerminalLocation extends CreateRecord
     {
         // Get the current tenant (store)
         $tenant = \Filament\Facades\Filament::getTenant();
-        
-        if (!$tenant) {
+
+        if (! $tenant) {
             throw new \Exception('No tenant/store found. Terminal locations must be created within a store context.');
         }
 
@@ -22,11 +22,11 @@ class CreateTerminalLocation extends CreateRecord
         $location = $tenant->addTerminalLocation([
             'display_name' => $data['display_name'],
             'address' => [
-                'line1'       => $data['line1'],
-                'line2'       => $data['line2'] ?? null,
-                'city'        => $data['city'],
-                'state'       => $data['state'] ?? null,
-                'country'     => $data['country'],
+                'line1' => $data['line1'],
+                'line2' => $data['line2'] ?? null,
+                'city' => $data['city'],
+                'state' => $data['state'] ?? null,
+                'country' => $data['country'],
                 'postal_code' => $data['postal_code'],
             ],
         ], true); // true = direct / connected account

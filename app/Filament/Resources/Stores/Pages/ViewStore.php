@@ -4,11 +4,11 @@ namespace App\Filament\Resources\Stores\Pages;
 
 use App\Actions\Stores\SyncStoreTerminalLocationsFromStripe;
 use App\Actions\Stores\SyncStoreTerminalReadersFromStripe;
+use App\Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\Stores\StoreResource;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Icons\Heroicon;
 
 class ViewStore extends ViewRecord
@@ -29,7 +29,7 @@ class ViewStore extends ViewRecord
                 ->modalDescription('This will sync all data (customers, products, subscriptions, charges, transfers, payment methods, payment links, and terminal devices) from Stripe for this store. The sync will run in the background.')
                 ->action(function () {
                     $store = $this->record;
-                    
+
                     // Dispatch job instead of running synchronously
                     \App\Jobs\SyncStoreEverythingFromStripeJob::dispatch($store);
 
@@ -39,7 +39,7 @@ class ViewStore extends ViewRecord
                         ->success()
                         ->send();
                 })
-                ->visible(fn (): bool => !empty($this->record->stripe_account_id)),
+                ->visible(fn (): bool => ! empty($this->record->stripe_account_id)),
 
             Action::make('syncStripeTerminal')
                 ->label('Sync Stripe Terminal')
@@ -49,7 +49,7 @@ class ViewStore extends ViewRecord
                 ->action(function () {
                     $store = $this->record;
 
-                    $locResult    = app(SyncStoreTerminalLocationsFromStripe::class)($store);
+                    $locResult = app(SyncStoreTerminalLocationsFromStripe::class)($store);
                     $readerResult = app(SyncStoreTerminalReadersFromStripe::class)($store);
 
                     if ($locResult['error'] || $readerResult['error']) {
@@ -65,7 +65,7 @@ class ViewStore extends ViewRecord
                     }
 
                     $message =
-                        "Locations: {$locResult['total']} found, {$locResult['created']} created, {$locResult['updated']} updated. " .
+                        "Locations: {$locResult['total']} found, {$locResult['created']} created, {$locResult['updated']} updated. ".
                         "Readers: {$readerResult['total']} found, {$readerResult['created']} created, {$readerResult['updated']} updated.";
 
                     Notification::make()

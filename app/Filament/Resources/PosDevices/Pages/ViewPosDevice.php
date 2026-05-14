@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\PosDevices\Pages;
 
-use App\Filament\Resources\PosDevices\PosDeviceResource;
 use App\Actions\SafT\GenerateSafTCashRegister;
+use App\Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\PosDevices\PosDeviceResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -42,7 +42,7 @@ class ViewPosDevice extends ViewRecord
                     $store = $posDevice->store;
 
                     try {
-                        $generator = new GenerateSafTCashRegister();
+                        $generator = new GenerateSafTCashRegister;
                         $xmlContent = $generator(
                             $store,
                             $data['from_date'],
@@ -58,7 +58,7 @@ class ViewPosDevice extends ViewRecord
                         );
 
                         // Store file temporarily
-                        $path = 'saf-t/' . $filename;
+                        $path = 'saf-t/'.$filename;
                         Storage::put($path, $xmlContent);
 
                         // Generate signed URL (valid for 24 hours)
@@ -69,21 +69,21 @@ class ViewPosDevice extends ViewRecord
                             ['filename' => $filename],
                             absolute: true
                         );
-                        
+
                         Notification::make()
                             ->title('Journal export generated')
                             ->success()
                             ->body('The SAF-T file has been generated successfully. Opening download...')
                             ->send();
-                        
+
                         // Open download in new tab using JavaScript
                         // Use json_encode to properly escape the URL for JavaScript without breaking query parameters
-                        $this->js("window.open(" . json_encode($downloadUrl) . ", '_blank')");
+                        $this->js('window.open('.json_encode($downloadUrl).", '_blank')");
                     } catch (\Throwable $e) {
                         Notification::make()
                             ->title('Failed to export journal')
                             ->danger()
-                            ->body('An error occurred while generating the SAF-T file: ' . $e->getMessage())
+                            ->body('An error occurred while generating the SAF-T file: '.$e->getMessage())
                             ->send();
                     }
                 })
@@ -93,4 +93,3 @@ class ViewPosDevice extends ViewRecord
         ];
     }
 }
-

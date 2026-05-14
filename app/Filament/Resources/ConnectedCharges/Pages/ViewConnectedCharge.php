@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\ConnectedCharges\Pages;
 
 use App\Filament\Resources\ConnectedCharges\ConnectedChargeResource;
+use App\Filament\Resources\Pages\ViewRecord;
 use Filament\Actions\EditAction;
-use Filament\Resources\Pages\ViewRecord;
 
 class ViewConnectedCharge extends ViewRecord
 {

@@ -3,10 +3,10 @@
 namespace App\Filament\Resources\ConnectedProducts\Pages;
 
 use App\Filament\Resources\ConnectedProducts\ConnectedProductResource;
+use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\EditRecord;
 
 class EditConnectedProduct extends EditRecord
 {

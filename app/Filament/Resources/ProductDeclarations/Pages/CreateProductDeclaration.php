@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\ProductDeclarations\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\ProductDeclarations\ProductDeclarationResource;
 use App\Models\ProductDeclaration;
-use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\File;
 
 class CreateProductDeclaration extends CreateRecord
@@ -14,7 +14,7 @@ class CreateProductDeclaration extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // Set store_id if not set (from tenant context)
-        if (!isset($data['store_id'])) {
+        if (! isset($data['store_id'])) {
             try {
                 $tenant = \Filament\Facades\Filament::getTenant();
                 if ($tenant) {

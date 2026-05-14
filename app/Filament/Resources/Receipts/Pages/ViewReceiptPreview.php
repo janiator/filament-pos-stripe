@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\Receipts\Pages;
 
+use App\Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\Receipts\ReceiptResource;
 use App\Services\ReceiptTemplateService;
 use Filament\Actions\Action;
-use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 
 class ViewReceiptPreview extends ViewRecord

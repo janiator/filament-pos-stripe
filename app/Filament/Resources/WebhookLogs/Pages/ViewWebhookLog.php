@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\WebhookLogs\Pages;
 
+use App\Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\WebhookLogs\WebhookLogResource;
-use Filament\Resources\Pages\ViewRecord;
 
 class ViewWebhookLog extends ViewRecord
 {

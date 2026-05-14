@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\PosEvents\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\PosEvents\PosEventResource;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreatePosEvent extends CreateRecord
 {
@@ -18,7 +18,7 @@ class CreatePosEvent extends CreateRecord
         }
 
         // Ensure store_id is set
-        if (!isset($data['store_id'])) {
+        if (! isset($data['store_id'])) {
             $data['store_id'] = $tenant?->id ?? auth()->user()?->currentStore()?->id;
         }
 

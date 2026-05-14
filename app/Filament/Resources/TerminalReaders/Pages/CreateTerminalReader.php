@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\TerminalReaders\Pages;
 
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\TerminalReaders\TerminalReaderResource;
 use App\Models\TerminalLocation;
-use Filament\Resources\Pages\CreateRecord;
 
 class CreateTerminalReader extends CreateRecord
 {
@@ -14,8 +14,8 @@ class CreateTerminalReader extends CreateRecord
     {
         // Get the current tenant (store)
         $tenant = \Filament\Facades\Filament::getTenant();
-        
-        if (!$tenant) {
+
+        if (! $tenant) {
             throw new \Exception('No tenant/store found. Terminal readers must be created within a store context.');
         }
 
@@ -25,12 +25,12 @@ class CreateTerminalReader extends CreateRecord
             ->firstOrFail();
 
         $params = [
-            'label'    => $data['label'],
+            'label' => $data['label'],
             'location' => $location->stripe_location_id,
         ];
 
         $tapToPay = $data['tap_to_pay'] ?? false;
-        
+
         if (! $tapToPay) {
             // Registration code is required for non-Tap-to-Pay readers
             if (empty($data['registration_code'] ?? null)) {

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Stores\Pages;
 
 use App\Enums\AddonType;
+use App\Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\Stores\Schemas\StoreForm;
 use App\Filament\Resources\Stores\StoreResource;
 use App\Models\Addon;
@@ -11,7 +12,6 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
 
 class EditStore extends EditRecord

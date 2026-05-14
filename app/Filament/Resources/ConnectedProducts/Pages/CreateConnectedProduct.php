@@ -2,12 +2,11 @@
 
 namespace App\Filament\Resources\ConnectedProducts\Pages;
 
-use App\Actions\ConnectedProducts\CreateConnectedProductInStripe;
 use App\Filament\Resources\ConnectedProducts\ConnectedProductResource;
+use App\Filament\Resources\Pages\CreateRecord;
 use App\Models\Store;
-use Filament\Resources\Pages\CreateRecord;
-use Stripe\StripeClient;
 use Illuminate\Support\Facades\Log;
+use Stripe\StripeClient;
 
 class CreateConnectedProduct extends CreateRecord
 {
@@ -38,7 +37,7 @@ class CreateConnectedProduct extends CreateRecord
 
         // Create product in Stripe BEFORE saving to database
         // This is required because stripe_product_id has a NOT NULL constraint
-        if (empty($data['stripe_product_id']) && !empty($data['stripe_account_id'])) {
+        if (empty($data['stripe_product_id']) && ! empty($data['stripe_account_id'])) {
             $stripeProductId = $this->createStripeProductFromData($data);
             if ($stripeProductId) {
                 $data['stripe_product_id'] = $stripeProductId;
@@ -57,8 +56,8 @@ class CreateConnectedProduct extends CreateRecord
         $product = $this->record;
 
         // Sync price if set (only for single products, variable products use variant prices)
-        if (!$product->isVariable() && $product->price && $product->stripe_product_id && $product->stripe_account_id) {
-            $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice();
+        if (! $product->isVariable() && $product->price && $product->stripe_product_id && $product->stripe_account_id) {
+            $syncPriceAction = new \App\Actions\ConnectedPrices\SyncProductPrice;
             $syncPriceAction($product);
         }
     }
@@ -70,6 +69,7 @@ class CreateConnectedProduct extends CreateRecord
     {
         if (empty($data['stripe_account_id'])) {
             Log::warning('Cannot create product in Stripe: missing stripe_account_id');
+
             return null;
         }
 
@@ -78,12 +78,14 @@ class CreateConnectedProduct extends CreateRecord
             Log::warning('Cannot create product in Stripe: store not found or invalid', [
                 'stripe_account_id' => $data['stripe_account_id'],
             ]);
+
             return null;
         }
 
         $secret = config('cashier.secret') ?? config('services.stripe.secret');
         if (! $secret) {
             Log::warning('Cannot create product in Stripe: Stripe secret not configured');
+
             return null;
         }
 
@@ -96,7 +98,7 @@ class CreateConnectedProduct extends CreateRecord
             ];
 
             // Add optional fields if they exist
-            if (!empty($data['description'])) {
+            if (! empty($data['description'])) {
                 $createData['description'] = $data['description'];
             }
 
@@ -104,7 +106,7 @@ class CreateConnectedProduct extends CreateRecord
                 $createData['active'] = (bool) $data['active'];
             }
 
-            if (!empty($data['url'])) {
+            if (! empty($data['url'])) {
                 $createData['url'] = $data['url'];
             }
 
@@ -112,41 +114,40 @@ class CreateConnectedProduct extends CreateRecord
                 $createData['shippable'] = (bool) $data['shippable'];
             }
 
-            if (!empty($data['statement_descriptor'])) {
+            if (! empty($data['statement_descriptor'])) {
                 $createData['statement_descriptor'] = $data['statement_descriptor'];
             }
 
-            if (!empty($data['tax_code'])) {
+            if (! empty($data['tax_code'])) {
                 $createData['tax_code'] = $data['tax_code'];
             }
 
-
-            if (!empty($data['package_dimensions']) && is_array($data['package_dimensions'])) {
+            if (! empty($data['package_dimensions']) && is_array($data['package_dimensions'])) {
                 $createData['package_dimensions'] = $data['package_dimensions'];
             }
 
-            if (!empty($data['product_meta']) && is_array($data['product_meta'])) {
+            if (! empty($data['product_meta']) && is_array($data['product_meta'])) {
                 // Ensure all metadata values are strings
                 $metadata = [];
                 foreach ($data['product_meta'] as $key => $value) {
-                    if (!is_string($key) || 
-                        str_contains($key, "\0") || 
-                        str_contains($key, '*') || 
+                    if (! is_string($key) ||
+                        str_contains($key, "\0") ||
+                        str_contains($key, '*') ||
                         str_contains($key, '_opts') ||
                         str_starts_with($key, '_')) {
                         continue;
                     }
-                    
+
                     if (is_string($value)) {
                         $metadata[$key] = $value;
                     } elseif (is_scalar($value)) {
                         $metadata[$key] = (string) $value;
-                    } elseif (!is_null($value)) {
+                    } elseif (! is_null($value)) {
                         $metadata[$key] = json_encode($value);
                     }
                 }
-                
-                if (!empty($metadata)) {
+
+                if (! empty($metadata)) {
                     $createData['metadata'] = $metadata;
                 }
             }
@@ -171,8 +172,9 @@ class CreateConnectedProduct extends CreateRecord
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
-            
+
             report($e);
+
             return null;
         }
     }

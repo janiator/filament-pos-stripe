@@ -7,6 +7,7 @@ use App\Enums\AddonType;
 use App\Enums\PowerOfficeSyncRunStatus;
 use App\Enums\TripletexSyncRunStatus;
 use App\Filament\Actions\TripletexVoucherPreviewAction;
+use App\Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\PosSessions\PosSessionResource;
 use App\Models\Addon;
 use App\Models\PosEvent;
@@ -23,7 +24,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
 
