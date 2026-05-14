@@ -26,6 +26,8 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+# Local production DB exports (sensitive; never commit).
+/prod_db_export/
 jobberiet-export.zip
 /packages/*/vendor/
 /packages/*/composer.lock
