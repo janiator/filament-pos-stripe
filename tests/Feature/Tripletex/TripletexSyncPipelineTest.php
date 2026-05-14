@@ -1221,6 +1221,18 @@ it('splits Z-report ledger lines by calendar day when enabled and session charge
         ->values();
 
     expect($dates->count())->toBeGreaterThanOrEqual(2);
+
+    $byDate = [];
+    foreach ($payload['lines'] ?? [] as $line) {
+        $d = $line['posting_date'] ?? null;
+        if (! is_string($d) || $d === '') {
+            continue;
+        }
+        $byDate[$d] = ($byDate[$d] ?? 0) + (int) ($line['debit_minor'] ?? 0) - (int) ($line['credit_minor'] ?? 0);
+    }
+    foreach ($byDate as $date => $net) {
+        expect($net)->toBe(0, "Postings for {$date} should net to zero (debits = credits)");
+    }
 });
 
 it('balances VAT-basis non-cash clearing per posting date when charges use card_present only', function () {

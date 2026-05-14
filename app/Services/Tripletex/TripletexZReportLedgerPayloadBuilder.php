@@ -298,7 +298,167 @@ class TripletexZReportLedgerPayloadBuilder
             ));
         }
 
+        $this->reconcileCalendarSplitLinesPerPostingDate(
+            $lines,
+            $integration,
+            $basis,
+            $defaultMapping,
+            (string) $session->session_number,
+        );
+
         return $lines;
+    }
+
+    /**
+     * Tripletex validates that postings for each {@see posting_date} sum to zero. Splitting sales,
+     * VAT, tips, and payment debits with separate {@see allocateIntegerAcrossDays} passes leaves
+     * small per-day remainder differences; absorb them on payment debit lines for that date.
+     *
+     * @param  list<array<string, mixed>>  $lines
+     */
+    protected function reconcileCalendarSplitLinesPerPostingDate(
+        array &$lines,
+        TripletexIntegration $integration,
+        PowerOfficeMappingBasis $basis,
+        TripletexAccountMapping $fallback,
+        string $sessionNumber,
+    ): void {
+        $cardAccount = $this->resolvePaymentDebitAccount($integration, $basis, $fallback, 'card');
+        $cashAccount = $this->resolvePaymentDebitAccount($integration, $basis, $fallback, 'cash');
+
+        $byDate = [];
+        foreach ($lines as $idx => $line) {
+            $d = $line['posting_date'] ?? null;
+            if (! is_string($d) || $d === '') {
+                continue;
+            }
+            $byDate[$d][] = $idx;
+        }
+
+        foreach ($byDate as $date => $indices) {
+            $credit = 0;
+            $debit = 0;
+            foreach ($indices as $i) {
+                $credit += (int) ($lines[$i]['credit_minor'] ?? 0);
+                $debit += (int) ($lines[$i]['debit_minor'] ?? 0);
+            }
+            $delta = $credit - $debit;
+            if ($delta === 0) {
+                continue;
+            }
+
+            if ($delta > 0) {
+                $this->bumpPaymentDebitMinorOnSplitDate(
+                    $lines,
+                    $indices,
+                    $delta,
+                    $cardAccount,
+                    $cashAccount,
+                    $date,
+                    $sessionNumber,
+                );
+            } else {
+                $this->reducePaymentDebitMinorOnSplitDate(
+                    $lines,
+                    $indices,
+                    -$delta,
+                );
+            }
+        }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $lines
+     * @param  list<int>  $indices
+     */
+    protected function bumpPaymentDebitMinorOnSplitDate(
+        array &$lines,
+        array $indices,
+        int $delta,
+        ?string $cardAccount,
+        ?string $cashAccount,
+        string $date,
+        string $sessionNumber,
+    ): void {
+        foreach ([$cardAccount, $cashAccount] as $account) {
+            if (! $account) {
+                continue;
+            }
+            foreach ($indices as $i) {
+                if (($lines[$i]['account'] ?? '') !== $account) {
+                    continue;
+                }
+                if ((int) ($lines[$i]['debit_minor'] ?? 0) <= 0) {
+                    continue;
+                }
+                $lines[$i]['debit_minor'] = (int) $lines[$i]['debit_minor'] + $delta;
+
+                return;
+            }
+        }
+
+        foreach ($indices as $i) {
+            $desc = (string) ($lines[$i]['description'] ?? '');
+            if (! str_contains($desc, 'Z-report payment ')) {
+                continue;
+            }
+            if ((int) ($lines[$i]['debit_minor'] ?? 0) <= 0) {
+                continue;
+            }
+            $lines[$i]['debit_minor'] = (int) $lines[$i]['debit_minor'] + $delta;
+
+            return;
+        }
+
+        if ($cardAccount) {
+            $lines[] = [
+                'account' => $cardAccount,
+                'debit_minor' => $delta,
+                'credit_minor' => 0,
+                'posting_date' => $date,
+                'description' => 'Z-report '.$sessionNumber.' payment (split rounding) '.$date,
+            ];
+        }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $lines
+     * @param  list<int>  $indices
+     */
+    protected function reducePaymentDebitMinorOnSplitDate(
+        array &$lines,
+        array $indices,
+        int $delta,
+    ): void {
+        $paymentIndices = [];
+        foreach ($indices as $i) {
+            $desc = (string) ($lines[$i]['description'] ?? '');
+            if (! str_contains($desc, 'Z-report payment ')) {
+                continue;
+            }
+            if ((int) ($lines[$i]['debit_minor'] ?? 0) <= 0) {
+                continue;
+            }
+            $paymentIndices[] = $i;
+        }
+
+        usort($paymentIndices, function (int $a, int $b) use ($lines): int {
+            return ((int) ($lines[$b]['debit_minor'] ?? 0)) <=> ((int) ($lines[$a]['debit_minor'] ?? 0));
+        });
+
+        $remaining = $delta;
+        foreach ($paymentIndices as $i) {
+            if ($remaining <= 0) {
+                return;
+            }
+            $d = (int) ($lines[$i]['debit_minor'] ?? 0);
+            if ($d <= 0) {
+                continue;
+            }
+            $take = min($d, $remaining);
+            $lines[$i]['debit_minor'] = $d - $take;
+            $remaining -= $take;
+        }
     }
 
     /**
