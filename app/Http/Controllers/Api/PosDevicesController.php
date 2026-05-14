@@ -423,7 +423,7 @@ class PosDevicesController extends BaseApiController
         // Create start event if device was inactive and no recent start event exists
         if ($wasInactive && ! $recentStartEvent) {
             // Get current session if exists
-            $currentSession = \App\Models\PosSession::where('store_id', $store->id)
+            $currentSession = \App\Models\PosSession::forStore($store->id)
                 ->where('pos_device_id', $device->id)
                 ->where('status', 'open')
                 ->first();
@@ -494,7 +494,7 @@ class PosDevicesController extends BaseApiController
             ->firstOrFail();
 
         // Get current session if exists
-        $currentSession = \App\Models\PosSession::where('store_id', $store->id)
+        $currentSession = \App\Models\PosSession::forStore($store->id)
             ->where('pos_device_id', $device->id)
             ->where('status', 'open')
             ->first();
@@ -576,7 +576,7 @@ class PosDevicesController extends BaseApiController
             ->firstOrFail();
 
         // Get current session if exists
-        $currentSession = \App\Models\PosSession::where('store_id', $store->id)
+        $currentSession = \App\Models\PosSession::forStore($store->id)
             ->where('pos_device_id', $device->id)
             ->where('status', 'open')
             ->first();
@@ -667,7 +667,7 @@ class PosDevicesController extends BaseApiController
                 ->where('store_id', $store->id)
                 ->first();
         } else {
-            $session = \App\Models\PosSession::where('store_id', $store->id)
+            $session = \App\Models\PosSession::forStore($store->id)
                 ->where('pos_device_id', $device->id)
                 ->where('status', 'open')
                 ->first();
@@ -746,7 +746,7 @@ class PosDevicesController extends BaseApiController
                 ->where('store_id', $store->id)
                 ->first();
         } else {
-            $session = \App\Models\PosSession::where('store_id', $store->id)
+            $session = \App\Models\PosSession::forStore($store->id)
                 ->where('pos_device_id', $device->id)
                 ->where('status', 'open')
                 ->first();

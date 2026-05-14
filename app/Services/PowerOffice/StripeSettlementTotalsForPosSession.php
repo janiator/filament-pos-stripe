@@ -27,7 +27,7 @@ class StripeSettlementTotalsForPosSession
         }
 
         return (int) StoreStripeBalanceTransaction::query()
-            ->where('store_id', $session->store_id)
+            ->where('store_id', $session->effectiveStoreId())
             ->where('type', 'charge')
             ->whereIn('stripe_charge_id', $chargeIds)
             ->sum('fee');
@@ -43,7 +43,7 @@ class StripeSettlementTotalsForPosSession
         $day = $closedAt->copy()->timezone(config('app.timezone'))->toDateString();
 
         return (int) StoreStripePayout::query()
-            ->where('store_id', $session->store_id)
+            ->where('store_id', $session->effectiveStoreId())
             ->where('status', 'paid')
             ->whereDate('arrival_date', $day)
             ->sum('amount');

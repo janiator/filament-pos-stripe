@@ -215,7 +215,7 @@ class TripletexIntegrationForm
                                     ->minValue(1),
                             ]),
                         Section::make('Z-report: Tripletex VAT types (optional)')
-                            ->description(__('When set, voucher postings include Tripletex vatType ids for sales and output VAT lines.'))
+                            ->description(__('filament.tripletex.vat_types_section_description'))
                             ->visible(fn (Get $get): bool => $get('mapping_basis') === PowerOfficeMappingBasis::Vat->value)
                             ->columns(2)
                             ->schema([

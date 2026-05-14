@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ConnectedCharge;
+use App\Models\PosDevice;
 use App\Models\PosSession;
 use App\Models\Store;
 use App\Services\ReceiptGenerationService;
@@ -11,7 +12,8 @@ uses(RefreshDatabase::class);
 
 test('sales receipt stores order_note and renders it in ePOS xml', function () {
     $store = Store::factory()->create();
-    $session = PosSession::factory()->create(['store_id' => $store->id]);
+    $device = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create(['pos_device_id' => $device->id]);
     $charge = ConnectedCharge::factory()->create([
         'stripe_account_id' => $store->stripe_account_id,
         'pos_session_id' => $session->id,
@@ -46,7 +48,8 @@ test('sales receipt stores order_note and renders it in ePOS xml', function () {
 
 test('delivery receipt stores order_note and renders it in ePOS xml', function () {
     $store = Store::factory()->create();
-    $session = PosSession::factory()->create(['store_id' => $store->id]);
+    $device = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create(['pos_device_id' => $device->id]);
     $charge = ConnectedCharge::factory()->create([
         'stripe_account_id' => $store->stripe_account_id,
         'pos_session_id' => $session->id,

@@ -33,6 +33,7 @@ return [
         'payout_voucher_preview_description' => 'Ledger lines for this Stripe payout. Turn on account resolution to call Tripletex and include the exact JSON for POST /ledger/voucher. Ticket revenue from the POS is posted on Tripletex when a register session closes (Z-report voucher preview), not here. Advance or web ticket lines appear on this payout only when “External ticket sales” is enabled in Tripletex ledger settings and charges without a POS session satisfy the metadata (and optional description regex) rules; metadata from the Stripe charge and from the payout balance-transaction mirror is combined when matching.',
         'external_ticket_metadata_keys_placeholder' => 'Leave empty for default (booking_id, eventKey, or event_key)',
         'external_ticket_metadata_keys_help' => 'Leave empty: a charge qualifies if any of booking_id, eventKey, or event_key is non-empty in merged metadata (OR). If you enter keys, every listed key must be present (AND). Comma-separated.',
+        'vat_types_section_description' => 'Optional overrides per rate and for the output-VAT line. If you leave a field empty, the voucher uses the VAT type returned on each Tripletex ledger account when accounts are resolved (GET /ledger/account), which matches locked accounts. Fill a value only when you need a different Tripletex vatType id than the account default.',
     ],
     'resources' => [
         'store' => [

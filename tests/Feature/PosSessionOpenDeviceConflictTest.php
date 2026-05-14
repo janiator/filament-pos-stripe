@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\PosDevice;
-use App\Models\PosSession;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -9,7 +8,7 @@ use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
-it('returns 409 when opening a session on a device that has an open session on another store', function () {
+it('returns 422 when opening a session with a device that does not belong to the current store', function () {
     $user = User::factory()->create();
     $storeA = Store::factory()->create(['slug' => 'store-a']);
     $storeB = Store::factory()->create(['slug' => 'store-b']);
@@ -34,11 +33,8 @@ it('returns 409 when opening a session on a device that has an open session on a
             'opening_balance' => 0,
         ]);
 
-    $openB->assertStatus(409)
-        ->assertJson([
-            'message' => 'You need to close other open POS sessions on the current device before opening a new session.',
-        ])
-        ->assertJsonPath('session.id', PosSession::where('pos_device_id', $device->id)->where('status', 'open')->first()->id);
+    $openB->assertStatus(422)
+        ->assertJsonValidationErrors(['pos_device_id']);
 });
 
 it('returns 409 with device already has open session when opening again for same store', function () {

@@ -4,6 +4,7 @@ use App\Actions\Webhooks\HandleChargeWebhook;
 use App\Actions\Webhooks\HandlePaymentMethodWebhook;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedPaymentMethod;
+use App\Models\PosDevice;
 use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\Store;
@@ -46,7 +47,8 @@ function makeStripeChargeForWebhook(array $overrides = []): Charge
 
 it('merges webhook into existing charge by payment_intent_id and preserves pos_session_id', function () {
     $store = Store::factory()->create(['stripe_account_id' => 'acct_'.uniqid()]);
-    $session = PosSession::factory()->create(['store_id' => $store->id]);
+    $device = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create(['pos_device_id' => $device->id]);
     $paymentIntentId = 'pi_'.uniqid();
     $stripeChargeId = 'ch_'.uniqid();
 
@@ -104,7 +106,8 @@ it('does not create POS events when ConnectedCharge has null pos_session_id', fu
 
 it('creates POS events when ConnectedCharge has pos_session_id', function () {
     $store = Store::factory()->create(['stripe_account_id' => 'acct_'.uniqid()]);
-    $session = PosSession::factory()->create(['store_id' => $store->id]);
+    $device = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create(['pos_device_id' => $device->id]);
 
     ConnectedCharge::factory()->create([
         'stripe_account_id' => $store->stripe_account_id,

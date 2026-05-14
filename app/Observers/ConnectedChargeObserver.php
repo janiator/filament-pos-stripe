@@ -26,7 +26,7 @@ class ConnectedChargeObserver
         // Log sales receipt event (13012) for successful charges
         if ($charge->status === 'succeeded' && $charge->paid) {
             // Get store_id from pos_session or try to find via stripe_account_id
-            $storeId = $charge->posSession?->store_id;
+            $storeId = $charge->posSession?->effectiveStoreId();
             if (! $storeId && $charge->stripe_account_id) {
                 $store = \App\Models\Store::where('stripe_account_id', $charge->stripe_account_id)->first();
                 $storeId = $store?->id;

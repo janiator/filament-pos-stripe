@@ -13,6 +13,7 @@ use App\Models\Addon;
 use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\PowerOfficeSyncRun;
+use App\Models\Store;
 use App\Models\TripletexSyncRun;
 use App\Services\PowerOffice\PowerOfficeZReportSync;
 use App\Services\PowerOffice\StripeSettlementTotalsForPosSession;
@@ -255,7 +256,21 @@ class PosSessionsTable
 
                 SelectFilter::make('store_id')
                     ->label(__('Store'))
-                    ->relationship('store', 'name')
+                    ->options(fn (): array => Store::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->query(function (Builder $query, array $data): Builder {
+                        $raw = $data['values'] ?? $data['value'] ?? null;
+                        if ($raw === null || $raw === [] || $raw === '') {
+                            return $query;
+                        }
+
+                        $ids = is_array($raw) ? $raw : [$raw];
+                        $ids = array_values(array_filter(array_map('intval', $ids)));
+                        if ($ids === []) {
+                            return $query;
+                        }
+
+                        return $query->whereHas('posDevice', fn (Builder $q) => $q->whereIn('store_id', $ids));
+                    })
                     ->searchable()
                     ->preload()
                     ->multiple(),
@@ -374,7 +389,7 @@ class PosSessionsTable
                         // Log X-report event (13008) per § 2-8-2
                         // Include complete report data in event_data for electronic journal compliance
                         PosEvent::create([
-                            'store_id' => $record->store_id,
+                            'store_id' => $record->effectiveStoreId(),
                             'pos_device_id' => $record->pos_device_id,
                             'pos_session_id' => $record->id,
                             'user_id' => auth()->id(),
@@ -408,7 +423,7 @@ class PosSessionsTable
                         // Log Z-report event (13009) per § 2-8-3
                         // Include complete report data in event_data for electronic journal compliance
                         PosEvent::create([
-                            'store_id' => $record->store_id,
+                            'store_id' => $record->effectiveStoreId(),
                             'pos_device_id' => $record->pos_device_id,
                             'pos_session_id' => $record->id,
                             'user_id' => auth()->id(),
@@ -527,7 +542,7 @@ class PosSessionsTable
 
                         // Log Z-report event (13009) per § 2-8-3
                         PosEvent::create([
-                            'store_id' => $record->store_id,
+                            'store_id' => $record->effectiveStoreId(),
                             'pos_device_id' => $record->pos_device_id,
                             'pos_session_id' => $record->id,
                             'user_id' => auth()->id(),
@@ -1031,7 +1046,7 @@ class PosSessionsTable
         $charges = $session->charges->whereIn('status', ['succeeded', 'refunded']);
 
         // Get settings to check if tips are enabled
-        $settings = \App\Models\Setting::getForStore($session->store_id);
+        $settings = \App\Models\Setting::getForStore((int) $session->effectiveStoreId());
         $tipsEnabled = (bool) ($settings->tips_enabled ?? true);
 
         $totalAmount = $charges->sum('amount');
@@ -1240,7 +1255,7 @@ class PosSessionsTable
 
         if (! $hasZReportJournal) {
             PosEvent::create([
-                'store_id' => $session->store_id,
+                'store_id' => $session->effectiveStoreId(),
                 'pos_device_id' => $session->pos_device_id,
                 'pos_session_id' => $session->id,
                 'user_id' => auth()->id() ?? $session->user_id,
@@ -1452,7 +1467,7 @@ class PosSessionsTable
         $report['event_summary'] = $eventSummary;
 
         // Get settings to check if tips are enabled
-        $settings = \App\Models\Setting::getForStore($session->store_id);
+        $settings = \App\Models\Setting::getForStore((int) $session->effectiveStoreId());
         $tipsEnabled = (bool) ($settings->tips_enabled ?? true);
 
         // Check if session spans multiple days

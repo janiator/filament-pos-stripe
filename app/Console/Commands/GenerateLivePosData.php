@@ -2,17 +2,15 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Store;
-use App\Models\User;
-use App\Models\PosDevice;
-use App\Models\PosSession;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
-use App\Models\PosEvent;
+use App\Models\PosDevice;
+use App\Models\PosSession;
 use App\Models\Receipt;
+use App\Models\Store;
+use App\Models\User;
 use App\Services\ReceiptGenerationService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class GenerateLivePosData extends Command
 {
@@ -34,15 +32,17 @@ class GenerateLivePosData extends Command
             $store = Store::where('slug', $storeSlug)
                 ->orWhere('id', is_numeric($storeSlug) ? (int) $storeSlug : null)
                 ->first();
-            
-            if (!$store) {
+
+            if (! $store) {
                 $this->error("Store not found: {$storeSlug}");
+
                 return;
             }
         } else {
             $store = Store::first();
-            if (!$store) {
+            if (! $store) {
                 $this->error('No store found. Please create a store first.');
+
                 return;
             }
         }
@@ -51,18 +51,19 @@ class GenerateLivePosData extends Command
 
         // Get or create user
         $user = User::first();
-        if (!$user) {
+        if (! $user) {
             $this->error('No user found. Please create a user first.');
+
             return;
         }
 
         // Get or create POS device
         $device = PosDevice::where('store_id', $store->id)->first();
-        if (!$device) {
+        if (! $device) {
             $device = PosDevice::create([
                 'store_id' => $store->id,
                 'device_name' => 'Test POS Device',
-                'device_identifier' => 'test-device-' . uniqid(),
+                'device_identifier' => 'test-device-'.uniqid(),
                 'platform' => 'web',
                 'device_status' => 'active',
             ]);
@@ -82,15 +83,15 @@ class GenerateLivePosData extends Command
             $this->info('📦 Creating sample products...');
             for ($i = 1; $i <= 10; $i++) {
                 ConnectedProduct::create([
-                    'stripe_product_id' => 'prod_test_' . uniqid(),
+                    'stripe_product_id' => 'prod_test_'.uniqid(),
                     'stripe_account_id' => $stripeAccountId,
                     'name' => "Product {$i}",
                     'description' => "Sample product {$i}",
                     'active' => true,
-                    'price' => rand(50, 500) . '.' . str_pad(rand(0, 99), 2, '0', STR_PAD_LEFT),
+                    'price' => rand(50, 500).'.'.str_pad(rand(0, 99), 2, '0', STR_PAD_LEFT),
                     'currency' => 'nok',
                     'article_group_code' => '04003',
-                    'product_code' => 'PLU' . str_pad($i, 3, '0', STR_PAD_LEFT),
+                    'product_code' => 'PLU'.str_pad($i, 3, '0', STR_PAD_LEFT),
                 ]);
             }
             $products = ConnectedProduct::where('stripe_account_id', $stripeAccountId)->get();
@@ -138,7 +139,7 @@ class GenerateLivePosData extends Command
                 $paidAt = $openedAt->copy()->addMinutes(rand(1, 480));
 
                 $charge = ConnectedCharge::create([
-                    'stripe_charge_id' => 'ch_test_' . uniqid(),
+                    'stripe_charge_id' => 'ch_test_'.uniqid(),
                     'stripe_account_id' => $stripeAccountId,
                     'pos_session_id' => $session->id,
                     'amount' => $amount,
@@ -151,7 +152,7 @@ class GenerateLivePosData extends Command
                     'captured' => true,
                     'refunded' => false,
                     'transaction_code' => $paymentMethod === 'cash' ? '11001' : '11002',
-                    'payment_code' => match($paymentMethod) {
+                    'payment_code' => match ($paymentMethod) {
                         'cash' => '12001',
                         'card' => '12002',
                         'mobile' => '12011',
@@ -167,11 +168,11 @@ class GenerateLivePosData extends Command
                         $receipt = $receiptService->generateSalesReceipt($charge, $session);
                         $this->line("    ✓ Receipt: {$receipt->receipt_number}");
                     } catch (\Throwable $e) {
-                        $this->warn("    ⚠ Receipt error: " . $e->getMessage());
+                        $this->warn('    ⚠ Receipt error: '.$e->getMessage());
                     }
                 }
 
-                match($paymentMethod) {
+                match ($paymentMethod) {
                     'cash' => $totalCash += $amount,
                     'card' => $totalCard += $amount,
                     'mobile' => $totalMobile += $amount,
@@ -192,30 +193,30 @@ class GenerateLivePosData extends Command
                     'expected_cash' => $expectedCash,
                     'actual_cash' => $actualCash,
                     'cash_difference' => $cashDifference,
-                    'closing_notes' => "Session closed - Cash difference: " . number_format($cashDifference / 100, 2) . " NOK",
+                    'closing_notes' => 'Session closed - Cash difference: '.number_format($cashDifference / 100, 2).' NOK',
                 ]);
 
-                $this->line("  ✓ Session closed: Expected: " . number_format($expectedCash / 100, 2) . " NOK, Actual: " . number_format($actualCash / 100, 2) . " NOK");
+                $this->line('  ✓ Session closed: Expected: '.number_format($expectedCash / 100, 2).' NOK, Actual: '.number_format($actualCash / 100, 2).' NOK');
             }
 
-            $this->line("  📊 Transactions: Cash: " . number_format($totalCash / 100, 2) . " NOK, Card: " . number_format($totalCard / 100, 2) . " NOK");
+            $this->line('  📊 Transactions: Cash: '.number_format($totalCash / 100, 2).' NOK, Card: '.number_format($totalCard / 100, 2).' NOK');
             $this->newLine();
         }
 
         $this->newLine();
         $this->info('✅ Live POS data generated successfully!');
-        $this->info("📊 You can now view the data in Filament at: /pos-sessions");
+        $this->info('📊 You can now view the data in Filament at: /pos-sessions');
         $this->newLine();
-        $this->info("Summary:");
+        $this->info('Summary:');
         $this->line("  - Store: {$store->name}");
         $this->line("  - Sessions created: {$numSessions}");
-        $this->line("  - Total transactions: " . ($numSessions * $transactionsPerSession));
+        $this->line('  - Total transactions: '.($numSessions * $transactionsPerSession));
         $this->line("  - Products available: {$products->count()}");
     }
 
     protected function generateSessionNumber(int $storeId): string
     {
-        $lastSession = PosSession::where('store_id', $storeId)
+        $lastSession = PosSession::forStore($storeId)
             ->orderBy('session_number', 'desc')
             ->first();
 
@@ -228,4 +229,3 @@ class GenerateLivePosData extends Command
         return str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
     }
 }
-

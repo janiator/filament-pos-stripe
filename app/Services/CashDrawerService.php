@@ -33,7 +33,7 @@ class CashDrawerService
 
         // Log cash drawer open event (13005)
         PosEvent::create([
-            'store_id' => $posSession->store_id,
+            'store_id' => $posSession->effectiveStoreId(),
             'pos_session_id' => $posSession->id,
             'pos_device_id' => $device->id,
             'user_id' => $posSession->user_id,
@@ -187,7 +187,7 @@ class CashDrawerService
         $device = $posSession->posDevice;
 
         return PosEvent::create([
-            'store_id' => $posSession->store_id,
+            'store_id' => $posSession->effectiveStoreId(),
             'pos_session_id' => $posSession->id,
             'pos_device_id' => $device?->id,
             'user_id' => auth()->id(),

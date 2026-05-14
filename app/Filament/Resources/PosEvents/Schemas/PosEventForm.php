@@ -7,7 +7,6 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
 class PosEventForm
@@ -34,6 +33,7 @@ class PosEventForm
                     ->visible(function () {
                         try {
                             $tenant = \Filament\Facades\Filament::getTenant();
+
                             return $tenant && $tenant->slug === 'visivo-admin';
                         } catch (\Throwable $e) {
                             return false;
@@ -60,7 +60,7 @@ class PosEventForm
                         try {
                             $tenant = \Filament\Facades\Filament::getTenant();
                             if ($tenant && $tenant->slug !== 'visivo-admin') {
-                                $query->where('pos_sessions.store_id', $tenant->id);
+                                $query->whereHas('posDevice', fn ($q) => $q->where('store_id', $tenant->id));
                             }
                         } catch (\Throwable $e) {
                             // Fallback if Filament facade not available

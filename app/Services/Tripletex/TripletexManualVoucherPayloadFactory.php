@@ -12,6 +12,11 @@ namespace App\Services\Tripletex;
  * Integer minors avoid float drift from the old script’s summed float `amount` field.
  *
  * @see https://tripletex.no/v2/docs/ — ledger voucher
+ *
+ * VAT on postings: if a line sets `tripletex_vat_type_id` (numeric, including 0), that value
+ * is sent as `vatType.id`. Otherwise, when Tripletex’s resolved ledger account includes
+ * `vatType.id` (from GET /ledger/account), that id is copied to the posting so locked
+ * accounts (e.g. kiosk revenue tied to one VAT code) validate without Filament overrides.
  */
 class TripletexManualVoucherPayloadFactory
 {
@@ -75,9 +80,9 @@ class TripletexManualVoucherPayloadFactory
                 'date' => $effectiveDate,
             ];
 
-            $vatId = $line['tripletex_vat_type_id'] ?? null;
-            if (is_numeric($vatId) && (int) $vatId > 0) {
-                $posting['vatType'] = ['id' => (int) $vatId];
+            $vatTypeId = self::postingVatTypeId($line, $resolved);
+            if ($vatTypeId !== null) {
+                $posting['vatType'] = ['id' => $vatTypeId];
             }
 
             $supplierId = $line['tripletex_supplier_id'] ?? null;
@@ -118,5 +123,24 @@ class TripletexManualVoucherPayloadFactory
     private static function minorUnitsToMajorFloat(int $minor): float
     {
         return round($minor / 100, 2);
+    }
+
+    /**
+     * @param  array<string, mixed>  $line
+     * @param  array<string, mixed>  $resolvedAccount  Tripletex ledger account JSON
+     */
+    private static function postingVatTypeId(array $line, array $resolvedAccount): ?int
+    {
+        $explicit = $line['tripletex_vat_type_id'] ?? null;
+        if (is_numeric($explicit)) {
+            return (int) $explicit;
+        }
+
+        $fromAccount = data_get($resolvedAccount, 'vatType.id');
+        if (is_numeric($fromAccount)) {
+            return (int) $fromAccount;
+        }
+
+        return null;
     }
 }

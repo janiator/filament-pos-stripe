@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Filament\Resources\PosSessions\Tables\PosSessionsTable;
 use App\Models\PosSession;
 use App\Models\Store;
-use App\Filament\Resources\PosSessions\Tables\PosSessionsTable;
-use App\Filament\Resources\PosReports\Pages\PosReports;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
@@ -19,18 +18,18 @@ class ReportController extends Controller
     public function downloadXReportPdf(Request $request, string $tenant, int $sessionId)
     {
         $store = Store::where('slug', $tenant)->firstOrFail();
-        
+
         // Verify user has access to this store
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             abort(401, 'Unauthenticated');
         }
         $isSuperAdmin = $user->hasRole('super_admin');
         $hasStoreAccess = $user->stores()->where('stores.id', $store->id)->exists();
-        if (!$isSuperAdmin && !$hasStoreAccess) {
+        if (! $isSuperAdmin && ! $hasStoreAccess) {
             abort(403, 'You do not have access to this store');
         }
-        
+
         $session = PosSession::where('id', $sessionId)
             ->where('store_id', $store->id)
             ->where('status', 'open')
@@ -42,7 +41,7 @@ class ReportController extends Controller
         // Log X-report event (13008) per § 2-8-2
         // Include complete report data in event_data for electronic journal compliance
         \App\Models\PosEvent::create([
-            'store_id' => $session->store_id,
+            'store_id' => $session->effectiveStoreId(),
             'pos_device_id' => $session->pos_device_id,
             'pos_session_id' => $session->id,
             'user_id' => Auth::id(),
@@ -63,7 +62,7 @@ class ReportController extends Controller
             'report' => $report,
         ])->render();
 
-        $options = new Options();
+        $options = new Options;
         $options->set('isRemoteEnabled', true);
         $options->set('isHtml5ParserEnabled', true);
         $options->set('defaultFont', 'DejaVu Sans');
@@ -73,7 +72,7 @@ class ReportController extends Controller
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $filename = "X-Rapport-{$session->session_number}-" . now()->format('Y-m-d-H-i-s') . '.pdf';
+        $filename = "X-Rapport-{$session->session_number}-".now()->format('Y-m-d-H-i-s').'.pdf';
 
         return response()->streamDownload(function () use ($dompdf) {
             echo $dompdf->output();
@@ -88,18 +87,18 @@ class ReportController extends Controller
     public function downloadZReportPdf(Request $request, string $tenant, int $sessionId)
     {
         $store = Store::where('slug', $tenant)->firstOrFail();
-        
+
         // Verify user has access to this store
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             abort(401, 'Unauthenticated');
         }
         $isSuperAdmin = $user->hasRole('super_admin');
         $hasStoreAccess = $user->stores()->where('stores.id', $store->id)->exists();
-        if (!$isSuperAdmin && !$hasStoreAccess) {
+        if (! $isSuperAdmin && ! $hasStoreAccess) {
             abort(403, 'You do not have access to this store');
         }
-        
+
         $session = PosSession::where('id', $sessionId)
             ->where('store_id', $store->id)
             ->where('status', 'closed')
@@ -111,7 +110,7 @@ class ReportController extends Controller
         // Log Z-report event (13009) per § 2-8-3
         // Include complete report data in event_data for electronic journal compliance
         \App\Models\PosEvent::create([
-            'store_id' => $session->store_id,
+            'store_id' => $session->effectiveStoreId(),
             'pos_device_id' => $session->pos_device_id,
             'pos_session_id' => $session->id,
             'user_id' => Auth::id(),
@@ -132,7 +131,7 @@ class ReportController extends Controller
             'report' => $report,
         ])->render();
 
-        $options = new Options();
+        $options = new Options;
         $options->set('isRemoteEnabled', true);
         $options->set('isHtml5ParserEnabled', true);
         $options->set('defaultFont', 'DejaVu Sans');
@@ -142,7 +141,7 @@ class ReportController extends Controller
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $filename = "Z-Rapport-{$session->session_number}-" . now()->format('Y-m-d-H-i-s') . '.pdf';
+        $filename = "Z-Rapport-{$session->session_number}-".now()->format('Y-m-d-H-i-s').'.pdf';
 
         return response()->streamDownload(function () use ($dompdf) {
             echo $dompdf->output();
@@ -159,12 +158,12 @@ class ReportController extends Controller
         $store = Store::where('slug', $tenant)->firstOrFail();
         // Verify user has access to this store
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             abort(401, 'Unauthenticated');
         }
         $isSuperAdmin = $user->hasRole('super_admin');
         $hasStoreAccess = $user->stores()->where('stores.id', $store->id)->exists();
-        if (!$isSuperAdmin && !$hasStoreAccess) {
+        if (! $isSuperAdmin && ! $hasStoreAccess) {
             abort(403, 'You do not have access to this store');
         }
         $session = PosSession::where('id', $sessionId)
@@ -187,18 +186,18 @@ class ReportController extends Controller
     public function embedZReport(Request $request, string $tenant, int $sessionId)
     {
         $store = Store::where('slug', $tenant)->firstOrFail();
-        
+
         // Verify user has access to this store
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             abort(401, 'Unauthenticated');
         }
         $isSuperAdmin = $user->hasRole('super_admin');
         $hasStoreAccess = $user->stores()->where('stores.id', $store->id)->exists();
-        if (!$isSuperAdmin && !$hasStoreAccess) {
+        if (! $isSuperAdmin && ! $hasStoreAccess) {
             abort(403, 'You do not have access to this store');
         }
-        
+
         $session = PosSession::where('id', $sessionId)
             ->where('store_id', $store->id)
             ->where('status', 'closed')
@@ -219,28 +218,28 @@ class ReportController extends Controller
     public function downloadXReportPdfApi(Request $request, int $sessionId)
     {
         $user = $request->user();
-        
+
         // Get store from query parameter, header, or user's current store
         $storeSlug = $request->query('store') ?? $request->header('X-Store-Slug');
         $store = null;
-        
+
         if ($storeSlug) {
             $store = Store::where('slug', $storeSlug)->first();
         } else {
             $store = $user->currentStore();
         }
-        
-        if (!$store) {
+
+        if (! $store) {
             abort(403, 'Store not found or not selected');
         }
-        
+
         // Verify user has access to this store
         $isSuperAdmin = $user->hasRole('super_admin');
         $hasStoreAccess = $user->stores()->where('stores.id', $store->id)->exists();
-        if (!$isSuperAdmin && !$hasStoreAccess) {
+        if (! $isSuperAdmin && ! $hasStoreAccess) {
             abort(403, 'You do not have access to this store');
         }
-        
+
         $session = PosSession::where('id', $sessionId)
             ->where('store_id', $store->id)
             ->where('status', 'open')
@@ -252,7 +251,7 @@ class ReportController extends Controller
         // Log X-report event (13008) per § 2-8-2
         // Include complete report data in event_data for electronic journal compliance
         \App\Models\PosEvent::create([
-            'store_id' => $session->store_id,
+            'store_id' => $session->effectiveStoreId(),
             'pos_device_id' => $session->pos_device_id,
             'pos_session_id' => $session->id,
             'user_id' => $user->id,
@@ -273,7 +272,7 @@ class ReportController extends Controller
             'report' => $report,
         ])->render();
 
-        $options = new Options();
+        $options = new Options;
         $options->set('isRemoteEnabled', true);
         $options->set('isHtml5ParserEnabled', true);
         $options->set('defaultFont', 'DejaVu Sans');
@@ -283,7 +282,7 @@ class ReportController extends Controller
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $filename = "X-Rapport-{$session->session_number}-" . now()->format('Y-m-d-H-i-s') . '.pdf';
+        $filename = "X-Rapport-{$session->session_number}-".now()->format('Y-m-d-H-i-s').'.pdf';
 
         return response()->streamDownload(function () use ($dompdf) {
             echo $dompdf->output();
@@ -298,28 +297,28 @@ class ReportController extends Controller
     public function downloadZReportPdfApi(Request $request, int $sessionId)
     {
         $user = $request->user();
-        
+
         // Get store from query parameter, header, or user's current store
         $storeSlug = $request->query('store') ?? $request->header('X-Store-Slug');
         $store = null;
-        
+
         if ($storeSlug) {
             $store = Store::where('slug', $storeSlug)->first();
         } else {
             $store = $user->currentStore();
         }
-        
-        if (!$store) {
+
+        if (! $store) {
             abort(403, 'Store not found or not selected');
         }
-        
+
         // Verify user has access to this store
         $isSuperAdmin = $user->hasRole('super_admin');
         $hasStoreAccess = $user->stores()->where('stores.id', $store->id)->exists();
-        if (!$isSuperAdmin && !$hasStoreAccess) {
+        if (! $isSuperAdmin && ! $hasStoreAccess) {
             abort(403, 'You do not have access to this store');
         }
-        
+
         $session = PosSession::where('id', $sessionId)
             ->where('store_id', $store->id)
             ->where('status', 'closed')
@@ -331,7 +330,7 @@ class ReportController extends Controller
         // Log Z-report event (13009) per § 2-8-3
         // Include complete report data in event_data for electronic journal compliance
         \App\Models\PosEvent::create([
-            'store_id' => $session->store_id,
+            'store_id' => $session->effectiveStoreId(),
             'pos_device_id' => $session->pos_device_id,
             'pos_session_id' => $session->id,
             'user_id' => $user->id,
@@ -352,7 +351,7 @@ class ReportController extends Controller
             'report' => $report,
         ])->render();
 
-        $options = new Options();
+        $options = new Options;
         $options->set('isRemoteEnabled', true);
         $options->set('isHtml5ParserEnabled', true);
         $options->set('defaultFont', 'DejaVu Sans');
@@ -362,7 +361,7 @@ class ReportController extends Controller
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $filename = "Z-Rapport-{$session->session_number}-" . now()->format('Y-m-d-H-i-s') . '.pdf';
+        $filename = "Z-Rapport-{$session->session_number}-".now()->format('Y-m-d-H-i-s').'.pdf';
 
         return response()->streamDownload(function () use ($dompdf) {
             echo $dompdf->output();

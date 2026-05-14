@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PosSessionClosing extends Model
 {
@@ -66,15 +65,5 @@ class PosSessionClosing extends Model
     public function verifiedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by_user_id');
-    }
-
-    /**
-     * Get sessions for this closing date
-     */
-    public function sessions(): HasMany
-    {
-        return $this->hasMany(PosSession::class, 'store_id', 'store_id')
-            ->whereDate('closed_at', $this->closing_date)
-            ->where('status', 'closed');
     }
 }

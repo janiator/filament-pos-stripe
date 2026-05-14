@@ -245,7 +245,7 @@ class PosPurchasesTable
                                 try {
                                     $tenant = \Filament\Facades\Filament::getTenant();
                                     if ($tenant && $tenant->slug !== 'visivo-admin') {
-                                        $query->where('pos_sessions.store_id', $tenant->id);
+                                        $query->whereHas('posDevice', fn ($q) => $q->where('store_id', $tenant->id));
                                     }
                                 } catch (\Throwable $e) {
                                     // Fallback

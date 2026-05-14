@@ -9,6 +9,7 @@ use App\Models\Store;
 use App\Services\CashDrawerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class PosSessionsController extends BaseApiController
@@ -26,7 +27,7 @@ class PosSessionsController extends BaseApiController
 
         $this->authorizeTenant($request, $store);
 
-        $query = PosSession::where('store_id', $store->id)
+        $query = PosSession::forStore($store->id)
             ->with(['posDevice', 'user']);
 
         // Filter by status
@@ -91,7 +92,7 @@ class PosSessionsController extends BaseApiController
             $with[] = 'charges';
         }
 
-        $session = PosSession::where('store_id', $store->id)
+        $session = PosSession::forStore($store->id)
             ->where('pos_device_id', $validated['pos_device_id'])
             ->where('status', 'open')
             ->with($with)
@@ -143,7 +144,7 @@ class PosSessionsController extends BaseApiController
             ->first();
 
         if ($existingSession) {
-            if ($existingSession->store_id !== $store->id) {
+            if ($existingSession->effectiveStoreId() !== $store->id) {
                 return response()->json([
                     'message' => 'You need to close other open POS sessions on the current device before opening a new session.',
                     'session' => $this->formatSessionResponse($existingSession, $includeCharges),
@@ -156,27 +157,29 @@ class PosSessionsController extends BaseApiController
             ], 409);
         }
 
-        // 4) Get next session number for this store
-        $lastSession = PosSession::where('store_id', $store->id)
-            ->orderBy('session_number', 'desc')
-            ->first();
+        // 4–5) Next session number and create session (per-store lock)
+        $session = DB::transaction(function () use ($store, $validated) {
+            Store::query()->whereKey($store->id)->lockForUpdate()->first();
 
-        $sessionNumber = $lastSession
-            ? (int) $lastSession->session_number + 1
-            : 1;
+            $lastSession = PosSession::forStore($store->id)
+                ->orderBy('session_number', 'desc')
+                ->first();
 
-        // 5) Create session, always with user_id = 2
-        $session = PosSession::create([
-            'store_id' => $store->id,
-            'pos_device_id' => $validated['pos_device_id'],
-            'user_id' => 2, // <- fixed user id
-            'session_number' => str_pad($sessionNumber, 6, '0', STR_PAD_LEFT),
-            'status' => 'open',
-            'opened_at' => now(),
-            'opening_balance' => $validated['opening_balance'] ?? 0,
-            'opening_notes' => $validated['opening_notes'] ?? null,
-            'opening_data' => $validated['opening_data'] ?? null,
-        ]);
+            $sessionNumber = $lastSession
+                ? (int) $lastSession->session_number + 1
+                : 1;
+
+            return PosSession::create([
+                'pos_device_id' => $validated['pos_device_id'],
+                'user_id' => 2, // <- fixed user id
+                'session_number' => str_pad((string) $sessionNumber, 6, '0', STR_PAD_LEFT),
+                'status' => 'open',
+                'opened_at' => now(),
+                'opening_balance' => $validated['opening_balance'] ?? 0,
+                'opening_notes' => $validated['opening_notes'] ?? null,
+                'opening_data' => $validated['opening_data'] ?? null,
+            ]);
+        });
 
         return response()->json([
             'message' => 'Session opened successfully',
@@ -201,7 +204,10 @@ class PosSessionsController extends BaseApiController
         $this->authorizeTenant($request, $store);
 
         $validated = $request->validate([
-            'pos_device_id' => 'required|exists:pos_devices,id',
+            'pos_device_id' => [
+                'required',
+                Rule::exists('pos_devices', 'id')->where(fn ($query) => $query->where('store_id', $store->id)),
+            ],
             'opening_balance' => 'nullable|integer|min:0',
             'opening_notes' => 'nullable|string|max:1000',
             'opening_data' => 'nullable|array',
@@ -215,7 +221,7 @@ class PosSessionsController extends BaseApiController
             ->first();
 
         if ($existingSession) {
-            if ($existingSession->store_id !== $store->id) {
+            if ($existingSession->effectiveStoreId() !== $store->id) {
                 return response()->json([
                     'message' => 'You need to close other open POS sessions on the current device before opening a new session.',
                     'session' => $this->formatSessionResponse($existingSession, $includeCharges),
@@ -228,26 +234,28 @@ class PosSessionsController extends BaseApiController
             ], 409);
         }
 
-        // Get next session number for this store
-        $lastSession = PosSession::where('store_id', $store->id)
-            ->orderBy('session_number', 'desc')
-            ->first();
+        $session = DB::transaction(function () use ($store, $validated, $request) {
+            Store::query()->whereKey($store->id)->lockForUpdate()->first();
 
-        $sessionNumber = $lastSession
-            ? (int) $lastSession->session_number + 1
-            : 1;
+            $lastSession = PosSession::forStore($store->id)
+                ->orderBy('session_number', 'desc')
+                ->first();
 
-        $session = PosSession::create([
-            'store_id' => $store->id,
-            'pos_device_id' => $validated['pos_device_id'],
-            'user_id' => $request->user()->id,
-            'session_number' => str_pad($sessionNumber, 6, '0', STR_PAD_LEFT),
-            'status' => 'open',
-            'opened_at' => now(),
-            'opening_balance' => $validated['opening_balance'] ?? 0,
-            'opening_notes' => $validated['opening_notes'] ?? null,
-            'opening_data' => $validated['opening_data'] ?? null,
-        ]);
+            $sessionNumber = $lastSession
+                ? (int) $lastSession->session_number + 1
+                : 1;
+
+            return PosSession::create([
+                'pos_device_id' => $validated['pos_device_id'],
+                'user_id' => $request->user()->id,
+                'session_number' => str_pad((string) $sessionNumber, 6, '0', STR_PAD_LEFT),
+                'status' => 'open',
+                'opened_at' => now(),
+                'opening_balance' => $validated['opening_balance'] ?? 0,
+                'opening_notes' => $validated['opening_notes'] ?? null,
+                'opening_data' => $validated['opening_data'] ?? null,
+            ]);
+        });
 
         return response()->json([
             'message' => 'Session opened successfully',
@@ -268,8 +276,8 @@ class PosSessionsController extends BaseApiController
 
         $this->authorizeTenant($request, $store);
 
-        $session = PosSession::where('id', $id)
-            ->where('store_id', $store->id)
+        $session = PosSession::forStore($store->id)
+            ->where('id', $id)
             ->with(['posDevice', 'user', 'charges', 'events', 'receipts', 'store'])
             ->firstOrFail();
 
@@ -354,8 +362,8 @@ class PosSessionsController extends BaseApiController
             $with[] = 'charges';
         }
 
-        $session = PosSession::where('id', $id)
-            ->where('store_id', $store->id)
+        $session = PosSession::forStore($store->id)
+            ->where('id', $id)
             ->with($with)
             ->firstOrFail();
 
@@ -391,8 +399,8 @@ class PosSessionsController extends BaseApiController
         }
         $this->authorizeTenant($request, $store);
 
-        $session = PosSession::where('id', $id)
-            ->where('store_id', $store->id)
+        $session = PosSession::forStore($store->id)
+            ->where('id', $id)
             ->with(['posDevice', 'user'])
             ->firstOrFail();
 
@@ -436,8 +444,8 @@ class PosSessionsController extends BaseApiController
 
         $this->authorizeTenant($request, $store);
 
-        $session = PosSession::where('id', $id)
-            ->where('store_id', $store->id)
+        $session = PosSession::forStore($store->id)
+            ->where('id', $id)
             ->with(['charges', 'posDevice', 'user', 'events'])
             ->firstOrFail();
 
@@ -492,8 +500,8 @@ class PosSessionsController extends BaseApiController
 
         $this->authorizeTenant($request, $store);
 
-        $session = PosSession::where('id', $id)
-            ->where('store_id', $store->id)
+        $session = PosSession::forStore($store->id)
+            ->where('id', $id)
             ->with(['charges', 'posDevice', 'user', 'events', 'receipts'])
             ->firstOrFail();
 
@@ -727,7 +735,7 @@ class PosSessionsController extends BaseApiController
         }
 
         // Get all closed sessions for this date
-        $sessions = PosSession::where('store_id', $store->id)
+        $sessions = PosSession::forStore($store->id)
             ->whereDate('closed_at', $closingDate)
             ->where('status', 'closed')
             ->with('charges')

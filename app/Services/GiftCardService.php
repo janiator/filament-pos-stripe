@@ -2,22 +2,20 @@
 
 namespace App\Services;
 
+use App\Models\ConnectedCharge;
 use App\Models\GiftCard;
 use App\Models\GiftCardTransaction;
-use App\Models\ConnectedCharge;
-use App\Models\PosSession;
-use App\Models\PosEvent;
 use App\Models\PaymentMethod;
+use App\Models\PosEvent;
+use App\Models\PosSession;
 use App\Models\Store;
-use App\Models\User;
-use App\Services\SafTCodeMapper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class GiftCardService
 {
     protected ReceiptGenerationService $receiptService;
+
     protected ?PurchaseService $purchaseService = null;
 
     public function __construct(
@@ -31,9 +29,10 @@ class GiftCardService
      */
     protected function getPurchaseService(): PurchaseService
     {
-        if (!$this->purchaseService) {
+        if (! $this->purchaseService) {
             $this->purchaseService = app(PurchaseService::class);
         }
+
         return $this->purchaseService;
     }
 
@@ -54,16 +53,16 @@ class GiftCardService
             $maxAmount = $options['max_amount'] ?? 1000000; // 10000 NOK default
 
             if ($amount < $minAmount) {
-                throw new \Exception("Gift card amount must be at least " . ($minAmount / 100) . " NOK");
+                throw new \Exception('Gift card amount must be at least '.($minAmount / 100).' NOK');
             }
 
             if ($amount > $maxAmount) {
-                throw new \Exception("Gift card amount cannot exceed " . ($maxAmount / 100) . " NOK");
+                throw new \Exception('Gift card amount cannot exceed '.($maxAmount / 100).' NOK');
             }
 
             // Generate unique code
             $code = $options['code'] ?? GiftCard::generateCode($options['code_prefix'] ?? 'GC-');
-            
+
             // Generate PIN if required
             $pin = null;
             if ($options['pin_required'] ?? false) {
@@ -106,8 +105,8 @@ class GiftCardService
 
             // Calculate expiration date
             $expiresAt = $options['expires_at'] ?? null;
-            if (!$expiresAt) {
-                $settings = \App\Models\Setting::getForStore($posSession->store_id);
+            if (! $expiresAt) {
+                $settings = \App\Models\Setting::getForStore($posSession->effectiveStoreId());
                 $expirationDays = $settings->gift_card_expiration_days ?? 365;
                 if ($expirationDays) {
                     $expiresAt = now()->addDays($expirationDays);
@@ -116,7 +115,7 @@ class GiftCardService
 
             // Create gift card
             $giftCard = GiftCard::create([
-                'store_id' => $posSession->store_id,
+                'store_id' => $posSession->effectiveStoreId(),
                 'code' => $code,
                 'pin' => $pin,
                 'initial_amount' => $amount,
@@ -136,7 +135,7 @@ class GiftCardService
             // Create purchase transaction
             GiftCardTransaction::create([
                 'gift_card_id' => $giftCard->id,
-                'store_id' => $posSession->store_id,
+                'store_id' => $posSession->effectiveStoreId(),
                 'type' => GiftCardTransaction::TYPE_PURCHASE,
                 'amount' => $amount,
                 'balance_before' => 0,
@@ -189,23 +188,23 @@ class GiftCardService
                 ->lockForUpdate()
                 ->first();
 
-            if (!$giftCard) {
+            if (! $giftCard) {
                 throw new \Exception('Gift card not found');
             }
 
             // Validate gift card
-            if (!$giftCard->isValid()) {
+            if (! $giftCard->isValid()) {
                 throw new \Exception('Gift card is not valid or has expired');
             }
 
             // Verify PIN if required
-            if (!$giftCard->verifyPin($pin)) {
+            if (! $giftCard->verifyPin($pin)) {
                 throw new \Exception('Invalid PIN');
             }
 
             // Check balance
-            if (!$giftCard->canRedeem($amount)) {
-                throw new \Exception('Insufficient balance. Available: ' . $giftCard->formatted_balance);
+            if (! $giftCard->canRedeem($amount)) {
+                throw new \Exception('Insufficient balance. Available: '.$giftCard->formatted_balance);
             }
 
             // Store balance before
@@ -226,7 +225,7 @@ class GiftCardService
             // Create redemption transaction
             $transaction = GiftCardTransaction::create([
                 'gift_card_id' => $giftCard->id,
-                'store_id' => $posSession->store_id,
+                'store_id' => $posSession->effectiveStoreId(),
                 'type' => GiftCardTransaction::TYPE_REDEMPTION,
                 'amount' => -$amount, // Negative for redemption
                 'balance_before' => $balanceBefore,
@@ -264,14 +263,14 @@ class GiftCardService
     {
         $giftCard = GiftCard::where('code', $code)->first();
 
-        if (!$giftCard) {
+        if (! $giftCard) {
             return [
                 'valid' => false,
                 'error' => 'Gift card not found',
             ];
         }
 
-        if (!$giftCard->isValid()) {
+        if (! $giftCard->isValid()) {
             return [
                 'valid' => false,
                 'error' => 'Gift card is not valid or has expired',
@@ -279,14 +278,14 @@ class GiftCardService
             ];
         }
 
-        if (!$giftCard->verifyPin($pin)) {
+        if (! $giftCard->verifyPin($pin)) {
             return [
                 'valid' => false,
                 'error' => 'Invalid PIN',
             ];
         }
 
-        if (!$giftCard->canRedeem($amount)) {
+        if (! $giftCard->canRedeem($amount)) {
             return [
                 'valid' => false,
                 'error' => 'Insufficient balance',
@@ -382,7 +381,7 @@ class GiftCardService
             // Create refund transaction
             $transaction = GiftCardTransaction::create([
                 'gift_card_id' => $giftCard->id,
-                'store_id' => $posSession->store_id,
+                'store_id' => $posSession->effectiveStoreId(),
                 'type' => GiftCardTransaction::TYPE_REFUND,
                 'amount' => -$refundAmount,
                 'balance_before' => $balanceBefore,
@@ -401,7 +400,7 @@ class GiftCardService
                 $posSession,
                 $giftCard,
                 '13025',
-                'Gift card refunded: ' . $reason,
+                'Gift card refunded: '.$reason,
                 $charge
             );
 
@@ -446,7 +445,7 @@ class GiftCardService
             // Create void transaction
             $transaction = GiftCardTransaction::create([
                 'gift_card_id' => $giftCard->id,
-                'store_id' => $posSession->store_id,
+                'store_id' => $posSession->effectiveStoreId(),
                 'type' => GiftCardTransaction::TYPE_VOID,
                 'amount' => 0,
                 'balance_before' => $balanceBefore,
@@ -464,7 +463,7 @@ class GiftCardService
                 $posSession,
                 $giftCard,
                 '13026',
-                'Gift card voided: ' . $reason,
+                'Gift card voided: '.$reason,
                 null
             );
 
@@ -519,7 +518,7 @@ class GiftCardService
             // Create adjustment transaction
             $transaction = GiftCardTransaction::create([
                 'gift_card_id' => $giftCard->id,
-                'store_id' => $posSession->store_id,
+                'store_id' => $posSession->effectiveStoreId(),
                 'type' => GiftCardTransaction::TYPE_ADJUSTMENT,
                 'amount' => $amount,
                 'balance_before' => $balanceBefore,
@@ -537,7 +536,7 @@ class GiftCardService
                 $posSession,
                 $giftCard,
                 '13027',
-                'Gift card balance adjusted: ' . $reason,
+                'Gift card balance adjusted: '.$reason,
                 null
             );
 
@@ -580,6 +579,3 @@ class GiftCardService
         ]);
     }
 }
-
-
-

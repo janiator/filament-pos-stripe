@@ -120,7 +120,7 @@ final class TripletexVoucherPreviewAction
             return false;
         }
 
-        if ((int) $record->store_id !== (int) $tenant->getKey()) {
+        if ((int) $record->effectiveStoreId() !== (int) $tenant->getKey()) {
             return false;
         }
 

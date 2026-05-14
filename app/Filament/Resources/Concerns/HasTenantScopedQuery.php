@@ -18,8 +18,8 @@ trait HasTenantScopedQuery
             $tenant = \Filament\Facades\Filament::getTenant();
             if ($tenant && $tenant->slug !== 'visivo-admin') {
                 // Scope to current store
-                $query->whereHas('store', function ($q) use ($tenant) {
-                    $q->where('stores.id', $tenant->id);
+                $query->whereHas('posDevice', function ($q) use ($tenant) {
+                    $q->where('store_id', $tenant->id);
                 });
             }
         } catch (\Throwable $e) {

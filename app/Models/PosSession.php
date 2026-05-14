@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use App\Enums\TripletexSyncType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class PosSession extends Model
 {
@@ -16,10 +18,19 @@ class PosSession extends Model
     protected static function booted(): void
     {
         static::observe(\App\Observers\PosSessionObserver::class);
+
+        static::creating(function (PosSession $session): void {
+            if (! array_key_exists('store_id', $session->getAttributes())) {
+                return;
+            }
+
+            $attributes = $session->getAttributes();
+            unset($attributes['store_id']);
+            $session->setRawAttributes($attributes, false);
+        });
     }
 
     protected $fillable = [
-        'store_id',
         'pos_device_id',
         'user_id',
         'session_number',
@@ -52,11 +63,28 @@ class PosSession extends Model
     ];
 
     /**
-     * Get the store that owns this session
+     * Store id for this session (via POS device). No `store_id` column on `pos_sessions`.
      */
-    public function store(): BelongsTo
+    public function effectiveStoreId(): ?int
     {
-        return $this->belongsTo(Store::class);
+        return $this->posDevice?->store_id;
+    }
+
+    /**
+     * @param  Builder<PosSession>  $query
+     * @return Builder<PosSession>
+     */
+    public function scopeForStore(Builder $query, int $storeId): Builder
+    {
+        return $query->whereHas('posDevice', fn (Builder $q) => $q->where('store_id', $storeId));
+    }
+
+    /**
+     * @return HasOneThrough<Store, PosDevice, $this>
+     */
+    public function store(): HasOneThrough
+    {
+        return $this->hasOneThrough(Store::class, PosDevice::class, 'id', 'id', 'pos_device_id', 'store_id');
     }
 
     /**

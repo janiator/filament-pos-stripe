@@ -49,7 +49,7 @@ class AuthController extends Controller
             $currentSession = null;
 
             if ($posDeviceId) {
-                $currentSession = \App\Models\PosSession::where('store_id', $currentStore->id)
+                $currentSession = \App\Models\PosSession::forStore($currentStore->id)
                     ->where('pos_device_id', $posDeviceId)
                     ->where('status', 'open')
                     ->first();
@@ -152,7 +152,7 @@ class AuthController extends Controller
             $currentSession = null;
 
             if ($posDeviceId) {
-                $currentSession = \App\Models\PosSession::where('store_id', $currentStore->id)
+                $currentSession = \App\Models\PosSession::forStore($currentStore->id)
                     ->where('pos_device_id', $posDeviceId)
                     ->where('status', 'open')
                     ->first();

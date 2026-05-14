@@ -2,13 +2,9 @@
 
 namespace App\Actions\SafT;
 
-use App\Models\Store;
-use App\Models\PosSession;
-use App\Models\PosSessionClosing;
 use App\Models\ConnectedCharge;
-use App\Models\PosEvent;
-use App\Services\SafTCodeMapper;
-use Illuminate\Support\Facades\Log;
+use App\Models\PosSession;
+use App\Models\Store;
 use DOMDocument;
 use DOMElement;
 
@@ -17,10 +13,9 @@ class GenerateSafTCashRegister
     /**
      * Generate SAF-T Cash Register XML file
      * Based on Norwegian_SAF-T_Cash_Register_Schema_v_1.00.xsd
-     * 
-     * @param Store $store
-     * @param \DateTime|string $fromDate Start date (inclusive)
-     * @param \DateTime|string $toDate End date (inclusive)
+     *
+     * @param  \DateTime|string  $fromDate  Start date (inclusive)
+     * @param  \DateTime|string  $toDate  End date (inclusive)
      * @return string XML content
      */
     public function __invoke(Store $store, $fromDate, $toDate): string
@@ -77,7 +72,7 @@ class GenerateSafTCashRegister
         $this->addElement($xml, $cashRegister, 'CashRegisterDescription', $store->name);
 
         // Get all sessions in date range
-        $sessions = PosSession::where('store_id', $store->id)
+        $sessions = PosSession::forStore($store->id)
             ->whereDate('opened_at', '>=', $fromDate->format('Y-m-d'))
             ->whereDate('opened_at', '<=', $toDate->format('Y-m-d'))
             ->where('status', 'closed')
@@ -109,41 +104,41 @@ class GenerateSafTCashRegister
             $journal->appendChild($transaction);
 
             $this->addElement($xml, $transaction, 'TransactionID', (string) $session->id);
-            
+
             // Process charges (transactions) for this session
             $charges = $session->charges->where('status', 'succeeded');
-            
+
             // Add TransactionCode (PredefinedBasicID-11) - use first charge's code or default
             $firstCharge = $charges->first();
             $transactionCode = $firstCharge?->transaction_code ?? '11001'; // Default to cash sale
             if ($transactionCode) {
                 $this->addElement($xml, $transaction, 'TransactionCode', $transactionCode);
             }
-            
+
             $this->addElement($xml, $transaction, 'Period', $session->opened_at->format('Y-m'));
             $this->addElement($xml, $transaction, 'TransactionDate', $session->opened_at->format('Y-m-d'));
             $this->addElement($xml, $transaction, 'SourceID', $session->posDevice?->device_name ?? 'Unknown');
             $this->addElement($xml, $transaction, 'Description', "Sesjon {$session->session_number}");
-            
+
             foreach ($charges as $charge) {
                 $line = $xml->createElement('Line');
                 $transaction->appendChild($line);
 
                 $this->addElement($xml, $line, 'RecordID', (string) $charge->id);
                 $this->addElement($xml, $line, 'AccountID', $this->getAccountIdForPaymentMethod($charge->payment_method));
-                
+
                 // Add PaymentCode (PredefinedBasicID-12)
                 if ($charge->payment_code) {
                     $this->addElement($xml, $line, 'PaymentCode', $charge->payment_code);
                 }
-                
+
                 // Add ArticleGroupCode (PredefinedBasicID-04)
                 if ($charge->article_group_code) {
                     $this->addElement($xml, $line, 'ArticleGroupCode', $charge->article_group_code);
                 }
-                
+
                 $this->addElement($xml, $line, 'SourceDocumentID', $charge->stripe_charge_id ?? (string) $charge->id);
-                $this->addElement($xml, $line, 'Description', $charge->description ?? ("Salg " . ($charge->stripe_charge_id ?? $charge->id)));
+                $this->addElement($xml, $line, 'Description', $charge->description ?? ('Salg '.($charge->stripe_charge_id ?? $charge->id)));
                 $this->addElement($xml, $line, 'DebitAmount', (string) $charge->amount);
                 $this->addElement($xml, $line, 'CreditAmount', '0');
                 $this->addElement($xml, $line, 'TransactionDate', $charge->paid_at?->format('Y-m-d') ?? $charge->created_at->format('Y-m-d'));
@@ -155,13 +150,13 @@ class GenerateSafTCashRegister
                 $this->addElement($xml, $taxInformation, 'TaxCode', $this->getTaxCode($charge));
                 $this->addElement($xml, $taxInformation, 'TaxPercentage', $this->getTaxPercentage($charge));
                 $this->addElement($xml, $taxInformation, 'TaxAmount', (string) $this->calculateTaxAmount($charge));
-                
+
                 // Add tip if present (PredefinedBasicID-10)
                 if ($charge->tip_amount && $charge->tip_amount > 0) {
                     $tipLine = $xml->createElement('Line');
                     $transaction->appendChild($tipLine);
-                    
-                    $this->addElement($xml, $tipLine, 'RecordID', (string) ($charge->id . '-tip'));
+
+                    $this->addElement($xml, $tipLine, 'RecordID', (string) ($charge->id.'-tip'));
                     $this->addElement($xml, $tipLine, 'AccountID', '3001'); // Tips account
                     $this->addElement($xml, $tipLine, 'RaiseCode', '10001'); // PredefinedBasicID-10
                     $this->addElement($xml, $tipLine, 'SourceDocumentID', $charge->stripe_charge_id ?? (string) $charge->id);
@@ -175,36 +170,36 @@ class GenerateSafTCashRegister
                 $creditLine = $xml->createElement('Line');
                 $transaction->appendChild($creditLine);
 
-                $this->addElement($xml, $creditLine, 'RecordID', (string) ($charge->id . '-credit'));
+                $this->addElement($xml, $creditLine, 'RecordID', (string) ($charge->id.'-credit'));
                 $this->addElement($xml, $creditLine, 'AccountID', '3000'); // Revenue account
                 $this->addElement($xml, $creditLine, 'SourceDocumentID', $charge->stripe_charge_id ?? (string) $charge->id);
-                $this->addElement($xml, $creditLine, 'Description', $charge->description ?? ("Salg " . ($charge->stripe_charge_id ?? $charge->id)));
+                $this->addElement($xml, $creditLine, 'Description', $charge->description ?? ('Salg '.($charge->stripe_charge_id ?? $charge->id)));
                 $this->addElement($xml, $creditLine, 'DebitAmount', '0');
                 $this->addElement($xml, $creditLine, 'CreditAmount', (string) $charge->amount);
                 $this->addElement($xml, $creditLine, 'TransactionDate', $charge->paid_at?->format('Y-m-d') ?? $charge->created_at->format('Y-m-d'));
             }
-            
+
             // Add events for this session
             $sessionEvents = $session->events ?? collect();
             if ($sessionEvents->isNotEmpty()) {
                 $eventsElement = $xml->createElement('Events');
                 $journal->appendChild($eventsElement);
-                
+
                 foreach ($sessionEvents as $event) {
                     $eventElement = $xml->createElement('Event');
                     $eventsElement->appendChild($eventElement);
-                    
+
                     $this->addElement($xml, $eventElement, 'EventCode', $event->event_code);
                     $this->addElement($xml, $eventElement, 'EventType', $event->event_type);
                     $this->addElement($xml, $eventElement, 'Description', $event->description ?? $event->event_description ?? 'N/A');
                     $this->addElement($xml, $eventElement, 'OccurredAt', $event->occurred_at->format('Y-m-d\TH:i:s'));
-                    
+
                     if ($event->event_data) {
                         $eventDataElement = $xml->createElement('EventData');
                         $eventElement->appendChild($eventDataElement);
                         foreach ($event->event_data as $key => $value) {
                             // Convert value to string, handling null and arrays/objects
-                            $stringValue = match(true) {
+                            $stringValue = match (true) {
                                 is_null($value) => '',
                                 is_array($value) || is_object($value) => json_encode($value),
                                 default => (string) $value,
@@ -235,7 +230,7 @@ class GenerateSafTCashRegister
      */
     protected function getAccountIdForPaymentMethod(?string $paymentMethod): string
     {
-        return match($paymentMethod) {
+        return match ($paymentMethod) {
             'cash' => '1920', // Cash
             'card' => '1921', // Card payments
             default => '1922', // Other payment methods
@@ -270,6 +265,7 @@ class GenerateSafTCashRegister
         // Calculate VAT amount (25% of total, so 20% of net)
         // This is a simplified calculation - should use actual tax rates
         $taxRate = 0.25;
+
         return (int) round($charge->amount * $taxRate / (1 + $taxRate));
     }
 
@@ -282,6 +278,7 @@ class GenerateSafTCashRegister
         foreach ($sessions as $session) {
             $total += $session->charges->where('status', 'succeeded')->sum('amount');
         }
+
         return $total;
     }
 
@@ -294,4 +291,3 @@ class GenerateSafTCashRegister
         return $this->calculateTotalDebit($sessions);
     }
 }
-

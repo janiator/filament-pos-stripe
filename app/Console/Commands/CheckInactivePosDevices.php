@@ -50,11 +50,12 @@ class CheckInactivePosDevices extends Command
                     ->where('occurred_at', '>=', now()->subMinutes(5))
                     ->exists();
 
-                return !$recentStopEvent;
+                return ! $recentStopEvent;
             });
 
         if ($inactiveDevices->isEmpty()) {
             $this->info('No inactive devices found.');
+
             return Command::SUCCESS;
         }
 
@@ -64,8 +65,7 @@ class CheckInactivePosDevices extends Command
 
         foreach ($inactiveDevices as $device) {
             // Get current session if exists
-            $currentSession = PosSession::where('store_id', $device->store_id)
-                ->where('pos_device_id', $device->id)
+            $currentSession = PosSession::where('pos_device_id', $device->id)
                 ->where('status', 'open')
                 ->first();
 
@@ -75,7 +75,7 @@ class CheckInactivePosDevices extends Command
             ]);
 
             // Calculate inactivity duration
-            $inactivityDuration = $device->last_seen_at 
+            $inactivityDuration = $device->last_seen_at
                 ? round($device->last_seen_at->diffInMinutes(now()), 2)
                 : null;
 
@@ -91,7 +91,7 @@ class CheckInactivePosDevices extends Command
                 'event_data' => [
                     'device_name' => $device->device_name,
                     'platform' => $device->platform,
-                    'has_open_session' => !is_null($currentSession),
+                    'has_open_session' => ! is_null($currentSession),
                     'session_id' => $currentSession?->id,
                     'inactivity_duration_minutes' => $inactivityDuration,
                     'last_seen_at' => $device->last_seen_at?->toIso8601String(),

@@ -2,12 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Receipt;
-use App\Models\PosSession;
-use App\Models\PosEvent;
 use App\Models\PosDevice;
+use App\Models\PosEvent;
+use App\Models\PosSession;
+use App\Models\Receipt;
 use App\Models\ReceiptPrinter;
-use App\Services\ReceiptGenerationService;
 use Illuminate\Support\Facades\Log;
 
 class ReceiptPrintService
@@ -21,20 +20,17 @@ class ReceiptPrintService
 
     /**
      * Print a receipt
-     *
-     * @param Receipt $receipt
-     * @param PosSession $posSession
-     * @return bool
      */
     public function printReceipt(Receipt $receipt, PosSession $posSession): bool
     {
         $device = $posSession->posDevice;
 
-        if (!$device) {
+        if (! $device) {
             Log::warning('No POS device found for receipt printing', [
                 'receipt_id' => $receipt->id,
                 'pos_session_id' => $posSession->id,
             ]);
+
             return false;
         }
 
@@ -45,11 +41,12 @@ class ReceiptPrintService
             // Get the printer for this device
             $printer = $this->getPrinterForDevice($device);
 
-            if (!$printer) {
+            if (! $printer) {
                 Log::warning('No receipt printer found for POS device', [
                     'device_id' => $device->id,
                     'receipt_id' => $receipt->id,
                 ]);
+
                 return false;
             }
 
@@ -67,7 +64,7 @@ class ReceiptPrintService
                 // Note: Receipt printing is tracked separately from the sales receipt event
                 // Using 'other' type since printing doesn't have a specific SAF-T event code
                 PosEvent::create([
-                    'store_id' => $posSession->store_id,
+                    'store_id' => $posSession->effectiveStoreId(),
                     'pos_session_id' => $posSession->id,
                     'pos_device_id' => $device->id,
                     'user_id' => $posSession->user_id,
@@ -93,6 +90,7 @@ class ReceiptPrintService
                 'receipt_id' => $receipt->id,
                 'device_id' => $device->id,
             ]);
+
             return false;
         }
     }
@@ -100,9 +98,6 @@ class ReceiptPrintService
     /**
      * Get the printer for a POS device
      * Priority: default_printer_id > first active printer > first printer
-     *
-     * @param PosDevice $device
-     * @return ReceiptPrinter|null
      */
     protected function getPrinterForDevice(PosDevice $device): ?ReceiptPrinter
     {
@@ -112,7 +107,7 @@ class ReceiptPrintService
                 ->where('store_id', $device->store_id)
                 ->where('is_active', true)
                 ->first();
-            
+
             if ($printer) {
                 return $printer;
             }
@@ -136,10 +131,6 @@ class ReceiptPrintService
 
     /**
      * Send receipt data to printer
-     *
-     * @param ReceiptPrinter $printer
-     * @param string $receiptData
-     * @return bool
      */
     protected function sendToPrinter(ReceiptPrinter $printer, string $receiptData): bool
     {
@@ -152,28 +143,26 @@ class ReceiptPrintService
 
     /**
      * Send to Epson printer via network
-     *
-     * @param ReceiptPrinter $printer
-     * @param string $receiptData
-     * @return bool
      */
     protected function sendToEpsonPrinter(ReceiptPrinter $printer, string $receiptData): bool
     {
-        if (!$printer->isNetworkPrinter()) {
+        if (! $printer->isNetworkPrinter()) {
             Log::warning('Epson printer is not configured for network connection', [
                 'printer_id' => $printer->id,
                 'connection_type' => $printer->connection_type,
             ]);
+
             return false;
         }
 
         $ipAddress = $printer->ip_address;
         $port = $printer->port ?? 9100;
 
-        if (!$ipAddress) {
+        if (! $ipAddress) {
             Log::warning('No IP address configured for Epson printer', [
                 'printer_id' => $printer->id,
             ]);
+
             return false;
         }
 
@@ -181,7 +170,7 @@ class ReceiptPrintService
             // Try ePOS-Print API first (for Epson printers)
             if ($printer->printer_type === 'epson' && $printer->isNetworkPrinter()) {
                 $url = $printer->epos_url;
-                
+
                 $ch = curl_init($url);
                 curl_setopt($ch, CURLOPT_POST, true);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $receiptData);
@@ -198,6 +187,7 @@ class ReceiptPrintService
 
                 if ($httpCode >= 200 && $httpCode < 300 && empty($curlError)) {
                     $printer->update(['last_used_at' => now()]);
+
                     return true;
                 } else {
                     Log::warning('ePOS-Print API failed, trying direct socket connection', [
@@ -215,6 +205,7 @@ class ReceiptPrintService
                 fwrite($socket, $receiptData);
                 fclose($socket);
                 $printer->update(['last_used_at' => now()]);
+
                 return true;
             } else {
                 Log::error('Failed to connect to Epson printer', [
@@ -223,6 +214,7 @@ class ReceiptPrintService
                     'ip_address' => $ipAddress,
                     'port' => $port,
                 ]);
+
                 return false;
             }
         } catch (\Exception $e) {
@@ -230,34 +222,33 @@ class ReceiptPrintService
                 'error' => $e->getMessage(),
                 'printer_id' => $printer->id,
             ]);
+
             return false;
         }
     }
 
     /**
      * Send to Star printer
-     *
-     * @param ReceiptPrinter $printer
-     * @param string $receiptData
-     * @return bool
      */
     protected function sendToStarPrinter(ReceiptPrinter $printer, string $receiptData): bool
     {
-        if (!$printer->isNetworkPrinter()) {
+        if (! $printer->isNetworkPrinter()) {
             Log::warning('Star printer is not configured for network connection', [
                 'printer_id' => $printer->id,
                 'connection_type' => $printer->connection_type,
             ]);
+
             return false;
         }
 
         $ipAddress = $printer->ip_address;
         $port = $printer->port ?? 9100;
 
-        if (!$ipAddress) {
+        if (! $ipAddress) {
             Log::warning('No IP address configured for Star printer', [
                 'printer_id' => $printer->id,
             ]);
+
             return false;
         }
 
@@ -267,6 +258,7 @@ class ReceiptPrintService
                 fwrite($socket, $receiptData);
                 fclose($socket);
                 $printer->update(['last_used_at' => now()]);
+
                 return true;
             } else {
                 Log::error('Failed to connect to Star printer', [
@@ -275,6 +267,7 @@ class ReceiptPrintService
                     'ip_address' => $ipAddress,
                     'port' => $port,
                 ]);
+
                 return false;
             }
         } catch (\Exception $e) {
@@ -282,16 +275,13 @@ class ReceiptPrintService
                 'error' => $e->getMessage(),
                 'printer_id' => $printer->id,
             ]);
+
             return false;
         }
     }
 
     /**
      * Generic printer handler
-     *
-     * @param ReceiptPrinter $printer
-     * @param string $receiptData
-     * @return bool
      */
     protected function sendToGenericPrinter(ReceiptPrinter $printer, string $receiptData): bool
     {
@@ -306,6 +296,7 @@ class ReceiptPrintService
                     fwrite($socket, $receiptData);
                     fclose($socket);
                     $printer->update(['last_used_at' => now()]);
+
                     return true;
                 }
             } catch (\Exception $e) {
@@ -321,8 +312,7 @@ class ReceiptPrintService
             'printer_type' => $printer->printer_type,
             'connection_type' => $printer->connection_type,
         ]);
+
         return false;
     }
 }
-
-

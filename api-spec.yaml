@@ -7414,9 +7414,6 @@ components:
         id:
           type: integer
           example: 1
-        store_id:
-          type: integer
-          example: 1
         pos_device_id:
           type: integer
           example: 1

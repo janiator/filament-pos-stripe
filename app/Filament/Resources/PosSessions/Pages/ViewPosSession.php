@@ -371,7 +371,7 @@ class ViewPosSession extends ViewRecord
 
                     // Log Z-report event (13009) per § 2-8-3
                     PosEvent::create([
-                        'store_id' => $this->record->store_id,
+                        'store_id' => $this->record->effectiveStoreId(),
                         'pos_device_id' => $this->record->pos_device_id,
                         'pos_session_id' => $this->record->id,
                         'user_id' => auth()->id(),

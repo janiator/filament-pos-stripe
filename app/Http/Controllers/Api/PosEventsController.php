@@ -101,7 +101,7 @@ class PosEventsController extends BaseApiController
         // Verify session belongs to store if provided
         if (isset($validated['pos_session_id'])) {
             $session = PosSession::find($validated['pos_session_id']);
-            if (! $session || $session->store_id !== $store->id) {
+            if (! $session || $session->effectiveStoreId() !== $store->id) {
                 return response()->json(['message' => 'Session not found or does not belong to this store'], 404);
             }
         }

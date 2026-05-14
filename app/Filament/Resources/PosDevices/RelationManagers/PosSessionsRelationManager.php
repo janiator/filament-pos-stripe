@@ -78,7 +78,7 @@ class PosSessionsRelationManager extends RelationManager
 
                         // Log X-report event (13008) per § 2-8-2
                         \App\Models\PosEvent::create([
-                            'store_id' => $record->store_id,
+                            'store_id' => $record->effectiveStoreId(),
                             'pos_device_id' => $record->pos_device_id,
                             'pos_session_id' => $record->id,
                             'user_id' => auth()->id(),
@@ -111,7 +111,7 @@ class PosSessionsRelationManager extends RelationManager
 
                         // Log Z-report event (13009) per § 2-8-3
                         \App\Models\PosEvent::create([
-                            'store_id' => $record->store_id,
+                            'store_id' => $record->effectiveStoreId(),
                             'pos_device_id' => $record->pos_device_id,
                             'pos_session_id' => $record->id,
                             'user_id' => auth()->id(),

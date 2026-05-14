@@ -2,9 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\PosSession;
-use App\Models\Store;
 use App\Models\PosDevice;
+use App\Models\PosSession;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -24,9 +23,8 @@ class PosSessionFactory extends Factory
     {
         $status = fake()->randomElement(['open', 'closed']);
         $openedAt = fake()->dateTimeBetween('-1 week', 'now');
-        
+
         return [
-            'store_id' => Store::factory(),
             'pos_device_id' => PosDevice::factory(),
             'user_id' => User::factory(),
             'session_number' => fake()->unique()->numerify('######'),

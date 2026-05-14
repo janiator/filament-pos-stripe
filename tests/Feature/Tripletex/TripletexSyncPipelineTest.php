@@ -9,6 +9,7 @@ use App\Jobs\SyncTripletexPayoutJob;
 use App\Jobs\SyncTripletexZReportJob;
 use App\Models\Addon;
 use App\Models\ConnectedCharge;
+use App\Models\PosDevice;
 use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\Store;
@@ -1293,7 +1294,8 @@ it('adds external ticket lines only for charges without a POS session when enabl
         'automatic' => true,
     ]));
 
-    $session = PosSession::factory()->create(['store_id' => $store->id, 'status' => 'closed']);
+    $device = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create(['pos_device_id' => $device->id, 'status' => 'closed']);
 
     ConnectedCharge::factory()->create([
         'stripe_account_id' => $store->stripe_account_id,

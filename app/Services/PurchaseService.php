@@ -144,7 +144,7 @@ class PurchaseService
             }
 
             // Validate payment method belongs to store
-            if ($paymentMethod->store_id !== $posSession->store_id) {
+            if ($paymentMethod->store_id !== $posSession->effectiveStoreId()) {
                 throw new \Exception('Payment method does not belong to this store');
             }
 
@@ -802,7 +802,7 @@ class PurchaseService
                 throw new \Exception('POS session is not open');
             }
 
-            if ($posSession->store_id !== $store->id) {
+            if ($posSession->effectiveStoreId() !== $store->id) {
                 throw new \Exception('POS session does not belong to the same store as the charge');
             }
 
@@ -1153,7 +1153,7 @@ class PurchaseService
         PaymentMethod $paymentMethod
     ): PosEvent {
         return PosEvent::create([
-            'store_id' => $posSession->store_id,
+            'store_id' => $posSession->effectiveStoreId(),
             'pos_session_id' => $posSession->id,
             'pos_device_id' => $posSession->pos_device_id,
             'user_id' => $posSession->user_id,
@@ -1184,7 +1184,7 @@ class PurchaseService
         string $eventCode
     ): PosEvent {
         return PosEvent::create([
-            'store_id' => $posSession->store_id,
+            'store_id' => $posSession->effectiveStoreId(),
             'pos_session_id' => $posSession->id,
             'pos_device_id' => $posSession->pos_device_id,
             'user_id' => $posSession->user_id,
@@ -1333,7 +1333,7 @@ class PurchaseService
                 }
 
                 // Get payment method
-                $paymentMethod = PaymentMethod::where('store_id', $posSession->store_id)
+                $paymentMethod = PaymentMethod::where('store_id', $posSession->effectiveStoreId())
                     ->where('code', $paymentMethodCode)
                     ->first();
 
@@ -1443,7 +1443,7 @@ class PurchaseService
         $totalAmount = array_sum(array_column($charges, 'amount'));
 
         return PosEvent::create([
-            'store_id' => $posSession->store_id,
+            'store_id' => $posSession->effectiveStoreId(),
             'pos_session_id' => $posSession->id,
             'pos_device_id' => $posSession->pos_device_id,
             'user_id' => $posSession->user_id,
@@ -1561,7 +1561,7 @@ class PurchaseService
             }
 
             // Get payment method
-            $paymentMethod = PaymentMethod::where('store_id', $posSession->store_id)
+            $paymentMethod = PaymentMethod::where('store_id', $posSession->effectiveStoreId())
                 ->where('code', $charge->payment_method)
                 ->first();
 
@@ -1688,7 +1688,7 @@ class PurchaseService
             // Log return receipt event (13013) in current session
             // Store reference to original session for audit trail
             $posEvent = PosEvent::create([
-                'store_id' => $posSession->store_id,
+                'store_id' => $posSession->effectiveStoreId(),
                 'pos_device_id' => $posSession->pos_device_id,
                 'pos_session_id' => $posSession->id, // Current open session
                 'user_id' => $userId ?? $posSession->user_id,

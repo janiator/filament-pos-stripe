@@ -1393,7 +1393,7 @@ class PurchasesController extends BaseApiController
             $userStore = $user->currentStore();
         }
 
-        if (! $userStore || $posSession->store_id !== $userStore->id) {
+        if (! $userStore || $posSession->effectiveStoreId() !== $userStore->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to POS session',
@@ -1409,7 +1409,7 @@ class PurchasesController extends BaseApiController
         }
 
         // Get payment method
-        $paymentMethod = PaymentMethod::where('store_id', $posSession->store_id)
+        $paymentMethod = PaymentMethod::where('store_id', $posSession->effectiveStoreId())
             ->where('code', $validated['payment_method_code'])
             ->first();
 
@@ -1582,7 +1582,7 @@ class PurchasesController extends BaseApiController
             }
 
             // Verify session belongs to the same store
-            if ($posSession->store_id !== $charge->store->id) {
+            if ($posSession->effectiveStoreId() !== $charge->store->id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'POS session does not belong to the same store as the charge',
@@ -1862,7 +1862,7 @@ class PurchasesController extends BaseApiController
             $userStore = $user->currentStore();
         }
 
-        if (! $userStore || $posSession->store_id !== $userStore->id) {
+        if (! $userStore || $posSession->effectiveStoreId() !== $userStore->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to POS session',
@@ -1879,7 +1879,7 @@ class PurchasesController extends BaseApiController
 
         // Validate all payment methods
         foreach ($validated['payments'] as $index => $paymentData) {
-            $paymentMethod = PaymentMethod::where('store_id', $posSession->store_id)
+            $paymentMethod = PaymentMethod::where('store_id', $posSession->effectiveStoreId())
                 ->where('code', $paymentData['payment_method_code'])
                 ->first();
 
@@ -2248,7 +2248,7 @@ class PurchasesController extends BaseApiController
                 }
             } elseif (isset($validated['pos_device_id'])) {
                 // Use explicitly provided device (if frontend wants to specify)
-                $currentPosSession = PosSession::where('store_id', $store->id)
+                $currentPosSession = PosSession::forStore($store->id)
                     ->where('pos_device_id', $validated['pos_device_id'])
                     ->where('status', 'open')
                     ->first();
@@ -2263,7 +2263,7 @@ class PurchasesController extends BaseApiController
                 // Auto-detect: Try same device first, then any open session for the store
                 // Priority 1: Same device as original session (if it has an open session)
                 if ($originalPosSession->pos_device_id) {
-                    $currentPosSession = PosSession::where('store_id', $store->id)
+                    $currentPosSession = PosSession::forStore($store->id)
                         ->where('pos_device_id', $originalPosSession->pos_device_id)
                         ->where('status', 'open')
                         ->first();
@@ -2271,7 +2271,7 @@ class PurchasesController extends BaseApiController
 
                 // Priority 2: Any open session for this store (most recent)
                 if (! $currentPosSession) {
-                    $currentPosSession = PosSession::where('store_id', $store->id)
+                    $currentPosSession = PosSession::forStore($store->id)
                         ->where('status', 'open')
                         ->orderBy('opened_at', 'desc')
                         ->first();

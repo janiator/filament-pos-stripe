@@ -16,7 +16,7 @@ class PosSessionObserver
     {
         // Log session opened event (13020)
         PosEvent::create([
-            'store_id' => $session->store_id,
+            'store_id' => $session->effectiveStoreId(),
             'pos_device_id' => $session->pos_device_id,
             'pos_session_id' => $session->id,
             'user_id' => $session->user_id,
@@ -39,7 +39,7 @@ class PosSessionObserver
         // Log session closed event (13021) when status changes to closed
         if ($session->wasChanged('status') && $session->status === 'closed') {
             PosEvent::create([
-                'store_id' => $session->store_id,
+                'store_id' => $session->effectiveStoreId(),
                 'pos_device_id' => $session->pos_device_id,
                 'pos_session_id' => $session->id,
                 'user_id' => $session->user_id,
@@ -68,7 +68,7 @@ class PosSessionObserver
                     $report = PosSessionsTable::generateZReport($session);
 
                     PosEvent::create([
-                        'store_id' => $session->store_id,
+                        'store_id' => $session->effectiveStoreId(),
                         'pos_device_id' => $session->pos_device_id,
                         'pos_session_id' => $session->id,
                         'user_id' => $session->user_id,

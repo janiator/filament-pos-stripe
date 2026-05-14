@@ -4,8 +4,8 @@ namespace App\Filament\Resources\PosSessions\Schemas;
 
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -17,31 +17,6 @@ class PosSessionForm
             ->components([
                 Section::make('Session Information')
                     ->schema([
-                        Select::make('store_id')
-                            ->relationship('store', 'name', modifyQueryUsing: function ($query) {
-                                try {
-                                    $tenant = \Filament\Facades\Filament::getTenant();
-                                    if ($tenant && $tenant->slug !== 'visivo-admin') {
-                                        $query->where('stores.id', $tenant->id);
-                                    }
-                                } catch (\Throwable $e) {
-                                    // Fallback if Filament facade not available
-                                }
-                            })
-                            ->required()
-                            ->default(fn () => \Filament\Facades\Filament::getTenant()?->id)
-                            ->searchable()
-                            ->preload()
-                            ->visible(function () {
-                                try {
-                                    $tenant = \Filament\Facades\Filament::getTenant();
-                                    return $tenant && $tenant->slug === 'visivo-admin';
-                                } catch (\Throwable $e) {
-                                    return false;
-                                }
-                            })
-                            ->disabled(fn ($record) => $record !== null || ($record && $record->status === 'closed')),
-
                         Select::make('pos_device_id')
                             ->relationship('posDevice', 'device_name', modifyQueryUsing: function ($query) {
                                 try {
@@ -64,7 +39,7 @@ class PosSessionForm
                                     $existingSession = \App\Models\PosSession::where('pos_device_id', $state)
                                         ->where('status', 'open')
                                         ->first();
-                                    
+
                                     if ($existingSession) {
                                         \Filament\Notifications\Notification::make()
                                             ->title('Device has open session')

@@ -36,6 +36,7 @@ class ReceiptForm
                             ->visible(function () {
                                 try {
                                     $tenant = \Filament\Facades\Filament::getTenant();
+
                                     return $tenant && $tenant->slug === 'visivo-admin';
                                 } catch (\Throwable $e) {
                                     return false;
@@ -48,7 +49,7 @@ class ReceiptForm
                                 try {
                                     $tenant = \Filament\Facades\Filament::getTenant();
                                     if ($tenant && $tenant->slug !== 'visivo-admin') {
-                                        $query->where('pos_sessions.store_id', $tenant->id);
+                                        $query->whereHas('posDevice', fn ($q) => $q->where('store_id', $tenant->id));
                                     }
                                 } catch (\Throwable $e) {
                                     // Fallback if Filament facade not available
@@ -74,15 +75,16 @@ class ReceiptForm
                             )
                             ->getOptionLabelUsing(function ($value) {
                                 $charge = \App\Models\ConnectedCharge::find($value);
-                                if (!$charge) {
+                                if (! $charge) {
                                     return 'Unknown Charge';
                                 }
                                 // Handle null stripe_charge_id (cash payments)
                                 if ($charge->stripe_charge_id) {
-                                    return $charge->stripe_charge_id . ' - ' . number_format($charge->amount / 100, 2) . ' ' . strtoupper($charge->currency);
+                                    return $charge->stripe_charge_id.' - '.number_format($charge->amount / 100, 2).' '.strtoupper($charge->currency);
                                 }
+
                                 // For cash payments, show charge ID and amount
-                                return 'Cash Payment #' . $charge->id . ' - ' . number_format($charge->amount / 100, 2) . ' ' . strtoupper($charge->currency);
+                                return 'Cash Payment #'.$charge->id.' - '.number_format($charge->amount / 100, 2).' '.strtoupper($charge->currency);
                             })
                             ->searchable()
                             ->preload(),
@@ -148,7 +150,7 @@ class ReceiptForm
 
                         DateTimePicker::make('printed_at')
                             ->label('Printed At')
-                            ->disabled(fn ($record) => !$record || !$record->printed),
+                            ->disabled(fn ($record) => ! $record || ! $record->printed),
 
                         TextInput::make('reprint_count')
                             ->label('Reprint Count')

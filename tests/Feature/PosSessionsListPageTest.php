@@ -3,6 +3,7 @@
 use App\Enums\AddonType;
 use App\Filament\Resources\PosSessions\Pages\ListPosSessions;
 use App\Models\Addon;
+use App\Models\PosDevice;
 use App\Models\PosSession;
 use App\Models\Store;
 use App\Models\User;
@@ -39,15 +40,17 @@ beforeEach(function () {
 });
 
 it('shows both open and closed sessions by default', function () {
+    $device = PosDevice::factory()->create(['store_id' => $this->store->id]);
+
     $openSession = PosSession::factory()->create([
-        'store_id' => $this->store->id,
+        'pos_device_id' => $device->id,
         'user_id' => $this->user->id,
         'status' => 'open',
         'closed_at' => null,
     ]);
 
     $closedSession = PosSession::factory()->create([
-        'store_id' => $this->store->id,
+        'pos_device_id' => $device->id,
         'user_id' => $this->user->id,
         'status' => 'closed',
         'closed_at' => now(),
