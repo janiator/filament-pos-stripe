@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Filament\Resources\PosSessions\PosSessionResource;
+use BezhanSalleh\FilamentShield\Facades\FilamentShield;
+use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasDefaultTenant;
 use Filament\Models\Contracts\HasTenants;
@@ -61,14 +63,44 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
 
     public function canAccessPanel(Panel $panel): bool
     {
-        if (app()->environment('production')) {
-            return str_ends_with($this->email, '@visivo.no') && $this->hasVerifiedEmail();
-        } elseif (app()->environment('local')) {
+        if (app()->environment(['local', 'development'])) {
             return true;
-        } elseif (app()->environment('development')) {
+        }
+
+        if ($this->isSuperAdmin()) {
             return true;
-        } else {
+        }
+
+        if (! $this->stores()->exists()) {
             return false;
+        }
+
+        return $this->hasAnyFilamentResourcePermission($panel);
+    }
+
+    /**
+     * Whether the user holds at least one Shield permission tied to a Filament Resource
+     * registered on the given panel (e.g. ViewAny:PosSession), excluding pages/widgets only.
+     */
+    protected function hasAnyFilamentResourcePermission(Panel $panel): bool
+    {
+        $previousPanel = Filament::getCurrentPanel();
+
+        try {
+            Filament::setCurrentPanel($panel);
+
+            $resourcePermissionKeys = collect(FilamentShield::getAllResourcePermissionsWithLabels())
+                ->keys();
+
+            if ($resourcePermissionKeys->isEmpty()) {
+                return false;
+            }
+
+            $userPermissionNames = $this->getAllPermissions()->pluck('name');
+
+            return $userPermissionNames->intersect($resourcePermissionKeys)->isNotEmpty();
+        } finally {
+            Filament::setCurrentPanel($previousPanel);
         }
     }
 
