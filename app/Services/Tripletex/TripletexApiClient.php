@@ -137,16 +137,114 @@ class TripletexApiClient
         }
 
         $json = $response->json();
-        if (is_array($json)) {
-            $msg = $json['message'] ?? $json['error'] ?? $json['developerMessage'] ?? null;
-            if (is_string($msg) && $msg !== '') {
-                return ': '.$msg;
+        if (! is_array($json)) {
+            $snippet = mb_substr($body, 0, 400);
+
+            return ': '.$snippet.(mb_strlen($body) > 400 ? '…' : '');
+        }
+
+        $parts = [];
+        foreach (['message', 'error', 'developerMessage', 'readableError'] as $key) {
+            $v = $json[$key] ?? null;
+            if (is_string($v) && $v !== '') {
+                $parts[] = $v;
             }
         }
 
-        $snippet = mb_substr($body, 0, 400);
+        self::collectNestedValidationMessages($parts, $json);
 
-        return ': '.$snippet.(mb_strlen($body) > 400 ? '…' : '');
+        $parts = array_values(array_unique(array_filter(array_map('trim', $parts))));
+        if ($parts === []) {
+            $encoded = json_encode($json, JSON_UNESCAPED_UNICODE);
+            $snippet = is_string($encoded) ? mb_substr($encoded, 0, 400) : '';
+
+            return $snippet !== '' ? ': '.$snippet.(mb_strlen($encoded) > 400 ? '…' : '') : '';
+        }
+
+        $merged = implode(' — ', $parts);
+        if (mb_strlen($merged) > 1200) {
+            $merged = mb_substr($merged, 0, 1200).'…';
+        }
+
+        return ': '.$merged;
+    }
+
+    /**
+     * Human-readable summary plus full Tripletex response body for sync run storage / support.
+     * Uses {@see summarizeErrorBody()} for nested validation lines, then appends the raw JSON (pretty-printed).
+     */
+    public function describeFailedVoucherResponse(Response $response, int $maxBodyChars = 24_000): string
+    {
+        $status = $response->status();
+        $summary = ltrim($this->summarizeErrorBody($response), ': ');
+
+        $body = trim($response->body());
+        $fullBody = '';
+        if ($body !== '') {
+            $decoded = $response->json();
+            $fullBody = is_array($decoded)
+                ? (string) json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
+                : $body;
+        }
+
+        if ($fullBody !== '' && mb_strlen($fullBody) > $maxBodyChars) {
+            $fullBody = mb_substr($fullBody, 0, $maxBodyChars)."\n… (response body truncated)";
+        }
+
+        $parts = ["Tripletex HTTP {$status}"];
+        if ($summary !== '') {
+            $parts[] = $summary;
+        }
+        if ($fullBody !== '') {
+            $parts[] = "Tripletex response body:\n".$fullBody;
+        }
+
+        return implode("\n\n", $parts);
+    }
+
+    /**
+     * @param  list<string>  $parts
+     * @param  array<string, mixed>  $node
+     */
+    private static function collectNestedValidationMessages(array &$parts, array $node, int $depth = 0): void
+    {
+        if ($depth > 8) {
+            return;
+        }
+
+        $lists = [
+            $node['validationMessages'] ?? null,
+            $node['messages'] ?? null,
+            $node['errors'] ?? null,
+            $node['violations'] ?? null,
+        ];
+        foreach ($lists as $list) {
+            if (! is_array($list)) {
+                continue;
+            }
+            foreach ($list as $item) {
+                if (is_string($item) && $item !== '') {
+                    $parts[] = $item;
+
+                    continue;
+                }
+                if (! is_array($item)) {
+                    continue;
+                }
+                $m = $item['message'] ?? $item['msg'] ?? $item['text'] ?? null;
+                $f = $item['field'] ?? $item['property'] ?? $item['path'] ?? null;
+                if (is_string($m) && $m !== '') {
+                    $parts[] = is_string($f) && $f !== '' ? "{$f}: {$m}" : $m;
+                }
+            }
+        }
+
+        foreach (['value', 'data', 'result', 'error', 'details'] as $key) {
+            $child = $node[$key] ?? null;
+            if (is_array($child)) {
+                self::collectNestedValidationMessages($parts, $child, $depth + 1);
+            }
+        }
     }
 
     protected function isAbsoluteHttpUrl(string $url): bool

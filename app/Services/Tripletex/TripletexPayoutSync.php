@@ -179,7 +179,7 @@ class TripletexPayoutSync
 
         if (! $response->successful()) {
             $this->apiClient->logFailedResponse('tripletex_payout_voucher_post', $response);
-            $message = 'Tripletex HTTP '.$response->status().$this->apiClient->summarizeErrorBody($response);
+            $message = $this->apiClient->describeFailedVoucherResponse($response);
             $this->failRun($syncRun, $integration, $message);
 
             return false;
