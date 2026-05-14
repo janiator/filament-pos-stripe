@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\Store;
+use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -13,6 +15,30 @@ use Illuminate\Support\Carbon;
 class Dashboard extends BaseDashboard
 {
     use HasFiltersForm;
+
+    public function mountCanAuthorizeAccess(): void
+    {
+        if (static::canAccess()) {
+            return;
+        }
+
+        $user = Filament::auth()->user();
+        $tenant = Filament::getTenant();
+        $panel = Filament::getCurrentPanel();
+
+        if ($user instanceof User && $tenant instanceof Store) {
+            $dashboardUrl = static::getUrl([], true, $panel->getId(), $tenant);
+            $target = $user->getFilamentHomeUrl($panel, $tenant);
+
+            if ($target !== null && $target !== $dashboardUrl) {
+                $this->redirect($target);
+
+                return;
+            }
+        }
+
+        abort(403);
+    }
 
     public static function canAccess(): bool
     {

@@ -64,3 +64,31 @@ it('does not expose a create action on the sessions list page', function () {
     livewire(ListPosSessions::class)
         ->assertActionDoesNotExist('create');
 });
+
+it('mounts the x-report table action for an open session', function () {
+    $device = PosDevice::factory()->create(['store_id' => $this->store->id]);
+    $session = PosSession::factory()->create([
+        'pos_device_id' => $device->id,
+        'user_id' => $this->user->id,
+        'status' => 'open',
+        'closed_at' => null,
+    ]);
+
+    livewire(ListPosSessions::class)
+        ->mountTableAction('x_report', $session)
+        ->assertSet('mountedActions.0.name', 'x_report');
+});
+
+it('mounts the z-report table action for a closed session', function () {
+    $device = PosDevice::factory()->create(['store_id' => $this->store->id]);
+    $session = PosSession::factory()->create([
+        'pos_device_id' => $device->id,
+        'user_id' => $this->user->id,
+        'status' => 'closed',
+        'closed_at' => now(),
+    ]);
+
+    livewire(ListPosSessions::class)
+        ->mountTableAction('z_report', $session)
+        ->assertSet('mountedActions.0.name', 'z_report');
+});

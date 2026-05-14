@@ -3,19 +3,23 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Filament\Resources\PosSessions\PosSessionResource;
+use App\Filament\Pages\Dashboard;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
+use Filament\Clusters\Cluster;
 use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasDefaultTenant;
 use Filament\Models\Contracts\HasTenants;
+use Filament\Pages\Page as FilamentPage;
 use Filament\Panel;
+use Filament\Resources\Resource as FilamentResource;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Lab404\Impersonate\Models\Impersonate as ImpersonateTrait;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
@@ -200,26 +204,106 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     }
 
     /**
+     * First sensible Filament URL for this user in the given store (dashboard, first accessible
+     * resource index, then other pages). Used for home links and when the dashboard is not allowed.
+     */
+    public function getFilamentHomeUrl(Panel $panel, Store $store): ?string
+    {
+        $previousPanel = Filament::getCurrentPanel();
+        $previousTenant = Filament::getTenant();
+        $guard = Auth::guard($panel->getAuthGuard());
+        $previousUser = $guard->user();
+
+        try {
+            Filament::setCurrentPanel($panel);
+            $guard->setUser($this);
+            Filament::setTenant($store, isQuiet: true);
+
+            if ($this->can('View:Dashboard')) {
+                return Dashboard::getUrl([], true, $panel->getId(), $store);
+            }
+
+            $resourceClasses = array_values(array_filter(
+                $panel->getResources(),
+                fn (string $class): bool => is_subclass_of($class, FilamentResource::class)
+            ));
+
+            usort($resourceClasses, function (string $a, string $b): int {
+                $sort = ($a::getNavigationSort() ?? 1000) <=> ($b::getNavigationSort() ?? 1000);
+
+                return $sort !== 0 ? $sort : $a <=> $b;
+            });
+
+            foreach ($resourceClasses as $resourceClass) {
+                if (! $resourceClass::hasPage('index')) {
+                    continue;
+                }
+
+                if ($resourceClass::canAccess()) {
+                    return $resourceClass::getUrl('index', [], true, $panel->getId(), $store);
+                }
+            }
+
+            $pageClasses = $panel->getPages();
+
+            usort($pageClasses, function (string $a, string $b): int {
+                if (! is_subclass_of($a, FilamentPage::class) || ! is_subclass_of($b, FilamentPage::class)) {
+                    return $a <=> $b;
+                }
+
+                $sort = ($a::getNavigationSort() ?? 1000) <=> ($b::getNavigationSort() ?? 1000);
+
+                return $sort !== 0 ? $sort : $a <=> $b;
+            });
+
+            foreach ($pageClasses as $pageClass) {
+                if (
+                    $pageClass === Dashboard::class
+                    || ! is_subclass_of($pageClass, FilamentPage::class)
+                    || is_subclass_of($pageClass, Cluster::class)
+                    || ! $pageClass::shouldRegisterNavigation()
+                ) {
+                    continue;
+                }
+
+                if (! $pageClass::canAccess()) {
+                    continue;
+                }
+
+                try {
+                    return $pageClass::getUrl([], true, $panel->getId(), $store);
+                } catch (\Illuminate\Routing\Exceptions\UrlGenerationException) {
+                    continue;
+                }
+            }
+
+            return $panel->route('auth.profile');
+        } finally {
+            Filament::setTenant($previousTenant, isQuiet: true);
+            Filament::setCurrentPanel($previousPanel);
+
+            if ($previousUser !== null) {
+                $guard->setUser($previousUser);
+            } else {
+                $guard->forgetUser();
+            }
+        }
+    }
+
+    /**
      * Target URL after Filament impersonation. Tenant routes require the user to be
      * attached to the store (store_user); redirecting here avoids 404 on the previous URL.
      */
     public function impersonationRedirectUrl(): string
     {
-        $panel = \Filament\Facades\Filament::getPanel('app');
+        $panel = Filament::getPanel('app');
         $tenant = $this->getTenants($panel)->first();
 
         if (! $tenant instanceof Store) {
             return route('filament.app.auth.profile');
         }
 
-        if ($this->can('View:Dashboard')) {
-            return route('filament.app.pages.dashboard', ['tenant' => $tenant]);
-        }
-
-        if ($this->can('ViewAny:PosSession')) {
-            return PosSessionResource::getUrl('index', [], true, 'app', $tenant);
-        }
-
-        return route('filament.app.auth.profile');
+        return $this->getFilamentHomeUrl($panel, $tenant)
+            ?? route('filament.app.auth.profile');
     }
 }

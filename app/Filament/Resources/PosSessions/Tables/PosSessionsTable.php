@@ -21,6 +21,7 @@ use App\Services\Tripletex\TripletexZReportSync;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
@@ -374,9 +375,12 @@ class PosSessionsTable
                     }),
             ])
             ->defaultSort('closed_at', 'desc') // Sort by closed date for Z-reports (most recent first)
-            ->recordUrl(fn ($record) => PosSessionResource::getUrl('view', ['record' => $record]))
+            ->recordAction(fn (PosSession $record): string => $record->status === 'open' ? 'x_report' : 'z_report')
             ->recordActions([
-                ViewAction::make(),
+                ViewAction::make()
+                    ->label(__('Session page'))
+                    ->modal(false)
+                    ->url(fn (PosSession $record): string => PosSessionResource::getUrl('view', ['record' => $record])),
                 EditAction::make()
                     ->visible(fn (PosSession $record): bool => $record->status !== 'closed'),
                 Action::make('x_report')
@@ -447,120 +451,193 @@ class PosSessionsTable
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close')
                     ->visible(fn (PosSession $record): bool => $record->status === 'closed'),
-                Action::make('regenerate_z_report')
-                    ->label(__('Regenerate Z-Report'))
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('warning')
-                    ->requiresConfirmation()
-                    ->modalHeading(__('Regenerate Z-Report'))
-                    ->modalDescription(fn (PosSession $record): string => "This will regenerate the Z-report for session {$record->session_number} and attempt to find any missing data (charges, receipts, events) that may not have been properly linked.")
-                    ->form([
-                        \Filament\Forms\Components\Toggle::make('find_missing_data')
-                            ->label(__('Find Missing Data'))
-                            ->helperText(__('Attempt to find and link missing charges, receipts, and events'))
-                            ->default(true),
-                    ])
-                    ->visible(function (PosSession $record): bool {
-                        if ($record->status !== 'closed') {
-                            return false;
-                        }
+                ActionGroup::make([
+                    Action::make('regenerate_z_report')
+                        ->label(__('Regenerate Z-Report'))
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading(__('Regenerate Z-Report'))
+                        ->modalDescription(fn (PosSession $record): string => "This will regenerate the Z-report for session {$record->session_number} and attempt to find any missing data (charges, receipts, events) that may not have been properly linked.")
+                        ->form([
+                            \Filament\Forms\Components\Toggle::make('find_missing_data')
+                                ->label(__('Find Missing Data'))
+                                ->helperText(__('Attempt to find and link missing charges, receipts, and events'))
+                                ->default(true),
+                        ])
+                        ->visible(function (PosSession $record): bool {
+                            if ($record->status !== 'closed') {
+                                return false;
+                            }
 
-                        // Only show to super admins
-                        $user = auth()->user();
-                        if (! $user) {
-                            return false;
-                        }
+                            $user = auth()->user();
+                            if (! $user) {
+                                return false;
+                            }
 
-                        $tenant = \Filament\Facades\Filament::getTenant();
+                            $tenant = Filament::getTenant();
 
-                        return $tenant
-                            ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
-                            : $user->hasRole('super_admin');
-                    })
-                    ->action(function (PosSession $record, array $data) {
-                        $action = new \App\Actions\PosSessions\RegenerateZReports;
-                        $findMissingData = $data['find_missing_data'] ?? true;
+                            return $tenant
+                                ? $user->roles()->withoutGlobalScopes()->where('name', 'super_admin')->exists()
+                                : $user->hasRole('super_admin');
+                        })
+                        ->action(function (PosSession $record, array $data) {
+                            $action = new \App\Actions\PosSessions\RegenerateZReports;
+                            $findMissingData = $data['find_missing_data'] ?? true;
 
-                        // Get original report data for comparison
-                        $originalReport = $record->closing_data['z_report_data'] ?? null;
-                        $originalTransactionCount = $originalReport['transactions_count'] ?? null;
-                        $originalTotalAmount = $originalReport['total_amount'] ?? null;
+                            // Get original report data for comparison
+                            $originalReport = $record->closing_data['z_report_data'] ?? null;
+                            $originalTransactionCount = $originalReport['transactions_count'] ?? null;
+                            $originalTotalAmount = $originalReport['total_amount'] ?? null;
 
-                        $stats = $action->regenerateSingle($record, $findMissingData);
+                            $stats = $action->regenerateSingle($record, $findMissingData);
 
-                        if (! $stats['success']) {
+                            if (! $stats['success']) {
+                                Notification::make()
+                                    ->title(__('Error Regenerating Z-Report'))
+                                    ->body("Failed to regenerate Z-report: {$stats['error']}")
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            }
+
+                            // Refresh to get updated closing_data
+                            $record->refresh();
+                            $regenerationChanges = $record->closing_data['z_report_regeneration_changes'] ?? [];
+
+                            // Show success notification with found data info and changes
+                            $message = "Z-report regenerated successfully for session {$record->session_number}.\n\n";
+
+                            if ($stats['charges_found'] > 0 || $stats['receipts_found'] > 0 || $stats['events_found'] > 0) {
+                                $message .= "Found: {$stats['charges_found']} charges, {$stats['receipts_found']} receipts, {$stats['events_found']} events\n\n";
+                            }
+
+                            // Show value changes if any
+                            if ($originalReport) {
+                                $newTransactionCount = $regenerationChanges['transaction_count_after'] ?? null;
+                                $newTotalAmount = $regenerationChanges['total_amount_after'] ?? null;
+
+                                $hasChanges = false;
+                                if ($originalTransactionCount !== null && $newTransactionCount !== null && $originalTransactionCount != $newTransactionCount) {
+                                    $message .= "Transactions: {$originalTransactionCount} → {$newTransactionCount}\n";
+                                    $hasChanges = true;
+                                }
+                                if ($originalTotalAmount !== null && $newTotalAmount !== null && $originalTotalAmount != $newTotalAmount) {
+                                    $originalAmountNok = number_format($originalTotalAmount / 100, 2);
+                                    $newAmountNok = number_format($newTotalAmount / 100, 2);
+                                    $message .= "Total Amount: {$originalAmountNok} NOK → {$newAmountNok} NOK\n";
+                                    $hasChanges = true;
+                                }
+
+                                if ($hasChanges) {
+                                    $message .= "\nNote: Values changed due to new data found or recalculated vendor commissions/settings.";
+                                } else {
+                                    $message .= 'No value changes detected.';
+                                }
+                            } else {
+                                $message .= 'No previous report to compare.';
+                            }
+
                             Notification::make()
-                                ->title(__('Error Regenerating Z-Report'))
-                                ->body("Failed to regenerate Z-report: {$stats['error']}")
-                                ->danger()
+                                ->title(__('Z-Report Regenerated'))
+                                ->body($message)
+                                ->success()
+                                ->persistent()
                                 ->send();
 
-                            return;
-                        }
-
-                        // Refresh to get updated closing_data
-                        $record->refresh();
-                        $regenerationChanges = $record->closing_data['z_report_regeneration_changes'] ?? [];
-
-                        // Show success notification with found data info and changes
-                        $message = "Z-report regenerated successfully for session {$record->session_number}.\n\n";
-
-                        if ($stats['charges_found'] > 0 || $stats['receipts_found'] > 0 || $stats['events_found'] > 0) {
-                            $message .= "Found: {$stats['charges_found']} charges, {$stats['receipts_found']} receipts, {$stats['events_found']} events\n\n";
-                        }
-
-                        // Show value changes if any
-                        if ($originalReport) {
-                            $newTransactionCount = $regenerationChanges['transaction_count_after'] ?? null;
-                            $newTotalAmount = $regenerationChanges['total_amount_after'] ?? null;
-
-                            $hasChanges = false;
-                            if ($originalTransactionCount !== null && $newTransactionCount !== null && $originalTransactionCount != $newTransactionCount) {
-                                $message .= "Transactions: {$originalTransactionCount} → {$newTransactionCount}\n";
-                                $hasChanges = true;
-                            }
-                            if ($originalTotalAmount !== null && $newTotalAmount !== null && $originalTotalAmount != $newTotalAmount) {
-                                $originalAmountNok = number_format($originalTotalAmount / 100, 2);
-                                $newAmountNok = number_format($newTotalAmount / 100, 2);
-                                $message .= "Total Amount: {$originalAmountNok} NOK → {$newAmountNok} NOK\n";
-                                $hasChanges = true;
-                            }
-
-                            if ($hasChanges) {
-                                $message .= "\nNote: Values changed due to new data found or recalculated vendor commissions/settings.";
-                            } else {
-                                $message .= 'No value changes detected.';
-                            }
-                        } else {
-                            $message .= 'No previous report to compare.';
-                        }
-
-                        Notification::make()
-                            ->title(__('Z-Report Regenerated'))
-                            ->body($message)
-                            ->success()
-                            ->persistent()
-                            ->send();
-
-                        // Log Z-report event (13009) per § 2-8-3
-                        PosEvent::create([
-                            'store_id' => $record->effectiveStoreId(),
-                            'pos_device_id' => $record->pos_device_id,
-                            'pos_session_id' => $record->id,
-                            'user_id' => auth()->id(),
-                            'event_code' => PosEvent::EVENT_Z_REPORT,
-                            'event_type' => 'report',
-                            'description' => "Z-report regenerated for session {$record->session_number}",
-                            'event_data' => [
-                                'report_type' => 'Z-Report',
+                            // Log Z-report event (13009) per § 2-8-3
+                            PosEvent::create([
+                                'store_id' => $record->effectiveStoreId(),
+                                'pos_device_id' => $record->pos_device_id,
+                                'pos_session_id' => $record->id,
+                                'user_id' => auth()->id(),
+                                'event_code' => PosEvent::EVENT_Z_REPORT,
+                                'event_type' => 'report',
+                                'description' => "Z-report regenerated for session {$record->session_number}",
+                                'event_data' => [
+                                    'report_type' => 'Z-Report',
+                                    'session_number' => $record->session_number,
+                                    'regenerated' => true,
+                                    'changes' => $regenerationChanges,
+                                ],
+                                'occurred_at' => now(),
+                            ]);
+                        }),
+                    TripletexVoucherPreviewAction::makeTableActionForZReport(),
+                    Action::make('sync_tripletex')
+                        ->label(__('Sync Tripletex'))
+                        ->icon('heroicon-o-document-chart-bar')
+                        ->color('gray')
+                        ->visible(fn (PosSession $record): bool => self::canSyncToTripletex($record))
+                        ->action(function (PosSession $record): void {
+                            Log::info('Filament Tripletex sync clicked', [
+                                'pos_session_id' => $record->id,
                                 'session_number' => $record->session_number,
-                                'regenerated' => true,
-                                'changes' => $regenerationChanges,
-                            ],
-                            'occurred_at' => now(),
-                        ]);
-                    })
-                    ->visible(fn (PosSession $record): bool => $record->status === 'closed'),
+                            ]);
+
+                            Notification::make()
+                                ->title(__('Syncing with Tripletex...'))
+                                ->body("Session {$record->session_number}")
+                                ->info()
+                                ->send();
+
+                            try {
+                                $sync = app(TripletexZReportSync::class);
+                                $ok = $sync->sync($record->id, true);
+                                $run = TripletexSyncRun::query()
+                                    ->where('pos_session_id', $record->id)
+                                    ->latest('id')
+                                    ->first();
+                            } catch (\Throwable $e) {
+                                Notification::make()
+                                    ->title(__('Tripletex sync failed'))
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                Log::error('Filament Tripletex sync action failed', [
+                                    'pos_session_id' => $record->id,
+                                    'exception' => $e->getMessage(),
+                                ]);
+
+                                return;
+                            }
+
+                            if ($run?->status === TripletexSyncRunStatus::Skipped) {
+                                Notification::make()
+                                    ->title(__('Tripletex sync skipped'))
+                                    ->body($run->error_message ?? 'No voucher was posted.')
+                                    ->warning()
+                                    ->persistent()
+                                    ->send();
+
+                                return;
+                            }
+
+                            if (! $ok || $run?->status !== TripletexSyncRunStatus::Success) {
+                                Notification::make()
+                                    ->title(__('Tripletex sync failed'))
+                                    ->body($run?->error_message ?? 'See Tripletex sync history for details.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                return;
+                            }
+
+                            Notification::make()
+                                ->title(__('Synced to Tripletex'))
+                                ->body($run->tripletex_voucher_id ? "Voucher #{$run->tripletex_voucher_id}" : 'Z-report synced successfully.')
+                                ->success()
+                                ->persistent()
+                                ->send();
+                        }),
+                ])
+                    ->label(__('Z-report / Tripletex'))
+                    ->icon('heroicon-o-ellipsis-vertical')
+                    ->color('gray')
+                    ->tooltip(__('Regenerate Z-report, Tripletex preview, and sync')),
                 Action::make('sync_poweroffice')
                     ->label(__('Sync PowerOffice'))
                     ->icon('heroicon-o-cloud-arrow-up')
@@ -618,75 +695,6 @@ class PosSessionsTable
                         Notification::make()
                             ->title(__('Synced to PowerOffice'))
                             ->body((is_numeric($journalNo) && (int) $journalNo > 0) ? "Bilagsnr #{$journalNo}" : 'Z-report synced successfully.')
-                            ->success()
-                            ->persistent()
-                            ->send();
-                    }),
-                TripletexVoucherPreviewAction::makeTableActionForZReport(),
-                Action::make('sync_tripletex')
-                    ->label(__('Sync Tripletex'))
-                    ->icon('heroicon-o-document-chart-bar')
-                    ->color('gray')
-                    ->visible(fn (PosSession $record): bool => self::canSyncToTripletex($record))
-                    ->action(function (PosSession $record): void {
-                        Log::info('Filament Tripletex sync clicked', [
-                            'pos_session_id' => $record->id,
-                            'session_number' => $record->session_number,
-                        ]);
-
-                        Notification::make()
-                            ->title(__('Syncing with Tripletex...'))
-                            ->body("Session {$record->session_number}")
-                            ->info()
-                            ->send();
-
-                        try {
-                            $sync = app(TripletexZReportSync::class);
-                            $ok = $sync->sync($record->id, true);
-                            $run = TripletexSyncRun::query()
-                                ->where('pos_session_id', $record->id)
-                                ->latest('id')
-                                ->first();
-                        } catch (\Throwable $e) {
-                            Notification::make()
-                                ->title(__('Tripletex sync failed'))
-                                ->body($e->getMessage())
-                                ->danger()
-                                ->send();
-
-                            Log::error('Filament Tripletex sync action failed', [
-                                'pos_session_id' => $record->id,
-                                'exception' => $e->getMessage(),
-                            ]);
-
-                            return;
-                        }
-
-                        if ($run?->status === TripletexSyncRunStatus::Skipped) {
-                            Notification::make()
-                                ->title(__('Tripletex sync skipped'))
-                                ->body($run->error_message ?? 'No voucher was posted.')
-                                ->warning()
-                                ->persistent()
-                                ->send();
-
-                            return;
-                        }
-
-                        if (! $ok || $run?->status !== TripletexSyncRunStatus::Success) {
-                            Notification::make()
-                                ->title(__('Tripletex sync failed'))
-                                ->body($run?->error_message ?? 'See Tripletex sync history for details.')
-                                ->danger()
-                                ->persistent()
-                                ->send();
-
-                            return;
-                        }
-
-                        Notification::make()
-                            ->title(__('Synced to Tripletex'))
-                            ->body($run->tripletex_voucher_id ? "Voucher #{$run->tripletex_voucher_id}" : 'Z-report synced successfully.')
                             ->success()
                             ->persistent()
                             ->send();

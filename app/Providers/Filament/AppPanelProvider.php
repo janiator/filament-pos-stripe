@@ -11,6 +11,7 @@ use App\Filament\Resources\Stores\StoreResource;
 use App\Http\Middleware\FilamentEmbedMode;
 use App\Models\Addon;
 use App\Models\Store;
+use App\Models\User;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -74,6 +75,17 @@ class AppPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([])
+            ->homeUrl(function (): ?string {
+                $user = Filament::auth()->user();
+                $tenant = Filament::getTenant();
+                $panel = Filament::getCurrentPanel();
+
+                if (! $user instanceof User || ! $tenant instanceof Store) {
+                    return null;
+                }
+
+                return $user->getFilamentHomeUrl($panel, $tenant);
+            })
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
