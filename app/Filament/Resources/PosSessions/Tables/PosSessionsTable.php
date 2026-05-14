@@ -210,6 +210,7 @@ class PosSessionsTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('store.name')
                     ->label(__('Store'))
+                    ->visible(fn (): bool => Filament::getTenant() === null)
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('posDevice.device_name')
@@ -256,6 +257,7 @@ class PosSessionsTable
 
                 SelectFilter::make('store_id')
                     ->label(__('Store'))
+                    ->visible(fn (): bool => Filament::getTenant() === null)
                     ->options(fn (): array => Store::query()->orderBy('name')->pluck('name', 'id')->all())
                     ->query(function (Builder $query, array $data): Builder {
                         $raw = $data['values'] ?? $data['value'] ?? null;
