@@ -263,6 +263,30 @@
             <p class="mb-4 text-xs text-gray-600 dark:text-gray-400">
                 {{ $pp['rollup']['interpretation'] ?? '' }}
             </p>
+            @php
+                $rec = is_array($pp['rollup']['reconciliation'] ?? null) ? $pp['rollup']['reconciliation'] : [];
+            @endphp
+            @if($rec !== [])
+                <div class="mb-4 rounded-lg border p-3 text-xs {{ ($rec['all_ok'] ?? false) ? 'border-success-200 bg-success-50 text-success-950 dark:border-success-500/40 dark:bg-success-500/10 dark:text-success-50' : 'border-danger-200 bg-danger-50 text-danger-950 dark:border-danger-500/40 dark:bg-danger-500/10 dark:text-danger-50' }}">
+                    <h4 class="mb-2 font-semibold">Cross-checks (Z vs payout vs Stripe charges)</h4>
+                    <p class="mb-2 text-[11px] opacity-90">{{ $rec['note'] ?? '' }}</p>
+                    <dl class="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                        <div class="flex justify-between gap-2"><dt>Z Σ debit = Σ credit</dt><dd class="font-mono">{{ ($rec['z_rollup_balanced_minor'] ?? false) ? 'Yes' : 'No' }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Payout Σ debit = Σ credit</dt><dd class="font-mono">{{ ($rec['payout_rollup_balanced_minor'] ?? false) ? 'Yes' : 'No' }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Σ payout_bank (previews)</dt><dd class="text-end font-mono">{{ $fmtMinorToMajor($rec['payout_bank_debit_minor_previews'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Σ store payouts.amount (same rows)</dt><dd class="text-end font-mono">{{ $fmtMinorToMajor($rec['store_payout_amount_minor_sum_ok_previews'] ?? 0) }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>Payout bank = DB payouts</dt><dd class="font-mono">{{ ($rec['payout_bank_matches_store_payout_rows'] ?? false) ? 'Yes' : 'No' }}</dd></div>
+                        <div class="flex justify-between gap-2"><dt>External ticket sales ↔ clearing</dt><dd class="font-mono">{{ ($rec['external_ticket_sales_mirror_ok'] ?? false) ? 'Yes' : 'No' }}</dd></div>
+                    </dl>
+                    @if(!empty($rec['issues'] ?? []))
+                        <ul class="mt-2 list-inside list-disc font-mono text-[11px]">
+                            @foreach($rec['issues'] as $issue)
+                                <li>{{ $issue }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            @endif
             <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
                 {{ __('Debit and credit figures in the summary boxes and tables use major currency units (two decimals). The raw JSON below still uses integer minor units.') }}
             </p>

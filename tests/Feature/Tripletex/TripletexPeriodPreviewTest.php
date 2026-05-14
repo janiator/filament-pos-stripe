@@ -6,6 +6,7 @@ use App\Jobs\BuildTripletexPeriodPreviewJob;
 use App\Models\Addon;
 use App\Models\PosSession;
 use App\Models\Store;
+use App\Models\StoreStripePayout;
 use App\Models\TripletexAccountMapping;
 use App\Models\TripletexIntegration;
 use App\Services\Tripletex\TripletexPeriodPreviewService;
@@ -157,6 +158,7 @@ it('writes completed period preview to tripletex integration when job finishes',
         ->and($state['status'])->toBe('complete')
         ->and($state['result']['ok'])->toBeTrue()
         ->and($state['result']['rollup']['z_reports']['ok'])->toBe(1)
+        ->and($state['result']['rollup'])->toHaveKey('reconciliation')
         ->and($state['result']['aggregate_vouchers']['z_reports']['ok'] ?? false)->toBeTrue()
         ->and($state['storage_meta'])->toBeArray()
         ->and($state['storage_meta'])->toHaveKeys(['steps', 'approx_bytes_before', 'approx_bytes_after', 'max_bytes_target']);
@@ -256,4 +258,85 @@ it('builds aggregate Z voucher totals from merged successful session previews an
     $aggP = $out['aggregate_vouchers']['payouts'];
     expect($aggP['ok'])->toBeFalse()
         ->and($aggP['successful_previews_count'])->toBe(0);
+});
+
+it('rollup reconciliation matches payout bank debits to store payout amounts for successful previews', function () {
+    $store = Store::factory()->create();
+
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::Tripletex,
+        'is_active' => true,
+    ]);
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Vat,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+            ],
+        ],
+    ]);
+
+    TripletexAccountMapping::factory()->create([
+        'store_id' => $store->id,
+        'tripletex_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Vat,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'vat_account_no' => '2700',
+        'cash_account_no' => '1920',
+        'card_clearing_account_no' => '1921',
+    ]);
+
+    $arrival = Carbon::parse('2026-04-12 12:00:00');
+
+    StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_period_recon_a',
+        'amount' => 30_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => $arrival,
+        'automatic' => true,
+    ]));
+
+    StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_period_recon_b',
+        'amount' => 45_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => $arrival->copy()->addDay(),
+        'automatic' => true,
+    ]));
+
+    $out = app(TripletexPeriodPreviewService::class)->previewPeriod(
+        $store,
+        $integration,
+        Carbon::parse('2026-04-01')->startOfDay(),
+        Carbon::parse('2026-04-30')->endOfDay(),
+        false,
+        10,
+        10,
+        false,
+    );
+
+    $rec = $out['rollup']['reconciliation'];
+    expect($rec)->toBeArray()
+        ->and($rec['all_ok'])->toBeTrue()
+        ->and($rec['payout_bank_matches_store_payout_rows'])->toBeTrue()
+        ->and($rec['payout_bank_debit_minor_previews'])->toBe(75_000)
+        ->and($rec['store_payout_amount_minor_sum_ok_previews'])->toBe(75_000)
+        ->and($rec['external_ticket_sales_mirror_ok'])->toBeTrue();
 });

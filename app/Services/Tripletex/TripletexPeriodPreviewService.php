@@ -267,6 +267,15 @@ final class TripletexPeriodPreviewService
         $externalTicketLines = $lineKindsPayout['external_ticket_sales'] ?? ['debit_minor' => 0, 'credit_minor' => 0];
         $externalClearing = $lineKindsPayout['external_ticket_clearing'] ?? ['debit_minor' => 0, 'credit_minor' => 0];
 
+        $externalTicketRollup = [
+            'matched_charges_count_across_payouts' => $extMatched,
+            'charges_without_pos_session_count_across_payouts' => $extWebCandidates,
+            'external_ticket_sales_credit_minor' => (int) ($externalTicketLines['credit_minor'] ?? 0),
+            'external_ticket_sales_debit_minor' => (int) ($externalTicketLines['debit_minor'] ?? 0),
+            'external_ticket_clearing_credit_minor' => (int) ($externalClearing['credit_minor'] ?? 0),
+            'external_ticket_clearing_debit_minor' => (int) ($externalClearing['debit_minor'] ?? 0),
+        ];
+
         return [
             'z_reports' => [
                 'preview_rows' => count($zRows),
@@ -284,15 +293,91 @@ final class TripletexPeriodPreviewService
                 'credit_total_minor' => $pCredit,
                 'line_kinds' => $lineKindsPayout,
             ],
-            'external_ticket_sales' => [
-                'matched_charges_count_across_payouts' => $extMatched,
-                'charges_without_pos_session_count_across_payouts' => $extWebCandidates,
-                'external_ticket_sales_credit_minor' => (int) ($externalTicketLines['credit_minor'] ?? 0),
-                'external_ticket_sales_debit_minor' => (int) ($externalTicketLines['debit_minor'] ?? 0),
-                'external_ticket_clearing_credit_minor' => (int) ($externalClearing['credit_minor'] ?? 0),
-                'external_ticket_clearing_debit_minor' => (int) ($externalClearing['debit_minor'] ?? 0),
-            ],
+            'external_ticket_sales' => $externalTicketRollup,
+            'reconciliation' => $this->buildRollupReconciliation(
+                $payoutRows,
+                $zDebit,
+                $zCredit,
+                $pDebit,
+                $pCredit,
+                $lineKindsPayout,
+                $externalTicketRollup,
+            ),
             'interpretation' => 'POS ticket revenue is posted on Z-report vouchers when a session closes. Web/advance ticket lines that match your external-ticket rules appear on payout vouchers (see payout diagnostics per row). Compare Z and payout totals separately; they are not additive ticket revenue.',
+        ];
+    }
+
+    /**
+     * Read-only checks on rolled-up period previews: each ledger stays self-balanced, payout bank lines
+     * match stored Stripe payout amounts for the same preview rows, and external ticket sales mirror clearing.
+     *
+     * @param  list<array<string, mixed>>  $payoutRows
+     * @param  array<string, array{debit_minor: int, credit_minor: int}>  $lineKindsPayout
+     * @param  array<string, mixed>  $externalTicketRollup
+     * @return array<string, mixed>
+     */
+    protected function buildRollupReconciliation(
+        array $payoutRows,
+        int $zDebit,
+        int $zCredit,
+        int $pDebit,
+        int $pCredit,
+        array $lineKindsPayout,
+        array $externalTicketRollup,
+    ): array {
+        $tol = TripletexPayoutReconciliationService::MINOR_TOLERANCE;
+
+        $zBalanced = abs($zDebit - $zCredit) <= $tol;
+        $pBalanced = abs($pDebit - $pCredit) <= $tol;
+
+        $pBankDebit = (int) (($lineKindsPayout['payout_bank'] ?? [])['debit_minor'] ?? 0);
+
+        $okPayoutIds = [];
+        foreach ($payoutRows as $row) {
+            if (($row['preview']['ok'] ?? false) === true && isset($row['store_stripe_payout_id'])) {
+                $okPayoutIds[] = (int) $row['store_stripe_payout_id'];
+            }
+        }
+        $okPayoutIds = array_values(array_unique($okPayoutIds));
+
+        $storePayoutMinor = $okPayoutIds === []
+            ? 0
+            : (int) StoreStripePayout::query()->whereIn('id', $okPayoutIds)->sum('amount');
+
+        $pBankMatchesStore = $okPayoutIds === [] || abs($pBankDebit - $storePayoutMinor) <= $tol;
+
+        $extSales = (int) ($externalTicketRollup['external_ticket_sales_credit_minor'] ?? 0);
+        $extClrDebit = (int) ($externalTicketRollup['external_ticket_clearing_debit_minor'] ?? 0);
+        $extClrCredit = (int) ($externalTicketRollup['external_ticket_clearing_credit_minor'] ?? 0);
+        $extSalesDebit = (int) ($externalTicketRollup['external_ticket_sales_debit_minor'] ?? 0);
+
+        $hasExternalActivity = $extSales > 0 || $extClrDebit > 0 || $extClrCredit > 0 || $extSalesDebit > 0;
+        $externalMirrorOk = ! $hasExternalActivity || abs($extSales - $extClrDebit) <= $tol;
+
+        $issues = [];
+        if (! $zBalanced) {
+            $issues[] = 'Z-report rollup: sum of debit_total_minor does not equal sum of credit_total_minor across successful session previews.';
+        }
+        if (! $pBalanced) {
+            $issues[] = 'Payout rollup: sum of debit_total_minor does not equal sum of credit_total_minor across successful payout previews.';
+        }
+        if ($okPayoutIds !== [] && ! $pBankMatchesStore) {
+            $issues[] = 'Payout bank debits in successful previews ('.$pBankDebit.' minor) do not match the database sum of store_stripe_payouts.amount ('.$storePayoutMinor.' minor) for those payout rows.';
+        }
+        if ($hasExternalActivity && ! $externalMirrorOk) {
+            $issues[] = 'External ticket sales credits ('.$extSales.' minor) do not match external ticket clearing debits ('.$extClrDebit.' minor) summed across successful payout previews.';
+        }
+
+        return [
+            'z_rollup_balanced_minor' => $zBalanced,
+            'payout_rollup_balanced_minor' => $pBalanced,
+            'payout_bank_debit_minor_previews' => $pBankDebit,
+            'store_payout_amount_minor_sum_ok_previews' => $storePayoutMinor,
+            'payout_bank_matches_store_payout_rows' => $pBankMatchesStore,
+            'external_ticket_sales_mirror_ok' => $externalMirrorOk,
+            'issues' => $issues,
+            'all_ok' => $issues === [],
+            'note' => 'Z voucher line totals and payout voucher line totals are separate ledgers. They are not expected to add up to Stripe “charges” or to each other. Compare payout_bank lines to store payout amounts (cash to bank) and external ticket sales vs clearing as checks.',
         ];
     }
 
