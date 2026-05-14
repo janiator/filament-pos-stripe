@@ -209,7 +209,7 @@ class MeranoProxyController extends BaseApiController
         }
 
         $session = PosSession::query()
-            ->where('store_id', $store->id)
+            ->forStore((int) $store->id)
             ->with('posDevice')
             ->find($posSessionId);
 

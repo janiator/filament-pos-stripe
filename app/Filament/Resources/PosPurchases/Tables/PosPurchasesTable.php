@@ -166,7 +166,7 @@ class PosPurchasesTable
                                     ->distinct();
                                 $tenant = \Filament\Facades\Filament::getTenant();
                                 if ($tenant && $tenant->slug !== 'visivo-admin') {
-                                    $query->where('store_id', $tenant->id);
+                                    $query->forStore((int) $tenant->id);
                                 }
                                 $userIds = $query->pluck('user_id')->filter()->unique()->values()->all();
 

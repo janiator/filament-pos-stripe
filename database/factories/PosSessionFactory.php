@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\PosDevice;
 use App\Models\PosSession;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -40,5 +41,17 @@ class PosSessionFactory extends Factory
             'opening_data' => [],
             'closing_data' => [],
         ];
+    }
+
+    /**
+     * Attach the session to a POS device belonging to the given store (no `store_id` on `pos_sessions`).
+     */
+    public function forStore(Store|int $store): static
+    {
+        $storeId = is_int($store) ? $store : (int) $store->getKey();
+
+        return $this->state([
+            'pos_device_id' => PosDevice::factory()->create(['store_id' => $storeId]),
+        ]);
     }
 }

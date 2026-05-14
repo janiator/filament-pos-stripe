@@ -98,8 +98,7 @@ it('creates a successful sync run when mapping exists and API succeeds', functio
         'store' => ['id' => $store->id, 'name' => $store->name],
     ];
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => ['z_report_data' => $zReport],
@@ -125,8 +124,7 @@ it('does not sync when add-on is inactive', function () {
         'store_id' => $store->id,
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closing_data' => ['z_report_data' => ['net_amount' => 1]],
     ]);
@@ -160,8 +158,7 @@ it('is idempotent for the same session', function () {
         'card_clearing_account_no' => '1921',
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [
@@ -201,8 +198,7 @@ it('dispatches sync job when a Z-report event is created and integration is read
         'auto_sync_on_z_report' => true,
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closing_data' => [
             'z_report_data' => [
@@ -242,8 +238,7 @@ it('dispatches sync job automatically when a session is closed from POS flow', f
         'sync_enabled' => true,
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'open',
         'closed_at' => null,
     ]);
@@ -284,8 +279,7 @@ it('does not dispatch sync when sync_enabled is false', function () {
         'sync_enabled' => false,
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closing_data' => [
             'z_report_data' => [
@@ -325,8 +319,7 @@ it('does not dispatch sync job when z-report is not eligible', function () {
         'sync_enabled' => true,
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closing_data' => [
             'z_report_data' => [
@@ -377,8 +370,7 @@ it('fails the sync run with a clear message when PowerOffice base URL is empty',
         'card_clearing_account_no' => '1921',
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [
@@ -434,8 +426,7 @@ it('does not sync when sync_enabled is false even when forced', function () {
         'card_clearing_account_no' => '1921',
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [

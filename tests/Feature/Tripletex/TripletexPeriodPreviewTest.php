@@ -63,8 +63,7 @@ it('marks z_reports_truncated when more sessions exist than limit_z', function (
     ];
 
     foreach ([1, 2, 3] as $day) {
-        PosSession::factory()->create([
-            'store_id' => $store->id,
+        PosSession::factory()->forStore($store)->create([
             'status' => 'closed',
             'closed_at' => Carbon::parse("2026-04-{$day} 10:00:00"),
             'closing_data' => ['z_report_data' => $zReport],
@@ -134,8 +133,7 @@ it('writes completed period preview to tripletex integration when job finishes',
         'store' => ['id' => $store->id, 'name' => $store->name],
     ];
 
-    PosSession::factory()->create([
-        'store_id' => $store->id,
+    PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => Carbon::parse('2026-04-10 10:00:00'),
         'closing_data' => ['z_report_data' => $zReport],
@@ -209,15 +207,13 @@ it('builds aggregate Z voucher totals from merged successful session previews an
         'store' => ['id' => $store->id, 'name' => $store->name],
     ];
 
-    $sessionA = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $sessionA = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => Carbon::parse('2026-04-01 10:00:00'),
         'closing_data' => ['z_report_data' => $zReport],
     ]);
 
-    $sessionB = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $sessionB = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => Carbon::parse('2026-04-02 10:00:00'),
         'closing_data' => ['z_report_data' => $zReport],

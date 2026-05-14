@@ -47,7 +47,7 @@ class RegenerateZReports
             ->with(['store', 'posDevice', 'user']);
 
         if ($storeId) {
-            $query->where('store_id', $storeId);
+            $query->forStore((int) $storeId);
         }
 
         if ($fromDate) {

@@ -33,7 +33,7 @@ final class TripletexHistoricalSyncService
         $limit = max(1, min($limit, 500));
 
         $query = PosSession::query()
-            ->where('store_id', $store->getKey())
+            ->forStore((int) $store->getKey())
             ->where('status', 'closed')
             ->whereNotNull('closing_data')
             ->when($from, fn (Builder $q): Builder => $q->where('closed_at', '>=', $from))

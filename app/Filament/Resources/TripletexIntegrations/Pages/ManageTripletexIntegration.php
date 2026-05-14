@@ -669,7 +669,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         return;
                     }
                     $session = PosSession::query()
-                        ->where('store_id', $store->getKey())
+                        ->forStore((int) $store->getKey())
                         ->where('status', 'closed')
                         ->whereNotNull('closing_data')
                         ->orderByDesc('closed_at')
@@ -887,7 +887,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                         return;
                     }
                     $session = PosSession::query()
-                        ->where('store_id', $store->getKey())
+                        ->forStore((int) $store->getKey())
                         ->where('status', 'closed')
                         ->whereNotNull('closing_data')
                         ->orderByDesc('closed_at')

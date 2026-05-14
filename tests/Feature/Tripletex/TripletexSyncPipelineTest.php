@@ -121,8 +121,7 @@ it('creates a successful Tripletex Z-report sync run when mapping exists and API
         'store' => ['id' => $store->id, 'name' => $store->name],
     ];
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => ['z_report_data' => $zReport],
@@ -167,8 +166,7 @@ it('is idempotent for the same Tripletex Z-report session', function () {
         'card_clearing_account_no' => '1921',
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [
@@ -209,8 +207,7 @@ it('dispatches Tripletex Z-report job when Z-report event is created and integra
         'sync_enabled' => true,
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closing_data' => [
             'z_report_data' => [
@@ -250,8 +247,7 @@ it('does not dispatch Tripletex sync when sync_enabled is false', function () {
         'sync_enabled' => false,
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closing_data' => [
             'z_report_data' => [
@@ -311,8 +307,7 @@ it('fails Tripletex Z-report sync when a ledger account is missing in Tripletex'
         'card_clearing_account_no' => '1921',
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [
@@ -526,8 +521,7 @@ it('queues Tripletex Z-report sync from the API when the add-on and integration 
         'sync_enabled' => true,
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [
@@ -601,8 +595,7 @@ it('returns a Z-report preview with ledger lines without posting', function () {
         'card_clearing_account_no' => '1921',
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [
@@ -656,8 +649,7 @@ it('includes tripletex voucher payload and postings display when Z preview resol
         'card_clearing_account_no' => '1921',
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [
@@ -713,8 +705,7 @@ it('returns Z preview via API without resolve_accounts', function () {
         'card_clearing_account_no' => '1921',
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [
@@ -770,8 +761,7 @@ it('queues historical Z-report jobs via API', function () {
         'card_clearing_account_no' => '1921',
     ]);
 
-    PosSession::factory()->create([
-        'store_id' => $store->id,
+    PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [
@@ -815,8 +805,7 @@ it('records a skipped Tripletex Z-report sync run when the Z-report has nothing 
         'auto_sync_on_z_report' => true,
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [
@@ -892,8 +881,7 @@ it('historical service skips ineligible closed sessions', function () {
 
     TripletexIntegration::factory()->connected()->create(['store_id' => $store->id]);
 
-    PosSession::factory()->create([
-        'store_id' => $store->id,
+    PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
         'closing_data' => [
@@ -1159,8 +1147,7 @@ it('splits Z-report ledger lines by calendar day when enabled and session charge
         'net_other_amount' => 0,
     ];
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => Carbon::parse('2026-05-03 23:00:00', 'UTC'),
         'closing_data' => ['z_report_data' => $zReport],

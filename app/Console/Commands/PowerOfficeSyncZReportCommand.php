@@ -43,12 +43,12 @@ class PowerOfficeSyncZReportCommand extends Command
         $sessionId = $this->argument('pos_session_id');
         if ($sessionId !== null) {
             $session = PosSession::query()
-                ->where('store_id', $store->getKey())
+                ->forStore((int) $store->getKey())
                 ->whereKey((int) $sessionId)
                 ->first();
         } else {
             $session = PosSession::query()
-                ->where('store_id', $store->getKey())
+                ->forStore((int) $store->getKey())
                 ->where('status', 'closed')
                 ->whereNotNull('closing_data')
                 ->orderByDesc('closed_at')

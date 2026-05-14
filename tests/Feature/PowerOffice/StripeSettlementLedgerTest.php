@@ -20,8 +20,7 @@ it('uses synced Stripe balance transactions for fee lines when Z-report omits st
 
     $closedAt = now()->startOfDay()->addHours(15);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => $closedAt,
     ]);
@@ -106,8 +105,7 @@ it('uses synced Stripe payouts when Z-report omits payout_to_bank_minor', functi
 
     $closedAt = now()->startOfDay()->addHours(10);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => $closedAt,
     ]);
@@ -179,8 +177,7 @@ it('prefers Z-report stripe_fees_minor over database when positive', function ()
         'stripe_account_id' => 'acct_override_fee',
     ]);
 
-    $session = PosSession::factory()->create([
-        'store_id' => $store->id,
+    $session = PosSession::factory()->forStore($store)->create([
         'status' => 'closed',
         'closed_at' => now(),
     ]);

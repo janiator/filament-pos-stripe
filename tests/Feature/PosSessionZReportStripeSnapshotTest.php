@@ -21,7 +21,6 @@ it('embeds stripe_fees_minor and payout_to_bank_minor when generating a fresh Z-
     $closedAt = now()->startOfDay()->addHours(16);
 
     $session = PosSession::factory()->create([
-        'store_id' => $store->id,
         'pos_device_id' => $device->id,
         'user_id' => $user->id,
         'status' => 'closed',
@@ -87,7 +86,6 @@ it('preserves positive stripe_fees_minor on cached Z-report when merging settlem
     $closedAt = now()->subDay();
 
     $session = PosSession::factory()->create([
-        'store_id' => $store->id,
         'pos_device_id' => $device->id,
         'user_id' => $user->id,
         'status' => 'closed',
@@ -141,7 +139,6 @@ it('backfills missing stripe settlement keys on cached Z-report and persists', f
     $closedAt = now()->subHours(2);
 
     $session = PosSession::factory()->create([
-        'store_id' => $store->id,
         'pos_device_id' => $device->id,
         'user_id' => $user->id,
         'status' => 'closed',
@@ -194,7 +191,6 @@ it('includes stripe fee labels in z-report embed view used for pdf', function ()
     $user = User::factory()->create();
     $device = PosDevice::factory()->create(['store_id' => $store->id]);
     $session = PosSession::factory()->create([
-        'store_id' => $store->id,
         'pos_device_id' => $device->id,
         'user_id' => $user->id,
         'status' => 'closed',

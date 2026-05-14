@@ -33,7 +33,7 @@ class PowerOfficeSyncController extends BaseApiController
         }
 
         $session = PosSession::query()
-            ->where('store_id', $store->getKey())
+            ->forStore((int) $store->getKey())
             ->whereKey($posSession)
             ->firstOrFail();
 

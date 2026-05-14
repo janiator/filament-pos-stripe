@@ -46,7 +46,7 @@ class PowerOfficeAttachZReportPdfCommand extends Command
         }
 
         $session = PosSession::query()
-            ->where('store_id', $store->getKey())
+            ->forStore((int) $store->getKey())
             ->whereKey($sessionId)
             ->first();
 

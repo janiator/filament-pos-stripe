@@ -38,7 +38,7 @@ final class TripletexPeriodPreviewService
         $maxPayouts = max(1, min($maxPayouts, 500));
 
         $zBase = PosSession::query()
-            ->where('store_id', $store->getKey())
+            ->forStore((int) $store->getKey())
             ->where('status', 'closed')
             ->whereNotNull('closing_data')
             ->where('closed_at', '>=', $from)

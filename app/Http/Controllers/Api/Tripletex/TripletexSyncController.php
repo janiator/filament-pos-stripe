@@ -43,7 +43,7 @@ class TripletexSyncController extends BaseApiController
         }
 
         $session = PosSession::query()
-            ->where('store_id', $store->getKey())
+            ->forStore((int) $store->getKey())
             ->whereKey($posSession)
             ->firstOrFail();
 
@@ -165,7 +165,7 @@ class TripletexSyncController extends BaseApiController
         }
 
         $session = PosSession::query()
-            ->where('store_id', $store->getKey())
+            ->forStore((int) $store->getKey())
             ->whereKey($posSession)
             ->firstOrFail();
 

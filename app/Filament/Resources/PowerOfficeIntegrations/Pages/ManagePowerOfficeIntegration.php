@@ -854,7 +854,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
         }
 
         $session = PosSession::query()
-            ->where('store_id', $store->getKey())
+            ->forStore((int) $store->getKey())
             ->where('status', 'closed')
             ->orderByDesc('closed_at')
             ->first();
