@@ -190,6 +190,43 @@ test('complete deferred payment without cart keeps original amount', function ()
     expect($completeResponse->json('data.receipt.id'))->toBeInt()->toBeGreaterThan(0);
 });
 
+test('complete deferred payment with pos_device_id only resolves open session', function () {
+    extract(deferredCartTestSetup());
+
+    Sanctum::actingAs($user, ['*']);
+
+    $deferResponse = $this->postJson('/api/purchases', [
+        'pos_session_id' => $session->id,
+        'payment_method_code' => 'deferred',
+        'cart' => [
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'variant_id' => $variant->id,
+                    'quantity' => 1,
+                    'unit_price' => 5000,
+                ],
+            ],
+            'total' => 5000,
+            'currency' => 'nok',
+        ],
+        'metadata' => [],
+    ]);
+
+    $deferResponse->assertCreated();
+    $chargeId = $deferResponse->json('data.charge.id');
+
+    $completeResponse = $this->postJson("/api/purchases/{$chargeId}/complete-payment", [
+        'payment_method_code' => 'cash',
+        'pos_device_id' => $session->pos_device_id,
+        'metadata' => [],
+    ]);
+
+    $completeResponse->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('data.charge.status', 'succeeded');
+});
+
 test('complete deferred with cart increasing qty beyond available stock returns 422', function () {
     extract(deferredCartTestSetup());
     Addon::factory()->inventory()->create(['store_id' => $store->id]);

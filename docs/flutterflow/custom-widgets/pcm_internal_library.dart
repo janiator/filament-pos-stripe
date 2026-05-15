@@ -803,6 +803,99 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
     }
   }
 
+  Future<void> _archiveVendorViaApi(Map<String, dynamic> vendor) async {
+    final rawId = vendor['id'];
+    if (rawId == null) {
+      return;
+    }
+    final id = rawId is int ? rawId : (rawId as num).toInt();
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final uri = Uri.parse('${widget.apiBaseUrl}/api/vendors/$id');
+      final response = await http.delete(
+        uri,
+        headers: {
+          'Authorization': 'Bearer ${widget.authToken}',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        _vendorNameController?.dispose();
+        _vendorDescriptionController?.dispose();
+        _vendorContactEmailController?.dispose();
+        _vendorContactPhoneController?.dispose();
+        _vendorCommissionPercentController?.dispose();
+        if (mounted) {
+          setState(() {
+            _showVendorForm = false;
+            _editingVendor = null;
+            _vendorNameController = null;
+            _vendorDescriptionController = null;
+            _vendorContactEmailController = null;
+            _vendorContactPhoneController = null;
+            _vendorCommissionPercentController = null;
+          });
+        }
+        await _loadVendors();
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Leverandør arkivert'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        final errorMessage =
+            _parseErrorMessage(response.body, response.statusCode);
+        setState(() {
+          _errorMessage = errorMessage;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Feil ved sletting av leverandør: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _confirmArchiveVendor(Map<String, dynamic> vendor) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Slette leverandør?'),
+        content: const Text(
+          'Leverandøren arkiveres og skjules fra listen. Historikk og koblinger til produkter bevares.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Avbryt'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Slett'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _archiveVendorViaApi(vendor);
+    }
+  }
+
   void _editVendor(Map<String, dynamic> vendor) {
     _vendorNameController?.dispose();
     _vendorDescriptionController?.dispose();
@@ -2015,98 +2108,131 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
                     separatorBuilder: (_, __) => const SizedBox(height: 12.0),
                     itemBuilder: (context, index) {
                       final vendor = _vendors[index];
-                      return InkWell(
-                        onTap: () => _editVendor(vendor),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          curve: Curves.easeInOut,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: FlutterFlowTheme.of(context)
-                                .secondaryBackground,
-                            borderRadius: BorderRadius.circular(16.0),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsetsDirectional.fromSTEB(
-                                12.0, 8.0, 12.0, 8.0),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 32.0,
-                                  height: 32.0,
-                                  decoration: BoxDecoration(
-                                    color: FlutterFlowTheme.of(context)
-                                        .primaryBackground,
-                                    borderRadius: BorderRadius.circular(8.0),
-                                    border: Border.all(
-                                      color: FlutterFlowTheme.of(context)
-                                          .alternate,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.store_outlined,
-                                    color: FlutterFlowTheme.of(context)
-                                        .secondaryText,
-                                    size: 24.0,
-                                  ),
-                                ),
-                                Expanded(
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        curve: Curves.easeInOut,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: FlutterFlowTheme.of(context)
+                              .secondaryBackground,
+                          borderRadius: BorderRadius.circular(16.0),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsetsDirectional.fromSTEB(
+                              4.0, 4.0, 4.0, 4.0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12.0),
+                                  onTap: () => _editVendor(vendor),
                                   child: Padding(
                                     padding:
                                         const EdgeInsetsDirectional.fromSTEB(
-                                            12.0, 0.0, 0.0, 0.0),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                            8.0, 8.0, 4.0, 8.0),
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          vendor['name'] as String? ??
-                                              'Unnamed',
-                                          style: FlutterFlowTheme.of(context)
-                                              .bodyMedium
-                                              .override(
-                                                fontFamily: 'Inter',
-                                                fontSize: 16.0,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                        if (vendor['contact_email'] != null ||
-                                            vendor['contact_phone'] != null ||
-                                            vendor['commission_percent'] !=
-                                                null) ...[
-                                          const SizedBox(height: 4.0),
-                                          Text(
-                                            [
-                                              if (vendor['contact_email'] !=
-                                                  null)
-                                                vendor['contact_email'],
-                                              if (vendor['contact_phone'] !=
-                                                  null)
-                                                vendor['contact_phone'],
-                                              if (vendor[
-                                                      'commission_percent'] !=
-                                                  null)
-                                                'Provision: ${_parseCommissionPercent(vendor['commission_percent'])?.toStringAsFixed(1) ?? '?'}%',
-                                            ]
-                                                .where((item) => item != null)
-                                                .join(' • '),
-                                            style: FlutterFlowTheme.of(context)
-                                                .labelMedium,
+                                        Container(
+                                          width: 32.0,
+                                          height: 32.0,
+                                          decoration: BoxDecoration(
+                                            color: FlutterFlowTheme.of(context)
+                                                .primaryBackground,
+                                            borderRadius:
+                                                BorderRadius.circular(8.0),
+                                            border: Border.all(
+                                              color: FlutterFlowTheme.of(
+                                                      context)
+                                                  .alternate,
+                                            ),
                                           ),
-                                        ],
+                                          child: Icon(
+                                            Icons.store_outlined,
+                                            color: FlutterFlowTheme.of(context)
+                                                .secondaryText,
+                                            size: 24.0,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsetsDirectional
+                                                .fromSTEB(
+                                                12.0, 0.0, 0.0, 0.0),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  vendor['name'] as String? ??
+                                                      'Unnamed',
+                                                  style: FlutterFlowTheme.of(
+                                                          context)
+                                                      .bodyMedium
+                                                      .override(
+                                                        fontFamily: 'Inter',
+                                                        fontSize: 16.0,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                ),
+                                                if (vendor['contact_email'] !=
+                                                        null ||
+                                                    vendor['contact_phone'] !=
+                                                        null ||
+                                                    vendor['commission_percent'] !=
+                                                        null) ...[
+                                                  const SizedBox(height: 4.0),
+                                                  Text(
+                                                    [
+                                                      if (vendor[
+                                                              'contact_email'] !=
+                                                          null)
+                                                        vendor['contact_email'],
+                                                      if (vendor[
+                                                              'contact_phone'] !=
+                                                          null)
+                                                        vendor['contact_phone'],
+                                                      if (vendor[
+                                                              'commission_percent'] !=
+                                                          null)
+                                                        'Provision: ${_parseCommissionPercent(vendor['commission_percent'])?.toStringAsFixed(1) ?? '?'}%',
+                                                    ]
+                                                        .where((item) =>
+                                                            item != null)
+                                                        .join(' • '),
+                                                    style: FlutterFlowTheme.of(
+                                                            context)
+                                                        .labelMedium,
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.chevron_right,
+                                          color: FlutterFlowTheme.of(context)
+                                              .secondaryText,
+                                          size: 24.0,
+                                        ),
                                       ],
                                     ),
                                   ),
                                 ),
-                                Icon(
-                                  Icons.chevron_right,
-                                  color: FlutterFlowTheme.of(context)
-                                      .secondaryText,
-                                  size: 24.0,
+                              ),
+                              IconButton(
+                                tooltip: 'Slett leverandør',
+                                icon: Icon(
+                                  Icons.delete_outline,
+                                  color: FlutterFlowTheme.of(context).error,
+                                  size: 22.0,
                                 ),
-                              ],
-                            ),
+                                onPressed: () =>
+                                    _confirmArchiveVendor(vendor),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -2319,6 +2445,41 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
               borderRadius: BorderRadius.circular(12.0),
             ),
           ),
+          if (vendor['id'] != null) ...[
+            const SizedBox(height: 12),
+            FFButtonWidget(
+              onPressed: _isLoading
+                  ? null
+                  : () => _confirmArchiveVendor(
+                        Map<String, dynamic>.from(vendor),
+                      ),
+              text: 'Slett leverandør',
+              icon: Icon(
+                Icons.delete_outline,
+                size: 20.0,
+                color: FlutterFlowTheme.of(context).error,
+              ),
+              options: FFButtonOptions(
+                width: double.infinity,
+                height: 48.0,
+                padding: const EdgeInsetsDirectional.fromSTEB(
+                    0.0, 0.0, 0.0, 0.0),
+                iconPadding:
+                    const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 8.0, 0.0),
+                color: FlutterFlowTheme.of(context).secondaryBackground,
+                textStyle: FlutterFlowTheme.of(context).titleSmall.override(
+                      fontFamily: 'Inter',
+                      color: FlutterFlowTheme.of(context).error,
+                      letterSpacing: 0.0,
+                    ),
+                elevation: 0.0,
+                borderSide: BorderSide(
+                  color: FlutterFlowTheme.of(context).error,
+                ),
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+            ),
+          ],
         ],
       ),
     );

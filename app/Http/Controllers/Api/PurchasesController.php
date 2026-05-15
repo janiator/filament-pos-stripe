@@ -1599,8 +1599,9 @@ class PurchasesController extends BaseApiController
             }
         } elseif (isset($validated['pos_device_id'])) {
             // Auto-detect current active session for the device (compliance: ensures proper tracking)
-            $posSession = PosSession::with('posDevice')
-                ->where('store_id', $charge->store->id)
+            $posSession = PosSession::query()
+                ->with('posDevice')
+                ->forStore($charge->store->id)
                 ->where('pos_device_id', $validated['pos_device_id'])
                 ->where('status', 'open')
                 ->first();
@@ -1828,8 +1829,9 @@ class PurchasesController extends BaseApiController
                 ], 422);
             }
         } elseif (isset($validated['pos_device_id'])) {
-            $posSession = PosSession::with('posDevice')
-                ->where('store_id', $charge->store->id)
+            $posSession = PosSession::query()
+                ->with('posDevice')
+                ->forStore($charge->store->id)
                 ->where('pos_device_id', $validated['pos_device_id'])
                 ->where('status', 'open')
                 ->first();

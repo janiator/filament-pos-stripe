@@ -2,13 +2,22 @@
 
 namespace App\Filament\Resources\Vendors\Tables;
 
+use App\Models\Vendor;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
+use Illuminate\Support\LazyCollection;
+use Throwable;
 
 class VendorsTable
 {
@@ -51,6 +60,13 @@ class VendorsTable
                     ->boolean()
                     ->sortable(),
 
+                TextColumn::make('archived_at')
+                    ->label(__('Archived'))
+                    ->dateTime()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
+
                 TextColumn::make('created_at')
                     ->label(__('Created'))
                     ->dateTime()
@@ -58,6 +74,28 @@ class VendorsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Filter::make('archive_status')
+                    ->label(__('Archive'))
+                    ->form([
+                        Select::make('value')
+                            ->label(__('Show'))
+                            ->options([
+                                'active' => __('Not archived'),
+                                'archived' => __('Archived only'),
+                                'all' => __('All'),
+                            ])
+                            ->default('active'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $value = $data['value'] ?? 'active';
+
+                        return match ($value) {
+                            'archived' => $query->whereNotNull('vendors.archived_at'),
+                            'all' => $query,
+                            default => $query->whereNull('vendors.archived_at'),
+                        };
+                    })
+                    ->default(['value' => 'active']),
                 TernaryFilter::make('active')
                     ->label(__('Active'))
                     ->placeholder(__('All'))
@@ -65,11 +103,48 @@ class VendorsTable
                     ->falseLabel('Inactive only'),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->hidden(fn (Vendor $record): bool => $record->isArchived()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->using(function (DeleteBulkAction $action, EloquentCollection|Collection|LazyCollection $records): void {
+                            if (! $action->shouldFetchSelectedRecords()) {
+                                try {
+                                    $count = $action->getSelectedRecordsQuery()
+                                        ->whereNull('archived_at')
+                                        ->update(['archived_at' => now()]);
+                                    $action->reportBulkProcessingSuccessfulRecordsCount($count);
+                                } catch (Throwable $exception) {
+                                    $action->reportCompleteBulkProcessingFailure();
+
+                                    report($exception);
+                                }
+
+                                return;
+                            }
+
+                            $isFirstException = true;
+
+                            $records->each(static function (Model $record) use ($action, &$isFirstException): void {
+                                try {
+                                    if (! $record instanceof Vendor) {
+                                        return;
+                                    }
+
+                                    $record->archive() || $action->reportBulkProcessingFailure();
+                                } catch (Throwable $exception) {
+                                    $action->reportBulkProcessingFailure();
+
+                                    if ($isFirstException) {
+                                        report($exception);
+
+                                        $isFirstException = false;
+                                    }
+                                }
+                            });
+                        }),
                 ]),
             ])
             ->defaultSort('name', 'asc');
