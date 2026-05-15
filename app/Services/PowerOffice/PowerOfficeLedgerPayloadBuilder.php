@@ -50,8 +50,19 @@ class PowerOfficeLedgerPayloadBuilder
 
         $bucketTotal = array_sum($buckets);
         if ($bucketTotal <= 0 && $netAmount > 0) {
-            $buckets[(string) (int) ($zReport['vat_rate'] ?? 25)] = $netAmount;
-            $bucketTotal = $netAmount;
+            $split = $zReport['sales_net_minor_by_vat_rate'] ?? null;
+            if (is_array($split) && $split !== []) {
+                foreach ($split as $key => $val) {
+                    $k = (string) (int) (string) $key;
+                    $n = (int) $val;
+                    if ($n > 0) {
+                        $buckets[$k] = $n;
+                    }
+                }
+            } else {
+                $buckets[(string) (int) ($zReport['vat_rate'] ?? 25)] = $netAmount;
+            }
+            $bucketTotal = array_sum($buckets);
         }
 
         foreach ($buckets as $basisKey => $amount) {
@@ -71,12 +82,28 @@ class PowerOfficeLedgerPayloadBuilder
         }
 
         if ($vatAmount > 0 && $defaultMapping->vat_account_no) {
-            $lines[] = [
-                'account' => $defaultMapping->vat_account_no,
-                'debit_minor' => 0,
-                'credit_minor' => $vatAmount,
-                'description' => 'Z-report '.$session->session_number.' VAT',
-            ];
+            $vatByRate = $zReport['vat_minor_by_vat_rate'] ?? null;
+            if (is_array($vatByRate) && $vatByRate !== []) {
+                foreach ($vatByRate as $rateKey => $vatPart) {
+                    $vatPart = (int) $vatPart;
+                    if ($vatPart <= 0) {
+                        continue;
+                    }
+                    $lines[] = [
+                        'account' => $defaultMapping->vat_account_no,
+                        'debit_minor' => 0,
+                        'credit_minor' => $vatPart,
+                        'description' => 'Z-report '.$session->session_number.' VAT '.$rateKey.'%',
+                    ];
+                }
+            } else {
+                $lines[] = [
+                    'account' => $defaultMapping->vat_account_no,
+                    'debit_minor' => 0,
+                    'credit_minor' => $vatAmount,
+                    'description' => 'Z-report '.$session->session_number.' VAT',
+                ];
+            }
         }
 
         if ($tipsAmount > 0 && $defaultMapping->tips_account_no) {
@@ -213,6 +240,21 @@ class PowerOfficeLedgerPayloadBuilder
      */
     protected function bucketsForVat(array $zReport): array
     {
+        $split = $zReport['sales_net_minor_by_vat_rate'] ?? null;
+        if (is_array($split) && $split !== []) {
+            $buckets = [];
+            foreach ($split as $key => $val) {
+                $k = (string) (int) (string) $key;
+                $n = (int) $val;
+                if ($n > 0) {
+                    $buckets[$k] = $n;
+                }
+            }
+            if ($buckets !== []) {
+                return $buckets;
+            }
+        }
+
         $rate = (string) (int) ($zReport['vat_rate'] ?? 25);
         $net = (int) ($zReport['net_amount'] ?? 0);
 

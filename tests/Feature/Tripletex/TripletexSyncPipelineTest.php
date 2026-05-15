@@ -656,6 +656,73 @@ it('returns a Z-report preview with ledger lines without posting', function () {
         ->and($preview['tripletex_postings_display'])->toBeNull();
 });
 
+it('splits Tripletex Z-report ledger sales and VAT by rate when z_report includes per-rate arrays', function () {
+    $store = Store::factory()->create();
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::Tripletex,
+        'is_active' => true,
+    ]);
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Vat,
+    ]);
+
+    TripletexAccountMapping::factory()->create([
+        'store_id' => $store->id,
+        'tripletex_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Vat,
+        'basis_key' => '15',
+        'basis_label' => '15%',
+        'sales_account_no' => '3015',
+        'vat_account_no' => '2700',
+        'cash_account_no' => '1920',
+        'card_clearing_account_no' => '1921',
+    ]);
+
+    TripletexAccountMapping::factory()->create([
+        'store_id' => $store->id,
+        'tripletex_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Vat,
+        'basis_key' => '25',
+        'basis_label' => '25%',
+        'sales_account_no' => '3025',
+        'vat_account_no' => '2700',
+        'cash_account_no' => '1920',
+        'card_clearing_account_no' => '1921',
+    ]);
+
+    $session = PosSession::factory()->forStore($store)->create([
+        'status' => 'closed',
+        'closed_at' => now(),
+        'closing_data' => [
+            'z_report_data' => [
+                'sales_net_minor_by_vat_rate' => ['15' => 1_000, '25' => 2_000],
+                'vat_minor_by_vat_rate' => ['15' => 150, '25' => 500],
+                'net_amount' => 3_000,
+                'vat_amount' => 650,
+                'vat_rate' => 25,
+                'total_tips' => 0,
+                'net_cash_amount' => 3_650,
+                'net_card_amount' => 0,
+                'net_mobile_amount' => 0,
+                'net_other_amount' => 0,
+                'store' => ['id' => $store->id, 'name' => $store->name],
+            ],
+        ],
+    ]);
+
+    $preview = app(TripletexSyncPreviewService::class)->previewZReport($session, $integration, false);
+
+    $accounts = collect($preview['lines'] ?? [])->pluck('account')->all();
+
+    expect($preview['ok'])->toBeTrue()
+        ->and($accounts)->toContain('3015')
+        ->and($accounts)->toContain('3025')
+        ->and($accounts)->toContain('2700');
+});
+
 it('includes tripletex voucher payload and postings display when Z preview resolves accounts', function () {
     fakeTripletexLedgerHttp();
 

@@ -36,6 +36,7 @@ return [
         'vat_types_section_description' => 'Valgfrie overstyringer per sats og for utgående MVA-linje. Tomt felt: bilaget bruker MVA-typen Tripletex returnerer på reskontokontoen ved oppslag (GET /ledger/account), slik at låste kontoer stemmer. Fyll inn bare når du trenger en annen Tripletex vatType-id enn kontostandard.',
         'skip_payout_bank_transfer_label' => 'Utelat mellomkonto-til-bank på utbetalingsbilag',
         'skip_payout_bank_transfer_help' => 'Når aktivert, utelates hovedparet (kredit mellomkonto / debet bank, f.eks. 1901 → 1920) ved automatisk utbetalingssynk, forhåndsvisning, retry og historiske utbetalingsjobber (med mindre du overstyrer per kjøring). Gebyrer, app-gebyr og eksterne billettlinjer bokføres fortsatt når de finnes. Bruk når bankperioden i Tripletex er stengt og du bokfører bankbevegelsen manuelt.',
+        'vat_sales_accounts_section_description' => 'Netto omsetning (ekskl. MVA) bokføres per sats når Z-rapporten har linjebasert MVA-fordeling (fra kvitterings-/belastningslinjer og produktets MVA-%). Fyll inn én reskontokonto per sats (0 %, 15 %, 25 %). Valgfrie Tripletex MVA-type-id-er under gjelder per salgslinje.',
     ],
     // Navigation Groups
     'navigation_groups' => [

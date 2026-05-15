@@ -13,9 +13,9 @@ use App\Models\Addon;
 use App\Models\ConnectedProduct;
 use App\Models\PosEvent;
 use App\Models\PosSession;
+use App\Models\PowerOfficeSyncRun;
 use App\Models\ProductVariant;
 use App\Models\Receipt;
-use App\Models\PowerOfficeSyncRun;
 use App\Models\Store;
 use App\Models\TripletexSyncRun;
 use App\Services\PowerOffice\PowerOfficeZReportSync;
@@ -1180,7 +1180,7 @@ class PosSessionsTable
             ])->values(),
         ];
 
-        return [
+        $report = [
             'session_id' => $session->id,
             'session_number' => $session->session_number,
             'opened_at' => $session->opened_at,
@@ -1249,6 +1249,306 @@ class PosSessionsTable
             'cash_withdrawals' => $cashWithdrawals,
             'cash_deposits' => $cashDeposits,
         ];
+
+        self::mergeLineItemVatSplitIntoZReportData($session, $report);
+
+        return $report;
+    }
+
+    /**
+     * When receipt/charge line items can be matched to product VAT rates, split Z-report sales net and
+     * output VAT into 0%, 15%, and 25% buckets for Tripletex/PowerOffice (see {@see sales_net_minor_by_vat_rate}).
+     *
+     * @param  array<string, mixed>  $report
+     */
+    public static function mergeLineItemVatSplitIntoZReportData(PosSession $session, array &$report): void
+    {
+        if (isset($report['sales_net_minor_by_vat_rate']) && is_array($report['sales_net_minor_by_vat_rate']) && $report['sales_net_minor_by_vat_rate'] !== []) {
+            return;
+        }
+
+        $agg = self::aggregateGrossMinorByVatBasisFromSessionLineItems($session);
+        if ($agg === null) {
+            return;
+        }
+
+        $grossByBasis = $agg['gross_by_basis'];
+        $lineGrossTotal = $agg['line_gross_total'];
+        $sessionGross = (int) ($report['total_amount'] ?? 0) - (int) ($report['total_refunded'] ?? 0);
+        if ($sessionGross > 0) {
+            $tolerance = max(50, (int) floor($sessionGross * 0.02));
+            if (abs($lineGrossTotal - $sessionGross) > $tolerance) {
+                return;
+            }
+        }
+
+        $salesNetMinorByVatRate = [];
+        $vatMinorByVatRate = [];
+
+        foreach ($grossByBasis as $basisKey => $gross) {
+            $gross = (int) $gross;
+            if ($gross <= 0) {
+                continue;
+            }
+            $r = (int) $basisKey;
+            if ($r === 0) {
+                $salesNetMinorByVatRate['0'] = $gross;
+            } else {
+                $net = (int) round($gross * 100 / (100 + $r));
+                $salesNetMinorByVatRate[(string) $r] = $net;
+                $vatPart = $gross - $net;
+                if ($vatPart > 0) {
+                    $vatMinorByVatRate[(string) $r] = $vatPart;
+                }
+            }
+        }
+
+        if ($salesNetMinorByVatRate === []) {
+            return;
+        }
+
+        $report['sales_net_minor_by_vat_rate'] = $salesNetMinorByVatRate;
+        $report['vat_minor_by_vat_rate'] = $vatMinorByVatRate;
+        $report['net_amount'] = array_sum($salesNetMinorByVatRate);
+        $report['vat_amount'] = array_sum($vatMinorByVatRate);
+        $report['vat_base'] = $report['net_amount'];
+
+        $dominant = '25';
+        $maxNet = -1;
+        foreach ($salesNetMinorByVatRate as $k => $n) {
+            if ((int) $n > $maxNet) {
+                $maxNet = (int) $n;
+                $dominant = (string) $k;
+            }
+        }
+        $report['vat_rate'] = (int) $dominant;
+    }
+
+    /**
+     * @return array{gross_by_basis: array<string, int>, line_gross_total: int}|null
+     */
+    protected static function aggregateGrossMinorByVatBasisFromSessionLineItems(PosSession $session): ?array
+    {
+        $session->load(['receipts.charge', 'charges']);
+
+        $grossByBasis = [];
+        foreach (PowerOfficeStandardVatRates::basisKeys() as $k) {
+            $grossByBasis[$k] = 0;
+        }
+
+        $salesReceipts = $session->receipts->where('receipt_type', 'sales')->filter(function ($receipt) {
+            if (! $receipt->charge_id) {
+                return true;
+            }
+
+            return $receipt->charge && $receipt->charge->status === 'succeeded';
+        });
+
+        $chargesInSession = $session->charges->whereIn('status', ['succeeded', 'refunded'])->pluck('id');
+        if ($chargesInSession->isNotEmpty()) {
+            $receiptsByCharge = Receipt::whereIn('charge_id', $chargesInSession)
+                ->where('receipt_type', 'sales')
+                ->with('charge')
+                ->get()
+                ->filter(function ($receipt) {
+                    if (! $receipt->charge_id) {
+                        return false;
+                    }
+
+                    return $receipt->charge && $receipt->charge->status === 'succeeded';
+                });
+
+            $salesReceipts = $salesReceipts->merge($receiptsByCharge)->unique('id');
+        }
+
+        $productIds = [];
+        $variantIds = [];
+        foreach ($salesReceipts as $receipt) {
+            $items = $receipt->receipt_data['items'] ?? [];
+            foreach ($items as $item) {
+                if (isset($item['product_id'])) {
+                    $productIds[] = (int) $item['product_id'];
+                }
+                if (isset($item['variant_id'])) {
+                    $variantIds[] = (int) $item['variant_id'];
+                }
+            }
+        }
+
+        $chargesWithoutReceipts = $session->charges
+            ->whereIn('status', ['succeeded', 'refunded'])
+            ->filter(function ($charge) use ($salesReceipts) {
+                return ! $salesReceipts->contains('charge_id', $charge->id);
+            });
+
+        foreach ($chargesWithoutReceipts as $charge) {
+            $items = $charge->metadata['items'] ?? [];
+            foreach ($items as $item) {
+                if (isset($item['product_id'])) {
+                    $productIds[] = (int) $item['product_id'];
+                }
+                if (isset($item['variant_id'])) {
+                    $variantIds[] = (int) $item['variant_id'];
+                }
+            }
+        }
+
+        $products = ConnectedProduct::query()->whereIn('id', array_unique($productIds))->get()->keyBy('id');
+        $variants = ProductVariant::query()->whereIn('id', array_unique($variantIds))->with('product')->get()->keyBy('id');
+
+        foreach ($salesReceipts as $receipt) {
+            $items = $receipt->receipt_data['items'] ?? [];
+            $receiptData = is_array($receipt->receipt_data) ? $receipt->receipt_data : [];
+            $receiptTotalDiscounts = self::parseTotalDiscountsFromPayload($receiptData);
+            if ($receiptTotalDiscounts === 0 && $receipt->charge && is_array($receipt->charge->metadata)) {
+                $receiptTotalDiscounts = self::parseTotalDiscountsFromPayload($receipt->charge->metadata);
+            }
+            $lineItems = [];
+
+            foreach ($items as $item) {
+                $productId = $item['product_id'] ?? null;
+                $variantId = $item['variant_id'] ?? null;
+                $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+
+                $lineTotal = 0;
+                if (isset($item['line_total_amount'])) {
+                    $lineTotal = (int) $item['line_total_amount'];
+                } elseif (isset($item['price_amount'])) {
+                    $lineTotal = (int) round((float) $item['price_amount'] * $quantity);
+                } elseif (isset($item['line_total'])) {
+                    $lineTotal = self::parsePriceFromReceiptItem($item['line_total']);
+                } elseif (isset($item['unit_price'])) {
+                    $unitPrice = self::parsePriceFromReceiptItem($item['unit_price']);
+                    $lineTotal = (int) round($unitPrice * $quantity);
+                }
+
+                $itemDiscount = 0;
+                if (isset($item['discount_total_amount'])) {
+                    $itemDiscount = max(0, self::parsePriceFromReceiptItem($item['discount_total_amount']));
+                } elseif (isset($item['discount_amount'])) {
+                    $discountPerUnit = max(0, self::parsePriceFromReceiptItem($item['discount_amount']));
+                    $itemDiscount = (int) round($discountPerUnit * $quantity);
+                }
+
+                $product = null;
+                $variant = null;
+                if ($variantId && isset($variants[$variantId])) {
+                    $variant = $variants[$variantId];
+                    $product = $variant->product;
+                } elseif ($productId && isset($products[$productId])) {
+                    $product = $products[$productId];
+                }
+
+                $vatBasis = self::resolveVatBasisKeyForPosLineItem($product, $variant);
+
+                $lineItems[] = [
+                    'line_total' => $lineTotal,
+                    'item_discount' => $itemDiscount,
+                    'vat_basis' => $vatBasis,
+                ];
+            }
+
+            $lineItems = self::applyDiscountsToLineItems($lineItems, $receiptTotalDiscounts);
+
+            foreach ($lineItems as $lineItem) {
+                $basis = (string) ($lineItem['vat_basis'] ?? '25');
+                if (! in_array($basis, PowerOfficeStandardVatRates::basisKeys(), true)) {
+                    $basis = '25';
+                }
+                $grossByBasis[$basis] = ($grossByBasis[$basis] ?? 0) + (int) ($lineItem['line_total'] ?? 0);
+            }
+        }
+
+        foreach ($chargesWithoutReceipts as $charge) {
+            $items = $charge->metadata['items'] ?? [];
+            $metadata = is_array($charge->metadata) ? $charge->metadata : [];
+            $metadataTotalDiscounts = self::parseTotalDiscountsFromPayload($metadata);
+            $lineItems = [];
+
+            foreach ($items as $item) {
+                $productId = $item['product_id'] ?? null;
+                $variantId = $item['variant_id'] ?? null;
+                $quantity = isset($item['quantity']) ? (float) $item['quantity'] : 1.0;
+
+                $lineTotal = 0;
+                if (isset($item['unit_price'])) {
+                    $unitPrice = is_numeric($item['unit_price']) ? (int) $item['unit_price'] : self::parsePriceFromReceiptItem($item['unit_price']);
+                    $lineTotal = (int) round($unitPrice * $quantity);
+                }
+
+                $itemDiscount = 0;
+                if (isset($item['discount_total_amount'])) {
+                    $itemDiscount = max(0, self::parsePriceFromReceiptItem($item['discount_total_amount']));
+                } elseif (isset($item['discount_amount'])) {
+                    $discountPerUnit = max(0, self::parsePriceFromReceiptItem($item['discount_amount']));
+                    $itemDiscount = (int) round($discountPerUnit * $quantity);
+                }
+
+                $product = null;
+                $variant = null;
+                if ($variantId && isset($variants[$variantId])) {
+                    $variant = $variants[$variantId];
+                    $product = $variant->product;
+                } elseif ($productId && isset($products[$productId])) {
+                    $product = $products[$productId];
+                }
+
+                $vatBasis = self::resolveVatBasisKeyForPosLineItem($product, $variant);
+
+                $lineItems[] = [
+                    'line_total' => $lineTotal,
+                    'item_discount' => $itemDiscount,
+                    'vat_basis' => $vatBasis,
+                ];
+            }
+
+            $lineItems = self::applyDiscountsToLineItems($lineItems, $metadataTotalDiscounts);
+
+            foreach ($lineItems as $lineItem) {
+                $basis = (string) ($lineItem['vat_basis'] ?? '25');
+                if (! in_array($basis, PowerOfficeStandardVatRates::basisKeys(), true)) {
+                    $basis = '25';
+                }
+                $grossByBasis[$basis] = ($grossByBasis[$basis] ?? 0) + (int) ($lineItem['line_total'] ?? 0);
+            }
+        }
+
+        $lineGrossTotal = 0;
+        foreach ($grossByBasis as $v) {
+            $lineGrossTotal += (int) $v;
+        }
+
+        if ($lineGrossTotal <= 0) {
+            return null;
+        }
+
+        return [
+            'gross_by_basis' => array_filter($grossByBasis, fn (int $v): bool => $v > 0),
+            'line_gross_total' => $lineGrossTotal,
+        ];
+    }
+
+    protected static function resolveVatBasisKeyForPosLineItem(?ConnectedProduct $product, ?ProductVariant $variant): string
+    {
+        if ($variant !== null && $variant->taxable === false) {
+            return '0';
+        }
+        if ($product === null) {
+            return '25';
+        }
+        $v = (float) ($product->vat_percent ?? 25.0);
+        $rounded = (int) round($v);
+        if (in_array($rounded, [0, 15, 25], true)) {
+            return (string) $rounded;
+        }
+        if ($rounded < 8) {
+            return '0';
+        }
+        if ($rounded < 20) {
+            return '15';
+        }
+
+        return '25';
     }
 
     /**
@@ -1420,6 +1720,17 @@ class PosSessionsTable
                     'payout_to_bank_minor' => $cachedReport['payout_to_bank_minor'] ?? null,
                 ];
                 if ($stripeSnapshotBefore !== $stripeSnapshotAfter && ! $dryRun) {
+                    $closingData = $session->closing_data;
+                    $closingData['z_report_data'] = $cachedReport;
+                    $closingData['z_report_data_backfilled_at'] = now()->toISOString();
+                    $session->closing_data = $closingData;
+                    $session->saveQuietly();
+                }
+
+                $hadVatSplit = ! empty($cachedReport['sales_net_minor_by_vat_rate'] ?? null);
+                $session->load(['receipts.charge', 'charges']);
+                self::mergeLineItemVatSplitIntoZReportData($session, $cachedReport);
+                if (! $hadVatSplit && ! empty($cachedReport['sales_net_minor_by_vat_rate'] ?? null) && ! $dryRun) {
                     $closingData = $session->closing_data;
                     $closingData['z_report_data'] = $cachedReport;
                     $closingData['z_report_data_backfilled_at'] = now()->toISOString();

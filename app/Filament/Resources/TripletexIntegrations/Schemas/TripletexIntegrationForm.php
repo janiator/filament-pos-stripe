@@ -75,7 +75,7 @@ class TripletexIntegrationForm
                             ->live()
                             ->native(false),
                         Section::make('Revenue account by VAT rate')
-                            ->description(__('Only rates you expect on Z-reports need a number.'))
+                            ->description(__('filament.tripletex.vat_sales_accounts_section_description'))
                             ->visible(fn (Get $get): bool => $get('mapping_basis') === PowerOfficeMappingBasis::Vat->value)
                             ->columns(1)
                             ->schema(collect(PowerOfficeStandardVatRates::options())

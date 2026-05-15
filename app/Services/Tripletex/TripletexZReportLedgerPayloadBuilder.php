@@ -51,7 +51,18 @@ class TripletexZReportLedgerPayloadBuilder
 
         $bucketTotal = array_sum($buckets);
         if ($bucketTotal <= 0 && $netAmount > 0) {
-            $buckets[(string) (int) ($zReport['vat_rate'] ?? 25)] = $netAmount;
+            $split = $zReport['sales_net_minor_by_vat_rate'] ?? null;
+            if (is_array($split) && $split !== []) {
+                foreach ($split as $key => $val) {
+                    $k = (string) (int) (string) $key;
+                    $n = (int) $val;
+                    if ($n > 0) {
+                        $buckets[$k] = $n;
+                    }
+                }
+            } else {
+                $buckets[(string) (int) ($zReport['vat_rate'] ?? 25)] = $netAmount;
+            }
         }
 
         $dayBundle = $this->sessionChargeDayWeights($session);
@@ -154,19 +165,15 @@ class TripletexZReportLedgerPayloadBuilder
             $lines[] = $line;
         }
 
-        if ($vatAmount > 0 && $defaultMapping->vat_account_no) {
-            $vatLine = [
-                'account' => $defaultMapping->vat_account_no,
-                'debit_minor' => 0,
-                'credit_minor' => $vatAmount,
-                'description' => 'Z-report '.$session->session_number.' VAT',
-            ];
-            $outVat = TripletexLedgerSettings::tripletexVatTypeOutputVat($integration);
-            if ($outVat !== null) {
-                $vatLine['tripletex_vat_type_id'] = $outVat;
-            }
-            $lines[] = $vatLine;
-        }
+        $this->appendZReportVatCreditLines(
+            $lines,
+            $session,
+            $integration,
+            $defaultMapping,
+            $zReport,
+            $vatAmount,
+            null,
+        );
 
         if ($tipsAmount > 0 && $defaultMapping->tips_account_no) {
             $lines[] = [
@@ -245,7 +252,33 @@ class TripletexZReportLedgerPayloadBuilder
             }
         }
 
-        if ($vatAmount > 0 && $defaultMapping->vat_account_no) {
+        $vatByRate = $zReport['vat_minor_by_vat_rate'] ?? null;
+        if (is_array($vatByRate) && $vatByRate !== [] && $defaultMapping->vat_account_no) {
+            foreach ($vatByRate as $rateKey => $vatPart) {
+                $vatPart = (int) $vatPart;
+                if ($vatPart <= 0) {
+                    continue;
+                }
+                $outVat = TripletexLedgerSettings::tripletexVatTypeIdForSalesBasisKey($integration, (string) $rateKey)
+                    ?? TripletexLedgerSettings::tripletexVatTypeOutputVat($integration);
+                foreach ($this->allocateIntegerAcrossDays($vatPart, $byDayTotal) as $day => $slice) {
+                    if ($slice <= 0) {
+                        continue;
+                    }
+                    $vatLine = [
+                        'account' => $defaultMapping->vat_account_no,
+                        'debit_minor' => 0,
+                        'credit_minor' => $slice,
+                        'posting_date' => $day,
+                        'description' => 'Z-report '.$session->session_number.' VAT '.$rateKey.'% '.$day,
+                    ];
+                    if ($outVat !== null) {
+                        $vatLine['tripletex_vat_type_id'] = $outVat;
+                    }
+                    $lines[] = $vatLine;
+                }
+            }
+        } elseif ($vatAmount > 0 && $defaultMapping->vat_account_no) {
             $outVat = TripletexLedgerSettings::tripletexVatTypeOutputVat($integration);
             foreach ($this->allocateIntegerAcrossDays($vatAmount, $byDayTotal) as $day => $slice) {
                 if ($slice <= 0) {
@@ -307,6 +340,63 @@ class TripletexZReportLedgerPayloadBuilder
         );
 
         return $lines;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $lines
+     */
+    protected function appendZReportVatCreditLines(
+        array &$lines,
+        PosSession $session,
+        TripletexIntegration $integration,
+        TripletexAccountMapping $defaultMapping,
+        array $zReport,
+        int $vatAmount,
+        ?string $postingDate,
+    ): void {
+        $vatByRate = $zReport['vat_minor_by_vat_rate'] ?? null;
+        if (is_array($vatByRate) && $vatByRate !== [] && $defaultMapping->vat_account_no) {
+            foreach ($vatByRate as $rateKey => $vatPart) {
+                $vatPart = (int) $vatPart;
+                if ($vatPart <= 0) {
+                    continue;
+                }
+                $outVat = TripletexLedgerSettings::tripletexVatTypeIdForSalesBasisKey($integration, (string) $rateKey)
+                    ?? TripletexLedgerSettings::tripletexVatTypeOutputVat($integration);
+                $vatLine = [
+                    'account' => $defaultMapping->vat_account_no,
+                    'debit_minor' => 0,
+                    'credit_minor' => $vatPart,
+                    'description' => 'Z-report '.$session->session_number.' VAT '.$rateKey.'%',
+                ];
+                if ($postingDate !== null) {
+                    $vatLine['posting_date'] = $postingDate;
+                }
+                if ($outVat !== null) {
+                    $vatLine['tripletex_vat_type_id'] = $outVat;
+                }
+                $lines[] = $vatLine;
+            }
+
+            return;
+        }
+
+        if ($vatAmount > 0 && $defaultMapping->vat_account_no) {
+            $vatLine = [
+                'account' => $defaultMapping->vat_account_no,
+                'debit_minor' => 0,
+                'credit_minor' => $vatAmount,
+                'description' => 'Z-report '.$session->session_number.' VAT',
+            ];
+            if ($postingDate !== null) {
+                $vatLine['posting_date'] = $postingDate;
+            }
+            $outVat = TripletexLedgerSettings::tripletexVatTypeOutputVat($integration);
+            if ($outVat !== null) {
+                $vatLine['tripletex_vat_type_id'] = $outVat;
+            }
+            $lines[] = $vatLine;
+        }
     }
 
     /**
@@ -927,6 +1017,21 @@ class TripletexZReportLedgerPayloadBuilder
      */
     protected function bucketsForVat(array $zReport): array
     {
+        $split = $zReport['sales_net_minor_by_vat_rate'] ?? null;
+        if (is_array($split) && $split !== []) {
+            $buckets = [];
+            foreach ($split as $key => $val) {
+                $k = (string) (int) (string) $key;
+                $n = (int) $val;
+                if ($n > 0) {
+                    $buckets[$k] = $n;
+                }
+            }
+            if ($buckets !== []) {
+                return $buckets;
+            }
+        }
+
         $rate = (string) (int) ($zReport['vat_rate'] ?? 25);
         $net = (int) ($zReport['net_amount'] ?? 0);
 
