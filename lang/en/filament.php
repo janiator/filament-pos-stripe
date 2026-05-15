@@ -34,6 +34,8 @@ return [
         'external_ticket_metadata_keys_placeholder' => 'Leave empty for default (booking_id, eventKey, or event_key)',
         'external_ticket_metadata_keys_help' => 'Leave empty: a charge qualifies if any of booking_id, eventKey, or event_key is non-empty in merged metadata (OR). If you enter keys, every listed key must be present (AND). Comma-separated.',
         'vat_types_section_description' => 'Optional overrides per rate and for the output-VAT line. If you leave a field empty, the voucher uses the VAT type returned on each Tripletex ledger account when accounts are resolved (GET /ledger/account), which matches locked accounts. Fill a value only when you need a different Tripletex vatType id than the account default.',
+        'skip_payout_bank_transfer_label' => 'Skip clearing-to-bank lines on payout vouchers',
+        'skip_payout_bank_transfer_help' => 'When enabled, automatic payout sync, previews, retries, and historical payout jobs (unless you override per run) omit the main settlement pair (payout clearing account credit vs bank debit, e.g. 1901 → 1920). Fees, application fees, and external ticket lines still post when present. Use when the bank period in Tripletex is closed and you record the bank movement manually.',
     ],
     'resources' => [
         'store' => [

@@ -32,6 +32,7 @@ class TripletexIntegrationFactory extends Factory
             'auto_sync_on_z_report' => true,
             'auto_sync_payouts' => false,
             'z_report_include_settlement' => false,
+            'skip_payout_bank_transfer' => false,
             'last_synced_at' => null,
             'last_error' => null,
             'settings' => null,

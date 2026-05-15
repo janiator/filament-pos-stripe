@@ -29,21 +29,9 @@ class ConnectedChargeResource extends Resource
     // Disable automatic tenant scoping - we'll handle it manually via trait
     protected static ?string $tenantOwnershipRelationshipName = null;
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    protected static function tenantScopesUsingStripeAccountId(): bool
     {
-        $query = parent::getEloquentQuery();
-
-        try {
-            $tenant = \Filament\Facades\Filament::getTenant();
-            if ($tenant && $tenant->slug !== 'visivo-admin' && $tenant->stripe_account_id) {
-                // ConnectedCharge uses stripe_account_id, not store_id
-                $query->where('connected_charges.stripe_account_id', $tenant->stripe_account_id);
-            }
-        } catch (\Throwable $e) {
-            // Fallback if Filament facade not available
-        }
-
-        return $query;
+        return true;
     }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;

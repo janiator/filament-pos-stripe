@@ -31,6 +31,11 @@ class PosDeviceResource extends Resource
     // Disable automatic tenant scoping - we'll handle it manually via trait
     protected static ?string $tenantOwnershipRelationshipName = null;
 
+    protected static function tenantScopesUsingStoreIdColumn(): bool
+    {
+        return true;
+    }
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDevicePhoneMobile;
 
     protected static ?string $recordTitleAttribute = 'device_name';

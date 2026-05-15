@@ -61,18 +61,9 @@ class EventTicketResource extends Resource
         return false;
     }
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    protected static function tenantScopesUsingStoreIdColumn(): bool
     {
-        $query = parent::getEloquentQuery();
-        try {
-            $tenant = \Filament\Facades\Filament::getTenant();
-            if ($tenant && $tenant->slug !== 'visivo-admin') {
-                $query->where('store_id', $tenant->id);
-            }
-        } catch (\Throwable $e) {
-        }
-
-        return $query;
+        return true;
     }
 
     public static function form(Schema $schema): Schema

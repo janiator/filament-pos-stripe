@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\Vendors;
 
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\Vendors\Pages\CreateVendor;
 use App\Filament\Resources\Vendors\Pages\EditVendor;
 use App\Filament\Resources\Vendors\Pages\ListVendors;
 use App\Filament\Resources\Vendors\Schemas\VendorForm;
 use App\Filament\Resources\Vendors\Tables\VendorsTable;
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\Vendor;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -22,6 +22,11 @@ class VendorResource extends Resource
     protected static ?string $model = Vendor::class;
 
     protected static ?string $tenantOwnershipRelationshipName = null;
+
+    protected static function tenantScopesUsingStoreIdColumn(): bool
+    {
+        return true;
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingStorefront;
 

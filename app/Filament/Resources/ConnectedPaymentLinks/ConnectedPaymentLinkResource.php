@@ -36,6 +36,11 @@ class ConnectedPaymentLinkResource extends Resource
     // Disable automatic tenant scoping - we'll handle it manually via trait
     protected static ?string $tenantOwnershipRelationshipName = null;
 
+    protected static function tenantScopesUsingStripeAccountId(): bool
+    {
+        return true;
+    }
+
     public static function getLabel(): string
     {
         return __('filament.resources.connected_payment_link.label');

@@ -571,6 +571,39 @@ it('dispatches payout sync job when a paid payout is saved and auto_sync_payouts
     Queue::assertPushed(SyncTripletexPayoutJob::class);
 });
 
+it('dispatches payout sync job with skip bank transfer when integration omits clearing-to-bank', function () {
+    Queue::fake();
+
+    $store = Store::factory()->create();
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::Tripletex,
+        'is_active' => true,
+    ]);
+
+    TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'sync_enabled' => true,
+        'auto_sync_payouts' => true,
+        'skip_payout_bank_transfer' => true,
+    ]);
+
+    StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_observer_skip_bank',
+        'amount' => 5_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]);
+
+    Queue::assertPushed(SyncTripletexPayoutJob::class, function (SyncTripletexPayoutJob $job): bool {
+        return $job->skipPayoutBankTransfer === true;
+    });
+});
+
 it('returns a Z-report preview with ledger lines without posting', function () {
     $store = Store::factory()->create();
     Addon::query()->create([
@@ -789,6 +822,52 @@ it('queues historical Z-report jobs via API', function () {
         ->assertJsonPath('queued', 1);
 
     Queue::assertPushed(SyncTripletexZReportJob::class, 1);
+});
+
+it('queues historical payout jobs using integration skip bank transfer when API body omits the flag', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $store = Store::factory()->create();
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::Tripletex,
+        'is_active' => true,
+    ]);
+
+    TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'sync_enabled' => true,
+        'skip_payout_bank_transfer' => true,
+    ]);
+
+    StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_hist_api_default_skip',
+        'amount' => 1_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    Sanctum::actingAs($user, ['*']);
+
+    $this->postJson('/api/tripletex/sync/historical', [
+        'type' => 'payout',
+        'limit' => 10,
+        'only_missing' => false,
+    ])
+        ->assertOk()
+        ->assertJsonPath('queued', 1);
+
+    Queue::assertPushed(SyncTripletexPayoutJob::class, function (SyncTripletexPayoutJob $job): bool {
+        return $job->skipPayoutBankTransfer === true;
+    });
 });
 
 it('records a skipped Tripletex Z-report sync run when the Z-report has nothing to post', function () {
@@ -1036,6 +1115,62 @@ it('includes payout external ticket sales diagnostics on Tripletex payout previe
         ->and($preview['payout_external_ticket_sales'])->toBeArray()
         ->and($preview['payout_external_ticket_sales']['enabled'])->toBeFalse()
         ->and($preview['payout_external_ticket_sales']['notes'])->not->toBeEmpty();
+});
+
+it('Tripletex payout preview omits clearing-to-bank when integration skip_payout_bank_transfer is true', function () {
+    $store = Store::factory()->create();
+
+    $integration = TripletexIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'skip_payout_bank_transfer' => true,
+        'settings' => [
+            'ledger' => [
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_fee' => [
+                    'credit_account_no' => '1901',
+                    'debit_account_no' => '7771',
+                ],
+            ],
+        ],
+    ]);
+
+    $payout = StoreStripePayout::withoutEvents(fn (): StoreStripePayout => StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_payout_id' => 'po_preview_skip_bank_integration',
+        'amount' => 12_000,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => now(),
+        'automatic' => true,
+    ]));
+
+    StoreStripeBalanceTransaction::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => (string) $store->stripe_account_id,
+        'stripe_balance_transaction_id' => 'txn_preview_skip_bank_int_1',
+        'type' => 'charge',
+        'amount' => 20_000,
+        'fee' => 500,
+        'net' => 19_500,
+        'currency' => 'nok',
+        'stripe_charge_id' => 'ch_preview_skip_bank_int_1',
+        'stripe_payout_id' => $payout->stripe_payout_id,
+        'stripe_created' => (int) now()->subDay()->timestamp,
+    ]);
+
+    $preview = app(TripletexSyncPreviewService::class)->previewPayout($payout, $integration, false);
+
+    $kinds = collect($preview['lines'] ?? [])->pluck('line_kind')->all();
+
+    expect($preview['ok'])->toBeTrue()
+        ->and($preview['skip_payout_bank_transfer'] ?? false)->toBeTrue()
+        ->and($kinds)->not->toContain('payout_bank')
+        ->and($kinds)->not->toContain('payout_clearing')
+        ->and($kinds)->toContain('stripe_processing_fee_expense');
 });
 
 it('hydrates payout-scoped balance transactions before Tripletex payout preview when sale source rows are missing', function () {

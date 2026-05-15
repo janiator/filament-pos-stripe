@@ -34,6 +34,8 @@ return [
         'external_ticket_metadata_keys_placeholder' => 'Tomt = standard (booking_id, eventKey eller event_key)',
         'external_ticket_metadata_keys_help' => 'Tomt: en betaling kvalifiserer hvis minst én av booking_id, eventKey eller event_key er satt i slått-sammen metadata (ELLER). Hvis du fyller inn nøkler, må alle oppførte nøkler være satt (OG). Kommaseparert.',
         'vat_types_section_description' => 'Valgfrie overstyringer per sats og for utgående MVA-linje. Tomt felt: bilaget bruker MVA-typen Tripletex returnerer på reskontokontoen ved oppslag (GET /ledger/account), slik at låste kontoer stemmer. Fyll inn bare når du trenger en annen Tripletex vatType-id enn kontostandard.',
+        'skip_payout_bank_transfer_label' => 'Utelat mellomkonto-til-bank på utbetalingsbilag',
+        'skip_payout_bank_transfer_help' => 'Når aktivert, utelates hovedparet (kredit mellomkonto / debet bank, f.eks. 1901 → 1920) ved automatisk utbetalingssynk, forhåndsvisning, retry og historiske utbetalingsjobber (med mindre du overstyrer per kjøring). Gebyrer, app-gebyr og eksterne billettlinjer bokføres fortsatt når de finnes. Bruk når bankperioden i Tripletex er stengt og du bokfører bankbevegelsen manuelt.',
     ],
     // Navigation Groups
     'navigation_groups' => [

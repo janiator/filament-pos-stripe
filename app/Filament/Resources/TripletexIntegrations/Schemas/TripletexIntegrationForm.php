@@ -53,6 +53,11 @@ class TripletexIntegrationForm
                             ->label(__('Sync automatically when a Stripe payout is marked paid'))
                             ->default(false)
                             ->visible(fn (Get $get): bool => (bool) $get('sync_enabled')),
+                        Toggle::make('skip_payout_bank_transfer')
+                            ->label(__('filament.tripletex.skip_payout_bank_transfer_label'))
+                            ->helperText(__('filament.tripletex.skip_payout_bank_transfer_help'))
+                            ->default(false)
+                            ->visible(fn (Get $get): bool => (bool) $get('sync_enabled')),
                         Toggle::make('z_report_include_settlement')
                             ->label(__('Include fee/payout settlement lines on Z-report vouchers'))
                             ->helperText(__('When off (recommended), payout sync posts bank/fees separately. When on, Z-report vouchers include the same paired fee/payout lines as PowerOffice.'))

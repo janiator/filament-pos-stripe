@@ -23,6 +23,11 @@ class CouponResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = null;
 
+    protected static function tenantScopesUsingStoreIdColumn(): bool
+    {
+        return true;
+    }
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;
 
     protected static ?string $recordTitleAttribute = 'code';

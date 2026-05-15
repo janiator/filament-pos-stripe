@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ConnectedPrices;
 
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ConnectedPrices\Pages\CreateConnectedPrice;
 use App\Filament\Resources\ConnectedPrices\Pages\EditConnectedPrice;
 use App\Filament\Resources\ConnectedPrices\Pages\ListConnectedPrices;
@@ -9,7 +10,6 @@ use App\Filament\Resources\ConnectedPrices\Pages\ViewConnectedPrice;
 use App\Filament\Resources\ConnectedPrices\Schemas\ConnectedPriceForm;
 use App\Filament\Resources\ConnectedPrices\Schemas\ConnectedPriceInfolist;
 use App\Filament\Resources\ConnectedPrices\Tables\ConnectedPricesTable;
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedPrice;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -25,6 +25,11 @@ class ConnectedPriceResource extends Resource
 
     // Disable automatic tenant scoping - we'll handle it manually via trait
     protected static ?string $tenantOwnershipRelationshipName = null;
+
+    protected static function tenantScopesUsingStripeAccountId(): bool
+    {
+        return true;
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
 

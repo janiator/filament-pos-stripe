@@ -90,7 +90,14 @@ class TripletexSyncController extends BaseApiController
             return response()->json(['message' => 'Payout must be in paid status to sync.'], 422);
         }
 
-        SyncTripletexPayoutJob::dispatch($payoutRow->id, true);
+        $body = $request->validate([
+            'skip_payout_bank_transfer' => 'nullable|boolean',
+        ]);
+        $skipPayoutBankTransfer = array_key_exists('skip_payout_bank_transfer', $body)
+            ? (bool) $body['skip_payout_bank_transfer']
+            : (bool) $integration->skip_payout_bank_transfer;
+
+        SyncTripletexPayoutJob::dispatch($payoutRow->id, true, $skipPayoutBankTransfer);
 
         return response()->json([
             'message' => 'Tripletex payout sync queued.',
@@ -135,7 +142,14 @@ class TripletexSyncController extends BaseApiController
         }
 
         if ($run->sync_type === TripletexSyncType::Payout && $run->store_stripe_payout_id) {
-            SyncTripletexPayoutJob::dispatch($run->store_stripe_payout_id, true);
+            $body = $request->validate([
+                'skip_payout_bank_transfer' => 'nullable|boolean',
+            ]);
+            $skipPayoutBankTransfer = array_key_exists('skip_payout_bank_transfer', $body)
+                ? (bool) $body['skip_payout_bank_transfer']
+                : (bool) $integration->skip_payout_bank_transfer;
+
+            SyncTripletexPayoutJob::dispatch($run->store_stripe_payout_id, true, $skipPayoutBankTransfer);
 
             return response()->json([
                 'message' => 'Tripletex payout sync retry queued.',
@@ -244,7 +258,9 @@ class TripletexSyncController extends BaseApiController
         }
         $limit = (int) ($data['limit'] ?? 50);
         $onlyMissing = (bool) ($data['only_missing'] ?? true);
-        $skipPayoutBankTransfer = (bool) ($data['skip_payout_bank_transfer'] ?? false);
+        $skipPayoutBankTransfer = array_key_exists('skip_payout_bank_transfer', $data)
+            ? (bool) $data['skip_payout_bank_transfer']
+            : (bool) $integration->skip_payout_bank_transfer;
 
         $service = app(TripletexHistoricalSyncService::class);
 

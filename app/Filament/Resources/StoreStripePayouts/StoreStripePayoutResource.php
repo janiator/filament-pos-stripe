@@ -24,7 +24,13 @@ class StoreStripePayoutResource extends Resource
 
     protected static ?string $model = StoreStripePayout::class;
 
+    // Payout rows belong to a store via store_id (not pos_device); scope explicitly.
     protected static ?string $tenantOwnershipRelationshipName = null;
+
+    protected static function tenantScopesUsingStoreIdColumn(): bool
+    {
+        return true;
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 

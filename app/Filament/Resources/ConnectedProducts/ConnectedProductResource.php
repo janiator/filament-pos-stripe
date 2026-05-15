@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ConnectedProducts;
 
+use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Filament\Resources\ConnectedProducts\Pages\CreateConnectedProduct;
 use App\Filament\Resources\ConnectedProducts\Pages\EditConnectedProduct;
 use App\Filament\Resources\ConnectedProducts\Pages\ImportProductsZip;
@@ -11,7 +12,6 @@ use App\Filament\Resources\ConnectedProducts\Pages\ViewConnectedProduct;
 use App\Filament\Resources\ConnectedProducts\Schemas\ConnectedProductForm;
 use App\Filament\Resources\ConnectedProducts\Schemas\ConnectedProductInfolist;
 use App\Filament\Resources\ConnectedProducts\Tables\ConnectedProductsTable;
-use App\Filament\Resources\Concerns\HasTenantScopedQuery;
 use App\Models\ConnectedProduct;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -27,6 +27,11 @@ class ConnectedProductResource extends Resource
 
     // Disable automatic tenant scoping - we'll handle it manually via trait
     protected static ?string $tenantOwnershipRelationshipName = null;
+
+    protected static function tenantScopesUsingStripeAccountId(): bool
+    {
+        return true;
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

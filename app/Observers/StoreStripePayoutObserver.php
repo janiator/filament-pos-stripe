@@ -32,6 +32,10 @@ class StoreStripePayoutObserver
             return;
         }
 
-        SyncTripletexPayoutJob::dispatch($payout->id);
+        SyncTripletexPayoutJob::dispatch(
+            $payout->id,
+            false,
+            (bool) $integration->skip_payout_bank_transfer,
+        );
     }
 }

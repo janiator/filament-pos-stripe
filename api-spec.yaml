@@ -5025,7 +5025,9 @@ paths:
       tags:
         - Tripletex
       summary: Queue Stripe payout voucher sync to Tripletex
-      description: Queues a job to post a voucher for a **paid** mirrored Stripe payout (`store_stripe_payouts` row id).
+      description: |
+        Queues a job to post a voucher for a **paid** mirrored Stripe payout (`store_stripe_payouts` row id).
+        Optional JSON body: `skip_payout_bank_transfer` overrides the integration default for this job only.
       operationId: tripletexSyncPayout
       parameters:
         - name: payout
@@ -5034,6 +5036,18 @@ paths:
           schema:
             type: integer
           description: Primary key of `store_stripe_payouts` for this store
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                skip_payout_bank_transfer:
+                  type: boolean
+                  description: |
+                    When true, omit the main clearing-to-bank pair for this job only.
+                    When omitted, uses the store's Tripletex integration `skip_payout_bank_transfer` (Filament **Tripletex → Sync**).
       responses:
         '200':
           description: Job queued
@@ -5068,6 +5082,18 @@ paths:
           required: true
           schema:
             type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                skip_payout_bank_transfer:
+                  type: boolean
+                  description: |
+                    For payout retries only. When true, omit clearing-to-bank for this job.
+                    When omitted, uses the integration `skip_payout_bank_transfer` setting.
       responses:
         '200':
           description: Retry queued
@@ -5198,11 +5224,12 @@ paths:
                   description: When true, skip rows that already have a successful Tripletex sync run
                 skip_payout_bank_transfer:
                   type: boolean
-                  default: false
                   description: |
                     For `type=payout` only. When true, each queued job omits the main clearing-to-bank voucher pair
                     (configured ledger payout credit vs debit bank accounts, often 1901 → 1920) so fees and other
                     payout lines can still post when the Tripletex bank period is closed.
+                    When the property is **omitted**, the integration's stored `skip_payout_bank_transfer` is used
+                    (same default as Filament **Tripletex → Sync**).
       responses:
         '200':
           description: Jobs queued

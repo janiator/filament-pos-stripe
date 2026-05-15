@@ -75,7 +75,9 @@ class TripletexSyncRunsTable
                         }
 
                         if ($record->sync_type === TripletexSyncType::Payout && $record->store_stripe_payout_id) {
-                            SyncTripletexPayoutJob::dispatch($record->store_stripe_payout_id, true);
+                            $record->loadMissing('integration');
+                            $skipBank = (bool) ($record->integration?->skip_payout_bank_transfer ?? false);
+                            SyncTripletexPayoutJob::dispatch($record->store_stripe_payout_id, true, $skipBank);
                             Notification::make()
                                 ->title(__('Tripletex payout retry queued'))
                                 ->success()

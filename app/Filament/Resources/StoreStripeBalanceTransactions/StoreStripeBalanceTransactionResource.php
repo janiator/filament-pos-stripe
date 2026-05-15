@@ -26,6 +26,11 @@ class StoreStripeBalanceTransactionResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = null;
 
+    protected static function tenantScopesUsingStoreIdColumn(): bool
+    {
+        return true;
+    }
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;
 
     protected static ?string $recordTitleAttribute = 'stripe_balance_transaction_id';

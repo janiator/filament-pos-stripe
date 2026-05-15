@@ -70,7 +70,7 @@ final class TripletexSyncPreviewService
             'payout',
             null,
             $payout->id,
-            fn () => $this->payoutLedger->build($store, $integration, $payout),
+            fn () => $this->payoutLedger->build($store, $integration, $payout, (bool) $integration->skip_payout_bank_transfer),
             $integration,
             $resolveTripletexAccounts,
         );
@@ -180,6 +180,10 @@ final class TripletexSyncPreviewService
             'tripletex_postings_display' => null,
             'resolve_error' => null,
         ];
+
+        if ($kind === 'payout' && array_key_exists('skip_payout_bank_transfer', $payload)) {
+            $out['skip_payout_bank_transfer'] = (bool) $payload['skip_payout_bank_transfer'];
+        }
 
         if ($resolveTripletexAccounts) {
             if (! $integration->isConnected()) {

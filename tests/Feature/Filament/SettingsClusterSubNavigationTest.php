@@ -20,8 +20,17 @@ uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     $role = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
-    Permission::firstOrCreate(['name' => 'ViewAny:PowerOfficeIntegration', 'guard_name' => 'web']);
-    $role->givePermissionTo('ViewAny:PowerOfficeIntegration');
+    foreach (
+        [
+            'ViewAny:PowerOfficeIntegration',
+            'ViewAny:User',
+            'View:User',
+            'Update:User',
+        ] as $permission
+    ) {
+        Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+        $role->givePermissionTo($permission);
+    }
 
     $this->user = User::factory()->create();
     $this->store = Store::factory()->create([

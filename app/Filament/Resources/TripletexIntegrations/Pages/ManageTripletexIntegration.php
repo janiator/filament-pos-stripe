@@ -217,6 +217,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
             'sync_enabled' => (bool) ($data['sync_enabled'] ?? true),
             'auto_sync_on_z_report' => (bool) ($data['auto_sync_on_z_report'] ?? true),
             'auto_sync_payouts' => (bool) ($data['auto_sync_payouts'] ?? false),
+            'skip_payout_bank_transfer' => (bool) ($data['skip_payout_bank_transfer'] ?? false),
             'z_report_include_settlement' => (bool) ($data['z_report_include_settlement'] ?? false),
         ]);
 
@@ -263,6 +264,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
             'sync_enabled' => $this->integration->sync_enabled,
             'auto_sync_on_z_report' => $this->integration->auto_sync_on_z_report,
             'auto_sync_payouts' => $this->integration->auto_sync_payouts,
+            'skip_payout_bank_transfer' => $this->integration->skip_payout_bank_transfer,
             'z_report_include_settlement' => $this->integration->z_report_include_settlement,
         ];
 
@@ -860,7 +862,7 @@ class ManageTripletexIntegration extends Page implements HasActions, HasForms
                     Toggle::make('skip_payout_bank_transfer')
                         ->label(__('Skip clearing-to-bank transfer'))
                         ->helperText(__('Omit the main Stripe payout voucher pair (clearing to bank, e.g. 1901 → 1920). Use when the Tripletex bank period is closed; record the bank movement manually. Application fees, Stripe processing fees, and external ticket lines are still posted when present.'))
-                        ->default(false),
+                        ->default(fn (): bool => (bool) ($this->integration?->skip_payout_bank_transfer ?? false)),
                 ])
                 ->action(function (array $data, TripletexHistoricalSyncService $historical): void {
                     $store = Filament::getTenant();

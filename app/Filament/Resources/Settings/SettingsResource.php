@@ -22,6 +22,11 @@ class SettingsResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = null;
 
+    protected static function tenantScopesUsingStoreIdColumn(): bool
+    {
+        return true;
+    }
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
     protected static ?string $recordTitleAttribute = 'store_id';
@@ -62,23 +67,6 @@ class SettingsResource extends Resource
     {
         // For singleton, navigate to index which will handle the singleton
         return static::getUrl('index');
-    }
-
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-    {
-        $query = parent::getEloquentQuery();
-
-        try {
-            $tenant = \Filament\Facades\Filament::getTenant();
-            if ($tenant && $tenant->slug !== 'visivo-admin') {
-                // Scope to current store
-                $query->where('store_id', $tenant->id);
-            }
-        } catch (\Throwable $e) {
-            // Fallback if Filament facade not available
-        }
-
-        return $query;
     }
 
     public static function shouldRegisterNavigation(): bool

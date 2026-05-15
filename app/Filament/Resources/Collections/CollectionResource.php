@@ -23,6 +23,11 @@ class CollectionResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = null;
 
+    protected static function tenantScopesUsingStoreIdColumn(): bool
+    {
+        return true;
+    }
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFolder;
 
     protected static ?string $recordTitleAttribute = 'name';
@@ -73,5 +78,3 @@ class CollectionResource extends Resource
         ];
     }
 }
-
-

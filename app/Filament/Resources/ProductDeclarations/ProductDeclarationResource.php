@@ -25,6 +25,11 @@ class ProductDeclarationResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = null;
 
+    protected static function tenantScopesUsingStoreIdColumn(): bool
+    {
+        return true;
+    }
+
     public static function getNavigationLabel(): string
     {
         return 'Produktfråsegn';
