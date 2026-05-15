@@ -72,11 +72,29 @@ rotate_log "horizon.log"
 
 echo -e "${GREEN}Starting development environment...${NC}\n"
 
-# Start expose share
+# Start expose share (Herd ships `expose` / `herd share`; same CLI under the hood).
+# If expose.log shows ProxyManager::createProxy() clientId null: fix is outside this
+# repo — Herd → Settings → Expose (sign out/in), update Herd, and ensure expose.dev
+# token is valid; self-hosted Expose must match client/server versions.
 echo -e "${YELLOW}Starting expose share...${NC}"
-expose share https://pos-stripe.test --domain=share.visivo.no --server=eu-1 > expose.log 2>&1 &
+EXPOSE_BIN="${EXPOSE_BIN:-expose}"
+if ! command -v "$EXPOSE_BIN" >/dev/null 2>&1; then
+    echo -e "${RED}Command '${EXPOSE_BIN}' not found in PATH (install Laravel Herd or add expose).${NC}"
+    exit 1
+fi
+
+# Must share the HTTPS Herd site, not bare pos-stripe.test. Herd's port-80 vhost always
+# 301s to https://$host, so Expose (which connects over HTTP) loops on share.visivo.no.
+# See: https://github.com/beyondcode/herd-community/discussions/287
+"$EXPOSE_BIN" share https://pos-stripe.test --domain=share.visivo.no --server=eu-1 > expose.log 2>&1 &
 EXPOSE_PID=$!
 echo "$EXPOSE_PID" >> "$PID_FILE"
+sleep 1
+if ! kill -0 "$EXPOSE_PID" 2>/dev/null; then
+    echo -e "${RED}Expose exited immediately (see expose.log). Last log lines:${NC}"
+    tail -n 25 expose.log 2>/dev/null || true
+    exit 1
+fi
 echo -e "${GREEN}Expose share started (PID: $EXPOSE_PID)${NC}\n"
 
 # Start npm dev server

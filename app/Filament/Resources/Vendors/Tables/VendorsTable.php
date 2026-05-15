@@ -48,6 +48,11 @@ class VendorsTable
                     ->searchable()
                     ->toggleable(),
 
+                TextColumn::make('supplier_ledger_account_number')
+                    ->label('Kontonummer for regnskap')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('products_count')
                     ->label(__('Products'))
                     ->counts('products')

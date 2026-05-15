@@ -83,6 +83,7 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
   TextEditingController? _vendorContactEmailController;
   TextEditingController? _vendorContactPhoneController;
   TextEditingController? _vendorCommissionPercentController;
+  TextEditingController? _vendorSupplierLedgerAccountNumberController;
   bool _formVendorActive = true;
 
   @override
@@ -105,6 +106,7 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
     _vendorContactEmailController?.dispose();
     _vendorContactPhoneController?.dispose();
     _vendorCommissionPercentController?.dispose();
+    _vendorSupplierLedgerAccountNumberController?.dispose();
     super.dispose();
   }
 
@@ -765,6 +767,7 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
         _vendorContactEmailController?.dispose();
         _vendorContactPhoneController?.dispose();
         _vendorCommissionPercentController?.dispose();
+        _vendorSupplierLedgerAccountNumberController?.dispose();
         setState(() {
           _showVendorForm = false;
           _editingVendor = null;
@@ -773,6 +776,7 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
           _vendorContactEmailController = null;
           _vendorContactPhoneController = null;
           _vendorCommissionPercentController = null;
+          _vendorSupplierLedgerAccountNumberController = null;
         });
         await _loadVendors();
         if (mounted) {
@@ -832,6 +836,7 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
         _vendorContactEmailController?.dispose();
         _vendorContactPhoneController?.dispose();
         _vendorCommissionPercentController?.dispose();
+        _vendorSupplierLedgerAccountNumberController?.dispose();
         if (mounted) {
           setState(() {
             _showVendorForm = false;
@@ -841,6 +846,7 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
             _vendorContactEmailController = null;
             _vendorContactPhoneController = null;
             _vendorCommissionPercentController = null;
+            _vendorSupplierLedgerAccountNumberController = null;
           });
         }
         await _loadVendors();
@@ -902,6 +908,7 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
     _vendorContactEmailController?.dispose();
     _vendorContactPhoneController?.dispose();
     _vendorCommissionPercentController?.dispose();
+    _vendorSupplierLedgerAccountNumberController?.dispose();
     setState(() {
       _editingVendor = Map<String, dynamic>.from(vendor);
       _vendorNameController =
@@ -916,6 +923,9 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
           text: _parseCommissionPercent(vendor['commission_percent'])
                   ?.toString() ??
               '');
+      _vendorSupplierLedgerAccountNumberController = TextEditingController(
+        text: vendor['supplier_ledger_account_number']?.toString() ?? '',
+      );
       _formVendorActive = vendor['active'] as bool? ?? true;
       _showVendorForm = true;
     });
@@ -927,6 +937,7 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
     _vendorContactEmailController?.dispose();
     _vendorContactPhoneController?.dispose();
     _vendorCommissionPercentController?.dispose();
+    _vendorSupplierLedgerAccountNumberController?.dispose();
     setState(() {
       _editingVendor = {
         'name': '',
@@ -935,12 +946,15 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
         'contact_phone': '',
         'active': true,
         'commission_percent': null,
+        'supplier_ledger_account_number': null,
       };
       _vendorNameController = TextEditingController(text: '');
       _vendorDescriptionController = TextEditingController(text: '');
       _vendorContactEmailController = TextEditingController(text: '');
       _vendorContactPhoneController = TextEditingController(text: '');
       _vendorCommissionPercentController = TextEditingController(text: '');
+      _vendorSupplierLedgerAccountNumberController =
+          TextEditingController(text: '');
       _formVendorActive = true;
       _showVendorForm = true;
     });
@@ -2182,7 +2196,12 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
                                                     vendor['contact_phone'] !=
                                                         null ||
                                                     vendor['commission_percent'] !=
-                                                        null) ...[
+                                                        null ||
+                                                    (vendor['supplier_ledger_account_number'] !=
+                                                            null &&
+                                                        vendor['supplier_ledger_account_number']
+                                                            .toString()
+                                                            .isNotEmpty)) ...[
                                                   const SizedBox(height: 4.0),
                                                   Text(
                                                     [
@@ -2198,6 +2217,13 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
                                                               'commission_percent'] !=
                                                           null)
                                                         'Provision: ${_parseCommissionPercent(vendor['commission_percent'])?.toStringAsFixed(1) ?? '?'}%',
+                                                      if (vendor[
+                                                                  'supplier_ledger_account_number'] !=
+                                                              null &&
+                                                          vendor['supplier_ledger_account_number']
+                                                              .toString()
+                                                              .isNotEmpty)
+                                                        'Konto: ${vendor['supplier_ledger_account_number']}',
                                                     ]
                                                         .where((item) =>
                                                             item != null)
@@ -2274,6 +2300,8 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
     final contactEmailController = _vendorContactEmailController!;
     final contactPhoneController = _vendorContactPhoneController!;
     final commissionPercentController = _vendorCommissionPercentController!;
+    final supplierLedgerController =
+        _vendorSupplierLedgerAccountNumberController!;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -2295,6 +2323,7 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
                   _vendorContactEmailController?.dispose();
                   _vendorContactPhoneController?.dispose();
                   _vendorCommissionPercentController?.dispose();
+                  _vendorSupplierLedgerAccountNumberController?.dispose();
                   setState(() {
                     _showVendorForm = false;
                     _editingVendor = null;
@@ -2303,6 +2332,7 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
                     _vendorContactEmailController = null;
                     _vendorContactPhoneController = null;
                     _vendorCommissionPercentController = null;
+                    _vendorSupplierLedgerAccountNumberController = null;
                   });
                 },
               ),
@@ -2373,6 +2403,16 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
             ],
           ),
           const SizedBox(height: 16),
+          TextField(
+            controller: supplierLedgerController,
+            decoration: const InputDecoration(
+              labelText: 'Kontonummer for regnskap',
+              helperText: 'Leverandørkonto for synk mot regnskap',
+              border: OutlineInputBorder(),
+            ),
+            maxLength: 64,
+          ),
+          const SizedBox(height: 16),
           SwitchListTile(
             title: const Text('Aktiv'),
             value: _formVendorActive,
@@ -2400,6 +2440,10 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
                           _vendorContactPhoneController?.text.trim() ?? '';
                       final commissionText =
                           _vendorCommissionPercentController?.text.trim() ?? '';
+                      final supplierLedgerText =
+                          _vendorSupplierLedgerAccountNumberController?.text
+                                  .trim() ??
+                              '';
                       final vendorData = <String, dynamic>{
                         'name': name,
                         'description': description.isEmpty ? null : description,
@@ -2408,6 +2452,10 @@ class _PcmInternalLibraryState extends State<PcmInternalLibrary> {
                         'contact_phone':
                             contactPhone.isEmpty ? '' : contactPhone,
                         'active': _formVendorActive,
+                        'supplier_ledger_account_number':
+                            supplierLedgerText.isEmpty
+                                ? null
+                                : supplierLedgerText,
                       };
                       if (editingId != null) {
                         vendorData['id'] = editingId is int

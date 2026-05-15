@@ -9,6 +9,7 @@ use App\Models\PaymentMethod;
 use App\Models\PosDevice;
 use App\Models\PosSession;
 use App\Models\ProductVariant;
+use App\Models\Receipt;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -118,7 +119,18 @@ test('revise-deferred updates pending charge amount and restores stock when qty 
     $reviseResponse->assertOk()
         ->assertJsonPath('success', true)
         ->assertJsonPath('data.charge.amount', 10000)
-        ->assertJsonPath('data.charge.status', 'pending');
+        ->assertJsonPath('data.charge.status', 'pending')
+        ->assertJsonPath('data.receipt.receipt_type', 'delivery');
+
+    $receiptId = $reviseResponse->json('data.receipt.id');
+    expect($receiptId)->not->toBeNull();
+
+    $deliveryReceipt = Receipt::findOrFail($receiptId);
+    expect($deliveryReceipt->receipt_type)->toBe('delivery');
+    $receiptData = is_array($deliveryReceipt->receipt_data)
+        ? $deliveryReceipt->receipt_data
+        : json_decode($deliveryReceipt->receipt_data ?? '[]', true);
+    expect($receiptData['estimated_pickup_date'] ?? null)->toBe('01.06.2026');
 
     $variant->refresh();
     expect((float) $variant->inventory_quantity)->toEqual(9.0);

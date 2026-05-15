@@ -61,6 +61,14 @@ The API returns all of the above and in addition:
 
 **Recommendation:** Ensure FlutterFlow `ProductStruct` includes `vendor_id`, `article_group_code`, and `quantity_unit_id` so the product edit form can pre-select Enhet, Leverandør, and Varegruppekode when opening an existing product. The nested `vendor` and `quantity_unit` are optional if the app resolves labels from IDs using vendors/quantity-units lists.
 
+### Vendors API (PCM / `GET/POST/PUT/DELETE /api/vendors`)
+
+- `GET /api/vendors` returns only **non-archived** vendors by default. Pass `include_archived=1` to include archived rows (e.g. auditing).
+- `DELETE /api/vendors/{id}` **archives** the vendor (`archived_at` set); it does not remove the row. Responses include `archived_at` on each vendor object when set.
+- `PUT /api/vendors/{id}` returns **422** if the vendor is already archived.
+- Assigning `vendor_id` on `POST/PUT /api/products` requires a **non-archived** vendor.
+- Optional **`supplier_ledger_account_number`** (string, max 64) on each vendor — **Kontonummer for regnskap** for future accounting sync (PowerOffice / Tripletex / etc.).
+
 ---
 
 ## 2. Customers Structure
@@ -77,6 +85,7 @@ Fields:
 - `customer_address` (CustomerAddressStruct)
 - `created_at` (String)
 - `updated_at` (String)
+- `archived_at` (String, nullable) — set when customer is archived; omitted/null for active customers
 
 ### API: `CustomersController`
 **Status:** ✅ **MATCHES**
@@ -85,6 +94,9 @@ The API correctly:
 - Returns `customer_address` (renamed from `address` in database)
 - Hides internal fields (`model`, `model_id`, `model_uuid`)
 - All fields match the FlutterFlow structure
+- `GET /api/customers` returns only **non-archived** customers by default. Pass `include_archived=1` to include archived rows.
+- `DELETE /api/customers/{id}` **archives** the customer (`archived_at` set); it does not remove the row. Responses include `archived_at` on the customer object when set.
+- `PUT /api/customers/{id}` returns **422** if the customer is already archived.
 
 ---
 

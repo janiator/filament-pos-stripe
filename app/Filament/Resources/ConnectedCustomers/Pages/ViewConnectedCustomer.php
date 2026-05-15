@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ConnectedCustomers\Pages;
 
 use App\Filament\Resources\ConnectedCustomers\ConnectedCustomerResource;
 use App\Filament\Resources\Pages\ViewRecord;
+use App\Models\ConnectedCustomer;
 use Filament\Actions\EditAction;
 
 class ViewConnectedCustomer extends ViewRecord
@@ -13,7 +14,8 @@ class ViewConnectedCustomer extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make(),
+            EditAction::make()
+                ->hidden(fn (ConnectedCustomer $record): bool => $record->isArchived()),
         ];
     }
 }

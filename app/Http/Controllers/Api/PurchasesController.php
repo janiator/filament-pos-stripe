@@ -440,6 +440,7 @@ class PurchasesController extends BaseApiController
         if ($customerId !== null) {
             $customer = \App\Models\ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id)
                 ->where('id', (int) $customerId)
+                ->notArchived()
                 ->first();
 
             if (! $customer) {
@@ -1353,6 +1354,7 @@ class PurchasesController extends BaseApiController
                     if ($posSession && $posSession->store) {
                         $customer = \App\Models\ConnectedCustomer::where('id', (int) $customerId)
                             ->where('stripe_account_id', $posSession->store->stripe_account_id)
+                            ->notArchived()
                             ->exists();
 
                         if (! $customer) {
@@ -1688,6 +1690,7 @@ class PurchasesController extends BaseApiController
             $customerExists = \App\Models\ConnectedCustomer::query()
                 ->where('id', (int) $validated['cart']['customer_id'])
                 ->where('stripe_account_id', $charge->store->stripe_account_id)
+                ->notArchived()
                 ->exists();
 
             if (! $customerExists) {
@@ -1862,6 +1865,7 @@ class PurchasesController extends BaseApiController
             $customerExists = \App\Models\ConnectedCustomer::query()
                 ->where('id', (int) $validated['cart']['customer_id'])
                 ->where('stripe_account_id', $charge->store->stripe_account_id)
+                ->notArchived()
                 ->exists();
 
             if (! $customerExists) {
@@ -1989,6 +1993,7 @@ class PurchasesController extends BaseApiController
                     if ($posSession && $posSession->store) {
                         $customer = \App\Models\ConnectedCustomer::where('id', (int) $customerId)
                             ->where('stripe_account_id', $posSession->store->stripe_account_id)
+                            ->notArchived()
                             ->exists();
 
                         if (! $customer) {

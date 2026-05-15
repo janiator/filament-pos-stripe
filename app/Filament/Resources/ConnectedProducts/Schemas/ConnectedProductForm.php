@@ -308,6 +308,10 @@ class ConnectedProductForm
                                                             ->tel()
                                                             ->maxLength(255)
                                                             ->helperText(__('Contact phone number for this vendor')),
+                                                        TextInput::make('supplier_ledger_account_number')
+                                                            ->label(__('Kontonummer for regnskap'))
+                                                            ->maxLength(64)
+                                                            ->helperText(__('Supplier account number for accounting sync.')),
                                                         Toggle::make('active')
                                                             ->label(__('Active'))
                                                             ->default(true)
@@ -337,6 +341,7 @@ class ConnectedProductForm
                                                             'description' => $data['description'] ?? null,
                                                             'contact_email' => $data['contact_email'] ?? null,
                                                             'contact_phone' => $data['contact_phone'] ?? null,
+                                                            'supplier_ledger_account_number' => $data['supplier_ledger_account_number'] ?? null,
                                                             'active' => $data['active'] ?? true,
                                                         ]);
 
@@ -1567,6 +1572,10 @@ class ConnectedProductForm
                                                             ->tel()
                                                             ->maxLength(255)
                                                             ->helperText(__('Contact phone number for this vendor')),
+                                                        TextInput::make('supplier_ledger_account_number')
+                                                            ->label(__('Kontonummer for regnskap'))
+                                                            ->maxLength(64)
+                                                            ->helperText(__('Supplier account number for accounting sync.')),
                                                         Toggle::make('active')
                                                             ->label(__('Active'))
                                                             ->default(true)
@@ -1596,6 +1605,7 @@ class ConnectedProductForm
                                                             'description' => $data['description'] ?? null,
                                                             'contact_email' => $data['contact_email'] ?? null,
                                                             'contact_phone' => $data['contact_phone'] ?? null,
+                                                            'supplier_ledger_account_number' => $data['supplier_ledger_account_number'] ?? null,
                                                             'active' => $data['active'] ?? true,
                                                         ]);
 

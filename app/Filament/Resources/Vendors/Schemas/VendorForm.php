@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\Vendors\Schemas;
 
+use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\KeyValue;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -58,6 +58,12 @@ class VendorForm
                             ->suffix('%')
                             ->helperText('Commission percentage (0-100) that will be calculated on vendor sales. Used in X/Z reports.')
                             ->columnSpanFull(),
+
+                        TextInput::make('supplier_ledger_account_number')
+                            ->label('Kontonummer for regnskap')
+                            ->maxLength(64)
+                            ->columnSpanFull()
+                            ->helperText('Leverandørkonto i regnskapssystemet (brukes ved synk mot regnskap).'),
                     ]),
 
                 Section::make('Metadata')

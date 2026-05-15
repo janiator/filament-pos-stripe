@@ -21,6 +21,7 @@ class Vendor extends Model
         'contact_phone',
         'active',
         'commission_percent',
+        'supplier_ledger_account_number',
         'metadata',
         'archived_at',
     ];

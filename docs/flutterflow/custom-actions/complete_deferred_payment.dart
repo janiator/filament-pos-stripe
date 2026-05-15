@@ -16,6 +16,8 @@
 // - Stripe card payments (requires payment_intent_id)
 // - Other Stripe payment methods (requires payment_intent_id)
 // - Optional final cart JSON (same shape as completePosPurchase cart) for parked / edited deferred orders
+// - Choosing deferred / pay_later again with no payment_intent_id: revises the pending charge via
+//   POST /api/purchases/{id}/revise-deferred (checkoutFlow often calls this action directly, not completePosPurchase)
 //
 // Compliance: Automatically uses current active POS device/session from app state
 // to ensure proper audit trail and session tracking.
@@ -108,6 +110,48 @@ void _bumpListRefreshCacheKey() {
           .toString();
     });
   } catch (_) {}
+}
+
+void _applyEstimatedPickupDateToMetadata(
+  Map<String, dynamic> metadata,
+  DateTime? estimatedPickupDate,
+) {
+  if (estimatedPickupDate != null) {
+    metadata['estimated_pickup_date'] = estimatedPickupDate.toIso8601String();
+
+    return;
+  }
+
+  if (!metadata.containsKey('estimated_pickup_date')) {
+    return;
+  }
+
+  final metadataDate = metadata['estimated_pickup_date'];
+  if (metadataDate == null || metadataDate.toString().trim().isEmpty) {
+    return;
+  }
+
+  try {
+    final dateTime = DateTime.parse(metadataDate.toString());
+    metadata['estimated_pickup_date'] = dateTime.toIso8601String();
+  } catch (_) {}
+}
+
+int? _parseReceiptIdFromApiResponse(Map<String, dynamic> responseData) {
+  final topLevel = _parsePositiveInt(responseData['receipt_id']);
+  if (topLevel != null) {
+    return topLevel;
+  }
+
+  final data = responseData['data'];
+  if (data is Map<String, dynamic>) {
+    final receipt = data['receipt'];
+    if (receipt is Map<String, dynamic>) {
+      return _parsePositiveInt(receipt['id']);
+    }
+  }
+
+  return null;
 }
 
 /// Same rules as [receiptPrintAfterPosPurchase]: deferred checkout DSL does not
@@ -217,6 +261,7 @@ Future<dynamic> completeDeferredPayment(
   String? paymentIntentId,
   String? additionalMetadataJson,
   String? cartJson,
+  DateTime? estimatedPickupDate,
 ) async {
   try {
     // Parse additional metadata from JSON string
@@ -302,6 +347,88 @@ Future<dynamic> completeDeferredPayment(
       // If app state is not available, continue without device/session ID
       // The backend will fall back to the original session where the deferred payment was created
       print('Warning: Could not get POS device/session from app state: $e');
+    }
+
+    // Staff chose "deferred / pay later" again on a pending pickup order: revise lines
+    // (POST …/revise-deferred). Do not call complete-payment with payment_method deferred
+    // (API rejects it). This path runs when checkoutFlow calls completeDeferredPayment directly.
+    final codeLower = paymentMethodCode.trim().toLowerCase();
+    final piTrim = (paymentIntentId ?? '').trim();
+    final isDeferredAgain = codeLower == 'deferred' ||
+        codeLower == 'pay_later' ||
+        (additionalMetadata['deferred_payment'] == true);
+    if (isDeferredAgain && piTrim.isEmpty) {
+      if (cart == null) {
+        return {
+          'success': false,
+          'message':
+              'Cart is required to revise a deferred order. Add items or reload the order.',
+        };
+      }
+
+      final reviseMetadata = Map<String, dynamic>.from(additionalMetadata);
+      reviseMetadata.remove('payment_intent_id');
+      _applyEstimatedPickupDateToMetadata(reviseMetadata, estimatedPickupDate);
+
+      final base = apiBaseUrl.endsWith('/')
+          ? apiBaseUrl.substring(0, apiBaseUrl.length - 1)
+          : apiBaseUrl;
+
+      final reviseBody = <String, dynamic>{
+        'cart': cart,
+        if (reviseMetadata.isNotEmpty) 'metadata': reviseMetadata,
+        if (posDeviceId != null) 'pos_device_id': posDeviceId,
+        if (posDeviceId == null && posSessionId != null)
+          'pos_session_id': posSessionId,
+      };
+
+      final reviseResponse = await http.post(
+        Uri.parse('$base/api/purchases/$chargeId/revise-deferred'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(reviseBody),
+      );
+
+      final reviseData =
+          jsonDecode(reviseResponse.body) as Map<String, dynamic>;
+
+      if (reviseResponse.statusCode >= 200 &&
+          reviseResponse.statusCode < 300 &&
+          reviseData['success'] != false) {
+        try {
+          _bumpListRefreshCacheKey();
+        } catch (_) {}
+
+        final receiptId = _parseReceiptIdFromApiResponse(reviseData) ?? 0;
+        try {
+          await _tryClientPrintDeferredSalesReceipt(
+            apiBaseUrl: apiBaseUrl,
+            authToken: authToken,
+            receiptId: receiptId,
+          );
+        } catch (_) {}
+
+        return {
+          'success': reviseData['success'] ?? true,
+          'data': reviseData['data'],
+          'message': reviseData['message'],
+          'deferredResumeRevisedViaReviseDeferred': true,
+          'resumeChargeId': chargeId,
+          'receiptId': receiptId,
+          'deliveryReceiptId': receiptId,
+        };
+      }
+
+      return {
+        'success': false,
+        'message': reviseData['message']?.toString() ??
+            'Deferred revision failed',
+        'errors': reviseData['errors'],
+        'statusCode': reviseResponse.statusCode,
+      };
     }
 
     // Build request body
