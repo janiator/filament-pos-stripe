@@ -187,10 +187,10 @@
         <div class="z-report-section z-report-card">
             <div class="z-report-metric-label">Totalt Beløp</div>
             @php
-                $netAmount = $report['net_amount'] ?? ($report['total_amount'] - ($report['total_refunded'] ?? 0));
+                $totalTurnoverMinor = (int) ($report['total_amount'] ?? 0) - (int) ($report['total_refunded'] ?? 0);
                 $hasRefunds = isset($report['total_refunded']) && $report['total_refunded'] > 0;
             @endphp
-            <div class="z-report-metric-value">{{ number_format($netAmount / 100, 2) }} NOK</div>
+            <div class="z-report-metric-value">{{ number_format($totalTurnoverMinor / 100, 2) }} NOK</div>
             @if($hasRefunds)
                 <div style="font-size: 0.75rem; color: rgb(75 85 99); margin-top: 0.25rem;">
                     Totalt: {{ number_format($report['total_amount'] / 100, 2) }} NOK
@@ -386,25 +386,14 @@
     <!-- VAT Breakdown -->
     <div class="z-report-section" style="background-color: rgb(249 250 251); border-color: rgb(229 231 235);">
         <h4 class="z-report-title">MVA-oppdeling</h4>
-        <div class="z-report-grid z-report-grid-3">
-            <div>
-                <div class="z-report-metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">MVA-grunnlag</div>
-                <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format(($report['vat_base'] ?? 0) / 100, 2) }} NOK</div>
-            </div>
-            <div>
-                <div class="z-report-metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">MVA-beløp ({{ $report['vat_rate'] ?? 25 }}%)</div>
-                <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format(($report['vat_amount'] ?? 0) / 100, 2) }} NOK</div>
-            </div>
-            <div>
-                <div class="z-report-metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Netto (inkl. MVA)</div>
-                <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format(($report['net_amount'] ?? $report['total_amount']) / 100, 2) }} NOK</div>
-                @if(isset($report['total_refunded']) && $report['total_refunded'] > 0)
-                    <div style="font-size: 0.75rem; color: rgb(107 114 128); margin-top: 0.25rem;">
-                        (Totalt: {{ number_format($report['total_amount'] / 100, 2) }} NOK - Refusjoner: {{ number_format($report['total_refunded'] / 100, 2) }} NOK)
-                    </div>
-                @endif
-            </div>
+        <div style="overflow-x: auto;">
+            @include('reports.partials.mva-oppdeling-table', ['report' => $report, 'tableClass' => 'z-report-table'])
         </div>
+        @if(isset($report['total_refunded']) && $report['total_refunded'] > 0)
+            <div style="font-size: 0.75rem; color: rgb(107 114 128); margin-top: 0.5rem;">
+                (Totalt: {{ number_format($report['total_amount'] / 100, 2) }} NOK - Refusjoner: {{ number_format($report['total_refunded'] / 100, 2) }} NOK)
+            </div>
+        @endif
     </div>
 
     <!-- Manual Discounts -->

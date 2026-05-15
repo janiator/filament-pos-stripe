@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\Rule;
 
 class ProductsController extends BaseApiController
 {
@@ -633,7 +634,14 @@ class ProductsController extends BaseApiController
             'product_code' => 'nullable|string',
             'article_group_code' => 'nullable|string',
             'vat_percent' => 'nullable|numeric|min:0|max:100',
-            'vendor_id' => 'nullable|integer|exists:vendors,id',
+            'vendor_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('vendors', 'id')->where(function ($query) use ($store): void {
+                    $query->where('stripe_account_id', $store->stripe_account_id)
+                        ->whereNull('archived_at');
+                }),
+            ],
             'collection_ids' => 'nullable|array',
             'collection_ids.*' => 'exists:collections,id',
         ]);
@@ -750,7 +758,14 @@ class ProductsController extends BaseApiController
             'product_code' => 'nullable|string',
             'article_group_code' => 'nullable|string',
             'vat_percent' => 'nullable|numeric|min:0|max:100',
-            'vendor_id' => 'nullable|integer|exists:vendors,id',
+            'vendor_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('vendors', 'id')->where(function ($query) use ($store): void {
+                    $query->where('stripe_account_id', $store->stripe_account_id)
+                        ->whereNull('archived_at');
+                }),
+            ],
             'collection_ids' => 'nullable|array',
             'collection_ids.*' => 'exists:collections,id',
         ]);

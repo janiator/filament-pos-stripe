@@ -3877,6 +3877,88 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /purchases/{id}/revise-deferred:
+    post:
+      tags:
+        - Purchases
+      summary: Revise pending deferred purchase (cart still unpaid)
+      description: |
+        Updates line items, totals, and charge metadata for a **pending** deferred purchase (same charge id).
+        Use when staff loaded a parked deferred order on the POS, edited the cart, and chooses **deferred / pay later**
+        again to save changes **before** final settlement.
+
+        This is **not** payment capture — use `POST /purchases/{id}/complete-payment` with cash, card, etc. to settle.
+
+        The request body matches the `cart` (and optional `metadata`, `pos_device_id` / `pos_session_id`) shape used
+        for `complete-payment` cart revision.
+      operationId: reviseDeferredPurchase
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Purchase (charge) ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cart
+              properties:
+                pos_session_id:
+                  type: integer
+                  nullable: true
+                  description: Optional open POS session (same semantics as complete-payment).
+                pos_device_id:
+                  type: integer
+                  nullable: true
+                  description: Optional POS device id to resolve the current open session.
+                metadata:
+                  type: object
+                  additionalProperties: true
+                  description: Optional keys merged into charge metadata (e.g. estimated_pickup_date).
+                cart:
+                  $ref: '#/components/schemas/PurchaseCart'
+      responses:
+        '200':
+          description: Deferred purchase revised; new delivery receipt generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  receipt_id:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      charge:
+                        type: object
+                      receipt:
+                        type: object
+                      pos_event:
+                        type: object
+        '422':
+          description: Validation error, insufficient stock, or charge not pending deferred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Unauthorized access to charge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /purchases/{id}/cancel:
     post:
       tags:

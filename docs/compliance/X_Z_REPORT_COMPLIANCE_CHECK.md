@@ -37,7 +37,7 @@ This document verifies compliance of the X-Report and Z-Report implementations w
 
 **Key Metrics:**
 - ✅ Transaction count (Transaksjoner)
-- ✅ Total amount net of refunds (Totalt Beløp), with gross total and Refusjoner sublines when applicable (same logic as Z-report / `generateXReport`)
+- ✅ Total amount net of refunds (Totalt Beløp), **gross including VAT** (`total_amount` − `total_refunded`), with gross total and Refusjoner sublines when applicable (same logic as Z-report / `generateXReport`; not `net_amount` when line-item VAT split uses that field as VAT-exclusive)
 - ✅ Cash amount (Kontant), net with refund sublines when applicable
 - ✅ Card amount (Kort), net with refund sublines when applicable
 - ✅ Mobile amount (Mobil) - if applicable, net with refund sublines when applicable
@@ -54,7 +54,7 @@ This document verifies compliance of the X-Report and Z-Report implementations w
 **VAT Breakdown:**
 - ✅ VAT base (MVA-grunnlag)
 - ✅ VAT amount (MVA-beløp)
-- ✅ Total including VAT on **net** sales (Totalt inkl. MVA, netto) — matches `generateXReport` VAT calculation
+- ✅ Total including VAT (Totalt inkl. MVA) — `vat_base` + `vat_amount`, or **per standard rate (0 %, 15 %, 25 %)** with a sum row when **`sales_net_minor_by_vat_rate`** / **`vat_minor_by_vat_rate`** are on the report (same buckets as Tripletex/PowerOffice); single-rate aggregate when those keys are absent
 
 **Activity Metrics:**
 - ✅ Cash drawer opens (Kontantskuff-åpninger)
@@ -103,7 +103,7 @@ This document verifies compliance of the X-Report and Z-Report implementations w
 
 **Key Metrics:**
 - ✅ Transaction count (Transaksjoner)
-- ✅ Total amount (Totalt Beløp)
+- ✅ Total amount (Totalt Beløp) — **gross including VAT** after refunds (`total_amount` − `total_refunded`; not `net_amount` when line-item VAT split stores VAT-exclusive net there)
 - ✅ Cash amount (Kontant)
 - ✅ Card amount (Kort)
 - ✅ Mobile amount (Mobil) - if applicable
@@ -119,7 +119,7 @@ This document verifies compliance of the X-Report and Z-Report implementations w
 **VAT Breakdown:**
 - ✅ VAT base (MVA-grunnlag)
 - ✅ VAT amount (MVA-beløp)
-- ✅ Total including VAT (Totalt inkl. MVA)
+- ✅ Total including VAT (Totalt inkl. MVA) — `vat_base` + `vat_amount`, or **per standard rate (0 %, 15 %, 25 %)** with a sum row when **`sales_net_minor_by_vat_rate`** / **`vat_minor_by_vat_rate`** are on the report (same buckets as Tripletex/PowerOffice); single-rate aggregate when those keys are absent
 
 **Activity Metrics:**
 - ✅ Cash drawer opens (Kontantskuff-åpninger)

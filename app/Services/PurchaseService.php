@@ -665,8 +665,6 @@ class PurchaseService
             ]);
         }
 
-        $oldItems = isset($metadata['items']) && is_array($metadata['items']) ? $metadata['items'] : [];
-
         if ($paymentMethod->provider === 'stripe') {
             $paymentIntentId = $paymentData['payment_intent_id'] ?? null;
             if (! $paymentIntentId) {
@@ -704,6 +702,36 @@ class PurchaseService
                 ]);
             }
         }
+
+        $this->syncPendingDeferredChargeCartData($charge, $store, $cartData);
+    }
+
+    /**
+     * Apply cart lines, totals, and inventory delta to a pending deferred charge (no payment capture).
+     *
+     * @param  array<string, mixed>  $cartData
+     * @param  array<string, mixed>  $metadataPatch  Merged into charge metadata after cart sync (e.g. estimated_pickup_date).
+     *
+     * @throws ValidationException
+     */
+    protected function syncPendingDeferredChargeCartData(
+        ConnectedCharge $charge,
+        Store $store,
+        array $cartData,
+        array $metadataPatch = []
+    ): void {
+        $metadata = is_array($charge->metadata) ? $charge->metadata : [];
+
+        $isDeferred = ($metadata['deferred_payment'] ?? false) === true
+            || in_array($charge->payment_method, ['deferred', 'pay_later'], true);
+
+        if (! $isDeferred) {
+            throw ValidationException::withMessages([
+                'cart' => ['Cart revision is only allowed for deferred (pending) purchases'],
+            ]);
+        }
+
+        $oldItems = isset($metadata['items']) && is_array($metadata['items']) ? $metadata['items'] : [];
 
         $newItemsInput = $cartData['items'] ?? [];
         if (! is_array($newItemsInput) || $newItemsInput === []) {
@@ -745,6 +773,10 @@ class PurchaseService
             $newMetadata['customer_name'] = $cartData['customer_name'];
         }
 
+        if ($metadataPatch !== []) {
+            $newMetadata = array_merge($newMetadata, $metadataPatch);
+        }
+
         $charge->update([
             'amount' => (int) $cartData['total'],
             'currency' => strtolower((string) ($cartData['currency'] ?? $charge->currency ?? 'nok')),
@@ -752,6 +784,85 @@ class PurchaseService
             'tip_amount' => (int) ($cartData['tip_amount'] ?? $charge->tip_amount ?? 0),
             'metadata' => $newMetadata,
         ]);
+    }
+
+    /**
+     * Revise line items and totals on a pending deferred charge (still unpaid).
+     * Used when staff edits the cart and chooses “deferred” again before final settlement.
+     *
+     * @param  array<string, mixed>  $cartData
+     * @param  array<string, mixed>  $metadataPatch  Optional keys merged into charge metadata (e.g. estimated_pickup_date).
+     * @return array{charge: ConnectedCharge, receipt: Receipt, pos_event: PosEvent}
+     *
+     * @throws \Exception
+     */
+    public function revisePendingDeferredPurchase(
+        ConnectedCharge $charge,
+        PosSession $posSession,
+        array $cartData,
+        array $metadataPatch = []
+    ): array {
+        DB::beginTransaction();
+
+        try {
+            if ($charge->status !== 'pending' || $charge->paid) {
+                throw new \Exception('Charge is not pending or already paid');
+            }
+
+            $store = $charge->store;
+            if (! $store) {
+                throw new \Exception('Store not found for charge');
+            }
+
+            if ($posSession->effectiveStoreId() !== $store->id) {
+                throw new \Exception('POS session does not belong to the same store as the charge');
+            }
+
+            if ($posSession->status !== 'open') {
+                throw new \Exception('POS session is not open');
+            }
+
+            if ($charge->pos_session_id !== $posSession->id) {
+                $charge->pos_session_id = $posSession->id;
+                $charge->save();
+            }
+
+            app(InventoryLedgerService::class)->assertCartSellable($store, $cartData['items'] ?? []);
+
+            $deferredPaymentMethod = PaymentMethod::where('store_id', $store->id)
+                ->where('code', $charge->payment_method)
+                ->first();
+
+            if (! $deferredPaymentMethod) {
+                throw new \Exception('Original deferred payment method not found for charge');
+            }
+
+            $this->syncPendingDeferredChargeCartData($charge, $store, $cartData, $metadataPatch);
+            $charge->refresh();
+
+            $receipt = $this->receiptService->generateDeliveryReceipt($charge, $posSession);
+            $posEvent = $this->logSalesReceiptEvent($posSession, $charge, $receipt, $deferredPaymentMethod);
+
+            if (config('pos.auto_print_receipts', true)) {
+                $this->receiptPrintService->printReceipt($receipt, $posSession);
+            }
+
+            DB::commit();
+
+            return [
+                'charge' => $charge,
+                'receipt' => $receipt,
+                'pos_event' => $posEvent,
+            ];
+        } catch (Throwable $e) {
+            DB::rollBack();
+            Log::error('Revise pending deferred purchase failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'charge_id' => $charge->id,
+            ]);
+            throw $e;
+        }
     }
 
     /**

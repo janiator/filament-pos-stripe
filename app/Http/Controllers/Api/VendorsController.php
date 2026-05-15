@@ -25,6 +25,10 @@ class VendorsController extends BaseApiController
             // Build query
             $query = Vendor::where('stripe_account_id', $store->stripe_account_id);
 
+            if (! $request->boolean('include_archived')) {
+                $query->notArchived();
+            }
+
             // Filter by active status if provided
             if ($request->has('active')) {
                 $query->where('active', filter_var($request->get('active'), FILTER_VALIDATE_BOOLEAN));
@@ -49,21 +53,7 @@ class VendorsController extends BaseApiController
                 ->paginate($perPage, ['*'], 'page', $page);
 
             // Transform vendors
-            $transformedVendors = $vendors->getCollection()->map(function ($vendor) {
-                return [
-                    'id' => $vendor->id,
-                    'name' => $vendor->name,
-                    'description' => $vendor->description,
-                    'contact_email' => $vendor->contact_email,
-                    'contact_phone' => $vendor->contact_phone,
-                    'active' => $vendor->active,
-                    'commission_percent' => $vendor->commission_percent,
-                    'products_count' => $vendor->products_count,
-                    'metadata' => $vendor->metadata,
-                    'created_at' => $this->formatDateTimeOslo($vendor->created_at),
-                    'updated_at' => $this->formatDateTimeOslo($vendor->updated_at),
-                ];
-            });
+            $transformedVendors = $vendors->getCollection()->map(fn (Vendor $vendor): array => $this->transformVendorForApi($vendor));
 
             return response()->json([
                 'vendors' => $transformedVendors,
@@ -101,19 +91,7 @@ class VendorsController extends BaseApiController
             ->findOrFail($id);
 
         return response()->json([
-            'vendor' => [
-                'id' => $vendor->id,
-                'name' => $vendor->name,
-                'description' => $vendor->description,
-                'contact_email' => $vendor->contact_email,
-                'contact_phone' => $vendor->contact_phone,
-                'active' => $vendor->active,
-                'commission_percent' => $vendor->commission_percent,
-                'products_count' => $vendor->products_count,
-                'metadata' => $vendor->metadata,
-                'created_at' => $this->formatDateTimeOslo($vendor->created_at),
-                'updated_at' => $this->formatDateTimeOslo($vendor->updated_at),
-            ],
+            'vendor' => $this->transformVendorForApi($vendor),
         ]);
     }
 
@@ -154,19 +132,7 @@ class VendorsController extends BaseApiController
             $vendor->save();
 
             return response()->json([
-                'vendor' => [
-                    'id' => $vendor->id,
-                    'name' => $vendor->name,
-                    'description' => $vendor->description,
-                    'contact_email' => $vendor->contact_email,
-                    'contact_phone' => $vendor->contact_phone,
-                    'active' => $vendor->active,
-                    'commission_percent' => $vendor->commission_percent,
-                    'products_count' => 0,
-                    'metadata' => $vendor->metadata,
-                    'created_at' => $this->formatDateTimeOslo($vendor->created_at),
-                    'updated_at' => $this->formatDateTimeOslo($vendor->updated_at),
-                ],
+                'vendor' => $this->transformVendorForApi($vendor->fresh()),
             ], 201);
         } catch (\Throwable $e) {
             \Log::error('Error in VendorsController@store', [
@@ -195,6 +161,12 @@ class VendorsController extends BaseApiController
 
         $vendor = Vendor::where('stripe_account_id', $store->stripe_account_id)
             ->findOrFail($id);
+
+        if ($vendor->isArchived()) {
+            return response()->json([
+                'error' => 'Cannot update an archived vendor.',
+            ], 422);
+        }
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -232,19 +204,7 @@ class VendorsController extends BaseApiController
             $vendor->save();
 
             return response()->json([
-                'vendor' => [
-                    'id' => $vendor->id,
-                    'name' => $vendor->name,
-                    'description' => $vendor->description,
-                    'contact_email' => $vendor->contact_email,
-                    'contact_phone' => $vendor->contact_phone,
-                    'active' => $vendor->active,
-                    'commission_percent' => $vendor->commission_percent,
-                    'products_count' => $vendor->products()->count(),
-                    'metadata' => $vendor->metadata,
-                    'created_at' => $this->formatDateTimeOslo($vendor->created_at),
-                    'updated_at' => $this->formatDateTimeOslo($vendor->updated_at),
-                ],
+                'vendor' => $this->transformVendorForApi($vendor->fresh()->loadCount('products')),
             ]);
         } catch (\Throwable $e) {
             \Log::error('Error in VendorsController@update', [
@@ -256,5 +216,52 @@ class VendorsController extends BaseApiController
                 'error' => 'Failed to update vendor: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Archive the vendor (preserves historical product links and reporting).
+     */
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $store = $this->getTenantStore($request);
+
+        if (! $store) {
+            return response()->json(['error' => 'Store not found'], 404);
+        }
+
+        $this->authorizeTenant($request, $store);
+
+        $vendor = Vendor::where('stripe_account_id', $store->stripe_account_id)
+            ->findOrFail($id);
+
+        $vendor->archive();
+
+        return response()->json([
+            'message' => 'Vendor archived.',
+            'vendor' => $this->transformVendorForApi($vendor->fresh()->loadCount('products')),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function transformVendorForApi(Vendor $vendor): array
+    {
+        return [
+            'id' => $vendor->id,
+            'name' => $vendor->name,
+            'description' => $vendor->description,
+            'contact_email' => $vendor->contact_email,
+            'contact_phone' => $vendor->contact_phone,
+            'active' => $vendor->active,
+            'commission_percent' => $vendor->commission_percent,
+            'products_count' => $vendor->products_count ?? $vendor->products()->count(),
+            'metadata' => $vendor->metadata,
+            'archived_at' => $vendor->archived_at
+                ? $this->formatDateTimeOslo($vendor->archived_at)
+                : null,
+            'created_at' => $this->formatDateTimeOslo($vendor->created_at),
+            'updated_at' => $this->formatDateTimeOslo($vendor->updated_at),
+        ];
     }
 }

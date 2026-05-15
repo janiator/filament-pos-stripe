@@ -168,10 +168,10 @@
         <div class="x-report-section x-report-card">
             <div class="x-report-metric-label">Totalt Beløp</div>
             @php
-                $netAmount = $report['net_amount'] ?? ($report['total_amount'] - ($report['total_refunded'] ?? 0));
+                $totalTurnoverMinor = (int) ($report['total_amount'] ?? 0) - (int) ($report['total_refunded'] ?? 0);
                 $hasRefunds = isset($report['total_refunded']) && $report['total_refunded'] > 0;
             @endphp
-            <div class="x-report-metric-value">{{ number_format($netAmount / 100, 2) }} NOK</div>
+            <div class="x-report-metric-value">{{ number_format($totalTurnoverMinor / 100, 2) }} NOK</div>
             @if($hasRefunds)
                 <div style="font-size: 0.75rem; color: rgb(75 85 99); margin-top: 0.25rem;">
                     Totalt: {{ number_format($report['total_amount'] / 100, 2) }} NOK
@@ -328,19 +328,8 @@
     <!-- VAT Breakdown -->
     <div class="x-report-section" style="background-color: rgb(249 250 251); border-color: rgb(229 231 235);">
         <h4 class="x-report-title">MVA-oppdeling</h4>
-        <div class="x-report-grid x-report-grid-3">
-            <div>
-                <div class="x-report-metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">MVA-grunnlag</div>
-                <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format(($report['vat_base'] ?? 0) / 100, 2) }} NOK</div>
-            </div>
-            <div>
-                <div class="x-report-metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">MVA-beløp ({{ $report['vat_rate'] ?? 25 }}%)</div>
-                <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format(($report['vat_amount'] ?? 0) / 100, 2) }} NOK</div>
-            </div>
-            <div>
-                <div class="x-report-metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Totalt (inkl. MVA, netto)</div>
-                <div style="font-size: 1.125rem; font-weight: 600; color: rgb(17 24 39);">{{ number_format(($report['net_amount'] ?? $report['total_amount']) / 100, 2) }} NOK</div>
-            </div>
+        <div style="overflow-x: auto;">
+            @include('reports.partials.mva-oppdeling-table', ['report' => $report, 'tableClass' => 'x-report-table'])
         </div>
     </div>
 

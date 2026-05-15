@@ -113,7 +113,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('customers', \App\Http\Controllers\Api\CustomersController::class);
     Route::apiResource('products', \App\Http\Controllers\Api\ProductsController::class)->only(['index', 'show', 'store', 'update']);
     Route::apiResource('collections', \App\Http\Controllers\Api\CollectionsController::class)->only(['index', 'show', 'store', 'update']);
-    Route::apiResource('vendors', \App\Http\Controllers\Api\VendorsController::class)->only(['index', 'show', 'store', 'update']);
+    Route::apiResource('vendors', \App\Http\Controllers\Api\VendorsController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
     Route::get('/quantity-units', [\App\Http\Controllers\Api\QuantityUnitsController::class, 'index'])->name('api.quantity-units.index');
 
     // Inventory management endpoints
@@ -199,6 +199,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/purchases/{id}', [\App\Http\Controllers\Api\PurchasesController::class, 'show'])->name('api.purchases.show');
     Route::post('/purchases', [\App\Http\Controllers\Api\PurchasesController::class, 'store'])->name('api.purchases.store');
     Route::post('/purchases/{id}/complete-payment', [\App\Http\Controllers\Api\PurchasesController::class, 'completePayment'])->name('api.purchases.complete-payment');
+    Route::post('/purchases/{id}/revise-deferred', [\App\Http\Controllers\Api\PurchasesController::class, 'reviseDeferred'])->name('api.purchases.revise-deferred');
     Route::post('/purchases/{id}/cancel', [\App\Http\Controllers\Api\PurchasesController::class, 'cancel'])->name('api.purchases.cancel');
     Route::post('/purchases/{id}/refund', [\App\Http\Controllers\Api\PurchasesController::class, 'refund'])->name('api.purchases.refund');
     Route::put('/purchases/{id}/customer', [\App\Http\Controllers\Api\PurchasesController::class, 'updateCustomer'])->name('api.purchases.update-customer');

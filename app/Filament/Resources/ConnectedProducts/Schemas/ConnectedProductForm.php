@@ -272,6 +272,7 @@ class ConnectedProductForm
                                                     if ($stripeAccountId) {
                                                         return $query->where('stripe_account_id', $stripeAccountId)
                                                             ->where('active', true)
+                                                            ->whereNull('archived_at')
                                                             ->orderBy('name', 'asc');
                                                     }
 
@@ -1531,6 +1532,7 @@ class ConnectedProductForm
                                                     if ($stripeAccountId) {
                                                         return $query->where('stripe_account_id', $stripeAccountId)
                                                             ->where('active', true)
+                                                            ->whereNull('archived_at')
                                                             ->orderBy('name', 'asc');
                                                     }
 

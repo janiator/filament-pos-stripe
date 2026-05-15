@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,13 +22,40 @@ class Vendor extends Model
         'active',
         'commission_percent',
         'metadata',
+        'archived_at',
     ];
 
     protected $casts = [
         'active' => 'boolean',
         'commission_percent' => 'decimal:2',
         'metadata' => 'array',
+        'archived_at' => 'datetime',
     ];
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeNotArchived(Builder $query): Builder
+    {
+        return $query->whereNull($query->qualifyColumn('archived_at'));
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    public function archive(): bool
+    {
+        if ($this->isArchived()) {
+            return true;
+        }
+
+        $this->forceFill(['archived_at' => now()])->save();
+
+        return true;
+    }
 
     /**
      * Get the store that owns this vendor

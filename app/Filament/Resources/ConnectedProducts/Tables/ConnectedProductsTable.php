@@ -296,13 +296,14 @@ class ConnectedProductsTable
                             $tenant = \Filament\Facades\Filament::getTenant();
                             if ($tenant && $tenant->slug !== 'visivo-admin' && $tenant->stripe_account_id) {
                                 return $query->where('stripe_account_id', $tenant->stripe_account_id)
-                                    ->where('active', true);
+                                    ->where('active', true)
+                                    ->whereNull('archived_at');
                             }
                         } catch (\Throwable $e) {
                             // Fallback if Filament facade not available
                         }
 
-                        return $query->where('active', true);
+                        return $query->where('active', true)->whereNull('archived_at');
                     })
                     ->searchable()
                     ->preload()
@@ -551,6 +552,7 @@ class ConnectedProductsTable
 
                                             return Vendor::where('stripe_account_id', $stripeAccountId)
                                                 ->where('active', true)
+                                                ->whereNull('archived_at')
                                                 ->orderBy('name', 'asc')
                                                 ->pluck('name', 'id');
                                         } catch (\Throwable $e) {
@@ -1035,6 +1037,7 @@ class ConnectedProductsTable
 
                                         return Vendor::where('stripe_account_id', $stripeAccountId)
                                             ->where('active', true)
+                                            ->whereNull('archived_at')
                                             ->orderBy('name', 'asc')
                                             ->pluck('name', 'id');
                                     } catch (\Throwable $e) {

@@ -3,6 +3,7 @@
 namespace App\Support\Tripletex;
 
 use App\Models\TripletexIntegration;
+use App\Support\PowerOffice\PowerOfficeStandardVatRates;
 
 /**
  * Optional ledger routing stored on {@see TripletexIntegration::$settings} under the `ledger` key.
@@ -117,9 +118,16 @@ final class TripletexLedgerSettings
     public static function tripletexVatTypeIdForSalesBasisKey(TripletexIntegration $integration, string $basisKey): ?int
     {
         $map = self::tripletexVatTypeSalesMap($integration);
+        if ($map === []) {
+            return null;
+        }
         $key = (string) $basisKey;
+        $canonical = PowerOfficeStandardVatRates::canonicalVatBasisKey($key);
+        if ($canonical !== null) {
+            return $map[$canonical] ?? $map[(string) (int) $canonical] ?? null;
+        }
 
-        return $map[$key] ?? $map[(string) (int) $basisKey] ?? null;
+        return $map[$key] ?? null;
     }
 
     public static function tripletexVatTypeOutputVat(TripletexIntegration $integration): ?int

@@ -162,7 +162,10 @@
         </div>
         <div class="metric-card">
             <div class="metric-label">Totalt Beløp</div>
-            <div class="metric-value">{{ number_format($report['total_amount'] / 100, 2) }} NOK</div>
+            @php
+                $totalTurnoverMinor = (int) ($report['total_amount'] ?? 0) - (int) ($report['total_refunded'] ?? 0);
+            @endphp
+            <div class="metric-value">{{ number_format($totalTurnoverMinor / 100, 2) }} NOK</div>
         </div>
         <div class="metric-card">
             <div class="metric-label">Kontant</div>
@@ -193,18 +196,7 @@
 
     <div class="section">
         <div class="section-title">MVA-oppdeling</div>
-        <table>
-            <tr>
-                <th>MVA-grunnlag</th>
-                <th>MVA-beløp ({{ $report['vat_rate'] ?? 25 }}%)</th>
-                <th>Totalt (inkl. MVA)</th>
-            </tr>
-            <tr>
-                <td>{{ number_format(($report['vat_base'] ?? 0) / 100, 2) }} NOK</td>
-                <td>{{ number_format(($report['vat_amount'] ?? 0) / 100, 2) }} NOK</td>
-                <td>{{ number_format($report['total_amount'] / 100, 2) }} NOK</td>
-            </tr>
-        </table>
+        @include('reports.partials.mva-oppdeling-table', ['report' => $report])
     </div>
 
     @if(isset($report['manual_discounts']) && $report['manual_discounts']['count'] > 0)

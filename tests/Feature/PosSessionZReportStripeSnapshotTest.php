@@ -236,3 +236,114 @@ it('includes stripe fee labels in z-report embed view used for pdf', function ()
         ->toContain('0.90')
         ->toContain('NOK');
 });
+
+it('shows totalt beløp gross including vat in z-report embed when net_amount is vat-exclusive', function () {
+    $store = Store::factory()->create(['name' => 'Z VAT Display Store']);
+    $session = PosSession::factory()->forStore($store)->create([
+        'status' => 'closed',
+        'opened_at' => now()->subHour(),
+        'closed_at' => now(),
+    ]);
+    $session->load(['store', 'posDevice', 'user']);
+
+    $report = [
+        'store' => ['name' => $store->name],
+        'device' => null,
+        'cashier' => null,
+        'transactions_count' => 1,
+        'total_amount' => 87_651,
+        'total_refunded' => 0,
+        'net_amount' => 80_000,
+        'vat_amount' => 7_651,
+        'vat_base' => 80_000,
+        'vat_rate' => 25,
+        'cash_amount' => 0,
+        'card_amount' => 87_651,
+        'mobile_amount' => 0,
+        'other_amount' => 0,
+        'cash_refunded' => 0,
+        'card_refunded' => 0,
+        'mobile_refunded' => 0,
+        'other_refunded' => 0,
+        'net_cash_amount' => 0,
+        'net_card_amount' => 87_651,
+        'net_mobile_amount' => 0,
+        'net_other_amount' => 0,
+        'report_type' => 'Z-Report',
+        'stripe_fees_minor' => 0,
+        'payout_to_bank_minor' => 0,
+        'opening_balance' => 0,
+        'expected_cash' => 0,
+        'actual_cash' => 0,
+        'cash_difference' => 0,
+        'tips_enabled' => false,
+        'refunds' => [],
+    ];
+
+    $html = view('reports.embed.z-report', [
+        'session' => $session,
+        'report' => $report,
+    ])->render();
+
+    expect($html)->toMatch('/Totalt Beløp<\/div>\s*<div class="metric-value">\s*876\.51\s*NOK/s')
+        ->and($html)->toMatch('/MVA-oppdeling[\s\S]*?<td>800\.00 NOK<\/td>\s*<td>76\.51 NOK<\/td>\s*<td class="text-right">876\.51 NOK<\/td>/s');
+});
+
+it('shows per-rate mva rows in z-report embed when sales_net_minor_by_vat_rate is present', function () {
+    $store = Store::factory()->create(['name' => 'Z VAT Split Store']);
+    $session = PosSession::factory()->forStore($store)->create([
+        'status' => 'closed',
+        'opened_at' => now()->subHour(),
+        'closed_at' => now(),
+    ]);
+    $session->load(['store', 'posDevice', 'user']);
+
+    $report = [
+        'store' => ['name' => $store->name],
+        'device' => null,
+        'cashier' => null,
+        'transactions_count' => 2,
+        'total_amount' => 36_500,
+        'total_refunded' => 0,
+        'net_amount' => 30_000,
+        'vat_amount' => 6_500,
+        'vat_base' => 30_000,
+        'vat_rate' => 25,
+        'sales_net_minor_by_vat_rate' => ['15' => 10_000, '25' => 20_000],
+        'vat_minor_by_vat_rate' => ['15' => 1_500, '25' => 5_000],
+        'cash_amount' => 0,
+        'card_amount' => 36_500,
+        'mobile_amount' => 0,
+        'other_amount' => 0,
+        'cash_refunded' => 0,
+        'card_refunded' => 0,
+        'mobile_refunded' => 0,
+        'other_refunded' => 0,
+        'net_cash_amount' => 0,
+        'net_card_amount' => 36_500,
+        'net_mobile_amount' => 0,
+        'net_other_amount' => 0,
+        'report_type' => 'Z-Report',
+        'stripe_fees_minor' => 0,
+        'payout_to_bank_minor' => 0,
+        'opening_balance' => 0,
+        'expected_cash' => 0,
+        'actual_cash' => 0,
+        'cash_difference' => 0,
+        'tips_enabled' => false,
+        'refunds' => [],
+    ];
+
+    $html = view('reports.embed.z-report', [
+        'session' => $session,
+        'report' => $report,
+    ])->render();
+
+    expect($html)
+        ->toContain('15%')
+        ->toContain('25%')
+        ->toContain('>Sum</th>')
+        ->toMatch('/<td>100\.00 NOK<\/td>\s*<td class="text-right">15\.00 NOK<\/td>\s*<td class="text-right">115\.00 NOK<\/td>/')
+        ->toMatch('/<td>200\.00 NOK<\/td>\s*<td class="text-right">50\.00 NOK<\/td>\s*<td class="text-right">250\.00 NOK<\/td>/')
+        ->toMatch('/<th scope="row">Sum<\/th>\s*<td>300\.00 NOK<\/td>\s*<td class="text-right">65\.00 NOK<\/td>\s*<td class="text-right">365\.00 NOK<\/td>/');
+});

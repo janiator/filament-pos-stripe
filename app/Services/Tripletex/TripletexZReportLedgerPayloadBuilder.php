@@ -10,6 +10,7 @@ use App\Models\PosSession;
 use App\Models\TripletexAccountMapping;
 use App\Models\TripletexIntegration;
 use App\Services\PowerOffice\StripeSettlementTotalsForPosSession;
+use App\Support\PowerOffice\PowerOfficeStandardVatRates;
 use App\Support\Tripletex\TripletexLedgerSettings;
 use Illuminate\Support\Collection;
 
@@ -25,10 +26,10 @@ class TripletexZReportLedgerPayloadBuilder
     public function build(PosSession $session, TripletexIntegration $integration, array $zReport): array
     {
         $basis = $integration->mapping_basis;
-        $buckets = $this->extractBuckets($session, $basis, $zReport);
+        $mappingBuckets = $this->extractBuckets($session, $basis, $zReport);
 
         $missing = [];
-        foreach (array_keys($buckets) as $key) {
+        foreach (array_keys($mappingBuckets) as $key) {
             if (! $this->resolveSalesAccountNo($integration, $basis, (string) $key)) {
                 $missing[] = (string) $key;
             }
@@ -38,32 +39,17 @@ class TripletexZReportLedgerPayloadBuilder
         }
 
         $defaultMapping = $this->firstMappingWithPaymentAccounts($integration)
-            ?? $this->findMapping($integration, $basis, array_key_first($buckets) ?? '')
+            ?? $this->findMapping($integration, $basis, array_key_first($mappingBuckets) ?? '')
             ?? $integration->accountMappings()->where('is_active', true)->orderBy('id')->first();
 
         if (! $defaultMapping instanceof TripletexAccountMapping) {
             throw new MissingTripletexMappingException([], 'No Tripletex account mapping rows configured.');
         }
 
-        $netAmount = (int) ($zReport['net_amount'] ?? 0);
         $vatAmount = (int) ($zReport['vat_amount'] ?? 0);
         $tipsAmount = (int) ($zReport['total_tips'] ?? 0);
 
-        $bucketTotal = array_sum($buckets);
-        if ($bucketTotal <= 0 && $netAmount > 0) {
-            $split = $zReport['sales_net_minor_by_vat_rate'] ?? null;
-            if (is_array($split) && $split !== []) {
-                foreach ($split as $key => $val) {
-                    $k = (string) (int) (string) $key;
-                    $n = (int) $val;
-                    if ($n > 0) {
-                        $buckets[$k] = $n;
-                    }
-                }
-            } else {
-                $buckets[(string) (int) ($zReport['vat_rate'] ?? 25)] = $netAmount;
-            }
-        }
+        $salesBuckets = $this->resolveSalesCreditBuckets($basis, $zReport, $mappingBuckets);
 
         $dayBundle = $this->sessionChargeDayWeights($session);
         $splitByDay = TripletexLedgerSettings::zReportSplitLinesByCalendarDay($integration)
@@ -76,7 +62,8 @@ class TripletexZReportLedgerPayloadBuilder
                 $zReport,
                 $basis,
                 $defaultMapping,
-                $buckets,
+                $salesBuckets,
+                $mappingBuckets,
                 $vatAmount,
                 $tipsAmount,
                 $dayBundle,
@@ -88,7 +75,8 @@ class TripletexZReportLedgerPayloadBuilder
                 $zReport,
                 $basis,
                 $defaultMapping,
-                $buckets,
+                $salesBuckets,
+                $mappingBuckets,
                 $vatAmount,
                 $tipsAmount,
             );
@@ -129,7 +117,8 @@ class TripletexZReportLedgerPayloadBuilder
     }
 
     /**
-     * @param  array<string, int>  $buckets
+     * @param  array<string, int>  $salesBuckets
+     * @param  array<string, int>  $mappingBuckets
      * @return list<array<string, mixed>>
      */
     protected function buildLedgerLinesWithoutDaySplit(
@@ -138,17 +127,24 @@ class TripletexZReportLedgerPayloadBuilder
         array $zReport,
         PowerOfficeMappingBasis $basis,
         TripletexAccountMapping $defaultMapping,
-        array $buckets,
+        array $salesBuckets,
+        array $mappingBuckets,
         int $vatAmount,
         int $tipsAmount,
     ): array {
         $lines = [];
 
-        foreach ($buckets as $basisKey => $amount) {
+        foreach ($salesBuckets as $basisKey => $amount) {
             if ($amount <= 0) {
                 continue;
             }
-            $salesAccount = $this->resolveSalesAccountNo($integration, $basis, (string) $basisKey);
+            $salesAccount = $this->resolveSalesAccountForCreditLine(
+                $integration,
+                $basis,
+                $mappingBuckets,
+                $zReport,
+                (string) $basisKey,
+            );
             if (! $salesAccount) {
                 continue;
             }
@@ -184,7 +180,7 @@ class TripletexZReportLedgerPayloadBuilder
             ];
         }
 
-        $paymentLines = $this->paymentDebitLines($zReport, $integration, $basis, $defaultMapping, $buckets);
+        $paymentLines = $this->paymentDebitLines($zReport, $integration, $basis, $defaultMapping, $mappingBuckets);
         $lines = array_merge($lines, $paymentLines);
 
         if ($integration->z_report_include_settlement) {
@@ -195,7 +191,8 @@ class TripletexZReportLedgerPayloadBuilder
     }
 
     /**
-     * @param  array<string, int>  $buckets
+     * @param  array<string, int>  $salesBuckets
+     * @param  array<string, int>  $mappingBuckets
      * @param  array{by_day_total: array<string, int>, by_day_by_method: array<string, array<string, int>>}  $dayBundle
      * @return list<array<string, mixed>>
      */
@@ -205,7 +202,8 @@ class TripletexZReportLedgerPayloadBuilder
         array $zReport,
         PowerOfficeMappingBasis $basis,
         TripletexAccountMapping $defaultMapping,
-        array $buckets,
+        array $salesBuckets,
+        array $mappingBuckets,
         int $vatAmount,
         int $tipsAmount,
         array $dayBundle,
@@ -219,17 +217,24 @@ class TripletexZReportLedgerPayloadBuilder
                 $zReport,
                 $basis,
                 $defaultMapping,
-                $buckets,
+                $salesBuckets,
+                $mappingBuckets,
                 $vatAmount,
                 $tipsAmount,
             );
         }
 
-        foreach ($buckets as $basisKey => $amount) {
+        foreach ($salesBuckets as $basisKey => $amount) {
             if ($amount <= 0) {
                 continue;
             }
-            $salesAccount = $this->resolveSalesAccountNo($integration, $basis, (string) $basisKey);
+            $salesAccount = $this->resolveSalesAccountForCreditLine(
+                $integration,
+                $basis,
+                $mappingBuckets,
+                $zReport,
+                (string) $basisKey,
+            );
             if (! $salesAccount) {
                 continue;
             }
@@ -252,8 +257,8 @@ class TripletexZReportLedgerPayloadBuilder
             }
         }
 
-        $vatByRate = $zReport['vat_minor_by_vat_rate'] ?? null;
-        if (is_array($vatByRate) && $vatByRate !== [] && $defaultMapping->vat_account_no) {
+        $vatByRate = PowerOfficeStandardVatRates::normalizeVatMinorByVatRateMap($zReport['vat_minor_by_vat_rate'] ?? null);
+        if ($vatByRate !== [] && $defaultMapping->vat_account_no) {
             foreach ($vatByRate as $rateKey => $vatPart) {
                 $vatPart = (int) $vatPart;
                 if ($vatPart <= 0) {
@@ -318,7 +323,7 @@ class TripletexZReportLedgerPayloadBuilder
             $integration,
             $basis,
             $defaultMapping,
-            $buckets,
+            $mappingBuckets,
             $dayBundle,
         ));
 
@@ -354,8 +359,8 @@ class TripletexZReportLedgerPayloadBuilder
         int $vatAmount,
         ?string $postingDate,
     ): void {
-        $vatByRate = $zReport['vat_minor_by_vat_rate'] ?? null;
-        if (is_array($vatByRate) && $vatByRate !== [] && $defaultMapping->vat_account_no) {
+        $vatByRate = PowerOfficeStandardVatRates::normalizeVatMinorByVatRateMap($zReport['vat_minor_by_vat_rate'] ?? null);
+        if ($vatByRate !== [] && $defaultMapping->vat_account_no) {
             foreach ($vatByRate as $rateKey => $vatPart) {
                 $vatPart = (int) $vatPart;
                 if ($vatPart <= 0) {
@@ -1017,25 +1022,108 @@ class TripletexZReportLedgerPayloadBuilder
      */
     protected function bucketsForVat(array $zReport): array
     {
-        $split = $zReport['sales_net_minor_by_vat_rate'] ?? null;
-        if (is_array($split) && $split !== []) {
-            $buckets = [];
-            foreach ($split as $key => $val) {
-                $k = (string) (int) (string) $key;
-                $n = (int) $val;
-                if ($n > 0) {
-                    $buckets[$k] = $n;
-                }
-            }
-            if ($buckets !== []) {
-                return $buckets;
-            }
+        $normalized = PowerOfficeStandardVatRates::normalizeSalesNetMinorByVatRateMap($zReport['sales_net_minor_by_vat_rate'] ?? null);
+        if ($normalized !== []) {
+            return $normalized;
         }
 
         $rate = (string) (int) ($zReport['vat_rate'] ?? 25);
         $net = (int) ($zReport['net_amount'] ?? 0);
 
         return $net > 0 ? [$rate => $net] : [];
+    }
+
+    /**
+     * Buckets for sales credit lines: prefer normalized line-item VAT split when present so Tripletex
+     * VAT type ids resolve per standard rate even if {@see PowerOfficeMappingBasis} is not VAT.
+     *
+     * @param  array<string, int>  $mappingBuckets
+     * @return array<string, int>
+     */
+    protected function resolveSalesCreditBuckets(
+        PowerOfficeMappingBasis $basis,
+        array $zReport,
+        array $mappingBuckets,
+    ): array {
+        return PowerOfficeStandardVatRates::resolveSalesCreditBucketsForLedger($basis, $zReport, $mappingBuckets);
+    }
+
+    /**
+     * When posting VAT-split sales under {@see PowerOfficeMappingBasis::PaymentMethod}, pick the
+     * clearing line that carries the largest net amount for resolving the shared sales account.
+     *
+     * @param  array<string, int>  $mappingBuckets
+     */
+    protected function dominantPaymentMethodKeyForSalesAccount(array $zReport, array $mappingBuckets): ?string
+    {
+        $byNet = $zReport['by_payment_method_net'] ?? [];
+        if ($byNet instanceof Collection) {
+            $byNet = $byNet->all();
+        }
+        $bestKey = null;
+        $bestAmt = -1;
+        if (is_array($byNet)) {
+            foreach ($byNet as $method => $data) {
+                if (! is_array($data)) {
+                    continue;
+                }
+                $amount = (int) ($data['amount'] ?? 0);
+                if ($amount > $bestAmt) {
+                    $bestAmt = $amount;
+                    $bestKey = is_string($method) ? $method : (string) $method;
+                }
+            }
+        }
+        if ($bestKey !== null && $bestAmt > 0) {
+            return $bestKey;
+        }
+        foreach ($mappingBuckets as $k => $amount) {
+            $n = (int) $amount;
+            if ($n > $bestAmt) {
+                $bestAmt = $n;
+                $bestKey = (string) $k;
+            }
+        }
+
+        return ($bestKey !== null && $bestAmt > 0) ? $bestKey : null;
+    }
+
+    /**
+     * @param  array<string, int>  $mappingBuckets
+     */
+    protected function resolveSalesAccountForCreditLine(
+        TripletexIntegration $integration,
+        PowerOfficeMappingBasis $basis,
+        array $mappingBuckets,
+        array $zReport,
+        string $salesBucketKey,
+    ): ?string {
+        $vatSplit = PowerOfficeStandardVatRates::normalizeSalesNetMinorByVatRateMap($zReport['sales_net_minor_by_vat_rate'] ?? null);
+        if ($basis === PowerOfficeMappingBasis::Vat || $vatSplit === [] || ! array_key_exists($salesBucketKey, $vatSplit)) {
+            return $this->resolveSalesAccountNo($integration, $basis, $salesBucketKey);
+        }
+
+        if ($basis === PowerOfficeMappingBasis::PaymentMethod) {
+            $dominant = $this->dominantPaymentMethodKeyForSalesAccount($zReport, $mappingBuckets);
+            if ($dominant !== null) {
+                $acct = $this->resolveSalesAccountNo($integration, $basis, $dominant);
+                if (filled($acct)) {
+                    return $acct;
+                }
+            }
+        }
+
+        $fallbackAccount = TripletexLedgerSettings::defaultSalesAccount($integration);
+        if (filled($fallbackAccount)) {
+            return $fallbackAccount;
+        }
+
+        $firstKey = array_key_first($mappingBuckets);
+        if (is_string($firstKey) && $firstKey !== '') {
+            return $this->resolveSalesAccountNo($integration, $basis, $firstKey);
+        }
+
+        return null;
     }
 
     /**

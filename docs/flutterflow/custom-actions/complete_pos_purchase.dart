@@ -144,16 +144,125 @@ Future<dynamic> completePosPurchase(
       };
     }
 
-    // Parked deferred resume (orders -> POS): settle the existing deferred
-    // purchase instead of creating a new purchase. This also handles Stripe
-    // Terminal callback flow, where FlutterFlow passes the paymentIntentId as
-    // this action's terminalPaymentResult argument.
+    // Parked deferred resume (orders -> POS): choosing a **settlement** method runs
+    // completeDeferredPayment. Choosing **deferred** again revises the pending charge
+    // (POST /api/purchases/{id}/revise-deferred) instead of incorrectly calling complete-payment.
     try {
       final prefs = await SharedPreferences.getInstance();
       final resumeId = prefs.getInt(kPositivDeferredResumeChargeIdKey) ?? 0;
       final resumeLabel =
           (prefs.getString(kPositivDeferredResumeOrderLabelKey) ?? '').trim();
       if (resumeId > 0) {
+        final isDeferredAgain = paymentMethodCode == 'deferred' ||
+            paymentMethodCode == 'pay_later' ||
+            (additionalMetadata['deferred_payment'] == true);
+
+        if (isDeferredAgain) {
+          Map<String, dynamic>? cartMap;
+          try {
+            final serialized = await serializeCartForCompleteDeferred();
+            if (serialized is Map && serialized['success'] == true) {
+              final raw = serialized['cartJson']?.toString().trim() ?? '';
+              if (raw.isNotEmpty) {
+                final decoded = jsonDecode(raw);
+                if (decoded is Map<String, dynamic>) {
+                  cartMap = decoded;
+                }
+              }
+            }
+          } catch (_) {}
+
+          if (cartMap == null) {
+            return {
+              'success': false,
+              'message':
+                  'Could not build cart for deferred revision. Ensure the cart has items.',
+            };
+          }
+
+          final reviseMetadata = Map<String, dynamic>.from(additionalMetadata);
+          if (estimatedPickupDate != null) {
+            reviseMetadata['estimated_pickup_date'] =
+                estimatedPickupDate.toIso8601String();
+          } else if (reviseMetadata.containsKey('estimated_pickup_date')) {
+            final metadataDate = reviseMetadata['estimated_pickup_date'];
+            if (metadataDate != null &&
+                metadataDate.toString().trim().isNotEmpty) {
+              try {
+                final dateTime = DateTime.parse(metadataDate.toString());
+                reviseMetadata['estimated_pickup_date'] =
+                    dateTime.toIso8601String();
+              } catch (_) {}
+            }
+          }
+
+          int? posDeviceId;
+          int? posSessionId;
+          try {
+            final appState = FFAppState();
+            try {
+              final deviceId = appState.activePosDevice.id;
+              if (deviceId != null && deviceId > 0) {
+                posDeviceId = deviceId;
+              }
+            } catch (_) {}
+            if (posDeviceId == null) {
+              try {
+                final sessionId = appState.currentPosSession.id;
+                if (sessionId != null && sessionId > 0) {
+                  posSessionId = sessionId;
+                }
+              } catch (_) {}
+            }
+          } catch (_) {}
+
+          final baseUrl = apiBaseUrl.endsWith('/')
+              ? apiBaseUrl.substring(0, apiBaseUrl.length - 1)
+              : apiBaseUrl;
+
+          final reviseBody = <String, dynamic>{
+            'cart': cartMap,
+            if (reviseMetadata.isNotEmpty) 'metadata': reviseMetadata,
+            if (posDeviceId != null) 'pos_device_id': posDeviceId,
+            if (posDeviceId == null && posSessionId != null)
+              'pos_session_id': posSessionId,
+          };
+
+          final response = await http.post(
+            Uri.parse('$baseUrl/api/purchases/$resumeId/revise-deferred'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $authToken',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode(reviseBody),
+          );
+
+          final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            if (responseData['success'] != false) {
+              return {
+                'success': responseData['success'] ?? true,
+                'data': responseData['data'],
+                'message': responseData['message'],
+                'deferredResumeRevisedViaReviseDeferred': true,
+                'resumeChargeId': resumeId,
+                'orderLabel':
+                    resumeLabel.isNotEmpty ? resumeLabel : '#$resumeId',
+              };
+            }
+          }
+
+          return {
+            'success': false,
+            'message': responseData['message']?.toString() ??
+                'Deferred revision failed',
+            'errors': responseData['errors'],
+            'statusCode': response.statusCode,
+          };
+        }
+
         String? cartJson;
         try {
           final serialized = await serializeCartForCompleteDeferred();

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Exceptions\CashDrawerDisabledException;
 use App\Exceptions\InsufficientStockException;
 use App\Http\Requests\Api\CompletePurchasePaymentRequest;
+use App\Http\Requests\Api\ReviseDeferredPurchaseRequest;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
@@ -1759,6 +1760,169 @@ class PurchasesController extends BaseApiController
             return response()->json([
                 'success' => false,
                 'message' => 'Payment completion failed: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Revise cart lines and totals on a pending deferred purchase (still unpaid).
+     * Used when staff edits the cart and chooses deferred again before settlement.
+     *
+     * @param  string|int  $id  Charge ID
+     */
+    public function reviseDeferred(ReviseDeferredPurchaseRequest $request, string|int $id): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $charge = ConnectedCharge::findOrFail($id);
+
+        $user = $request->user();
+
+        try {
+            $userStore = \Filament\Facades\Filament::getTenant();
+        } catch (\Throwable $e) {
+            $userStore = null;
+        }
+
+        if (! $userStore) {
+            $userStore = $user->currentStore();
+        }
+
+        if (! $userStore || $charge->store->id !== $userStore->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access to charge',
+            ], 403);
+        }
+
+        if ($charge->status !== 'pending' || $charge->paid) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Charge is not pending or already paid',
+            ], 422);
+        }
+
+        $posSession = null;
+
+        if (isset($validated['pos_session_id'])) {
+            $posSession = PosSession::with('posDevice')->find($validated['pos_session_id']);
+
+            if (! $posSession) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'POS session not found',
+                ], 404);
+            }
+
+            if ($posSession->effectiveStoreId() !== $charge->store->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'POS session does not belong to the same store as the charge',
+                ], 422);
+            }
+
+            if ($posSession->status !== 'open') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'POS session is not open',
+                ], 422);
+            }
+        } elseif (isset($validated['pos_device_id'])) {
+            $posSession = PosSession::with('posDevice')
+                ->where('store_id', $charge->store->id)
+                ->where('pos_device_id', $validated['pos_device_id'])
+                ->where('status', 'open')
+                ->first();
+
+            if (! $posSession) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No open POS session found for the specified device',
+                ], 404);
+            }
+        }
+
+        if (! $posSession) {
+            $posSession = $charge->posSession;
+            if ($posSession) {
+                $posSession->load('posDevice');
+            }
+        }
+
+        if (! $posSession) {
+            return response()->json([
+                'success' => false,
+                'message' => 'POS session not found for this charge',
+            ], 422);
+        }
+
+        if (isset($validated['cart']['customer_id']) && $validated['cart']['customer_id'] !== null && $validated['cart']['customer_id'] !== 0) {
+            $customerExists = \App\Models\ConnectedCustomer::query()
+                ->where('id', (int) $validated['cart']['customer_id'])
+                ->where('stripe_account_id', $charge->store->stripe_account_id)
+                ->exists();
+
+            if (! $customerExists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => [
+                        'cart.customer_id' => ['Customer not found or does not belong to this store'],
+                    ],
+                ], 422);
+            }
+        }
+
+        try {
+            $result = $this->purchaseService->revisePendingDeferredPurchase(
+                $charge,
+                $posSession,
+                $validated['cart'],
+                $validated['metadata'] ?? []
+            );
+
+            return response()->json([
+                'success' => true,
+                'receipt_id' => $result['receipt']->id,
+                'data' => [
+                    'charge' => [
+                        'id' => $result['charge']->id,
+                        'stripe_charge_id' => $result['charge']->stripe_charge_id,
+                        'amount' => $result['charge']->amount,
+                        'currency' => $result['charge']->currency,
+                        'status' => $result['charge']->status,
+                        'payment_method' => $result['charge']->payment_method,
+                        'paid_at' => $this->formatDateTimeOslo($result['charge']->paid_at),
+                    ],
+                    'receipt' => [
+                        'id' => $result['receipt']->id,
+                        'receipt_number' => $result['receipt']->receipt_number,
+                        'receipt_type' => $result['receipt']->receipt_type,
+                    ],
+                    'pos_event' => [
+                        'id' => $result['pos_event']->id,
+                        'event_code' => $result['pos_event']->event_code,
+                        'transaction_code' => $result['charge']->transaction_code,
+                    ],
+                ],
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'insufficient_stock',
+                'lines' => $e->lines,
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Deferred revision failed: '.$e->getMessage(),
             ], 500);
         }
     }
