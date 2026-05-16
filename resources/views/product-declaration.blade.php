@@ -182,8 +182,9 @@
                 @endif
                 <span><strong>Versjon:</strong> {{ $declaration->version }}</span>
                 <span><strong>Versjonsidentifikasjon:</strong> {{ $declaration->version_identification }}</span>
-                @if($declaration->declaration_date)
-                    <span><strong>Dato:</strong> {{ $declaration->declaration_date->format('d.m.Y') }}</span>
+                @php($resolvedDeclarationDate = $declaration->resolvedDeclarationDate())
+                @if($resolvedDeclarationDate)
+                    <span><strong>Dato:</strong> {{ $resolvedDeclarationDate->format('d.m.Y') }}</span>
                 @endif
             </div>
         </div>
