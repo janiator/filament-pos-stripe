@@ -413,11 +413,11 @@ The VM requires PHP 8.4, Composer, and PostgreSQL 16. These are installed by the
 
 ### Private Composer Packages (Auth Required)
 
-Two packages require private repo auth and are **not installed** in the default Cloud Agent environment:
-- `leek/filament-workflows` (from `filament-workflow-engine.composer.sh`) — requires license key in `auth.json`
-- `filament/blueprint` (from `packages.filamentphp.com`) — dev-only, requires Filament license
+Two packages require private repo auth via `/workspace/auth.json` (gitignored):
+- `leek/filament-workflows` (from `filament-workflow-engine.composer.sh`) — installed via `FILAMENT_WORKFLOW_ENGINE_LICENSE_KEY` secret and the licensee email (stored in `FILAMENT_WORKFLOW_ENGINE_LICENSE_EMAIL` secret)
+- `filament/blueprint` (from `packages.filamentphp.com`) — dev-only, requires a separate Filament license; **not installed** (app and tests work without it)
 
-The app boots fine without these. The workflow plugin is loaded conditionally via `class_exists()` in `AppPanelProvider`. If the user provides credentials, add them to `/workspace/auth.json` (gitignored) per `docs/WORKFLOW_ENGINE_SETUP.md`.
+The workflow plugin is loaded conditionally via `class_exists()` in `AppPanelProvider`, so the app boots even if the package is missing. The update script auto-generates `auth.json` from the `FILAMENT_WORKFLOW_ENGINE_LICENSE_KEY` env var. See `docs/WORKFLOW_ENGINE_SETUP.md` for manual setup.
 
 ### Running the App
 
