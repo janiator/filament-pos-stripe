@@ -115,6 +115,11 @@ class SyncProductPrice
         $product->default_price = $newPriceId;
         $product->saveQuietly();
 
+        // Stripe rejects archiving or deleting a price that is still the product's default_price.
+        // saveQuietly() skips listeners, so the connected Stripe Product may still reference the
+        // old default until we update it explicitly before touching old prices.
+        $this->updateStripeProductDefaultPrice($product, $newPriceId);
+
         // Handle old prices - archive if used, delete if not
         foreach ($existingPrices as $oldPrice) {
             if ($this->priceHasBeenUsed($oldPrice)) {
@@ -213,6 +218,40 @@ class SyncProductPrice
         }
 
         return false;
+    }
+
+    /**
+     * Point the Stripe Product at the new default price before archiving prior prices.
+     */
+    protected function updateStripeProductDefaultPrice(ConnectedProduct $product, string $defaultPriceId): void
+    {
+        try {
+            $secret = config('cashier.secret') ?? config('services.stripe.secret');
+            if (! $secret) {
+                return;
+            }
+
+            $stripe = $this->makeStripeClient($secret);
+
+            $stripe->products->update(
+                $product->stripe_product_id,
+                ['default_price' => $defaultPriceId],
+                ['stripe_account' => $product->stripe_account_id]
+            );
+        } catch (Throwable $e) {
+            Log::error('Failed to update Stripe product default price before archiving old prices', [
+                'product_id' => $product->id,
+                'stripe_product_id' => $product->stripe_product_id,
+                'default_price' => $defaultPriceId,
+                'error' => $e->getMessage(),
+            ]);
+            report($e);
+        }
+    }
+
+    protected function makeStripeClient(string $secret): StripeClient
+    {
+        return new StripeClient($secret);
     }
 
     /**
