@@ -2,11 +2,16 @@
 
 namespace Positiv\FilamentWebflow\Filament\Pages;
 
+use App\Actions\EventTickets\ImportEventTicketsFromWebflowCollection;
+use App\Models\EventTicket;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Checkbox;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Panel;
 use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
@@ -17,12 +22,14 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Model;
 use Livewire\Attributes\Url;
 use Positiv\FilamentWebflow\Jobs\PullWebflowItems;
 use Positiv\FilamentWebflow\Jobs\PushWebflowItem;
 use Positiv\FilamentWebflow\Models\WebflowCollection;
 use Positiv\FilamentWebflow\Models\WebflowItem;
 use Positiv\FilamentWebflow\Support\WebflowFieldData;
+use Positiv\FilamentWebflow\Support\WebflowSchemaFormBuilder;
 
 class WebflowCollectionItemsPage extends Page implements HasTable
 {
@@ -91,7 +98,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
             IconColumn::make('is_draft')->label('Draft')->boolean()->toggleable(),
         ];
 
-        $schema = \Positiv\FilamentWebflow\Support\WebflowSchemaFormBuilder::orderSchemaFields($collection->schema ?? []);
+        $schema = WebflowSchemaFormBuilder::orderSchemaFields($collection->schema ?? []);
         foreach ($schema as $field) {
             $slug = $field['slug'] ?? null;
             if (! $slug) {
@@ -120,11 +127,11 @@ class WebflowCollectionItemsPage extends Page implements HasTable
 
         $columns[] = TextColumn::make('last_synced_at')->label('Last synced')->dateTime()->sortable()->toggleable();
 
-        if (class_exists(\App\Models\EventTicket::class)) {
+        if (class_exists(EventTicket::class)) {
             $columns[] = TextColumn::make('event_ticket_status')
                 ->label('Event ticket')
                 ->getStateUsing(function (WebflowItem $record): string {
-                    $linked = \App\Models\EventTicket::where('webflow_item_id', $record->id)->exists();
+                    $linked = EventTicket::where('webflow_item_id', $record->id)->exists();
 
                     return $linked ? 'Linked' : '—';
                 })
@@ -166,14 +173,14 @@ class WebflowCollectionItemsPage extends Page implements HasTable
                     ->icon('heroicon-o-arrow-down-tray')
                     ->action(function (): void {
                         PullWebflowItems::dispatch($this->collectionModel);
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Pull queued')
                             ->body('Items will be synced from Webflow shortly.')
                             ->success()
                             ->send();
                         $user = auth()->user();
                         if ($user) {
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Pull queued')
                                 ->body('Items will be synced from Webflow shortly.')
                                 ->success()
@@ -189,13 +196,13 @@ class WebflowCollectionItemsPage extends Page implements HasTable
                     ->label('Edit')
                     ->icon('heroicon-o-pencil-square')
                     ->url($editPageUrl),
-                \Filament\Actions\Action::make('pushToWebflow')
+                Action::make('pushToWebflow')
                     ->label('Push to Webflow')
                     ->icon('heroicon-o-arrow-up-tray')
                     ->action(fn (WebflowItem $record) => PushWebflowItem::dispatch($record, false)),
             ])
             ->bulkActions([
-                \Filament\Actions\BulkAction::make('pushSelected')
+                BulkAction::make('pushSelected')
                     ->label('Push selected to Webflow')
                     ->icon('heroicon-o-arrow-up-tray')
                     ->action(fn ($records) => $records->each(fn (WebflowItem $r) => PushWebflowItem::dispatch($r, false)))
@@ -208,7 +215,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
         if (! $this->collectionModel?->use_for_event_tickets) {
             return null;
         }
-        if (! class_exists(\App\Actions\EventTickets\ImportEventTicketsFromWebflowCollection::class)) {
+        if (! class_exists(ImportEventTicketsFromWebflowCollection::class)) {
             return null;
         }
 
@@ -224,7 +231,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
             ->action(function (array $data): void {
                 $tenant = Filament::getTenant();
                 if (! $tenant) {
-                    \Filament\Notifications\Notification::make()
+                    Notification::make()
                         ->title('No store selected')
                         ->body('Please select a store (tenant) first.')
                         ->danger()
@@ -233,10 +240,10 @@ class WebflowCollectionItemsPage extends Page implements HasTable
                     return;
                 }
 
-                $import = app(\App\Actions\EventTickets\ImportEventTicketsFromWebflowCollection::class);
+                $import = app(ImportEventTicketsFromWebflowCollection::class);
                 $result = $import($tenant, $this->collectionModel, (bool) ($data['pull_first'] ?? false));
 
-                \Filament\Notifications\Notification::make()
+                Notification::make()
                     ->title('Sync complete')
                     ->body("Created: {$result['created']}, Updated: {$result['updated']}.")
                     ->success()
@@ -244,13 +251,13 @@ class WebflowCollectionItemsPage extends Page implements HasTable
             });
     }
 
-    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): string
+    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null, bool $shouldGuessMissingParameters = false, ?string $configuration = null): string
     {
         // Parent already adds extra parameters (e.g. collection) as query string; do not append again
-        return parent::getUrl($parameters, $isAbsolute, $panel, $tenant);
+        return parent::getUrl($parameters, $isAbsolute, $panel, $tenant, $shouldGuessMissingParameters, $configuration);
     }
 
-    public static function getSlug(?\Filament\Panel $panel = null): string
+    public static function getSlug(?Panel $panel = null): string
     {
         return 'webflow-cms-items';
     }
