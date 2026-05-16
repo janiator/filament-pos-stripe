@@ -28,6 +28,7 @@ class ConnectedCustomer extends Model
 
     protected $casts = [
         'address' => 'array',
+        'phone' => 'string',
     ];
 
     protected static function booted(): void
