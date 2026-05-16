@@ -9,6 +9,7 @@ use App\Models\StoreStripePayout;
 use App\Services\Tripletex\TripletexSyncPreviewService;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
@@ -37,17 +38,7 @@ final class TripletexVoucherPreviewAction
                 'resolve_tripletex_accounts' => false,
                 'preview_json' => self::encodeZReportPreview($record, false),
             ])
-            ->form(self::previewFormSchema(
-                resolveUsing: function (bool $resolve, Get $get): string {
-                    $id = (int) $get('_record_id');
-                    $session = PosSession::query()->find($id);
-                    if (! $session instanceof PosSession) {
-                        return json_encode(['ok' => false, 'error' => 'Session not found.'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                    }
-
-                    return self::encodeZReportPreview($session, $resolve);
-                },
-            ))
+            ->form(self::zReportPreviewFormSchema())
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close');
     }
@@ -68,26 +59,15 @@ final class TripletexVoucherPreviewAction
                 'resolve_tripletex_accounts' => false,
                 'preview_json' => self::encodePayoutPreview($record, false),
             ])
-            ->form(self::previewFormSchema(
-                resolveUsing: function (bool $resolve, Get $get): string {
-                    $id = (int) $get('_record_id');
-                    $payout = StoreStripePayout::query()->find($id);
-                    if (! $payout instanceof StoreStripePayout) {
-                        return json_encode(['ok' => false, 'error' => 'Payout not found.'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                    }
-
-                    return self::encodePayoutPreview($payout, $resolve);
-                },
-            ))
+            ->form(self::payoutPreviewFormSchema())
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close');
     }
 
     /**
-     * @param  callable(bool $resolve, Get $get): string  $resolveUsing
-     * @return list<\Filament\Forms\Components\Component>
+     * @return list<Component>
      */
-    protected static function previewFormSchema(callable $resolveUsing): array
+    protected static function zReportPreviewFormSchema(): array
     {
         return [
             Hidden::make('_record_id'),
@@ -96,9 +76,11 @@ final class TripletexVoucherPreviewAction
                 ->helperText(__('Creates a short-lived session token and resolves each ledger account number used in the voucher.'))
                 ->default(false)
                 ->live()
-                ->afterStateUpdated(function ($state, Set $set, Get $get) use ($resolveUsing): void {
-                    $json = $resolveUsing((bool) $state, $get);
-                    $set('preview_json', $json);
+                ->afterStateUpdated(function ($state, Set $set, Get $get): void {
+                    $set(
+                        'preview_json',
+                        self::resolveJsonForZReportPreview($get, (bool) $state),
+                    );
                 }),
             Textarea::make('preview_json')
                 ->label(__('Preview JSON'))
@@ -107,6 +89,55 @@ final class TripletexVoucherPreviewAction
                 ->columnSpanFull()
                 ->extraInputAttributes(['class' => 'font-mono text-xs']),
         ];
+    }
+
+    /**
+     * @return list<Component>
+     */
+    protected static function payoutPreviewFormSchema(): array
+    {
+        return [
+            Hidden::make('_record_id'),
+            Toggle::make('resolve_tripletex_accounts')
+                ->label(__('Resolve Tripletex account IDs (calls Tripletex API)'))
+                ->helperText(__('Creates a short-lived session token and resolves each ledger account number used in the voucher.'))
+                ->default(false)
+                ->live()
+                ->afterStateUpdated(function ($state, Set $set, Get $get): void {
+                    $set(
+                        'preview_json',
+                        self::resolveJsonForPayoutPreview($get, (bool) $state),
+                    );
+                }),
+            Textarea::make('preview_json')
+                ->label(__('Preview JSON'))
+                ->rows(28)
+                ->readOnly()
+                ->columnSpanFull()
+                ->extraInputAttributes(['class' => 'font-mono text-xs']),
+        ];
+    }
+
+    protected static function resolveJsonForZReportPreview(Get $get, bool $resolve): string
+    {
+        $id = (int) $get('_record_id');
+        $session = PosSession::query()->find($id);
+        if (! $session instanceof PosSession) {
+            return json_encode(['ok' => false, 'error' => 'Session not found.'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        return self::encodeZReportPreview($session, $resolve);
+    }
+
+    protected static function resolveJsonForPayoutPreview(Get $get, bool $resolve): string
+    {
+        $id = (int) $get('_record_id');
+        $payout = StoreStripePayout::query()->find($id);
+        if (! $payout instanceof StoreStripePayout) {
+            return json_encode(['ok' => false, 'error' => 'Payout not found.'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        return self::encodePayoutPreview($payout, $resolve);
     }
 
     public static function canPreviewZReport(PosSession $record): bool
