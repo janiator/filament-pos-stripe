@@ -52,7 +52,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
         $collectionId = (int) $this->collection;
         $this->collectionModel = WebflowCollection::where('id', $collectionId)
             ->where('is_active', true)
-            ->whereHas('site', fn ($q) => $tenant ? $q->where('store_id', $tenant->getKey()) : $q)
+            ->forSiteOnStore($tenant?->getKey())
             ->firstOrFail();
     }
 
@@ -61,7 +61,7 @@ class WebflowCollectionItemsPage extends Page implements HasTable
         // Redirect to first available collection or Webflow Sites
         $tenant = Filament::getTenant();
         $first = WebflowCollection::where('is_active', true)
-            ->whereHas('site', fn ($q) => $tenant ? $q->where('store_id', $tenant->getKey()) : $q)
+            ->forSiteOnStore($tenant?->getKey())
             ->first();
         if ($first) {
             $this->collection = $first->id;
@@ -244,10 +244,10 @@ class WebflowCollectionItemsPage extends Page implements HasTable
             });
     }
 
-    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): string
+    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null, bool $shouldGuessMissingParameters = false, ?string $configuration = null): string
     {
         // Parent already adds extra parameters (e.g. collection) as query string; do not append again
-        return parent::getUrl($parameters, $isAbsolute, $panel, $tenant);
+        return parent::getUrl($parameters, $isAbsolute, $panel, $tenant, $shouldGuessMissingParameters, $configuration);
     }
 
     public static function getSlug(?\Filament\Panel $panel = null): string
