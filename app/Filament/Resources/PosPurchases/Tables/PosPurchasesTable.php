@@ -181,11 +181,13 @@ class PosPurchasesTable
                             ->placeholder(__('All')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
+                        $userId = $data['user_id'] ?? null;
+
                         return $query->when(
-                            filled($data['user_id']),
+                            filled($userId),
                             fn (Builder $query): Builder => $query->whereHas(
                                 'posSession',
-                                fn (Builder $q) => $q->where('user_id', $data['user_id']),
+                                fn (Builder $q) => $q->where('user_id', $userId),
                             ),
                         );
                     }),
