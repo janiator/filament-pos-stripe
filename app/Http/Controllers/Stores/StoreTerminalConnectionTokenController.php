@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers\Stores;
 
+use App\Exceptions\StripeConnectedAccountInaccessible;
 use App\Models\PosDevice;
 use App\Models\Store;
 use App\Models\TerminalLocation;
+use App\Support\Stripe\StripeConnectedAccountGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Stripe\Exception\PermissionException;
+use Stripe\StripeClient;
+use Throwable;
 
 class StoreTerminalConnectionTokenController extends Controller
 {
@@ -83,9 +88,39 @@ class StoreTerminalConnectionTokenController extends Controller
             }
         }
 
-        $connectionToken = $storeModel->createConnectionToken([
-            'location' => $location->stripe_location_id,
-        ], true); // true = connected account
+        $secret = config('cashier.secret') ?? config('services.stripe.secret');
+
+        if (! $secret) {
+            return response()->json([
+                'message' => 'Stripe secret key is not configured.',
+            ], 500);
+        }
+
+        $stripe = new StripeClient($secret);
+
+        try {
+            StripeConnectedAccountGate::assertPlatformMayUseConnectedAccount(
+                $stripe,
+                (string) $storeModel->stripe_account_id
+            );
+
+            $connectionToken = $storeModel->createConnectionToken([
+                'location' => $location->stripe_location_id,
+            ], true); // true = connected account
+        } catch (StripeConnectedAccountInaccessible $e) {
+            return $this->stripeConnectedAccountErrorResponse($e->getMessage());
+        } catch (PermissionException $e) {
+            return $this->stripeConnectedAccountErrorResponse(
+                StripeConnectedAccountInaccessible::fromPermissionException($e)->getMessage()
+            );
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'Failed to create terminal connection token.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
 
         $payload = [
             'secret' => $connectionToken->secret,
@@ -98,5 +133,16 @@ class StoreTerminalConnectionTokenController extends Controller
         }
 
         return response()->json($payload, 200);
+    }
+
+    private function stripeConnectedAccountErrorResponse(string $message): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+            'errors' => [
+                'stripe_account' => [$message],
+            ],
+        ], 422);
     }
 }

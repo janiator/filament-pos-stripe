@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Stores;
 
+use App\Exceptions\StripeConnectedAccountInaccessible;
 use App\Models\Store;
+use App\Support\Stripe\StripeConnectedAccountGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Stripe\Exception\PermissionException;
 use Stripe\StripeClient;
 use Throwable;
 
@@ -16,10 +19,10 @@ class StoreTerminalPaymentIntentController extends Controller
         // TODO: Authorize the caller (e.g. Sanctum / JWT / your own guard)
 
         $validated = $request->validate([
-            'amount'      => ['required', 'integer', 'min:1'],  // in minor units
-            'currency'    => ['nullable', 'string', 'size:3'],
+            'amount' => ['required', 'integer', 'min:1'],  // in minor units
+            'currency' => ['nullable', 'string', 'size:3'],
             'description' => ['nullable', 'string', 'max:255'],
-            'metadata'    => ['nullable', 'array'],
+            'metadata' => ['nullable', 'array'],
         ]);
 
         if (! $store->hasStripeAccount()) {
@@ -44,11 +47,16 @@ class StoreTerminalPaymentIntentController extends Controller
         $stripe = new StripeClient($secret);
 
         try {
+            StripeConnectedAccountGate::assertPlatformMayUseConnectedAccount(
+                $stripe,
+                (string) $store->stripe_account_id
+            );
+
             $params = [
-                'amount'               => $validated['amount'],
-                'currency'             => $currency,
+                'amount' => $validated['amount'],
+                'currency' => $currency,
                 'payment_method_types' => ['card_present'],
-                'capture_method'       => 'automatic', // Terminal flow: create → collect → capture
+                'capture_method' => 'automatic', // Terminal flow: create → collect → capture
             ];
 
             if (! empty($validated['description'])) {
@@ -66,13 +74,30 @@ class StoreTerminalPaymentIntentController extends Controller
             );
 
             return response()->json($intent, 201);
+        } catch (StripeConnectedAccountInaccessible $e) {
+            return $this->stripeConnectedAccountErrorResponse($e->getMessage());
+        } catch (PermissionException $e) {
+            return $this->stripeConnectedAccountErrorResponse(
+                StripeConnectedAccountInaccessible::fromPermissionException($e)->getMessage()
+            );
         } catch (Throwable $e) {
             report($e);
 
             return response()->json([
                 'message' => 'Failed to create payment intent.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function stripeConnectedAccountErrorResponse(string $message): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+            'errors' => [
+                'stripe_account' => [$message],
+            ],
+        ], 422);
     }
 }
