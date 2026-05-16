@@ -88,8 +88,7 @@ class SyncProductPrice
         }
 
         // Create new price
-        $createPriceAction = new CreateConnectedPriceInStripe;
-        $newPriceId = $createPriceAction(
+        $newPriceId = app(CreateConnectedPriceInStripe::class)(
             $product->stripe_product_id,
             $product->stripe_account_id,
             $newPriceAmount,
@@ -114,6 +113,18 @@ class SyncProductPrice
         // Set as default price
         $product->default_price = $newPriceId;
         $product->saveQuietly();
+
+        // Stripe rejects archiving/deactivating a Price that still is the Product's default_price on
+        // the connected account. Push the new default_price to Stripe before touching old Prices.
+        if (! $this->syncStripeProductDefaultPrice($product, $newPriceId)) {
+            Log::error('Aborted archiving old prices: failed to update Stripe product default_price', [
+                'product_id' => $product->id,
+                'stripe_product_id' => $product->stripe_product_id,
+                'new_default_price_id' => $newPriceId,
+            ]);
+
+            return;
+        }
 
         // Handle old prices - archive if used, delete if not
         foreach ($existingPrices as $oldPrice) {
@@ -173,7 +184,7 @@ class SyncProductPrice
                 return false;
             }
 
-            $stripe = new StripeClient($secret);
+            $stripe = $this->makeStripeClient($secret);
 
             // Check payment intents - search for this price ID
             // Note: Payment intents don't directly store price_id, but we can check metadata
@@ -215,6 +226,48 @@ class SyncProductPrice
         return false;
     }
 
+    protected function makeStripeClient(string $secret): StripeClient
+    {
+        return new StripeClient($secret);
+    }
+
+    /**
+     * Update the Stripe Product's default_price (Connect) before deactivating the previous price.
+     */
+    protected function syncStripeProductDefaultPrice(ConnectedProduct $product, string $defaultPriceId): bool
+    {
+        try {
+            $secret = config('cashier.secret') ?? config('services.stripe.secret');
+            if (! $secret) {
+                Log::warning('Cannot sync Stripe product default price: Stripe secret not configured', [
+                    'product_id' => $product->id,
+                ]);
+
+                return false;
+            }
+
+            $stripe = $this->makeStripeClient($secret);
+
+            $stripe->products->update(
+                $product->stripe_product_id,
+                ['default_price' => $defaultPriceId],
+                ['stripe_account' => $product->stripe_account_id]
+            );
+
+            return true;
+        } catch (Throwable $e) {
+            Log::error('Failed to sync Stripe product default price', [
+                'product_id' => $product->id,
+                'stripe_product_id' => $product->stripe_product_id,
+                'default_price_id' => $defaultPriceId,
+                'error' => $e->getMessage(),
+            ]);
+            report($e);
+
+            return false;
+        }
+    }
+
     /**
      * Archive a price in Stripe (set active=false)
      */
@@ -226,7 +279,7 @@ class SyncProductPrice
                 return;
             }
 
-            $stripe = new StripeClient($secret);
+            $stripe = $this->makeStripeClient($secret);
 
             $stripe->prices->update(
                 $price->stripe_price_id,
@@ -257,7 +310,7 @@ class SyncProductPrice
                 return;
             }
 
-            $stripe = new StripeClient($secret);
+            $stripe = $this->makeStripeClient($secret);
 
             // Try to delete, but Stripe may not allow deletion if price has been used
             // In that case, we'll archive it instead
