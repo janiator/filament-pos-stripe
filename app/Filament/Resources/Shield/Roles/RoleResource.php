@@ -46,6 +46,21 @@ class RoleResource extends Resource
      */
     protected static bool $isScopedToTenant = false;
 
+    public static function isScopedToTenant(): bool
+    {
+        return false;
+    }
+
+    public static function registerTenancyModelGlobalScope(Panel $panel): void
+    {
+        // Spatie Permission roles are global; omit Filament tenancy global scope registration.
+    }
+
+    public static function observeTenancyModelCreation(Panel $panel): void
+    {
+        // Never associate/sync roles with the current tenant — Role has no `store` relationship.
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
