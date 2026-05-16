@@ -398,3 +398,41 @@ that an implementing agent can write code without making decisions.
 `/vendor/filament/blueprint/resources/markdown/planning/overview.md` for plan format,
 required sections, and what to clarify with the user before planning.
 </laravel-boost-guidelines>
+
+## Cursor Cloud specific instructions
+
+### System Dependencies
+
+The VM requires PHP 8.4, Composer, and PostgreSQL 16. These are installed by the update script via `apt`. Redis is only needed if running Horizon (not required for basic dev/testing).
+
+### Database Setup
+
+- The dev `.env` uses **PostgreSQL** (`pos_stripe`) instead of the `.env.example` default of SQLite. SQLite has migration issues with the workflow tenancy index migration (the `indexExists()` helper doesn't support SQLite).
+- Tests use a separate PostgreSQL database `pos_stripe_test` (configured in `phpunit.xml`). The update script creates both databases idempotently.
+- **NEVER run `migrate:fresh` or `migrate:refresh`** on the dev database. Use `php artisan test` for test migrations. See AGENTS.md `laravel/core` rules.
+
+### Private Composer Packages (Auth Required)
+
+Two packages require private repo auth and are **not installed** in the default Cloud Agent environment:
+- `leek/filament-workflows` (from `filament-workflow-engine.composer.sh`) — requires license key in `auth.json`
+- `filament/blueprint` (from `packages.filamentphp.com`) — dev-only, requires Filament license
+
+The app boots fine without these. The workflow plugin is loaded conditionally via `class_exists()` in `AppPanelProvider`. If the user provides credentials, add them to `/workspace/auth.json` (gitignored) per `docs/WORKFLOW_ENGINE_SETUP.md`.
+
+### Running the App
+
+- `php artisan serve --host=0.0.0.0 --port=8000` for the web server
+- `npm run dev` for Vite hot-reload (or `npm run build` for static assets)
+- `composer run dev` runs all dev services concurrently (server, queue, logs, vite) via `npx concurrently`
+- The Filament panel is at `/app/login`. Multi-tenancy requires a Store record; use `php artisan make:filament-user` and assign `super_admin` role.
+
+### Running Tests
+
+- `php artisan test --compact` runs the full Pest test suite
+- `VariantStripeProductTest` has a pre-existing hang bug: the `test_creating_variant_creates_stripe_product` test leaks state that causes `test_variant_product_name_includes_options` to hang indefinitely. Skip or run individually.
+- PostgreSQL must be running: `sudo pg_ctlcluster 16 main start`
+
+### Lint
+
+- `vendor/bin/pint --dirty --format agent` for formatting (per AGENTS.md pint rules)
+- `vendor/bin/pint --test --format agent` to check without modifying
