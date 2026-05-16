@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 class PosDevice extends Model
 {
@@ -50,6 +51,29 @@ class PosDevice extends Model
         'booking_enabled' => 'boolean',
         'auto_print_receipt' => 'boolean',
     ];
+
+    /**
+     * Insert for idempotent /register; recovers when concurrent requests race on store_id + device_name.
+     *
+     * @return array{0: PosDevice, 1: bool} The device model, and true when a new row was inserted.
+     */
+    public static function createOrFetchForIdempotentRegister(array $validated, int $storeId, string $deviceName): array
+    {
+        try {
+            return [static::query()->create($validated), true];
+        } catch (UniqueConstraintViolationException $exception) {
+            $device = static::query()
+                ->where('store_id', $storeId)
+                ->where('device_name', $deviceName)
+                ->first();
+
+            if ($device === null) {
+                throw $exception;
+            }
+
+            return [$device, false];
+        }
+    }
 
     public function store(): BelongsTo
     {
