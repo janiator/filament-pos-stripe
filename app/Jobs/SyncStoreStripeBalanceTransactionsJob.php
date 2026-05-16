@@ -8,6 +8,7 @@ use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Log;
 class SyncStoreStripeBalanceTransactionsJob implements ShouldBeUnique, ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public bool $deleteWhenMissingModels = true;
 
     public int $tries = 3;
 
@@ -49,7 +52,15 @@ class SyncStoreStripeBalanceTransactionsJob implements ShouldBeUnique, ShouldQue
         ]);
 
         try {
-            $this->store->refresh();
+            try {
+                $this->store->refresh();
+            } catch (ModelNotFoundException) {
+                Log::warning('Skipping Stripe balance transaction sync — store no longer exists', [
+                    'store_id' => $this->store->getKey(),
+                ]);
+
+                return;
+            }
 
             if (! $this->store->stripe_account_id) {
                 Log::warning('Skipping Stripe balance transaction sync — store has no Stripe account id', [
