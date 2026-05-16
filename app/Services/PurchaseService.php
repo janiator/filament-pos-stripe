@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Exceptions\CashDrawerDisabledException;
 use App\Models\ConnectedCharge;
+use App\Models\ConnectedCustomer;
 use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
 use App\Models\PosEvent;
@@ -10,11 +12,14 @@ use App\Models\PosSession;
 use App\Models\ProductVariant;
 use App\Models\Receipt;
 use App\Models\Store;
+use App\Support\Stripe\StripeConnectedAccountGate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Stripe\Exception\InvalidRequestException;
+use Stripe\Exception\PermissionException as StripePermissionException;
 use Stripe\StripeClient;
 use Throwable;
 
@@ -70,7 +75,7 @@ class PurchaseService
         if (is_numeric($customerId)) {
             $customerIdInt = (int) $customerId;
 
-            $customer = \App\Models\ConnectedCustomer::where('id', $customerIdInt)
+            $customer = ConnectedCustomer::where('id', $customerIdInt)
                 ->where('stripe_account_id', $stripeAccountId)
                 ->first();
 
@@ -151,7 +156,7 @@ class PurchaseService
             if ($paymentMethod->isCash()) {
                 $device = $posSession->posDevice;
                 if ($device && $device->cash_drawer_enabled === false) {
-                    throw new \App\Exceptions\CashDrawerDisabledException;
+                    throw new CashDrawerDisabledException;
                 }
             }
 
@@ -309,6 +314,7 @@ class PurchaseService
 
         // Retrieve payment intent from Stripe with charges expanded
         $stripe = $this->getStripeClient();
+        StripeConnectedAccountGate::assertPlatformMayAccessConnectedAccount($stripe, $store->stripe_account_id);
 
         // Retry logic: sometimes charges take a moment to appear after confirmation
         $maxRetries = 3;
@@ -317,11 +323,15 @@ class PurchaseService
         $stripeChargeId = null;
 
         for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-            $paymentIntent = $stripe->paymentIntents->retrieve(
-                $paymentIntentId,
-                ['expand' => ['charges.data']], // Expand charges to ensure they're loaded
-                ['stripe_account' => $store->stripe_account_id]
-            );
+            try {
+                $paymentIntent = $stripe->paymentIntents->retrieve(
+                    $paymentIntentId,
+                    ['expand' => ['charges.data']], // Expand charges to ensure they're loaded
+                    ['stripe_account' => $store->stripe_account_id]
+                );
+            } catch (StripePermissionException $e) {
+                StripeConnectedAccountGate::raiseIfDisconnectedConnectedAccountStripeCall($e);
+            }
 
             if ($paymentIntent->status !== 'succeeded') {
                 throw new \Exception('Payment intent is not succeeded');
@@ -674,11 +684,17 @@ class PurchaseService
             }
 
             $stripe = $this->getStripeClient();
-            $paymentIntent = $stripe->paymentIntents->retrieve(
-                $paymentIntentId,
-                [],
-                ['stripe_account' => $store->stripe_account_id]
-            );
+            StripeConnectedAccountGate::assertPlatformMayAccessConnectedAccount($stripe, $store->stripe_account_id);
+
+            try {
+                $paymentIntent = $stripe->paymentIntents->retrieve(
+                    $paymentIntentId,
+                    [],
+                    ['stripe_account' => $store->stripe_account_id]
+                );
+            } catch (StripePermissionException $e) {
+                StripeConnectedAccountGate::raiseIfDisconnectedConnectedAccountStripeCall($e);
+            }
 
             if ($paymentIntent->status !== 'succeeded') {
                 throw ValidationException::withMessages([
@@ -944,11 +960,17 @@ class PurchaseService
                 }
 
                 $stripe = $this->getStripeClient();
-                $paymentIntent = $stripe->paymentIntents->retrieve(
-                    $paymentIntentId,
-                    ['expand' => ['charges.data']],
-                    ['stripe_account' => $store->stripe_account_id]
-                );
+                StripeConnectedAccountGate::assertPlatformMayAccessConnectedAccount($stripe, $store->stripe_account_id);
+
+                try {
+                    $paymentIntent = $stripe->paymentIntents->retrieve(
+                        $paymentIntentId,
+                        ['expand' => ['charges.data']],
+                        ['stripe_account' => $store->stripe_account_id]
+                    );
+                } catch (StripePermissionException $e) {
+                    StripeConnectedAccountGate::raiseIfDisconnectedConnectedAccountStripeCall($e);
+                }
 
                 if ($paymentIntent->status !== 'succeeded') {
                     throw new \Exception('Payment intent is not succeeded');
@@ -1045,7 +1067,7 @@ class PurchaseService
             } elseif ($paymentMethod->isCash()) {
                 $device = $posSession->posDevice;
                 if ($device && $device->cash_drawer_enabled === false) {
-                    throw new \App\Exceptions\CashDrawerDisabledException;
+                    throw new CashDrawerDisabledException;
                 }
 
                 // Handle cash payment
@@ -1364,7 +1386,7 @@ class PurchaseService
                 'error' => null,
                 'payment_intent' => $paymentIntent,
             ];
-        } catch (\Stripe\Exception\InvalidRequestException $e) {
+        } catch (InvalidRequestException $e) {
             // Payment intent might already be cancelled, succeeded, or not found
             // This is not necessarily an error - it might already be in the desired state
             return [
@@ -1457,7 +1479,7 @@ class PurchaseService
                 }
 
                 if ($paymentMethod->isCash() && $hasCashDrawerDisabled) {
-                    throw new \App\Exceptions\CashDrawerDisabledException;
+                    throw new CashDrawerDisabledException;
                 }
 
                 // Process individual payment
@@ -1898,7 +1920,7 @@ class PurchaseService
                 'error' => null,
                 'refund' => $refund,
             ];
-        } catch (\Stripe\Exception\InvalidRequestException $e) {
+        } catch (InvalidRequestException $e) {
             Log::error('Stripe refund failed', [
                 'charge_id' => $stripeChargeId,
                 'stripe_account_id' => $stripeAccountId,

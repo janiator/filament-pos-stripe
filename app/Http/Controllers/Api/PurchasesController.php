@@ -4,17 +4,24 @@ namespace App\Http\Controllers\Api;
 
 use App\Exceptions\CashDrawerDisabledException;
 use App\Exceptions\InsufficientStockException;
+use App\Exceptions\StripeConnectedAccountInaccessible;
 use App\Http\Requests\Api\CompletePurchasePaymentRequest;
 use App\Http\Requests\Api\ReviseDeferredPurchaseRequest;
 use App\Models\ConnectedCharge;
+use App\Models\ConnectedCustomer;
+use App\Models\ConnectedPaymentIntent;
 use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
+use App\Models\PosDevice;
+use App\Models\PosEvent;
 use App\Models\PosSession;
 use App\Models\ProductVariant;
 use App\Services\PurchaseService;
 use Carbon\Carbon;
+use Filament\Facades\Filament;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -438,7 +445,7 @@ class PurchasesController extends BaseApiController
 
         // If customer_id is provided, verify customer exists and belongs to the store
         if ($customerId !== null) {
-            $customer = \App\Models\ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id)
+            $customer = ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id)
                 ->where('id', (int) $customerId)
                 ->first();
 
@@ -1237,7 +1244,7 @@ class PurchasesController extends BaseApiController
 
         // Try to get store from Filament tenant first, then fall back to user's current store
         try {
-            $store = \Filament\Facades\Filament::getTenant();
+            $store = Filament::getTenant();
         } catch (\Throwable $e) {
             $store = null;
         }
@@ -1272,7 +1279,7 @@ class PurchasesController extends BaseApiController
 
         // When pos_device_id is provided and device has cash drawer disabled, exclude cash methods
         if ($posDeviceId !== null) {
-            $device = \App\Models\PosDevice::where('id', $posDeviceId)
+            $device = PosDevice::where('id', $posDeviceId)
                 ->where('store_id', $store->id)
                 ->first();
             if ($device && $device->cash_drawer_enabled === false) {
@@ -1349,9 +1356,9 @@ class PurchasesController extends BaseApiController
                 // Get store from POS session
                 $posSessionId = $request->input('pos_session_id');
                 if ($posSessionId) {
-                    $posSession = \App\Models\PosSession::find($posSessionId);
+                    $posSession = PosSession::find($posSessionId);
                     if ($posSession && $posSession->store) {
-                        $customer = \App\Models\ConnectedCustomer::where('id', (int) $customerId)
+                        $customer = ConnectedCustomer::where('id', (int) $customerId)
                             ->where('stripe_account_id', $posSession->store->stripe_account_id)
                             ->exists();
 
@@ -1384,7 +1391,7 @@ class PurchasesController extends BaseApiController
 
         // Try to get store from Filament tenant first, then fall back to user's current store
         try {
-            $userStore = \Filament\Facades\Filament::getTenant();
+            $userStore = Filament::getTenant();
         } catch (\Throwable $e) {
             $userStore = null;
         }
@@ -1502,6 +1509,20 @@ class PurchasesController extends BaseApiController
                     ],
                 ],
             ], 201);
+        } catch (StripeConnectedAccountInaccessible $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->validationErrors(),
+            ], 422);
+        } catch (ValidationException $e) {
+            $errors = $e->errors();
+
+            return response()->json([
+                'success' => false,
+                'message' => Arr::flatten($errors)[0] ?? $e->getMessage(),
+                'errors' => $errors,
+            ], 422);
         } catch (CashDrawerDisabledException $e) {
             return response()->json([
                 'success' => false,
@@ -1540,7 +1561,7 @@ class PurchasesController extends BaseApiController
 
         // Try to get store from Filament tenant first, then fall back to user's current store
         try {
-            $userStore = \Filament\Facades\Filament::getTenant();
+            $userStore = Filament::getTenant();
         } catch (\Throwable $e) {
             $userStore = null;
         }
@@ -1685,7 +1706,7 @@ class PurchasesController extends BaseApiController
         }
 
         if (isset($validated['cart']['customer_id']) && $validated['cart']['customer_id'] !== null && $validated['cart']['customer_id'] !== 0) {
-            $customerExists = \App\Models\ConnectedCustomer::query()
+            $customerExists = ConnectedCustomer::query()
                 ->where('id', (int) $validated['cart']['customer_id'])
                 ->where('stripe_account_id', $charge->store->stripe_account_id)
                 ->exists();
@@ -1739,6 +1760,12 @@ class PurchasesController extends BaseApiController
                     ],
                 ],
             ], 200);
+        } catch (StripeConnectedAccountInaccessible $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->validationErrors(),
+            ], 422);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -1780,7 +1807,7 @@ class PurchasesController extends BaseApiController
         $user = $request->user();
 
         try {
-            $userStore = \Filament\Facades\Filament::getTenant();
+            $userStore = Filament::getTenant();
         } catch (\Throwable $e) {
             $userStore = null;
         }
@@ -1859,7 +1886,7 @@ class PurchasesController extends BaseApiController
         }
 
         if (isset($validated['cart']['customer_id']) && $validated['cart']['customer_id'] !== null && $validated['cart']['customer_id'] !== 0) {
-            $customerExists = \App\Models\ConnectedCustomer::query()
+            $customerExists = ConnectedCustomer::query()
                 ->where('id', (int) $validated['cart']['customer_id'])
                 ->where('stripe_account_id', $charge->store->stripe_account_id)
                 ->exists();
@@ -1985,9 +2012,9 @@ class PurchasesController extends BaseApiController
             if ($customerId !== null && $customerId !== '' && $customerId !== 0) {
                 $posSessionId = $request->input('pos_session_id');
                 if ($posSessionId) {
-                    $posSession = \App\Models\PosSession::find($posSessionId);
+                    $posSession = PosSession::find($posSessionId);
                     if ($posSession && $posSession->store) {
-                        $customer = \App\Models\ConnectedCustomer::where('id', (int) $customerId)
+                        $customer = ConnectedCustomer::where('id', (int) $customerId)
                             ->where('stripe_account_id', $posSession->store->stripe_account_id)
                             ->exists();
 
@@ -2019,7 +2046,7 @@ class PurchasesController extends BaseApiController
         $user = $request->user();
 
         try {
-            $userStore = \Filament\Facades\Filament::getTenant();
+            $userStore = Filament::getTenant();
         } catch (\Throwable $e) {
             $userStore = null;
         }
@@ -2138,6 +2165,20 @@ class PurchasesController extends BaseApiController
                     ],
                 ],
             ], 201);
+        } catch (StripeConnectedAccountInaccessible $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->validationErrors(),
+            ], 422);
+        } catch (ValidationException $e) {
+            $errors = $e->errors();
+
+            return response()->json([
+                'success' => false,
+                'message' => Arr::flatten($errors)[0] ?? $e->getMessage(),
+                'errors' => $errors,
+            ], 422);
         } catch (CashDrawerDisabledException $e) {
             return response()->json([
                 'success' => false,
@@ -2243,13 +2284,13 @@ class PurchasesController extends BaseApiController
         }
 
         // Log void transaction event (13014)
-        \App\Models\PosEvent::create([
+        PosEvent::create([
             'store_id' => $store->id,
             'pos_device_id' => $posSession->pos_device_id,
             'pos_session_id' => $posSession->id,
             'user_id' => $request->user()->id,
             'related_charge_id' => $purchase->id,
-            'event_code' => \App\Models\PosEvent::EVENT_VOID_TRANSACTION,
+            'event_code' => PosEvent::EVENT_VOID_TRANSACTION,
             'event_type' => 'transaction',
             'description' => "Purchase cancelled: {$purchase->description}",
             'event_data' => [
@@ -2550,7 +2591,7 @@ class PurchasesController extends BaseApiController
 
         // If there's a payment intent, try to get additional details
         if ($purchase->stripe_payment_intent_id) {
-            $paymentIntent = \App\Models\ConnectedPaymentIntent::where('stripe_id', $purchase->stripe_payment_intent_id)
+            $paymentIntent = ConnectedPaymentIntent::where('stripe_id', $purchase->stripe_payment_intent_id)
                 ->where('stripe_account_id', $purchase->stripe_account_id)
                 ->first();
 
