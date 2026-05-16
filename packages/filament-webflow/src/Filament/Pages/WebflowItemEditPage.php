@@ -103,9 +103,9 @@ class WebflowItemEditPage extends Page
         return 'webflow-cms-items/{item}/edit';
     }
 
-    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): string
+    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null, bool $shouldGuessMissingParameters = false, ?string $configuration = null): string
     {
-        return parent::getUrl($parameters, $isAbsolute, $panel, $tenant);
+        return parent::getUrl($parameters, $isAbsolute, $panel, $tenant, $shouldGuessMissingParameters, $configuration);
     }
 
     public function form(Schema $schema): Schema
