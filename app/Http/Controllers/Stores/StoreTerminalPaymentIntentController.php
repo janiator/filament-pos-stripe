@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Stores;
 
 use App\Models\Store;
+use App\Support\StripeMinimumChargeMinorUnits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -16,10 +17,10 @@ class StoreTerminalPaymentIntentController extends Controller
         // TODO: Authorize the caller (e.g. Sanctum / JWT / your own guard)
 
         $validated = $request->validate([
-            'amount'      => ['required', 'integer', 'min:1'],  // in minor units
-            'currency'    => ['nullable', 'string', 'size:3'],
+            'amount' => ['required', 'integer', 'min:1'],  // in minor units
+            'currency' => ['nullable', 'string', 'size:3'],
             'description' => ['nullable', 'string', 'max:255'],
-            'metadata'    => ['nullable', 'array'],
+            'metadata' => ['nullable', 'array'],
         ]);
 
         if (! $store->hasStripeAccount()) {
@@ -41,14 +42,29 @@ class StoreTerminalPaymentIntentController extends Controller
             ?? ($store->currency ?? config('cashier.currency', 'usd'))
         );
 
+        $stripeMinimumMinor = StripeMinimumChargeMinorUnits::forCurrency($currency);
+        if ($stripeMinimumMinor !== null && $validated['amount'] < $stripeMinimumMinor) {
+            $minimumLabel = StripeMinimumChargeMinorUnits::describeMinimumCharge($currency)
+                ?? (string) $stripeMinimumMinor;
+
+            return response()->json([
+                'message' => 'The payment amount is below the minimum Stripe allows for this currency.',
+                'errors' => [
+                    'amount' => [
+                        "The payment amount must be at least {$minimumLabel} for terminal card payments.",
+                    ],
+                ],
+            ], 422);
+        }
+
         $stripe = new StripeClient($secret);
 
         try {
             $params = [
-                'amount'               => $validated['amount'],
-                'currency'             => $currency,
+                'amount' => $validated['amount'],
+                'currency' => $currency,
                 'payment_method_types' => ['card_present'],
-                'capture_method'       => 'automatic', // Terminal flow: create → collect → capture
+                'capture_method' => 'automatic', // Terminal flow: create → collect → capture
             ];
 
             if (! empty($validated['description'])) {
@@ -71,7 +87,7 @@ class StoreTerminalPaymentIntentController extends Controller
 
             return response()->json([
                 'message' => 'Failed to create payment intent.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
