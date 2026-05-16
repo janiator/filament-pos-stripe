@@ -40,73 +40,7 @@ class CreateConnectedProductInStripe
         $stripe = new StripeClient($secret);
 
         try {
-            $createData = [
-                'name' => $product->name,
-                'type' => $product->type ?? 'service',
-            ];
-
-            // Add optional fields if they exist
-            if ($product->description !== null) {
-                $createData['description'] = $product->description;
-            }
-
-            if ($product->active !== null) {
-                $createData['active'] = $product->active;
-            }
-
-            if ($product->url !== null) {
-                $createData['url'] = $product->url;
-            }
-
-            if ($product->images !== null && is_array($product->images) && count($product->images) > 0) {
-                $createData['images'] = array_values(array_filter(array_slice($product->images, 0, 8), 'is_string'));
-            }
-
-            if ($product->shippable !== null) {
-                $createData['shippable'] = $product->shippable;
-            }
-
-            if ($product->statement_descriptor !== null) {
-                $createData['statement_descriptor'] = $product->statement_descriptor;
-            }
-
-            if ($product->tax_code !== null) {
-                $createData['tax_code'] = $product->tax_code;
-            }
-
-            if ($product->unit_label !== null) {
-                $createData['unit_label'] = $product->unit_label;
-            }
-
-            if ($product->package_dimensions !== null && is_array($product->package_dimensions)) {
-                $createData['package_dimensions'] = $product->package_dimensions;
-            }
-
-            if ($product->product_meta !== null && is_array($product->product_meta)) {
-                // Ensure all metadata values are strings
-                $metadata = [];
-                foreach ($product->product_meta as $key => $value) {
-                    if (! is_string($key) ||
-                        str_contains($key, "\0") ||
-                        str_contains($key, '*') ||
-                        str_contains($key, '_opts') ||
-                        str_starts_with($key, '_')) {
-                        continue;
-                    }
-
-                    if (is_string($value)) {
-                        $metadata[$key] = $value;
-                    } elseif (is_scalar($value)) {
-                        $metadata[$key] = (string) $value;
-                    } elseif (! is_null($value)) {
-                        $metadata[$key] = json_encode($value);
-                    }
-                }
-
-                if (! empty($metadata)) {
-                    $createData['metadata'] = $metadata;
-                }
-            }
+            $createData = $this->buildStripeProductCreatePayload($product);
 
             // Create product in Stripe
             $stripeProduct = $stripe->products->create(
@@ -135,5 +69,85 @@ class CreateConnectedProductInStripe
 
             return null;
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildStripeProductCreatePayload(ConnectedProduct $product): array
+    {
+        $createData = [
+            'name' => $product->name,
+            'type' => $product->type ?? 'service',
+        ];
+
+        // Add optional fields if they exist
+        if ($product->description !== null) {
+            $createData['description'] = $product->description;
+        }
+
+        if ($product->active !== null) {
+            $createData['active'] = $product->active;
+        }
+
+        if ($product->url !== null) {
+            $createData['url'] = $product->url;
+        }
+
+        if ($product->images !== null && is_array($product->images) && count($product->images) > 0) {
+            $createData['images'] = array_values(array_filter(array_slice($product->images, 0, 8), 'is_string'));
+        }
+
+        if ($product->shippable !== null) {
+            $createData['shippable'] = $product->shippable;
+        }
+
+        if ($product->statement_descriptor !== null) {
+            $createData['statement_descriptor'] = $product->statement_descriptor;
+        }
+
+        if ($product->tax_code !== null) {
+            $createData['tax_code'] = $product->tax_code;
+        }
+
+        $stripeProductType = $product->type ?? 'service';
+
+        if (is_string($stripeProductType)
+            && strtolower($stripeProductType) === 'service'
+            && $product->unit_label !== null) {
+            $createData['unit_label'] = $product->unit_label;
+        }
+
+        if ($product->package_dimensions !== null && is_array($product->package_dimensions)) {
+            $createData['package_dimensions'] = $product->package_dimensions;
+        }
+
+        if ($product->product_meta !== null && is_array($product->product_meta)) {
+            // Ensure all metadata values are strings
+            $metadata = [];
+            foreach ($product->product_meta as $key => $value) {
+                if (! is_string($key) ||
+                    str_contains($key, "\0") ||
+                    str_contains($key, '*') ||
+                    str_contains($key, '_opts') ||
+                    str_starts_with($key, '_')) {
+                    continue;
+                }
+
+                if (is_string($value)) {
+                    $metadata[$key] = $value;
+                } elseif (is_scalar($value)) {
+                    $metadata[$key] = (string) $value;
+                } elseif (! is_null($value)) {
+                    $metadata[$key] = json_encode($value);
+                }
+            }
+
+            if (! empty($metadata)) {
+                $createData['metadata'] = $metadata;
+            }
+        }
+
+        return $createData;
     }
 }
