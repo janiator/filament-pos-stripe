@@ -5,7 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Enums\AddonType;
 use App\Models\Addon;
 use App\Models\PosDevice;
+use App\Models\PosEvent;
+use App\Models\PosSession;
+use App\Models\ReceiptPrinter;
 use App\Models\TerminalLocation;
+use App\Models\TerminalReader;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -82,6 +87,8 @@ class PosDevicesController extends BaseApiController
             'is_physical_device' => 'nullable|boolean',
         ]);
 
+        $validated['device_name'] = trim($validated['device_name']);
+
         $deviceName = $validated['device_name'];
         $device = PosDevice::where('store_id', $store->id)
             ->where('device_name', $deviceName)
@@ -110,27 +117,7 @@ class PosDevicesController extends BaseApiController
         $validated['auto_print_receipt'] = $validated['auto_print_receipt'] ?? true;
 
         if ($device) {
-            // On update, only refresh device-info and heartbeat fields so we don't overwrite
-            // admin-configured values in Filament (booking_enabled, auto_print_receipt, etc.).
-            $updatePayload = [
-                'device_identifier' => $validated['device_identifier'],
-                'platform' => $validated['platform'],
-                'device_model' => $validated['device_model'] ?? null,
-                'device_brand' => $validated['device_brand'] ?? null,
-                'device_manufacturer' => $validated['device_manufacturer'] ?? null,
-                'device_product' => $validated['device_product'] ?? null,
-                'device_hardware' => $validated['device_hardware'] ?? null,
-                'machine_identifier' => $validated['machine_identifier'] ?? null,
-                'system_name' => $validated['system_name'] ?? null,
-                'system_version' => $validated['system_version'] ?? null,
-                'vendor_identifier' => $validated['vendor_identifier'] ?? null,
-                'android_id' => $validated['android_id'] ?? null,
-                'serial_number' => $validated['serial_number'] ?? null,
-                'device_metadata' => $validated['device_metadata'] ?? null,
-                'device_status' => $validated['device_status'],
-                'last_seen_at' => $validated['last_seen_at'],
-            ];
-            $device->update($updatePayload);
+            $device->update($this->registerDeviceUpdatePayload($validated));
 
             return response()->json([
                 'message' => 'POS device updated successfully',
@@ -139,7 +126,21 @@ class PosDevicesController extends BaseApiController
             ], 200);
         }
 
-        $device = PosDevice::create($validated);
+        try {
+            $device = PosDevice::create($validated);
+        } catch (UniqueConstraintViolationException) {
+            // Concurrent register with the same device_name: the other request inserted first.
+            $device = PosDevice::where('store_id', $store->id)
+                ->where('device_name', $deviceName)
+                ->firstOrFail();
+            $device->update($this->registerDeviceUpdatePayload($validated));
+
+            return response()->json([
+                'message' => 'POS device updated successfully',
+                'device' => $this->formatDeviceResponse($device->load(['terminalLocation.terminalReaders', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])),
+                'is_new_device' => false,
+            ], 200);
+        }
 
         if ($store->default_terminal_location_id) {
             $defaultTerminalLocation = TerminalLocation::where('id', $store->default_terminal_location_id)
@@ -311,7 +312,7 @@ class PosDevicesController extends BaseApiController
 
         // Validate that the printer belongs to the same store
         if (isset($validated['default_printer_id'])) {
-            $printer = \App\Models\ReceiptPrinter::where('id', $validated['default_printer_id'])
+            $printer = ReceiptPrinter::where('id', $validated['default_printer_id'])
                 ->where('store_id', $store->id)
                 ->first();
 
@@ -324,7 +325,7 @@ class PosDevicesController extends BaseApiController
 
         // Validate that last-connected terminal location and reader belong to this store
         if (array_key_exists('last_connected_terminal_location_id', $validated) && $validated['last_connected_terminal_location_id']) {
-            $loc = \App\Models\TerminalLocation::where('id', $validated['last_connected_terminal_location_id'])
+            $loc = TerminalLocation::where('id', $validated['last_connected_terminal_location_id'])
                 ->where('store_id', $store->id)
                 ->first();
             if (! $loc) {
@@ -334,7 +335,7 @@ class PosDevicesController extends BaseApiController
             }
         }
         if (array_key_exists('terminal_location_id', $validated) && $validated['terminal_location_id']) {
-            $loc = \App\Models\TerminalLocation::where('id', $validated['terminal_location_id'])
+            $loc = TerminalLocation::where('id', $validated['terminal_location_id'])
                 ->where('store_id', $store->id)
                 ->first();
             if (! $loc) {
@@ -344,7 +345,7 @@ class PosDevicesController extends BaseApiController
             }
         }
         if (array_key_exists('last_connected_terminal_reader_id', $validated) && $validated['last_connected_terminal_reader_id']) {
-            $reader = \App\Models\TerminalReader::where('id', $validated['last_connected_terminal_reader_id'])
+            $reader = TerminalReader::where('id', $validated['last_connected_terminal_reader_id'])
                 ->where('store_id', $store->id)
                 ->first();
             if (! $reader) {
@@ -406,8 +407,8 @@ class PosDevicesController extends BaseApiController
         // to avoid creating duplicate events if multiple heartbeats arrive quickly
         $recentStartEvent = null;
         if ($wasInactive) {
-            $recentStartEvent = \App\Models\PosEvent::where('pos_device_id', $device->id)
-                ->where('event_code', \App\Models\PosEvent::EVENT_APPLICATION_START)
+            $recentStartEvent = PosEvent::where('pos_device_id', $device->id)
+                ->where('event_code', PosEvent::EVENT_APPLICATION_START)
                 ->where('occurred_at', '>=', now()->subSeconds(30))
                 ->first();
         }
@@ -423,7 +424,7 @@ class PosDevicesController extends BaseApiController
         // Create start event if device was inactive and no recent start event exists
         if ($wasInactive && ! $recentStartEvent) {
             // Get current session if exists
-            $currentSession = \App\Models\PosSession::forStore($store->id)
+            $currentSession = PosSession::forStore($store->id)
                 ->where('pos_device_id', $device->id)
                 ->where('status', 'open')
                 ->first();
@@ -437,12 +438,12 @@ class PosDevicesController extends BaseApiController
                 : null;
 
             // Log application start event (13001)
-            $event = \App\Models\PosEvent::create([
+            $event = PosEvent::create([
                 'store_id' => $store->id,
                 'pos_device_id' => $device->id,
                 'pos_session_id' => $currentSession?->id,
                 'user_id' => $userId,
-                'event_code' => \App\Models\PosEvent::EVENT_APPLICATION_START,
+                'event_code' => PosEvent::EVENT_APPLICATION_START,
                 'event_type' => 'application',
                 'description' => "POS application resumed on device {$device->device_name} after inactivity",
                 'event_data' => [
@@ -494,14 +495,14 @@ class PosDevicesController extends BaseApiController
             ->firstOrFail();
 
         // Get current session if exists
-        $currentSession = \App\Models\PosSession::forStore($store->id)
+        $currentSession = PosSession::forStore($store->id)
             ->where('pos_device_id', $device->id)
             ->where('status', 'open')
             ->first();
 
         // Check for recent start event to prevent duplicates (within last 30 seconds)
-        $recentStartEvent = \App\Models\PosEvent::where('pos_device_id', $device->id)
-            ->where('event_code', \App\Models\PosEvent::EVENT_APPLICATION_START)
+        $recentStartEvent = PosEvent::where('pos_device_id', $device->id)
+            ->where('event_code', PosEvent::EVENT_APPLICATION_START)
             ->where('occurred_at', '>=', now()->subSeconds(30))
             ->first();
 
@@ -528,12 +529,12 @@ class PosDevicesController extends BaseApiController
         $userId = $request->user()?->id;
 
         // Log application start event (13001)
-        $event = \App\Models\PosEvent::create([
+        $event = PosEvent::create([
             'store_id' => $store->id,
             'pos_device_id' => $device->id,
             'pos_session_id' => $currentSession?->id,
             'user_id' => $userId,
-            'event_code' => \App\Models\PosEvent::EVENT_APPLICATION_START,
+            'event_code' => PosEvent::EVENT_APPLICATION_START,
             'event_type' => 'application',
             'description' => "POS application started on device {$device->device_name}",
             'event_data' => [
@@ -576,7 +577,7 @@ class PosDevicesController extends BaseApiController
             ->firstOrFail();
 
         // Get current session if exists
-        $currentSession = \App\Models\PosSession::forStore($store->id)
+        $currentSession = PosSession::forStore($store->id)
             ->where('pos_device_id', $device->id)
             ->where('status', 'open')
             ->first();
@@ -591,12 +592,12 @@ class PosDevicesController extends BaseApiController
         ]);
 
         // Log application shutdown event (13002)
-        $event = \App\Models\PosEvent::create([
+        $event = PosEvent::create([
             'store_id' => $store->id,
             'pos_device_id' => $device->id,
             'pos_session_id' => $currentSession?->id,
             'user_id' => $userId,
-            'event_code' => \App\Models\PosEvent::EVENT_APPLICATION_SHUTDOWN,
+            'event_code' => PosEvent::EVENT_APPLICATION_SHUTDOWN,
             'event_type' => 'application',
             'description' => "POS application shut down on device {$device->device_name}",
             'event_data' => [
@@ -663,11 +664,11 @@ class PosDevicesController extends BaseApiController
         // Get current session if not provided
         $session = null;
         if (isset($validated['pos_session_id'])) {
-            $session = \App\Models\PosSession::where('id', $validated['pos_session_id'])
+            $session = PosSession::where('id', $validated['pos_session_id'])
                 ->where('store_id', $store->id)
                 ->first();
         } else {
-            $session = \App\Models\PosSession::forStore($store->id)
+            $session = PosSession::forStore($store->id)
                 ->where('pos_device_id', $device->id)
                 ->where('status', 'open')
                 ->first();
@@ -682,13 +683,13 @@ class PosDevicesController extends BaseApiController
         }
 
         // Log cash drawer open event (13005)
-        \App\Models\PosEvent::create([
+        PosEvent::create([
             'store_id' => $store->id,
             'pos_device_id' => $device->id,
             'pos_session_id' => $session?->id,
             'user_id' => $request->user()->id,
             'related_charge_id' => $validated['related_charge_id'] ?? null,
-            'event_code' => \App\Models\PosEvent::EVENT_CASH_DRAWER_OPEN,
+            'event_code' => PosEvent::EVENT_CASH_DRAWER_OPEN,
             'event_type' => 'drawer',
             'description' => $isNullinnslag
                 ? 'Cash drawer opened without sale (nullinnslag)'
@@ -742,23 +743,23 @@ class PosDevicesController extends BaseApiController
         // Get current session if not provided
         $session = null;
         if (isset($validated['pos_session_id'])) {
-            $session = \App\Models\PosSession::where('id', $validated['pos_session_id'])
+            $session = PosSession::where('id', $validated['pos_session_id'])
                 ->where('store_id', $store->id)
                 ->first();
         } else {
-            $session = \App\Models\PosSession::forStore($store->id)
+            $session = PosSession::forStore($store->id)
                 ->where('pos_device_id', $device->id)
                 ->where('status', 'open')
                 ->first();
         }
 
         // Log cash drawer close event (13006)
-        \App\Models\PosEvent::create([
+        PosEvent::create([
             'store_id' => $store->id,
             'pos_device_id' => $device->id,
             'pos_session_id' => $session?->id,
             'user_id' => $request->user()->id,
-            'event_code' => \App\Models\PosEvent::EVENT_CASH_DRAWER_CLOSE,
+            'event_code' => PosEvent::EVENT_CASH_DRAWER_CLOSE,
             'event_type' => 'drawer',
             'description' => 'Cash drawer closed',
             'event_data' => [],
@@ -771,8 +772,33 @@ class PosDevicesController extends BaseApiController
     }
 
     /**
-     * Format device response with all information
+     * Fields refreshed from the client on register/update (does not overwrite Filament-only toggles).
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
      */
+    protected function registerDeviceUpdatePayload(array $validated): array
+    {
+        return [
+            'device_identifier' => $validated['device_identifier'],
+            'platform' => $validated['platform'],
+            'device_model' => $validated['device_model'] ?? null,
+            'device_brand' => $validated['device_brand'] ?? null,
+            'device_manufacturer' => $validated['device_manufacturer'] ?? null,
+            'device_product' => $validated['device_product'] ?? null,
+            'device_hardware' => $validated['device_hardware'] ?? null,
+            'machine_identifier' => $validated['machine_identifier'] ?? null,
+            'system_name' => $validated['system_name'] ?? null,
+            'system_version' => $validated['system_version'] ?? null,
+            'vendor_identifier' => $validated['vendor_identifier'] ?? null,
+            'android_id' => $validated['android_id'] ?? null,
+            'serial_number' => $validated['serial_number'] ?? null,
+            'device_metadata' => $validated['device_metadata'] ?? null,
+            'device_status' => $validated['device_status'],
+            'last_seen_at' => $validated['last_seen_at'],
+        ];
+    }
+
     /**
      * Format last-connected terminal for API response (for auto-reconnect)
      */
