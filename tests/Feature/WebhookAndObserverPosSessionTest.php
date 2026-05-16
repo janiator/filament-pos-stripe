@@ -10,6 +10,7 @@ use App\Models\PosSession;
 use App\Models\Store;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Stripe\Charge;
+use Stripe\PaymentMethod;
 
 uses(RefreshDatabase::class);
 
@@ -90,6 +91,44 @@ it('merges webhook into existing charge by payment_intent_id and preserves pos_s
     expect(ConnectedCharge::where('stripe_payment_intent_id', $paymentIntentId)->count())->toBe(1);
 });
 
+it('upserts by stripe_charge_id when the existing row has a mismatched stripe_account_id', function () {
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_'.uniqid()]);
+    $staleAccountId = 'acct_stale_'.uniqid();
+    $paymentIntentId = 'pi_'.uniqid();
+    $stripeChargeId = 'ch_'.uniqid();
+
+    ConnectedCharge::factory()->create([
+        'stripe_charge_id' => $stripeChargeId,
+        'stripe_account_id' => $staleAccountId,
+        'stripe_payment_intent_id' => null,
+        'pos_session_id' => null,
+        'amount' => 1000,
+        'status' => 'pending',
+        'paid' => false,
+    ]);
+
+    $stripeCharge = makeStripeChargeForWebhook([
+        'id' => $stripeChargeId,
+        'payment_intent' => $paymentIntentId,
+        'amount' => 6000,
+        'on_behalf_of' => $store->stripe_account_id,
+    ]);
+
+    app(HandleChargeWebhook::class)->handle(
+        $stripeCharge,
+        'charge.succeeded',
+        $store->stripe_account_id
+    );
+
+    expect(ConnectedCharge::where('stripe_charge_id', $stripeChargeId)->count())->toBe(1);
+
+    $row = ConnectedCharge::where('stripe_charge_id', $stripeChargeId)->first();
+    expect($row)->not->toBeNull()
+        ->and($row->stripe_account_id)->toBe($store->stripe_account_id)
+        ->and($row->amount)->toBe(6000)
+        ->and($row->stripe_payment_intent_id)->toBe($paymentIntentId);
+});
+
 it('does not create POS events when ConnectedCharge has null pos_session_id', function () {
     $store = Store::factory()->create(['stripe_account_id' => 'acct_'.uniqid()]);
 
@@ -168,7 +207,7 @@ it('does not overwrite existing payment method customer with null value', functi
         'card_exp_year' => 2030,
     ]);
 
-    $paymentMethod = \Stripe\PaymentMethod::constructFrom([
+    $paymentMethod = PaymentMethod::constructFrom([
         'id' => $existing->stripe_payment_method_id,
         'customer' => null,
         'type' => 'card',
