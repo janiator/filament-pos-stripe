@@ -120,6 +120,7 @@ Future updateCartTotals() async {
       cartCreatedAt: cart.cartCreatedAt,
       cartUpdatedAt: getCurrentTimestamp.toString(),
       cartMetadata: cart.cartMetadata,
+      cartNote: cart.cartNote,
       // Store calculated totals
       cartTotalLinePrice: totalLinePrice,
       cartTotalItemDiscounts: totalItemDiscounts,

@@ -9,6 +9,8 @@ const String kPositivDeferredResumeChargeIdKey =
     'positiv_deferred_resume_charge_id';
 const String kPositivDeferredResumeOrderLabelKey =
     'positiv_deferred_resume_order_label';
+const String kPositivDeferredResumeOrderNoteKey =
+    'positiv_deferred_resume_order_note';
 
 void mirrorDeferredResumeBannerToAppStateIfPresent({
   required bool active,
@@ -29,6 +31,7 @@ Future<dynamic> clearDeferredResumeContext() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(kPositivDeferredResumeChargeIdKey);
     await prefs.remove(kPositivDeferredResumeOrderLabelKey);
+    await prefs.remove(kPositivDeferredResumeOrderNoteKey);
     mirrorDeferredResumeBannerToAppStateIfPresent(
       active: false,
       bannerText: '',

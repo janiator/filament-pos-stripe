@@ -20,6 +20,25 @@ const String kPositivDeferredResumeChargeIdKey =
     'positiv_deferred_resume_charge_id';
 const String kPositivDeferredResumeOrderLabelKey =
     'positiv_deferred_resume_order_label';
+const String kPositivDeferredResumeOrderNoteKey =
+    'positiv_deferred_resume_order_note';
+
+String _deferredResumeBannerText({
+  required String orderDisplayReference,
+  required int chargeId,
+  required String note,
+}) {
+  final ref = orderDisplayReference.trim().isNotEmpty
+      ? orderDisplayReference.trim()
+      : '#$chargeId';
+  final base = 'Ordre $ref';
+  final trimmedNote = note.trim();
+  if (trimmedNote.isEmpty) {
+    return base;
+  }
+
+  return '$base · Notat: $trimmedNote';
+}
 
 void mirrorDeferredResumeBannerToAppStateIfPresent({
   required bool active,
@@ -214,6 +233,7 @@ Future<dynamic> prepareParkedDeferredPurchase(
           current,
           chargeId,
           orderDisplayReference,
+          note,
         ),
         // Whole-order note from API only (clears stale cart text when the order has no note).
         cartNote: note,
@@ -221,6 +241,7 @@ Future<dynamic> prepareParkedDeferredPurchase(
     });
 
     await updateCartTotals();
+    _reapplyCartOrderNoteAfterTotals(note);
 
     final hydrated = FFAppState().cart;
     final cartJson = jsonEncode(_buildCartPayloadFromShoppingCart(hydrated));
@@ -228,8 +249,17 @@ Future<dynamic> prepareParkedDeferredPurchase(
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(kPositivDeferredResumeChargeIdKey, chargeId);
     await prefs.setString(kPositivDeferredResumeOrderLabelKey, orderDisplayReference);
+    if (note.isEmpty) {
+      await prefs.remove(kPositivDeferredResumeOrderNoteKey);
+    } else {
+      await prefs.setString(kPositivDeferredResumeOrderNoteKey, note);
+    }
 
-    final bannerText = 'Ordre $orderDisplayReference';
+    final bannerText = _deferredResumeBannerText(
+      orderDisplayReference: orderDisplayReference,
+      chargeId: chargeId,
+      note: note,
+    );
     mirrorDeferredResumeBannerToAppStateIfPresent(
       active: true,
       bannerText: bannerText,
@@ -269,7 +299,7 @@ String _resolvePurchaseOrderNote(Map<String, dynamic> purchase) {
   }
 
   final desc = purchase['description']?.toString().trim() ?? '';
-  if (desc.isNotEmpty) {
+  if (desc.isNotEmpty && !_isGenericPurchaseDescription(desc)) {
     return desc;
   }
 
@@ -291,6 +321,33 @@ String _resolvePurchaseOrderNote(Map<String, dynamic> purchase) {
   }
 
   return '';
+}
+
+/// Charge [description] for deferred orders is often the fixed label "Deferred payment",
+/// not the staff order note — do not treat it as [cartNote].
+bool _isGenericPurchaseDescription(String value) {
+  switch (value.trim().toLowerCase()) {
+    case 'deferred payment':
+    case 'utsatt betaling':
+    case 'betaling ved henting':
+      return true;
+    default:
+      return false;
+  }
+}
+
+/// [updateCartTotals] historically rebuilt the cart without copying [cartNote].
+void _reapplyCartOrderNoteAfterTotals(String note) {
+  final trimmed = note.trim();
+  if (trimmed.isEmpty) {
+    return;
+  }
+  if (FFAppState().cart.cartNote.trim() == trimmed) {
+    return;
+  }
+  FFAppState().update(() {
+    FFAppState().updateCartStruct((c) => c..cartNote = trimmed);
+  });
 }
 
 Map<String, dynamic>? _purchaseMetadataAsMap(dynamic raw) {
@@ -323,6 +380,7 @@ CartMetadataStruct _mergedCartMetadata(
   ShoppingCartStruct current,
   int chargeId,
   String orderDisplayReference,
+  String orderNote,
 ) {
   final m = current.cartMetadata;
   final merged = <String, dynamic>{};
@@ -349,6 +407,9 @@ CartMetadataStruct _mergedCartMetadata(
 
   merged['positiv_deferred_resume_charge_id'] = chargeId;
   merged['positiv_deferred_order_display'] = orderDisplayReference;
+  if (orderNote.trim().isNotEmpty) {
+    merged['order_note'] = orderNote.trim();
+  }
 
   return CartMetadataStruct(
     source: m.source.isNotEmpty ? m.source : 'positiv_deferred_resume',

@@ -21,12 +21,15 @@ const String kPositivDeferredResumeChargeIdKey =
     'positiv_deferred_resume_charge_id';
 const String kPositivDeferredResumeOrderLabelKey =
     'positiv_deferred_resume_order_label';
+const String kPositivDeferredResumeOrderNoteKey =
+    'positiv_deferred_resume_order_note';
 
 Future<void> _clearPositivDeferredResumePrefs() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(kPositivDeferredResumeChargeIdKey);
     await prefs.remove(kPositivDeferredResumeOrderLabelKey);
+    await prefs.remove(kPositivDeferredResumeOrderNoteKey);
   } catch (_) {}
 }
 
