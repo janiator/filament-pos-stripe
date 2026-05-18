@@ -53,9 +53,7 @@ class ConnectedCustomer extends Model
             return true;
         }
 
-        $this->forceFill(['archived_at' => now()])->save();
-
-        return true;
+        return $this->forceFill(['archived_at' => now()])->save();
     }
 
     protected static function booted(): void

@@ -79,7 +79,9 @@ int? _resumeChargeIdFromCartMetadataNotes() {
       return i > 0 ? i : null;
     }
 
-    return int.tryParse(raw?.toString() ?? '');
+    final parsed = int.tryParse(raw?.toString() ?? '');
+
+    return parsed != null && parsed > 0 ? parsed : null;
   } catch (_) {
     return null;
   }
@@ -147,7 +149,9 @@ int? _parsePositiveInt(dynamic value) {
     return i > 0 ? i : null;
   }
 
-  return int.tryParse(value.toString());
+  final parsed = int.tryParse(value.toString());
+
+  return parsed != null && parsed > 0 ? parsed : null;
 }
 
 int? _parseReceiptIdFromReviseResponse(Map<String, dynamic> responseData) {

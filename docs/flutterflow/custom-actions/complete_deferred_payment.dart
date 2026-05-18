@@ -68,7 +68,9 @@ int? _parsePositiveInt(dynamic value) {
     return i > 0 ? i : null;
   }
 
-  return int.tryParse(value.toString());
+  final parsed = int.tryParse(value.toString());
+
+  return parsed != null && parsed > 0 ? parsed : null;
 }
 
 Future<void> _resetPosCartAfterDeferredCompletion() async {
