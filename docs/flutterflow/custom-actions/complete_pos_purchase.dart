@@ -57,6 +57,53 @@ void mirrorDeferredResumeBannerToAppStateIfPresent({
   } catch (_) {}
 }
 
+/// When SharedPreferences were cleared (e.g. web) but [prepareParkedDeferredPurchase]
+/// merged resume hints into [ShoppingCartStruct.cartMetadata.notes] JSON.
+int? _resumeChargeIdFromCartMetadataNotes() {
+  try {
+    final notes = FFAppState().cart.cartMetadata.notes.trim();
+    if (notes.isEmpty) {
+      return null;
+    }
+    final decoded = jsonDecode(notes);
+    if (decoded is! Map) {
+      return null;
+    }
+    final raw = decoded['positiv_deferred_resume_charge_id'];
+    if (raw is int) {
+      return raw > 0 ? raw : null;
+    }
+    if (raw is num) {
+      final i = raw.toInt();
+
+      return i > 0 ? i : null;
+    }
+
+    final parsed = int.tryParse(raw?.toString() ?? '');
+
+    return parsed != null && parsed > 0 ? parsed : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+String _resumeOrderLabelFromCartMetadataNotes() {
+  try {
+    final notes = FFAppState().cart.cartMetadata.notes.trim();
+    if (notes.isEmpty) {
+      return '';
+    }
+    final decoded = jsonDecode(notes);
+    if (decoded is Map) {
+      return (decoded['positiv_deferred_order_display'] ?? '')
+          .toString()
+          .trim();
+    }
+  } catch (_) {}
+
+  return '';
+}
+
 /// Reads terminal payment fields without relying on FlutterFlow-generated struct
 /// types (names change when Data Types are edited in the Designer).
 String? _terminalPaymentField(dynamic result, String field) {
@@ -87,6 +134,108 @@ String? _terminalPaymentField(dynamic result, String field) {
   } catch (_) {
     return null;
   }
+}
+
+int? _parsePositiveInt(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is int) {
+    return value > 0 ? value : null;
+  }
+  if (value is num) {
+    final i = value.toInt();
+
+    return i > 0 ? i : null;
+  }
+
+  final parsed = int.tryParse(value.toString());
+
+  return parsed != null && parsed > 0 ? parsed : null;
+}
+
+int? _parseReceiptIdFromReviseResponse(Map<String, dynamic> responseData) {
+  final topLevel = _parsePositiveInt(responseData['receipt_id']);
+  if (topLevel != null) {
+    return topLevel;
+  }
+
+  final data = responseData['data'];
+  if (data is Map<String, dynamic>) {
+    final receipt = data['receipt'];
+    if (receipt is Map<String, dynamic>) {
+      return _parsePositiveInt(receipt['id']);
+    }
+  }
+
+  return null;
+}
+
+Future<void> _tryClientPrintReceiptById({
+  required String apiBaseUrl,
+  required String authToken,
+  required int receiptId,
+}) async {
+  if (receiptId <= 0) {
+    return;
+  }
+
+  try {
+    final device = FFAppState().activePosDevice;
+    String? eposUrl;
+    for (final p in device.receiptPrinters) {
+      if (p.id == device.defaultPrinterId && p.eposUrl.trim().isNotEmpty) {
+        eposUrl = p.eposUrl.trim();
+        break;
+      }
+    }
+
+    final allowAutoPrint = device.hasAutoPrintReceipt()
+        ? device.autoPrintReceipt
+        : true;
+    final shouldPrint =
+        allowAutoPrint &&
+        (FFAppState().receiptPrinter.isActive ||
+            (eposUrl != null && eposUrl.isNotEmpty));
+    if (!shouldPrint || eposUrl == null || eposUrl.isEmpty) {
+      return;
+    }
+
+    final base = apiBaseUrl.endsWith('/')
+        ? apiBaseUrl.substring(0, apiBaseUrl.length - 1)
+        : apiBaseUrl;
+    final xmlRes = await http.get(
+      Uri.parse('$base/api/receipts/$receiptId/xml'),
+      headers: {
+        'Authorization': 'Bearer $authToken',
+        'Accept': 'application/xml, text/xml, application/json, */*',
+      },
+    );
+    if (xmlRes.statusCode < 200 || xmlRes.statusCode >= 300) {
+      return;
+    }
+    final xmlBody = xmlRes.body;
+    if (xmlBody.isEmpty) {
+      return;
+    }
+
+    final printRes = await http.post(
+      Uri.parse(eposUrl),
+      headers: {'Content-Type': 'text/xml; charset=utf-8'},
+      body: xmlBody,
+    );
+    if (printRes.statusCode < 200 || printRes.statusCode >= 300) {
+      return;
+    }
+
+    await http.post(
+      Uri.parse('$base/api/receipts/$receiptId/mark-printed'),
+      headers: {
+        'Authorization': 'Bearer $authToken',
+        'Accept': 'application/json',
+      },
+    );
+  } catch (_) {}
 }
 
 Future<dynamic> completePosPurchase(
@@ -149,12 +298,22 @@ Future<dynamic> completePosPurchase(
     // (POST /api/purchases/{id}/revise-deferred) instead of incorrectly calling complete-payment.
     try {
       final prefs = await SharedPreferences.getInstance();
-      final resumeId = prefs.getInt(kPositivDeferredResumeChargeIdKey) ?? 0;
-      final resumeLabel =
+      int resumeId = prefs.getInt(kPositivDeferredResumeChargeIdKey) ?? 0;
+      String resumeLabel =
           (prefs.getString(kPositivDeferredResumeOrderLabelKey) ?? '').trim();
+      if (resumeId <= 0) {
+        final fromCart = _resumeChargeIdFromCartMetadataNotes();
+        if (fromCart != null) {
+          resumeId = fromCart;
+        }
+      }
+      if (resumeLabel.isEmpty) {
+        resumeLabel = _resumeOrderLabelFromCartMetadataNotes();
+      }
       if (resumeId > 0) {
-        final isDeferredAgain = paymentMethodCode == 'deferred' ||
-            paymentMethodCode == 'pay_later' ||
+        final codeLower = paymentMethodCode.trim().toLowerCase();
+        final isDeferredAgain = codeLower == 'deferred' ||
+            codeLower == 'pay_later' ||
             (additionalMetadata['deferred_payment'] == true);
 
         if (isDeferredAgain) {
@@ -242,6 +401,15 @@ Future<dynamic> completePosPurchase(
 
           if (response.statusCode >= 200 && response.statusCode < 300) {
             if (responseData['success'] != false) {
+              final receiptId = _parseReceiptIdFromReviseResponse(responseData) ?? 0;
+              try {
+                await _tryClientPrintReceiptById(
+                  apiBaseUrl: baseUrl,
+                  authToken: authToken,
+                  receiptId: receiptId,
+                );
+              } catch (_) {}
+
               return {
                 'success': responseData['success'] ?? true,
                 'data': responseData['data'],
@@ -250,6 +418,8 @@ Future<dynamic> completePosPurchase(
                 'resumeChargeId': resumeId,
                 'orderLabel':
                     resumeLabel.isNotEmpty ? resumeLabel : '#$resumeId',
+                'receiptId': receiptId,
+                'deliveryReceiptId': receiptId,
               };
             }
           }
@@ -279,6 +449,7 @@ Future<dynamic> completePosPurchase(
           _terminalPaymentField(terminalPaymentResult, 'paymentIntentId') ?? '',
           additionalMetadataJson,
           cartJson ?? '',
+          estimatedPickupDate,
         );
 
         if (result is Map) {

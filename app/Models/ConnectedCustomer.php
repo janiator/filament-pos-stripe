@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,11 +25,36 @@ class ConnectedCustomer extends Model
         'phone',
         'address',
         'profile_image_url',
+        'archived_at',
     ];
 
     protected $casts = [
         'address' => 'array',
+        'archived_at' => 'datetime',
     ];
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeNotArchived(Builder $query): Builder
+    {
+        return $query->whereNull($query->qualifyColumn('archived_at'));
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    public function archive(): bool
+    {
+        if ($this->isArchived()) {
+            return true;
+        }
+
+        return $this->forceFill(['archived_at' => now()])->save();
+    }
 
     protected static function booted(): void
     {
@@ -38,8 +64,8 @@ class ConnectedCustomer extends Model
             if ($customer->wasRecentlyCreated) {
                 return;
             }
-            
-            $listener = new \App\Listeners\SyncConnectedCustomerToStripeListener();
+
+            $listener = new \App\Listeners\SyncConnectedCustomerToStripeListener;
             $listener->handle($customer);
         });
     }
@@ -58,6 +84,7 @@ class ConnectedCustomer extends Model
     public function subscriptions(): HasMany
     {
         $accountId = $this->stripe_account_id;
+
         return $this->hasMany(ConnectedSubscription::class, 'stripe_customer_id', 'stripe_customer_id')
             ->where('connected_subscriptions.stripe_account_id', $accountId);
     }
@@ -77,8 +104,8 @@ class ConnectedCustomer extends Model
     public function purchases(): HasMany
     {
         $accountId = $this->stripe_account_id;
+
         return $this->hasMany(ConnectedCharge::class, 'stripe_customer_id', 'stripe_customer_id')
             ->where('connected_charges.stripe_account_id', $accountId);
     }
-
 }

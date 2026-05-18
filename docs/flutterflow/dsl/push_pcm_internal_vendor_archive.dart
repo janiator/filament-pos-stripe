@@ -108,7 +108,7 @@ Future<void> main(List<String> args) async {
       dryRun: options.dryRun,
       commitMessage:
           options.commitMessage ??
-          'feat(pos): archive vendor from PCM (DELETE /api/vendors)',
+          'feat(pos): vendor supplier ledger account + PCM',
       validationFilter: _keepProjectValidatorFinding,
     );
   } catch (error) {

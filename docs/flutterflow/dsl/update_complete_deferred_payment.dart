@@ -29,16 +29,7 @@ Future<void> main(List<String> args) async {
     await flutterFlowAI(
       (app) {
         app.raw((project) {
-          updateCustomAction(
-            project,
-            name: 'completeDeferredPayment',
-            code: code,
-            description:
-                'Complete deferred (pickup) payment; optional cartJson for parked/edited orders. '
-                'Sends pos_device_id / pos_session_id from FFAppState for compliance. '
-                'On success: clears cart, client receipt print when configured, bumps cacheRefreshKey; '
-                'returns JSON (receiptId, data, ...) for FlutterFlow bindings.',
-          );
+          _syncCompleteDeferredPaymentEstimatedPickupDate(project, code);
           _ensureCompleteDeferredPaymentDeclaresJsonReturn(project);
         });
       },
@@ -59,8 +50,129 @@ Future<void> main(List<String> args) async {
   }
 }
 
+/// Adds nullable [estimatedPickupDate], syncs Dart, and binds NULL on call sites
+/// that omit it (FlutterFlow requires every argument once declared).
+void _syncCompleteDeferredPaymentEstimatedPickupDate(
+  FFProject project,
+  String code,
+) {
+  final action = findCustomAction(project, name: 'completeDeferredPayment');
+  if (action == null) {
+    stderr.writeln('Warning: completeDeferredPayment not found.');
+    return;
+  }
+
+  const description =
+      'Complete deferred pickup payment (cash/card/…) or revise lines when staff picks deferred again '
+      '(POST …/revise-deferred when no payment_intent_id). Optional cartJson + estimatedPickupDate. '
+      'Sends pos_device_id / pos_session_id from FFAppState. On success: client receipt print (sales or '
+      'revised delivery), bumps cacheRefreshKey.';
+
+  final hasPickup = action.arguments.any(
+    (FFParameter p) => p.identifier.name == 'estimatedPickupDate',
+  );
+
+  if (!hasPickup) {
+    final mergedArgs = List<FFParameter>.from(action.arguments)
+      ..add(
+        FFParameter(
+          identifier: FFIdentifier(
+            name: 'estimatedPickupDate',
+            key: generateRandomAlphaNumericString(),
+          ),
+          dataType: FFDataTypeV2(
+            scalarType: FFBaseDataType.DateTime,
+            nonNullable: false,
+          ),
+          description:
+              'Estimated pickup date for deferred revise (same as completePosPurchase).',
+        ),
+      );
+    updateCustomAction(
+      project,
+      name: 'completeDeferredPayment',
+      code: code,
+      arguments: mergedArgs,
+      description: description,
+    );
+  } else {
+    updateCustomAction(
+      project,
+      name: 'completeDeferredPayment',
+      code: code,
+      description: description,
+    );
+  }
+
+  final refreshed = findCustomAction(project, name: 'completeDeferredPayment');
+  if (refreshed == null) {
+    return;
+  }
+
+  String? pickupKey;
+  for (final p in refreshed.arguments) {
+    if (p.identifier.name == 'estimatedPickupDate') {
+      pickupKey = p.identifier.key;
+      break;
+    }
+  }
+  if (pickupKey == null) {
+    return;
+  }
+
+  _patchCompleteDeferredPaymentCallSitesForEstimatedPickupDate(
+    project,
+    pickupKey: pickupKey,
+    customActionId: refreshed.identifier,
+  );
+}
+
+void _patchCompleteDeferredPaymentCallSitesForEstimatedPickupDate(
+  FFProject project, {
+  required String pickupKey,
+  required FFIdentifier customActionId,
+}) {
+  final actions = allProtosOfType<FFAction>(
+    project,
+    recurseOnNodes: true,
+    recurseOnVariables: true,
+  );
+
+  for (final ffAction in actions) {
+    if (ffAction.whichAction() != FFAction_Action.customAction) {
+      continue;
+    }
+    final call = ffAction.customAction;
+    final id = call.customActionIdentifier;
+    final matches =
+        id.name == customActionId.name && id.key == customActionId.key;
+    if (!matches) {
+      continue;
+    }
+
+    final values = call.ensureArgumentValues();
+    if (values.arguments.containsKey(pickupKey)) {
+      continue;
+    }
+
+    values.arguments[pickupKey] = FFFunctionCallValues_FFArgument(
+      value: FFValue(
+        variable: FFVariable(
+          source: FFVariableSource.CONSTANTS,
+          baseVariable: FFBaseVariable(
+            constants: FFConstantsVariable(
+              value: FFConstantsVariable_ConstantValue.NULL,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// FlutterFlow R1 validates `$.receiptId` / `$.data.*` bindings only when the
 /// action declares a JSON return.
+
 void _ensureCompleteDeferredPaymentDeclaresJsonReturn(FFProject project) {
   final action = findCustomAction(project, name: 'completeDeferredPayment');
   if (action == null) {

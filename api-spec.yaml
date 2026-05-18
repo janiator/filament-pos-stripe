@@ -5648,6 +5648,13 @@ paths:
           schema:
             type: string
             example: "john"
+        - name: include_archived
+          in: query
+          description: When true, include archived customers in the list (default excludes them)
+          required: false
+          schema:
+            type: boolean
+            default: false
         - name: X-Tenant
           in: header
           description: Store slug (optional, defaults to user's first store)
@@ -5934,8 +5941,8 @@ paths:
     delete:
       tags:
         - Customers
-      summary: Delete customer
-      description: Delete a customer
+      summary: Archive customer
+      description: Archive a customer (sets archived_at; preserves purchase history)
       operationId: deleteCustomer
       parameters:
         - name: id
@@ -5951,8 +5958,18 @@ paths:
           schema:
             type: string
       responses:
-        '204':
-          description: Customer deleted successfully
+        '200':
+          description: Customer archived successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Customer archived.
+                  customer:
+                    $ref: '#/components/schemas/Customer'
         '404':
           description: Customer not found
           content:
@@ -6455,6 +6472,11 @@ components:
         updated_at:
           type: string
           format: date-time
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When set, the customer is archived and hidden from default list queries
 
     TerminalLocation:
       type: object

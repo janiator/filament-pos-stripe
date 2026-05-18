@@ -41,7 +41,8 @@ class VendorsController extends BaseApiController
                     $q->where('name', 'ilike', "%{$search}%")
                         ->orWhere('description', 'ilike', "%{$search}%")
                         ->orWhere('contact_email', 'ilike', "%{$search}%")
-                        ->orWhere('contact_phone', 'ilike', "%{$search}%");
+                        ->orWhere('contact_phone', 'ilike', "%{$search}%")
+                        ->orWhere('supplier_ledger_account_number', 'ilike', "%{$search}%");
                 });
             }
 
@@ -115,6 +116,7 @@ class VendorsController extends BaseApiController
             'contact_phone' => 'nullable|string|max:255',
             'active' => 'nullable|boolean',
             'commission_percent' => 'nullable|numeric|min:0|max:100',
+            'supplier_ledger_account_number' => 'nullable|string|max:64',
             'metadata' => 'nullable|array',
         ]);
 
@@ -128,6 +130,7 @@ class VendorsController extends BaseApiController
             $vendor->contact_phone = $validated['contact_phone'] ?? null;
             $vendor->active = $validated['active'] ?? true;
             $vendor->commission_percent = $validated['commission_percent'] ?? null;
+            $vendor->supplier_ledger_account_number = $validated['supplier_ledger_account_number'] ?? null;
             $vendor->metadata = $validated['metadata'] ?? null;
             $vendor->save();
 
@@ -175,6 +178,7 @@ class VendorsController extends BaseApiController
             'contact_phone' => 'nullable|string|max:255',
             'active' => 'nullable|boolean',
             'commission_percent' => 'nullable|numeric|min:0|max:100',
+            'supplier_ledger_account_number' => 'nullable|string|max:64',
             'metadata' => 'nullable|array',
         ]);
 
@@ -196,6 +200,9 @@ class VendorsController extends BaseApiController
             }
             if (isset($validated['commission_percent'])) {
                 $vendor->commission_percent = $validated['commission_percent'];
+            }
+            if (array_key_exists('supplier_ledger_account_number', $validated)) {
+                $vendor->supplier_ledger_account_number = $validated['supplier_ledger_account_number'];
             }
             if (isset($validated['metadata'])) {
                 $vendor->metadata = $validated['metadata'];
@@ -255,6 +262,7 @@ class VendorsController extends BaseApiController
             'contact_phone' => $vendor->contact_phone,
             'active' => $vendor->active,
             'commission_percent' => $vendor->commission_percent,
+            'supplier_ledger_account_number' => $vendor->supplier_ledger_account_number,
             'products_count' => $vendor->products_count ?? $vendor->products()->count(),
             'metadata' => $vendor->metadata,
             'archived_at' => $vendor->archived_at

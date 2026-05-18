@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\ConnectedCustomer;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CustomersController extends BaseApiController
 {
@@ -14,45 +14,38 @@ class CustomersController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
         $this->authorizeTenant($request, $store);
 
-        // Build query
-        $query = ConnectedCustomer::where('stripe_account_id', $store->stripe_account_id);
+        $query = ConnectedCustomer::query()
+            ->where('stripe_account_id', $store->stripe_account_id);
 
-        // Filter by search term if provided
-        // Searches across name, email, and phone
-        if ($request->has('search') && !empty($request->get('search'))) {
+        if (! $request->boolean('include_archived')) {
+            $query->notArchived();
+        }
+
+        if ($request->has('search') && ! empty($request->get('search'))) {
             $search = trim($request->get('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('email', 'ilike', "%{$search}%")
-                  ->orWhere('phone', 'ilike', "%{$search}%");
+                    ->orWhere('email', 'ilike', "%{$search}%")
+                    ->orWhere('phone', 'ilike', "%{$search}%");
             });
         }
 
-        $perPage = min($request->get('per_page', 15), 100); // Max 100 per page
-        // Convert zero-indexed page from FlutterFlow to 1-indexed for Laravel
+        $perPage = min($request->get('per_page', 15), 100);
         $page = max(1, (int) $request->get('page', 0) + 1);
-        
+
         $paginatedCustomers = $query->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
-        // Transform customers to exclude internal mapping fields and rename address
-        $customers = $paginatedCustomers->getCollection()->map(function ($customer) {
-            $customerData = $customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
-            if (isset($customerData['address'])) {
-                $customerData['customer_address'] = $customerData['address'];
-                unset($customerData['address']);
-            }
-            return $customerData;
-        });
+        $customers = $paginatedCustomers->getCollection()
+            ->map(fn (ConnectedCustomer $customer): array => $this->transformCustomerForApi($customer));
 
-        // Convert back to zero-indexed for FlutterFlow
         return response()->json([
             'customers' => $customers,
             'current_page' => $paginatedCustomers->currentPage() - 1,
@@ -68,8 +61,8 @@ class CustomersController extends BaseApiController
     public function store(Request $request): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -91,57 +84,45 @@ class CustomersController extends BaseApiController
 
         $validated['stripe_account_id'] = $store->stripe_account_id;
 
-        // Map customer_address to address for database storage
         if (isset($validated['customer_address'])) {
             $validated['address'] = $validated['customer_address'];
             unset($validated['customer_address']);
         }
 
-        // Create local customer first
         $customer = ConnectedCustomer::create($validated);
 
-        // Create Stripe customer after local customer is created
         if ($store->hasStripeAccount()) {
             try {
-                $createAction = new \App\Actions\ConnectedCustomers\CreateConnectedCustomerInStripe();
+                $createAction = new \App\Actions\ConnectedCustomers\CreateConnectedCustomerInStripe;
                 $stripeCustomerId = $createAction($store, [
                     'name' => $validated['name'] ?? null,
                     'email' => $validated['email'] ?? null,
                     'phone' => $validated['phone'] ?? null,
                     'address' => $validated['address'] ?? null,
                 ]);
-                
+
                 if ($stripeCustomerId) {
-                    // Update with stripe_customer_id and trigger a sync to ensure all data is synced
-                    // Use updateQuietly first to set the ID, then save to trigger sync
                     $customer->stripe_customer_id = $stripeCustomerId;
-                    $customer->saveQuietly(); // Set the ID without triggering events
-                    
-                    // Now trigger a sync to ensure all customer data is synced to Stripe
-                    // This ensures that if there were any differences, they get synced
+                    $customer->saveQuietly();
+
                     try {
-                        $updateAction = new \App\Actions\ConnectedCustomers\UpdateConnectedCustomerToStripe();
+                        $updateAction = new \App\Actions\ConnectedCustomers\UpdateConnectedCustomerToStripe;
                         $updateAction($customer);
                     } catch (\Throwable $e) {
-                        // Log but don't fail - the customer was created in Stripe with the data already
                         \Log::warning('Failed to sync customer data to Stripe after setting stripe_customer_id', [
                             'customer_id' => $customer->id,
                             'stripe_customer_id' => $stripeCustomerId,
                             'error' => $e->getMessage(),
                         ]);
                     }
-                    
+
                     $customer->refresh();
                 } else {
-                    // If Stripe creation fails, we still have the local customer
-                    // Log the error but don't fail the request
                     \Log::warning('Failed to create customer in Stripe after local creation', [
                         'customer_id' => $customer->id,
                     ]);
                 }
             } catch (\Throwable $e) {
-                // If Stripe creation fails, we still have the local customer
-                // Log the error but don't fail the request
                 \Log::error('Error creating Stripe customer after local creation', [
                     'customer_id' => $customer->id,
                     'error' => $e->getMessage(),
@@ -150,14 +131,7 @@ class CustomersController extends BaseApiController
             }
         }
 
-        // Transform response to rename address to customer_address
-        $customerData = $customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
-        if (isset($customerData['address'])) {
-            $customerData['customer_address'] = $customerData['address'];
-            unset($customerData['address']);
-        }
-
-        return response()->json($customerData, 201);
+        return response()->json($this->transformCustomerForApi($customer), 201);
     }
 
     /**
@@ -166,8 +140,8 @@ class CustomersController extends BaseApiController
     public function show(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -178,14 +152,7 @@ class CustomersController extends BaseApiController
             ->with(['subscriptions'])
             ->firstOrFail();
 
-        // Transform response to rename address to customer_address
-        $customerData = $customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
-        if (isset($customerData['address'])) {
-            $customerData['customer_address'] = $customerData['address'];
-            unset($customerData['address']);
-        }
-
-        return response()->json($customerData);
+        return response()->json($this->transformCustomerForApi($customer));
     }
 
     /**
@@ -194,8 +161,8 @@ class CustomersController extends BaseApiController
     public function update(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -204,6 +171,12 @@ class CustomersController extends BaseApiController
         $customer = ConnectedCustomer::where('id', $id)
             ->where('stripe_account_id', $store->stripe_account_id)
             ->firstOrFail();
+
+        if ($customer->isArchived()) {
+            return response()->json([
+                'error' => 'Cannot update an archived customer.',
+            ], 422);
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -219,7 +192,6 @@ class CustomersController extends BaseApiController
             'customer_address.country' => 'nullable|string|size:2',
         ]);
 
-        // Map customer_address to address for database storage
         if (isset($validated['customer_address'])) {
             $validated['address'] = $validated['customer_address'];
             unset($validated['customer_address']);
@@ -227,24 +199,17 @@ class CustomersController extends BaseApiController
 
         $customer->update($validated);
 
-        // Transform response to rename address to customer_address
-        $customerData = $customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
-        if (isset($customerData['address'])) {
-            $customerData['customer_address'] = $customerData['address'];
-            unset($customerData['address']);
-        }
-
-        return response()->json($customerData);
+        return response()->json($this->transformCustomerForApi($customer));
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Archive the customer (preserves purchase history and Stripe mapping).
      */
     public function destroy(Request $request, string $id): JsonResponse
     {
         $store = $this->getTenantStore($request);
-        
-        if (!$store) {
+
+        if (! $store) {
             return response()->json(['error' => 'Store not found'], 404);
         }
 
@@ -254,8 +219,30 @@ class CustomersController extends BaseApiController
             ->where('stripe_account_id', $store->stripe_account_id)
             ->firstOrFail();
 
-        $customer->delete();
+        $customer->archive();
 
-        return response()->json(null, 204);
+        return response()->json([
+            'message' => 'Customer archived.',
+            'customer' => $this->transformCustomerForApi($customer->fresh()),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function transformCustomerForApi(ConnectedCustomer $customer): array
+    {
+        $customerData = $customer->makeHidden(['model', 'model_id', 'model_uuid'])->toArray();
+
+        if (isset($customerData['address'])) {
+            $customerData['customer_address'] = $customerData['address'];
+            unset($customerData['address']);
+        }
+
+        $customerData['archived_at'] = $customer->archived_at
+            ? $this->formatDateTimeOslo($customer->archived_at)
+            : null;
+
+        return $customerData;
     }
 }

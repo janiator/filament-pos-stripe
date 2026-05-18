@@ -106,6 +106,24 @@ it('rejects assigning an archived vendor to a product', function (): void {
     ])->assertStatus(422);
 });
 
+it('persists supplier_ledger_account_number on vendors API', function (): void {
+    $response = $this->postJson('/api/vendors', [
+        'name' => 'Leverandør AS',
+        'supplier_ledger_account_number' => '24001',
+    ]);
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('vendor.supplier_ledger_account_number', '24001');
+
+    $id = $response->json('vendor.id');
+    $this->putJson("/api/vendors/{$id}", [
+        'supplier_ledger_account_number' => '24002',
+    ])->assertSuccessful()
+        ->assertJsonPath('vendor.supplier_ledger_account_number', '24002');
+
+    expect(Vendor::query()->find($id)?->supplier_ledger_account_number)->toBe('24002');
+});
+
 it('is idempotent when deleting an already archived vendor', function (): void {
     $vendor = Vendor::create([
         'store_id' => $this->store->id,
