@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PosPurchases\Schemas;
 
+use App\Support\VatRateNormalizer;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\RepeatableEntry\TableColumn;
@@ -11,7 +12,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\TextSize;
-use Filament\Support\Icons\Heroicon;
 
 class PosPurchaseInfolist
 {
@@ -116,7 +116,7 @@ class PosPurchaseInfolist
         }
         $agc = \App\Models\ArticleGroupCode::where('code', $code)->where('active', true)->first();
         if ($agc && $agc->default_vat_percent !== null) {
-            return (float) $agc->default_vat_percent;
+            return VatRateNormalizer::toDecimal((float) $agc->default_vat_percent);
         }
 
         return 0.25;
@@ -145,13 +145,13 @@ class PosPurchaseInfolist
             }
             $rate = null;
             if (isset($item['tax_rate']) && $item['tax_rate'] !== null && $item['tax_rate'] !== '') {
-                $rate = (float) $item['tax_rate'];
+                $rate = VatRateNormalizer::toDecimal((float) $item['tax_rate']);
             }
             if ($rate === null) {
                 $code = $item['article_group_code'] ?? null;
                 $rate = self::getTaxRateForArticleGroupCode($code);
             }
-            $ratePercent = (int) round($rate * 100);
+            $ratePercent = VatRateNormalizer::toDisplayPercent($rate);
             $lineTaxOre = $rate > 0 ? (int) round($lineSubtotalOre * ($rate / (1 + $rate))) : 0;
             if (! isset($byRate[$ratePercent])) {
                 $byRate[$ratePercent] = 0;

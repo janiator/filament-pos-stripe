@@ -8,6 +8,62 @@
 
 import 'dart:convert';
 
+double getTaxPercentageFromCode(String? taxCode) {
+  if (taxCode == null || taxCode.isEmpty) {
+    return 0.25;
+  }
+
+  switch (taxCode.toLowerCase()) {
+    case 'txcd_99999999':
+    case 'standard':
+    case '1':
+      return 0.25;
+    case 'txcd_99999998':
+    case 'reduced':
+    case 'food':
+      return 0.15;
+    case 'txcd_99999997':
+    case 'lower':
+    case 'service':
+      return 0.10;
+    case 'txcd_99999996':
+    case 'zero':
+    case 'exempt':
+    case '0':
+      return 0.0;
+    default:
+      return 0.25;
+  }
+}
+
+double normalizeTaxRateDecimal(double? rate, {double defaultRate = 0.25}) {
+  if (rate == null) {
+    return defaultRate;
+  }
+  if (rate == 0) {
+    return 0.0;
+  }
+  if (rate > 1) {
+    return rate / 100.0;
+  }
+
+  return rate;
+}
+
+double resolveCartItemTaxRate(CartItemsStruct item) {
+  final stored = item.cartItemTaxPercent;
+  if (stored != null) {
+    return normalizeTaxRateDecimal(stored);
+  }
+
+  final code = item.cartItemArticleGroupCode.trim();
+  if (code.isNotEmpty) {
+    return getTaxPercentageFromCode(code);
+  }
+
+  return 0.25;
+}
+
 Future<dynamic> serializeCartForCompleteDeferred() async {
   try {
     final cart = FFAppState().cart;
@@ -48,7 +104,7 @@ Map<String, dynamic> _buildCartPayloadFromShoppingCart(ShoppingCartStruct cart) 
       'quantity': cartItem.cartItemQuantity,
       'unit_price': unitPrice,
       'discount_amount': discountAmount,
-      'tax_rate': 0.25,
+      'tax_rate': resolveCartItemTaxRate(cartItem),
       'tax_inclusive': true,
     });
   }

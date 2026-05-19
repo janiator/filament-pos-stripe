@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\ConnectedProducts\ResolveProductVatRate;
 use App\Exceptions\CashDrawerDisabledException;
 use App\Exceptions\InsufficientStockException;
 use App\Http\Requests\Api\CompletePurchasePaymentRequest;
@@ -12,6 +13,7 @@ use App\Models\PaymentMethod;
 use App\Models\PosSession;
 use App\Models\ProductVariant;
 use App\Services\PurchaseService;
+use App\Support\VatRateNormalizer;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -1127,6 +1129,13 @@ class PurchasesController extends BaseApiController
             $isFullyRefunded = $quantityRefunded >= $quantity;
             $isPartiallyRefunded = $quantityRefunded > 0 && $quantityRefunded < $quantity;
 
+            $itemTaxRate = null;
+            if (isset($item['tax_rate']) && $item['tax_rate'] !== null && $item['tax_rate'] !== '') {
+                $itemTaxRate = VatRateNormalizer::toDecimal((float) $item['tax_rate']);
+            } elseif ($product !== null) {
+                $itemTaxRate = app(ResolveProductVatRate::class)($product);
+            }
+
             $out[] = [
                 'purchase_item_id' => $itemId,
                 'purchase_item_product_id' => $productId ? (string) $productId : null,
@@ -1144,6 +1153,7 @@ class PurchasesController extends BaseApiController
                 'purchase_item_discount_amount' => $discountAmount > 0 ? $discountAmount : null,
                 'purchase_item_discount_reason' => $item['discount_reason'] ?? null,
                 'purchase_item_article_group_code' => $articleGroupCode,
+                'purchase_item_tax_rate' => $itemTaxRate,
                 'purchase_item_product_code' => $productCode,
                 'purchase_item_metadata' => isset($item['metadata']) && is_array($item['metadata'])
                     ? $item['metadata']

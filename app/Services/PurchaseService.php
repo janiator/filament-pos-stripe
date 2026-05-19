@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Actions\ConnectedProducts\ResolveProductVatRate;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
 use App\Models\PaymentMethod;
@@ -1249,6 +1250,14 @@ class PurchaseService
                 'article_group_code' => $articleGroupCode,
                 'product_code' => $productCode,
             ]);
+
+            if ($product !== null) {
+                $enrichedItem['tax_rate'] = app(ResolveProductVatRate::class)($product);
+            } elseif (! isset($enrichedItem['tax_rate']) || $enrichedItem['tax_rate'] === null || $enrichedItem['tax_rate'] === '') {
+                $enrichedItem['tax_rate'] = 0.25;
+            } else {
+                $enrichedItem['tax_rate'] = \App\Support\VatRateNormalizer::toDecimal((float) $enrichedItem['tax_rate']);
+            }
 
             return $enrichedItem;
         }, $items);
