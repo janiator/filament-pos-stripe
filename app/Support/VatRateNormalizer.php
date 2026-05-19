@@ -31,18 +31,4 @@ final class VatRateNormalizer
     {
         return (int) round(self::toDecimal($decimalRate) * 100);
     }
-
-    /**
-     * Extract tax (øre) from a tax-inclusive amount.
-     */
-    public static function extractTaxOreFromInclusiveAmount(int $amountOre, float $decimalRate): int
-    {
-        $rate = self::toDecimal($decimalRate);
-
-        if ($rate <= 0 || $amountOre <= 0) {
-            return 0;
-        }
-
-        return (int) round($amountOre * ($rate / (1 + $rate)));
-    }
 }
