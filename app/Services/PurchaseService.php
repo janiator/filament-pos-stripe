@@ -107,6 +107,20 @@ class PurchaseService
     }
 
     /**
+     * Resolve Stripe customer ID for a charge from cart, existing charge, or PaymentIntent.
+     */
+    protected function stripeCustomerIdForCart(
+        array $cartData,
+        string $stripeAccountId,
+        ?string $existingStripeCustomerId = null,
+        ?string $paymentIntentCustomer = null,
+    ): ?string {
+        return $this->resolveCustomerId($cartData, $stripeAccountId)
+            ?? $existingStripeCustomerId
+            ?? $paymentIntentCustomer;
+    }
+
+    /**
      * Whole-order note from API cart payload (`note` or legacy `cart_note`).
      */
     protected function wholeOrderNoteFromCartData(array $cartData): ?string
@@ -384,9 +398,11 @@ class PurchaseService
                 }
             }
 
-            // Resolve customer ID (local ID -> Stripe customer ID)
-            // Prefer cart customer_id if provided, then fall back to payment intent customer
-            $stripeCustomerId = $this->resolveCustomerId($cartData, $store->stripe_account_id) ?? $paymentIntent->customer;
+            $stripeCustomerId = $this->stripeCustomerIdForCart(
+                $cartData,
+                $store->stripe_account_id,
+                paymentIntentCustomer: $paymentIntent->customer
+            );
 
             $charge = ConnectedCharge::create([
                 'stripe_charge_id' => $stripeChargeId,
@@ -421,8 +437,16 @@ class PurchaseService
         } else {
             // Update existing charge with cart data, request metadata, and current Stripe captured status
             // (fixes stale captured=false when webhook created the row before capture or charge.captured was not received)
+            $stripeCustomerId = $this->stripeCustomerIdForCart(
+                $cartData,
+                $store->stripe_account_id,
+                $charge->stripe_customer_id,
+                $paymentIntent->customer
+            );
+
             $charge->update([
                 'pos_session_id' => $posSession->id,
+                'stripe_customer_id' => $stripeCustomerId,
                 'captured' => $stripeChargeCaptured,
                 'metadata' => array_merge(
                     $charge->metadata ?? [],
@@ -1027,10 +1051,17 @@ class PurchaseService
 
                 // Update the deferred charge with payment information
                 // This ensures the charge with proper POS context and metadata is connected to the Stripe payment
+                $stripeCustomerId = $this->stripeCustomerIdForCart(
+                    $cartData ?? [],
+                    $store->stripe_account_id,
+                    $charge->stripe_customer_id,
+                    $paymentIntent->customer
+                );
+
                 $charge->update([
                     'stripe_charge_id' => $stripeChargeId,
                     'stripe_payment_intent_id' => $paymentIntentId,
-                    'stripe_customer_id' => $paymentIntent->customer ?? $charge->stripe_customer_id,
+                    'stripe_customer_id' => $stripeCustomerId,
                     'status' => 'succeeded',
                     'payment_method' => $paymentMethod->code,
                     'payment_code' => $paymentMethod->saf_t_payment_code ?? SafTCodeMapper::mapPaymentMethodToCode($paymentMethod->code),

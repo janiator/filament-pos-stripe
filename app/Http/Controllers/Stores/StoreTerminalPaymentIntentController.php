@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Stores;
 
+use App\Models\ConnectedCustomer;
 use App\Models\Store;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,10 +17,11 @@ class StoreTerminalPaymentIntentController extends Controller
         // TODO: Authorize the caller (e.g. Sanctum / JWT / your own guard)
 
         $validated = $request->validate([
-            'amount'      => ['required', 'integer', 'min:1'],  // in minor units
-            'currency'    => ['nullable', 'string', 'size:3'],
+            'amount' => ['required', 'integer', 'min:1'],  // in minor units
+            'currency' => ['nullable', 'string', 'size:3'],
             'description' => ['nullable', 'string', 'max:255'],
-            'metadata'    => ['nullable', 'array'],
+            'metadata' => ['nullable', 'array'],
+            'customer_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         if (! $store->hasStripeAccount()) {
@@ -45,10 +47,10 @@ class StoreTerminalPaymentIntentController extends Controller
 
         try {
             $params = [
-                'amount'               => $validated['amount'],
-                'currency'             => $currency,
+                'amount' => $validated['amount'],
+                'currency' => $currency,
                 'payment_method_types' => ['card_present'],
-                'capture_method'       => 'automatic', // Terminal flow: create → collect → capture
+                'capture_method' => 'automatic', // Terminal flow: create → collect → capture
             ];
 
             if (! empty($validated['description'])) {
@@ -57,6 +59,18 @@ class StoreTerminalPaymentIntentController extends Controller
 
             if (! empty($validated['metadata'])) {
                 $params['metadata'] = $validated['metadata'];
+            }
+
+            if (! empty($validated['customer_id'])) {
+                $customer = ConnectedCustomer::query()
+                    ->where('id', (int) $validated['customer_id'])
+                    ->where('stripe_account_id', $store->stripe_account_id)
+                    ->notArchived()
+                    ->first();
+
+                if ($customer?->stripe_customer_id) {
+                    $params['customer'] = $customer->stripe_customer_id;
+                }
             }
 
             // Create PaymentIntent on the CONNECTED ACCOUNT
@@ -71,7 +85,7 @@ class StoreTerminalPaymentIntentController extends Controller
 
             return response()->json([
                 'message' => 'Failed to create payment intent.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

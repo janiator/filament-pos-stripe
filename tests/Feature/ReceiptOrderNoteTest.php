@@ -81,3 +81,36 @@ test('delivery receipt stores order_note and renders it in ePOS xml', function (
     expect($xml)->toContain('Notat')
         ->and($xml)->toContain('Hentes fredag');
 });
+
+test('delivery receipt with deferred payment method renders and saves xml', function () {
+    $store = Store::factory()->create();
+    $device = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create(['pos_device_id' => $device->id]);
+    $charge = ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'status' => 'pending',
+        'paid' => false,
+        'paid_at' => null,
+        'payment_method' => 'deferred',
+        'metadata' => [
+            'deferred_payment' => true,
+            'items' => [[
+                'name' => 'Tjeneste',
+                'product_name' => 'Tjeneste',
+                'quantity' => 1,
+                'unit_price' => '100,00',
+                'line_total' => '100,00',
+            ]],
+            'subtotal' => 10000,
+            'total_tax' => 2500,
+            'total_discounts' => 0,
+        ],
+    ]);
+
+    $receipt = app(ReceiptGenerationService::class)->generateDeliveryReceipt($charge, $session);
+
+    expect($receipt->receipt_type)->toBe('delivery')
+        ->and($receipt->receipt_data['xml'] ?? null)->not->toBeEmpty()
+        ->and($receipt->receipt_data['xml'])->toContain('Ordrebekreftelse');
+});

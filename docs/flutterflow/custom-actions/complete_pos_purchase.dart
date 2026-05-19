@@ -62,7 +62,7 @@ double normalizeTaxRateDecimal(double? rate, {double defaultRate = 0.25}) {
   if (rate == null) {
     return defaultRate;
   }
-  if (rate == 0) {
+  if (rate <= 0) {
     return 0.0;
   }
   if (rate > 1) {

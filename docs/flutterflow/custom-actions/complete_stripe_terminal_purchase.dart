@@ -246,12 +246,17 @@ Future<dynamic> completeStripeTerminalPurchase(
         cartDiscounts.add(discountMap);
       }
       
+      final dynamic customerIdForApi =
+          cart.cartCustomerId != null && cart.cartCustomerId! > 0
+              ? cart.cartCustomerId
+              : null;
+
       // Build cart object
       final cartData = {
         'items': cartItems,
         'discounts': cartDiscounts,
         'tip_amount': cart.cartTipAmount,
-        'customer_id': cart.cartCustomerId.isNotEmpty ? cart.cartCustomerId : null,
+        'customer_id': customerIdForApi,
         'customer_name': cart.cartCustomerName.isNotEmpty ? cart.cartCustomerName : null,
         'subtotal': cart.cartSubtotalExcludingTax,
         'total_discounts': cart.cartTotalDiscount,

@@ -6096,6 +6096,11 @@ paths:
                   example:
                     order_id: "123"
                     customer_name: "John Doe"
+                customer_id:
+                  type: integer
+                  description: Local ConnectedCustomer database ID; attached to the PaymentIntent on the connected account when found
+                  minimum: 1
+                  example: 42
       responses:
         '201':
           description: Payment intent created

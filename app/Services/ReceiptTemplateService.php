@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\PaymentMethod;
 use App\Models\Receipt;
 use App\Models\ReceiptTemplate;
 use App\Models\Store;
@@ -1150,6 +1151,8 @@ class ReceiptTemplateService
             'customer_card' => 'Kundekort',
             'loyalty' => 'Lojalitetspoeng',
             'vipps' => 'Vipps',
+            'deferred' => 'Betaling ved henting',
+            'pay_later' => 'Betaling ved henting',
             default => null,
         };
 
