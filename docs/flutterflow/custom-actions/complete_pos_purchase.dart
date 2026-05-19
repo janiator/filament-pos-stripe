@@ -30,6 +30,62 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+double getTaxPercentageFromCode(String? taxCode) {
+  if (taxCode == null || taxCode.isEmpty) {
+    return 0.25;
+  }
+
+  switch (taxCode.toLowerCase()) {
+    case 'txcd_99999999':
+    case 'standard':
+    case '1':
+      return 0.25;
+    case 'txcd_99999998':
+    case 'reduced':
+    case 'food':
+      return 0.15;
+    case 'txcd_99999997':
+    case 'lower':
+    case 'service':
+      return 0.10;
+    case 'txcd_99999996':
+    case 'zero':
+    case 'exempt':
+    case '0':
+      return 0.0;
+    default:
+      return 0.25;
+  }
+}
+
+double normalizeTaxRateDecimal(double? rate, {double defaultRate = 0.25}) {
+  if (rate == null) {
+    return defaultRate;
+  }
+  if (rate == 0) {
+    return 0.0;
+  }
+  if (rate > 1) {
+    return rate / 100.0;
+  }
+
+  return rate;
+}
+
+double resolveCartItemTaxRate(CartItemsStruct item) {
+  final stored = item.cartItemTaxPercent;
+  if (stored != null) {
+    return normalizeTaxRateDecimal(stored);
+  }
+
+  final code = item.cartItemArticleGroupCode.trim();
+  if (code.isNotEmpty) {
+    return getTaxPercentageFromCode(code);
+  }
+
+  return 0.25;
+}
+
 const String kPositivDeferredResumeChargeIdKey =
     'positiv_deferred_resume_charge_id';
 const String kPositivDeferredResumeOrderLabelKey =
@@ -485,9 +541,12 @@ Future<dynamic> completePosPurchase(
       };
     }
 
+    await updateCartTotals();
+    final cartWithTotals = FFAppState().cart;
+
     // Build cart items array from cartItems
     final List<Map<String, dynamic>> cartItems = [];
-    for (var cartItem in cart.cartItems) {
+    for (var cartItem in cartWithTotals.cartItems) {
       // Get product ID (assuming it's stored as string, convert to int)
       final productId = int.tryParse(cartItem.cartItemProductId) ?? 0;
 
@@ -510,14 +569,14 @@ Future<dynamic> completePosPurchase(
         'quantity': cartItem.cartItemQuantity,
         'unit_price': unitPrice,
         'discount_amount': discountAmount,
-        'tax_rate': 0.25, // Norwegian VAT rate
+        'tax_rate': resolveCartItemTaxRate(cartItem),
         'tax_inclusive': true,
       });
     }
 
     // Build discounts array from cartDiscounts
     final List<Map<String, dynamic>> cartDiscounts = [];
-    for (var discount in cart.cartDiscounts) {
+    for (var discount in cartWithTotals.cartDiscounts) {
       final discountType = discount.cartDiscountType.isNotEmpty
           ? discount.cartDiscountType
           : 'fixed'; // Default to 'fixed' if empty
@@ -551,20 +610,19 @@ Future<dynamic> completePosPurchase(
     }
 
     // Get totals from cart (already calculated)
-    final subtotal = cart.cartSubtotalExcludingTax; // in øre
-    final totalDiscounts = cart
-        .cartTotalDiscount; // in øre (includes both item and cart discounts)
-    final totalTax = cart.cartTotalTax; // in øre
-    final total = cart.cartTotalCartPrice; // in øre
-    final tipAmount = cart.cartTipAmount; // in øre
+    final subtotal = cartWithTotals.cartSubtotalExcludingTax;
+    final totalDiscounts = cartWithTotals.cartTotalDiscount;
+    final totalTax = cartWithTotals.cartTotalTax;
+    final total = cartWithTotals.cartTotalCartPrice;
+    final tipAmount = cartWithTotals.cartTipAmount;
 
     // Get customer ID from cart
     // Note: customer_id should be the local database ID (integer), not the Stripe customer ID
     // The backend will resolve the local ID to the Stripe customer ID automatically
     // cartCustomerId is already an integer (local database ID)
     final dynamic customerIdForApi =
-        cart.cartCustomerId != null && cart.cartCustomerId! > 0
-        ? cart.cartCustomerId
+        cartWithTotals.cartCustomerId != null && cartWithTotals.cartCustomerId! > 0
+        ? cartWithTotals.cartCustomerId
         : null;
 
     // Build cart object
@@ -574,10 +632,10 @@ Future<dynamic> completePosPurchase(
       'tip_amount': tipAmount,
       'customer_id':
           customerIdForApi, // Local customer ID (integer) - backend will resolve to Stripe ID
-      'customer_name': cart.cartCustomerName.isNotEmpty
-          ? cart.cartCustomerName
+      'customer_name': cartWithTotals.cartCustomerName.isNotEmpty
+          ? cartWithTotals.cartCustomerName
           : null,
-      'note': cart.cartNote.isNotEmpty ? cart.cartNote : null,
+      'note': cartWithTotals.cartNote.isNotEmpty ? cartWithTotals.cartNote : null,
       'subtotal': subtotal,
       'total_discounts': totalDiscounts,
       'total_tax': totalTax,

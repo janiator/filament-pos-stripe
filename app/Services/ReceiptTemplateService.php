@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\PaymentMethod;
 use App\Models\Receipt;
 use App\Models\ReceiptTemplate;
 use App\Models\Store;
+use App\Support\VatRateNormalizer;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -471,18 +471,18 @@ class ReceiptTemplateService
 
             $rate = null;
             if (isset($raw['tax_rate']) && is_numeric($raw['tax_rate'])) {
-                $rate = (float) $raw['tax_rate'];
+                $rate = VatRateNormalizer::toDecimal((float) $raw['tax_rate']);
             }
             if ($rate === null && ! empty($raw['article_group_code'])) {
                 $agc = \App\Models\ArticleGroupCode::where('code', $raw['article_group_code'])->first();
                 if ($agc !== null && $agc->default_vat_percent !== null) {
-                    $rate = (float) $agc->default_vat_percent;
+                    $rate = VatRateNormalizer::toDecimal((float) $agc->default_vat_percent);
                 }
             }
             if ($rate === null) {
                 $rate = 25.0;
             }
-            // Normalize: DB may store 0.15 / 0.25 (decimal); we use percentage (15, 25) everywhere
+            // Use percentage (15, 25) in breakdown output
             if ($rate > 0 && $rate <= 1) {
                 $rate = $rate * 100;
             }

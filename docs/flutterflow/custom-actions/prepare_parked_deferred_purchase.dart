@@ -16,6 +16,62 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+double getTaxPercentageFromCode(String? taxCode) {
+  if (taxCode == null || taxCode.isEmpty) {
+    return 0.25;
+  }
+
+  switch (taxCode.toLowerCase()) {
+    case 'txcd_99999999':
+    case 'standard':
+    case '1':
+      return 0.25;
+    case 'txcd_99999998':
+    case 'reduced':
+    case 'food':
+      return 0.15;
+    case 'txcd_99999997':
+    case 'lower':
+    case 'service':
+      return 0.10;
+    case 'txcd_99999996':
+    case 'zero':
+    case 'exempt':
+    case '0':
+      return 0.0;
+    default:
+      return 0.25;
+  }
+}
+
+double normalizeTaxRateDecimal(double? rate, {double defaultRate = 0.25}) {
+  if (rate == null) {
+    return defaultRate;
+  }
+  if (rate == 0) {
+    return 0.0;
+  }
+  if (rate > 1) {
+    return rate / 100.0;
+  }
+
+  return rate;
+}
+
+double resolveCartItemTaxRate(CartItemsStruct item) {
+  final stored = item.cartItemTaxPercent;
+  if (stored != null) {
+    return normalizeTaxRateDecimal(stored);
+  }
+
+  final code = item.cartItemArticleGroupCode.trim();
+  if (code.isNotEmpty) {
+    return getTaxPercentageFromCode(code);
+  }
+
+  return 0.25;
+}
+
 const String kPositivDeferredResumeChargeIdKey =
     'positiv_deferred_resume_charge_id';
 const String kPositivDeferredResumeOrderLabelKey =
@@ -133,6 +189,9 @@ Future<dynamic> prepareParkedDeferredPurchase(
       final lineId = m['purchase_item_id']?.toString() ??
           DateTime.now().microsecondsSinceEpoch.toString();
 
+      final taxRateRaw = m['purchase_item_tax_rate'] as num?;
+      final taxPct = taxRateRaw != null ? taxRateRaw.toDouble() : null;
+
       cartItems.add(
         CartItemsStruct(
           cartItemId: lineId,
@@ -146,6 +205,7 @@ Future<dynamic> prepareParkedDeferredPurchase(
           cartItemDiscountAmount: disc,
           cartItemDiscountReason: discReason,
           cartItemArticleGroupCode: article,
+          cartItemTaxPercent: taxPct,
           cartItemProductCode: productCode,
           cartItemMetadata: null,
         ),
@@ -436,7 +496,7 @@ Map<String, dynamic> _buildCartPayloadFromShoppingCart(ShoppingCartStruct cart) 
       'quantity': cartItem.cartItemQuantity,
       'unit_price': unitPrice,
       'discount_amount': discountAmount,
-      'tax_rate': 0.25,
+      'tax_rate': resolveCartItemTaxRate(cartItem),
       'tax_inclusive': true,
     });
   }
