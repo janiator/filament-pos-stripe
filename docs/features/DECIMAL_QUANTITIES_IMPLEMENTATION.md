@@ -81,7 +81,7 @@ $subtotal = (int) round($unitPrice * $quantity); // Convert to øre (integer)
 
 ### ✅ FlutterFlow Cart Structure
 
-**File**: `docs/flutterflow/FLUTTERFLOW_CART_DATA_STRUCTURE.md`
+**Cart structs:** See FlutterFlow project `pointofsale-xrlz5i` (`ShoppingCart` data struct) or `positiv_flutterflow_ai/generated_code/` after `refresh-context`.
 
 - Changed `quantity` field from `int` to `double`
 - Updated `copyWith` method parameter type

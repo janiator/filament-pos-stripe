@@ -33,11 +33,10 @@ All documentation is organized in the [`docs/`](./docs/) directory:
 - **[POS Audit Log Requirements](./docs/compliance/POS_AUDIT_LOG_REQUIREMENTS.md)** - Audit logging requirements
 - **[SAF-T Implementation](./docs/saf-t/SAF_T_IMPLEMENTATION_PLAN.md)** - Tax compliance
 
-### 📱 Frontend Integration
+### 📱 Frontend Integration (POSitiv / FlutterFlow)
 
-- **[FlutterFlow Implementation Guide](./docs/flutterflow/FLUTTERFLOW_IMPLEMENTATION_GUIDE.md)** - Complete FlutterFlow setup
-- **[FlutterFlow Cart Data Structure](./docs/flutterflow/FLUTTERFLOW_CART_DATA_STRUCTURE.md)** - Shopping cart structure
-- **[FlutterFlow Custom Actions](./docs/flutterflow/custom-actions/)** - Code examples
+- **[FlutterFlow workflow](./docs/flutterflow/README.md)** — MCP workspace (`positiv_flutterflow_ai/`), cloud project `pointofsale-xrlz5i`
+- **[API spec](./api-spec.yaml)** — Backend contract for the Flutter app
 
 ### 🏗️ Architecture
 
@@ -57,7 +56,7 @@ All documentation is organized in the [`docs/`](./docs/) directory:
 ├── docs/                # All documentation
 │   ├── compliance/      # Legal compliance docs
 │   ├── implementation/  # Implementation guides
-│   ├── flutterflow/     # FlutterFlow integration
+│   ├── flutterflow/     # FlutterFlow MCP workflow pointer
 │   ├── saf-t/          # SAF-T documentation
 │   ├── setup/          # Setup guides
 │   └── features/       # Feature documentation

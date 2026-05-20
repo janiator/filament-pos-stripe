@@ -85,7 +85,7 @@ This document is the implementation plan for Merano ticket booking in the POSiti
 - Seatmap WebView: adapt Merano draft; URL from POSitiv or Merano as per 2.3.
 - Add ticket to cart: call POSitiv `POST .../merano/v1/bookings`, then existing addItemToCart (custom price, description, metadata `merano_booking_id`, `merano_booking_number`); release via POSitiv release endpoint.
 - Confirm after payment: call POSitiv confirm-pos-payment for each cart item with `merano_booking_id` after successful POS purchase.
-- Docs: MERANO_BOOKING_FLOW.md in docs/flutterflow/ with full flow; adapted Dart in docs/flutterflow/custom-actions/ and custom-widgets/.
+- Docs: Merano booking custom actions/widgets live in FlutterFlow cloud project `pointofsale-xrlz5i`; inspect via MCP or `positiv_flutterflow_ai/generated_code/` after refresh.
 
 ---
 

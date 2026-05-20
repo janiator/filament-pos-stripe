@@ -168,7 +168,7 @@ PosEvent::create([
 
 ### Documentation
 - `docs/compliance/SKATTEETATEN_FAQ_ADDITIONAL_REQUIREMENTS.md` - FAQ requirements documentation
-- `docs/flutterflow/EMBED_POS_SESSIONS_LIST.md` - API documentation for embedding POS sessions
+- POS sessions list embedding: see `api-spec.yaml` and Filament POS Sessions API group in FlutterFlow project `pointofsale-xrlz5i`.
 
 ---
 

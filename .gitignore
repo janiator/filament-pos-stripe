@@ -38,5 +38,8 @@ jobberiet-export.zip
 
 # Local FlutterFlow AI workspace (see .cursor/rules/multi-repo-workspace.mdc).
 # Name must not be `flutterflow_ai` — that matches the SDK package name and breaks pub get.
-/positiv_flutterflow_ai/
+/positiv_flutterflow_ai/*
+!/positiv_flutterflow_ai/dsl/
+!/positiv_flutterflow_ai/scripts/
+!/positiv_flutterflow_ai/README.md
 /flutterflow_ai/

@@ -12,6 +12,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\TextSize;
+use Filament\Support\Icons\Heroicon;
 
 class PosPurchaseInfolist
 {
