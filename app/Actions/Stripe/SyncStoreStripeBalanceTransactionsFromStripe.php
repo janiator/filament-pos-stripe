@@ -4,6 +4,7 @@ namespace App\Actions\Stripe;
 
 use App\Models\Store;
 use App\Models\StoreStripeBalanceTransaction;
+use Carbon\Carbon;
 use Filament\Notifications\Notification;
 use Lanos\CashierConnect\Exceptions\AccountNotFoundException;
 use Stripe\StripeClient;
@@ -82,7 +83,7 @@ class SyncStoreStripeBalanceTransactionsFromStripe
 
                     $availableOn = null;
                     if (! empty($bt->available_on)) {
-                        $availableOn = \Carbon\Carbon::createFromTimestamp((int) $bt->available_on);
+                        $availableOn = Carbon::createFromTimestamp((int) $bt->available_on);
                     }
 
                     $data = [
@@ -106,16 +107,42 @@ class SyncStoreStripeBalanceTransactionsFromStripe
                         'reporting_category' => $bt->reporting_category ?? null,
                     ];
 
-                    $record = StoreStripeBalanceTransaction::query()
+                    $existed = StoreStripeBalanceTransaction::query()
                         ->where('stripe_balance_transaction_id', $bt->id)
-                        ->first();
+                        ->exists();
 
-                    if ($record) {
-                        $record->fill($data);
-                        $record->save();
+                    // Atomic upsert avoids unique violations when concurrent sync jobs race past a select-then-insert.
+                    $row = $data;
+                    $row['fee_details'] = $this->encodeNullableJsonArray($data['fee_details'] ?? null);
+                    $row['source_metadata'] = $this->encodeNullableJsonArray($data['source_metadata'] ?? null);
+
+                    StoreStripeBalanceTransaction::query()->upsert(
+                        [$row],
+                        ['stripe_balance_transaction_id'],
+                        [
+                            'store_id',
+                            'stripe_account_id',
+                            'type',
+                            'amount',
+                            'fee',
+                            'net',
+                            'currency',
+                            'status',
+                            'description',
+                            'stripe_charge_id',
+                            'stripe_payment_intent_id',
+                            'stripe_payout_id',
+                            'fee_details',
+                            'source_metadata',
+                            'stripe_created',
+                            'available_on',
+                            'reporting_category',
+                        ],
+                    );
+
+                    if ($existed) {
                         $result['updated']++;
                     } else {
-                        StoreStripeBalanceTransaction::query()->create($data);
                         $result['created']++;
                     }
                 } catch (Throwable $e) {
@@ -188,6 +215,18 @@ class SyncStoreStripeBalanceTransactionsFromStripe
         }
 
         return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $value
+     */
+    protected function encodeNullableJsonArray(?array $value): ?string
+    {
+        if ($value === null || $value === []) {
+            return null;
+        }
+
+        return json_encode($value, JSON_THROW_ON_ERROR);
     }
 
     /**
