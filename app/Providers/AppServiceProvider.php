@@ -36,7 +36,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Nightwatch::rejectQueries(function (Query $query) {
-            return str_contains($query->sql, '"cache"');
+            return str_contains($query->sql, '"cache"')
+                || str_contains($query->sql, '"cache_locks"');
         });
 
         // Set Filament's default timezone to Oslo

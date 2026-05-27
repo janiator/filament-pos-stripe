@@ -5,12 +5,15 @@ namespace App\Actions\Stripe;
 use App\Models\Store;
 use App\Models\StoreStripeBalanceTransaction;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Carbon;
 use Lanos\CashierConnect\Exceptions\AccountNotFoundException;
 use Stripe\StripeClient;
 use Throwable;
 
 class SyncStoreStripeBalanceTransactionsFromStripe
 {
+    private const int UPSERT_BATCH_SIZE = 100;
+
     /**
      * @param  ?string  $onlyStripePayoutId  When set, lists balance transactions via Stripe's `payout` filter (reliable for paid payouts) instead of walking the full recent history.
      * @return array{total: int, created: int, updated: int, errors: list<string>}
@@ -56,79 +59,18 @@ class SyncStoreStripeBalanceTransactionsFromStripe
 
             $stripe = new StripeClient($secret);
 
-            $listParams = [
-                'limit' => 100,
-                'expand' => ['data.source'],
-            ];
-            if ($onlyStripePayoutId !== null && str_starts_with($onlyStripePayoutId, 'po_')) {
-                $listParams['payout'] = $onlyStripePayoutId;
-            }
-
             $transactions = $stripe->balanceTransactions->all(
-                $listParams,
+                $this->listParamsForStore($store, $onlyStripePayoutId),
                 ['stripe_account' => $stripeAccountId]
             );
 
-            foreach ($transactions->autoPagingIterator() as $bt) {
-                $result['total']++;
-
-                try {
-                    $chargeId = $this->resolveChargeId($bt);
-                    $payoutId = $this->resolvePayoutId($bt);
-                    if ($payoutId === null && $onlyStripePayoutId !== null && str_starts_with($onlyStripePayoutId, 'po_')) {
-                        $payoutId = $onlyStripePayoutId;
-                    }
-                    $chargeExtras = $this->extractChargeSourceExtras($bt);
-
-                    $availableOn = null;
-                    if (! empty($bt->available_on)) {
-                        $availableOn = \Carbon\Carbon::createFromTimestamp((int) $bt->available_on);
-                    }
-
-                    $data = [
-                        'store_id' => $store->id,
-                        'stripe_account_id' => $stripeAccountId,
-                        'stripe_balance_transaction_id' => $bt->id,
-                        'type' => (string) $bt->type,
-                        'amount' => (int) $bt->amount,
-                        'fee' => max(0, (int) $bt->fee),
-                        'net' => (int) $bt->net,
-                        'currency' => (string) $bt->currency,
-                        'status' => $bt->status ?? null,
-                        'description' => $bt->description ?? null,
-                        'stripe_charge_id' => $chargeId,
-                        'stripe_payment_intent_id' => $chargeExtras['stripe_payment_intent_id'],
-                        'stripe_payout_id' => $payoutId,
-                        'fee_details' => $this->stripeObjectToArray($bt->fee_details ?? null),
-                        'source_metadata' => $chargeExtras['source_metadata'],
-                        'stripe_created' => (int) $bt->created,
-                        'available_on' => $availableOn,
-                        'reporting_category' => $bt->reporting_category ?? null,
-                    ];
-
-                    $record = StoreStripeBalanceTransaction::query()
-                        ->where('stripe_balance_transaction_id', $bt->id)
-                        ->first();
-
-                    if ($record) {
-                        $record->fill($data);
-                        $record->save();
-                        $result['updated']++;
-                    } else {
-                        StoreStripeBalanceTransaction::query()->create($data);
-                        $result['created']++;
-                    }
-                } catch (Throwable $e) {
-                    $result['errors'][] = "Balance transaction {$bt->id}: {$e->getMessage()}";
-                    report($e);
-                }
-            }
-
-            if ($notify) {
-                $this->sendResultNotification($result);
-            }
-
-            return $result;
+            return $this->applyBalanceTransactions(
+                $store,
+                $stripeAccountId,
+                $transactions->autoPagingIterator(),
+                $onlyStripePayoutId,
+                $notify,
+            );
         } catch (AccountNotFoundException $e) {
             if ($notify) {
                 Notification::make()
@@ -152,6 +94,183 @@ class SyncStoreStripeBalanceTransactionsFromStripe
 
             return $result;
         }
+    }
+
+    /**
+     * @param  iterable<object>  $balanceTransactions  Stripe balance transaction objects
+     * @return array{total: int, created: int, updated: int, errors: list<string>}
+     */
+    public function applyBalanceTransactions(
+        Store $store,
+        string $stripeAccountId,
+        iterable $balanceTransactions,
+        ?string $onlyStripePayoutId = null,
+        bool $notify = false,
+    ): array {
+        $result = [
+            'total' => 0,
+            'created' => 0,
+            'updated' => 0,
+            'errors' => [],
+        ];
+
+        $existingIds = StoreStripeBalanceTransaction::query()
+            ->where('store_id', $store->id)
+            ->pluck('stripe_balance_transaction_id')
+            ->flip();
+
+        $batch = [];
+        $now = now();
+
+        foreach ($balanceTransactions as $bt) {
+            $result['total']++;
+
+            try {
+                $row = $this->buildRowFromStripeBalanceTransaction(
+                    $store,
+                    $stripeAccountId,
+                    $bt,
+                    $onlyStripePayoutId,
+                    $now,
+                );
+
+                if ($existingIds->has($row['stripe_balance_transaction_id'])) {
+                    $result['updated']++;
+                } else {
+                    $result['created']++;
+                    $existingIds->put($row['stripe_balance_transaction_id'], true);
+                }
+
+                $batch[] = $row;
+
+                if (count($batch) >= self::UPSERT_BATCH_SIZE) {
+                    $this->upsertBalanceTransactionBatch($batch);
+                    $batch = [];
+                }
+            } catch (Throwable $e) {
+                $stripeId = isset($bt->id) ? (string) $bt->id : 'unknown';
+                $result['errors'][] = "Balance transaction {$stripeId}: {$e->getMessage()}";
+                report($e);
+            }
+        }
+
+        if ($batch !== []) {
+            $this->upsertBalanceTransactionBatch($batch);
+        }
+
+        if ($notify) {
+            $this->sendResultNotification($result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildRowFromStripeBalanceTransaction(
+        Store $store,
+        string $stripeAccountId,
+        object $bt,
+        ?string $onlyStripePayoutId,
+        Carbon $now,
+    ): array {
+        $chargeId = $this->resolveChargeId($bt);
+        $payoutId = $this->resolvePayoutId($bt);
+        if ($payoutId === null && $onlyStripePayoutId !== null && str_starts_with($onlyStripePayoutId, 'po_')) {
+            $payoutId = $onlyStripePayoutId;
+        }
+        $chargeExtras = $this->extractChargeSourceExtras($bt);
+
+        $availableOn = null;
+        if (! empty($bt->available_on)) {
+            $availableOn = Carbon::createFromTimestamp((int) $bt->available_on);
+        }
+
+        $feeDetails = $this->stripeObjectToArray($bt->fee_details ?? null);
+        $sourceMetadata = $chargeExtras['source_metadata'];
+
+        return [
+            'store_id' => $store->id,
+            'stripe_account_id' => $stripeAccountId,
+            'stripe_balance_transaction_id' => (string) $bt->id,
+            'type' => (string) $bt->type,
+            'amount' => (int) $bt->amount,
+            'fee' => max(0, (int) $bt->fee),
+            'net' => (int) $bt->net,
+            'currency' => (string) $bt->currency,
+            'status' => $bt->status ?? null,
+            'description' => $bt->description ?? null,
+            'stripe_charge_id' => $chargeId,
+            'stripe_payment_intent_id' => $chargeExtras['stripe_payment_intent_id'],
+            'stripe_payout_id' => $payoutId,
+            'fee_details' => $feeDetails !== null ? json_encode($feeDetails) : null,
+            'source_metadata' => $sourceMetadata !== null ? json_encode($sourceMetadata) : null,
+            'stripe_created' => (int) $bt->created,
+            'available_on' => $availableOn,
+            'reporting_category' => $bt->reporting_category ?? null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     */
+    protected function upsertBalanceTransactionBatch(array $rows): void
+    {
+        StoreStripeBalanceTransaction::query()->upsert(
+            $rows,
+            ['stripe_balance_transaction_id'],
+            [
+                'store_id',
+                'stripe_account_id',
+                'type',
+                'amount',
+                'fee',
+                'net',
+                'currency',
+                'status',
+                'description',
+                'stripe_charge_id',
+                'stripe_payment_intent_id',
+                'stripe_payout_id',
+                'fee_details',
+                'source_metadata',
+                'stripe_created',
+                'available_on',
+                'reporting_category',
+                'updated_at',
+            ],
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function listParamsForStore(Store $store, ?string $onlyStripePayoutId): array
+    {
+        $listParams = [
+            'limit' => 100,
+            'expand' => ['data.source'],
+        ];
+
+        if ($onlyStripePayoutId !== null && str_starts_with($onlyStripePayoutId, 'po_')) {
+            $listParams['payout'] = $onlyStripePayoutId;
+
+            return $listParams;
+        }
+
+        $lastStripeCreated = StoreStripeBalanceTransaction::query()
+            ->where('store_id', $store->id)
+            ->max('stripe_created');
+
+        if ($lastStripeCreated !== null) {
+            $overlapSeconds = (int) config('stripe_sync.balance_transactions.incremental_overlap_seconds', 86_400);
+            $listParams['created'] = ['gte' => max(0, (int) $lastStripeCreated - $overlapSeconds)];
+        }
+
+        return $listParams;
     }
 
     /**
