@@ -11,6 +11,7 @@ use App\Models\PosSession;
 use App\Models\ProductVariant;
 use App\Models\Receipt;
 use App\Models\Store;
+use App\Support\MeranoTicketPurchaseMetadata;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -280,7 +281,7 @@ class PurchaseService
             'refunded' => false,
             'paid' => true,
             'paid_at' => now(),
-            'metadata' => array_merge([
+            'metadata' => $this->chargeMetadataWithMeranoTickets(array_merge([
                 'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
                 'discounts' => $cartData['discounts'] ?? [],
                 'customer_id' => $cartData['customer_id'] ?? null,
@@ -291,7 +292,7 @@ class PurchaseService
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
                 'note' => $this->wholeOrderNoteFromCartData($cartData),
-            ], $metadata),
+            ], $metadata)),
         ]);
 
         // Log cash payment event (13016)
@@ -421,7 +422,7 @@ class PurchaseService
                 'refunded' => false,
                 'paid' => true,
                 'paid_at' => now(),
-                'metadata' => array_merge([
+                'metadata' => $this->chargeMetadataWithMeranoTickets(array_merge([
                     'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
                     'discounts' => $cartData['discounts'] ?? [],
                     'customer_id' => $cartData['customer_id'] ?? null,
@@ -432,7 +433,7 @@ class PurchaseService
                     'total_tax' => $cartData['total_tax'] ?? 0,
                     'total' => $amount,
                     'note' => $this->wholeOrderNoteFromCartData($cartData),
-                ], $metadata),
+                ], $metadata)),
             ]);
         } else {
             // Update existing charge with cart data, request metadata, and current Stripe captured status
@@ -448,7 +449,7 @@ class PurchaseService
                 'pos_session_id' => $posSession->id,
                 'stripe_customer_id' => $stripeCustomerId,
                 'captured' => $stripeChargeCaptured,
-                'metadata' => array_merge(
+                'metadata' => $this->chargeMetadataWithMeranoTickets(array_merge(
                     $charge->metadata ?? [],
                     [
                         'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
@@ -463,7 +464,7 @@ class PurchaseService
                         'note' => $this->wholeOrderNoteFromCartData($cartData),
                     ],
                     $metadata
-                ),
+                )),
             ]);
         }
 
@@ -515,7 +516,7 @@ class PurchaseService
             'refunded' => false,
             'paid' => true,
             'paid_at' => now(),
-            'metadata' => array_merge([
+            'metadata' => $this->chargeMetadataWithMeranoTickets(array_merge([
                 'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
                 'discounts' => $cartData['discounts'] ?? [],
                 'customer_id' => $cartData['customer_id'] ?? null,
@@ -526,7 +527,7 @@ class PurchaseService
                 'total_tax' => $cartData['total_tax'] ?? 0,
                 'total' => $amount,
                 'note' => $this->wholeOrderNoteFromCartData($cartData),
-            ], $metadata),
+            ], $metadata)),
         ]);
 
         // Log payment event using the payment method's event code
@@ -576,7 +577,7 @@ class PurchaseService
             'refunded' => false,
             'paid' => true,
             'paid_at' => now(),
-            'metadata' => array_merge([
+            'metadata' => $this->chargeMetadataWithMeranoTickets(array_merge([
                 'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
                 'discounts' => $cartData['discounts'] ?? [],
                 'customer_id' => $cartData['customer_id'] ?? null,
@@ -588,7 +589,7 @@ class PurchaseService
                 'total' => $amount,
                 'note' => $this->wholeOrderNoteFromCartData($cartData),
                 'gift_card_code' => $giftCardCode,
-            ], $metadata),
+            ], $metadata)),
         ]);
 
         // Redeem gift card (this will create transaction and log POS event)
@@ -642,7 +643,7 @@ class PurchaseService
             'refunded' => false,
             'paid' => false,
             'paid_at' => null, // Will be set when payment is completed
-            'metadata' => array_merge([
+            'metadata' => $this->chargeMetadataWithMeranoTickets(array_merge([
                 'items' => $this->enrichCartItemsWithProductSnapshots($cartData['items'] ?? [], $store->stripe_account_id),
                 'discounts' => $cartData['discounts'] ?? [],
                 'customer_id' => $cartData['customer_id'] ?? null,
@@ -655,7 +656,7 @@ class PurchaseService
                 'note' => $this->wholeOrderNoteFromCartData($cartData),
                 'deferred_payment' => true,
                 'deferred_reason' => $metadata['deferred_reason'] ?? 'Payment on pickup',
-            ], $metadata),
+            ], $metadata)),
         ]);
 
         // Log deferred payment event (13019 - Other payment, pending)
@@ -801,6 +802,8 @@ class PurchaseService
         if ($metadataPatch !== []) {
             $newMetadata = array_merge($newMetadata, $metadataPatch);
         }
+
+        MeranoTicketPurchaseMetadata::syncInto($newMetadata, $enrichedItems);
 
         $charge->update([
             'amount' => (int) $cartData['total'],
@@ -1156,6 +1159,23 @@ class PurchaseService
      * Enrich cart items with product snapshots at purchase time
      * This preserves historical product information even if products are later changed or deleted
      */
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array<string, mixed>
+     */
+    protected function chargeMetadataWithMeranoTickets(array $metadata): array
+    {
+        $items = $metadata['items'] ?? [];
+
+        if (! is_array($items)) {
+            $items = [];
+        }
+
+        MeranoTicketPurchaseMetadata::syncInto($metadata, $items);
+
+        return $metadata;
+    }
+
     protected function enrichCartItemsWithProductSnapshots(array $items, string $stripeAccountId): array
     {
         if (empty($items)) {
