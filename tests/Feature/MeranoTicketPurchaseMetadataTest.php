@@ -94,6 +94,88 @@ test('purchase show exposes merano ticket metadata when stored on line items onl
     $response->assertOk();
     $response->assertJsonPath('purchase.purchase_metadata.purchase_contains_tickets', true);
     $response->assertJsonPath('purchase.purchase_metadata.purchase_ticket_reference', 'BK-2026-REPRINT');
+    $response->assertJsonPath(
+        'purchase.purchase_items.0.purchase_item_metadata.notes',
+        json_encode([
+            'merano_booking_id' => 99,
+            'merano_booking_number' => 'BK-2026-REPRINT',
+        ])
+    );
+});
+
+test('purchase store persists merano line metadata and exposes ticket flags on show', function () {
+    $user = User::factory()->create();
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_merano_store_meta_'.uniqid()]);
+    $user->stores()->attach($store);
+    $user->setCurrentStore($store);
+
+    $posDevice = PosDevice::factory()->create(['store_id' => $store->id]);
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'pos_device_id' => $posDevice->id,
+        'user_id' => $user->id,
+        'status' => 'open',
+    ]);
+
+    PaymentMethod::create([
+        'store_id' => $store->id,
+        'name' => 'Cash',
+        'code' => 'cash',
+        'provider' => 'cash',
+        'enabled' => true,
+        'pos_suitable' => true,
+        'sort_order' => 0,
+        'minimum_amount_kroner' => null,
+        'saf_t_payment_code' => '10000',
+        'saf_t_event_code' => '13016',
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+    ]);
+
+    Sanctum::actingAs($user, ['*']);
+
+    $create = $this->postJson('/api/purchases', [
+        'pos_session_id' => $session->id,
+        'payment_method_code' => 'cash',
+        'cart' => [
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 15000,
+                    'metadata' => [
+                        'merano_booking_id' => 77,
+                        'merano_booking_number' => 'BK-STORE-META',
+                    ],
+                ],
+            ],
+            'total' => 15000,
+            'currency' => 'nok',
+        ],
+    ]);
+
+    $create->assertStatus(201);
+    $chargeId = $create->json('data.charge.id');
+    expect($chargeId)->not->toBeNull();
+
+    $charge = ConnectedCharge::query()->findOrFail($chargeId);
+    $items = $charge->metadata['items'] ?? [];
+    expect($items[0]['metadata']['merano_booking_number'] ?? null)->toBe('BK-STORE-META');
+    expect($charge->metadata['purchase_contains_tickets'] ?? null)->toBeTrue();
+
+    $this->getJson("/api/purchases/{$chargeId}")
+        ->assertOk()
+        ->assertJsonPath('purchase.purchase_metadata.purchase_contains_tickets', true)
+        ->assertJsonPath('purchase.purchase_metadata.purchase_ticket_reference', 'BK-STORE-META')
+        ->assertJsonPath(
+            'purchase.purchase_items.0.purchase_item_metadata.notes',
+            json_encode([
+                'merano_booking_id' => 77,
+                'merano_booking_number' => 'BK-STORE-META',
+            ])
+        );
 });
 
 test('revise-deferred clears ticket metadata when tickets are removed from cart', function () {

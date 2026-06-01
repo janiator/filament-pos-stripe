@@ -845,7 +845,7 @@ class PurchasePurchaseItemsInner implements \JsonSerializable, ArrayAccess, Mode
     /**
      * Sets purchase_item_metadata
      *
-     * @param  array<string,mixed>|null  $purchase_item_metadata  Additional item metadata
+     * @param  array<string,mixed>|null  $purchase_item_metadata  Additional item metadata. For Merano ticket lines, raw Merano keys are included and the same JSON is mirrored into `notes` so FlutterFlow's `PurchaseItemMetadataStruct` preserves the booking reference.
      * @return self
      */
     public function setPurchaseItemMetadata($purchase_item_metadata)

@@ -33,6 +33,7 @@ class CompletePurchasePaymentRequest extends FormRequest
             'cart.items.*.discount_reason' => ['nullable', 'string', 'max:500'],
             'cart.items.*.tax_rate' => ['nullable', 'numeric', 'min:0', 'max:1'],
             'cart.items.*.tax_inclusive' => ['nullable', 'boolean'],
+            'cart.items.*.metadata' => ['nullable', 'array'],
             'cart.discounts' => ['nullable', 'array'],
             'cart.discounts.*.type' => ['nullable', 'string', 'max:50'],
             'cart.discounts.*.amount' => ['nullable', 'integer', 'min:0'],

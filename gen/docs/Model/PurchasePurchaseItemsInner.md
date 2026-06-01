@@ -18,6 +18,6 @@ Name | Type | Description | Notes
 **purchase_item_discount_reason** | **string** | Reason for discount | [optional]
 **purchase_item_article_group_code** | **string** | SAF-T article group code (PredefinedBasicID-04) | [optional]
 **purchase_item_product_code** | **string** | SAF-T product code (PLU - BasicType-02) | [optional]
-**purchase_item_metadata** | **array<string,mixed>** | Additional item metadata | [optional]
+**purchase_item_metadata** | **array<string,mixed>** | Additional item metadata. For Merano ticket lines, raw Merano keys are included and the same JSON is mirrored into `notes` so FlutterFlow's `PurchaseItemMetadataStruct` preserves the booking reference. | [optional]
 
 [[Back to Model list]](../../README.md#models) [[Back to API list]](../../README.md#endpoints) [[Back to README]](../../README.md)

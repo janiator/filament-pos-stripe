@@ -1008,9 +1008,7 @@ class PurchasesController extends BaseApiController
                     'purchase_item_discount_reason' => $item['discount_reason'] ?? null,
                     'purchase_item_article_group_code' => $item['article_group_code'] ?? null,
                     'purchase_item_product_code' => $item['product_code'] ?? null,
-                    'purchase_item_metadata' => isset($item['metadata']) && is_array($item['metadata'])
-                        ? $item['metadata']
-                        : null,
+                    'purchase_item_metadata' => MeranoTicketPurchaseMetadata::lineItemMetadataForResponse($item),
                 ];
                 $lineTotalIndex++;
             }
@@ -1132,9 +1130,7 @@ class PurchasesController extends BaseApiController
                 'purchase_item_article_group_code' => $articleGroupCode,
                 'purchase_item_tax_rate' => $itemTaxRate,
                 'purchase_item_product_code' => $productCode,
-                'purchase_item_metadata' => isset($item['metadata']) && is_array($item['metadata'])
-                    ? $item['metadata']
-                    : null,
+                'purchase_item_metadata' => MeranoTicketPurchaseMetadata::lineItemMetadataForResponse($item),
             ];
             $lineTotalIndex++;
         }
@@ -1312,6 +1308,7 @@ class PurchasesController extends BaseApiController
             'cart.items.*.discount_reason' => ['nullable', 'string', 'max:500'],
             'cart.items.*.tax_rate' => ['nullable', 'numeric', 'min:0', 'max:1'],
             'cart.items.*.tax_inclusive' => ['nullable', 'boolean'],
+            'cart.items.*.metadata' => ['nullable', 'array'],
             'cart.discounts' => ['nullable', 'array'],
             'cart.discounts.*.type' => ['nullable', 'string', 'max:50'],
             'cart.discounts.*.amount' => ['nullable', 'integer', 'min:0'],
@@ -1942,6 +1939,7 @@ class PurchasesController extends BaseApiController
             'cart.items.*.discount_reason' => ['nullable', 'string', 'max:500'],
             'cart.items.*.tax_rate' => ['nullable', 'numeric', 'min:0', 'max:1'],
             'cart.items.*.tax_inclusive' => ['nullable', 'boolean'],
+            'cart.items.*.metadata' => ['nullable', 'array'],
             'cart.discounts' => ['nullable', 'array'],
             'cart.discounts.*.type' => ['nullable', 'string', 'max:50'],
             'cart.discounts.*.amount' => ['nullable', 'integer', 'min:0'],

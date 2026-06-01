@@ -7374,8 +7374,12 @@ components:
               purchase_item_metadata:
                 type: object
                 nullable: true
-                description: Additional item metadata
+                description: Additional item metadata. For Merano ticket lines, raw Merano keys are included and the same JSON is mirrored into notes so FlutterFlow's PurchaseItemMetadataStruct preserves the booking reference.
                 additionalProperties: true
+                example:
+                  merano_booking_id: 99
+                  merano_booking_number: "BK-2026-REPRINT"
+                  notes: '{"merano_booking_id":99,"merano_booking_number":"BK-2026-REPRINT"}'
         purchase_discounts:
           type: array
           nullable: true
