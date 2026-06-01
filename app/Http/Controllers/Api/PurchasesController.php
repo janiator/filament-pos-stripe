@@ -13,6 +13,7 @@ use App\Models\PaymentMethod;
 use App\Models\PosSession;
 use App\Models\ProductVariant;
 use App\Services\PurchaseService;
+use App\Support\MeranoTicketPurchaseMetadata;
 use App\Support\VatRateNormalizer;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -586,6 +587,8 @@ class PurchasesController extends BaseApiController
 
         // Remove items from metadata since we have a separate purchase_items field
         unset($cleanMetadata['items']);
+
+        MeranoTicketPurchaseMetadata::mergeInto($cleanMetadata, is_array($items) ? $items : []);
 
         // Set cleaned metadata (without items)
         $data['purchase_metadata'] = ! empty($cleanMetadata) ? $cleanMetadata : null;
