@@ -23,21 +23,34 @@ class MeranoTicketPurchaseMetadata
     }
 
     /**
+     * Re-derive Merano ticket flags from the current cart line items.
+     *
+     * Unlike a merge-only helper, this clears stale ticket metadata when tickets
+     * were removed (e.g. deferred cart revision).
+     *
+     * @param  array<string, mixed>  $metadata
+     * @param  array<int, mixed>  $items
+     */
+    public static function syncInto(array &$metadata, array $items): void
+    {
+        $derived = self::fromCartItems($items);
+
+        if ($derived !== []) {
+            $metadata = array_merge($metadata, $derived);
+
+            return;
+        }
+
+        unset($metadata['purchase_contains_tickets'], $metadata['purchase_ticket_reference']);
+    }
+
+    /**
      * @param  array<string, mixed>  $metadata
      * @param  array<int, mixed>  $items
      */
     public static function mergeInto(array &$metadata, array $items): void
     {
-        if (($metadata['purchase_contains_tickets'] ?? false) === true
-            && ! empty($metadata['purchase_ticket_reference'] ?? '')) {
-            return;
-        }
-
-        $derived = self::fromCartItems($items);
-
-        if ($derived !== []) {
-            $metadata = array_merge($metadata, $derived);
-        }
+        self::syncInto($metadata, $items);
     }
 
     public static function isTicketLineItem(array $item): bool

@@ -803,6 +803,8 @@ class PurchaseService
             $newMetadata = array_merge($newMetadata, $metadataPatch);
         }
 
+        MeranoTicketPurchaseMetadata::syncInto($newMetadata, $enrichedItems);
+
         $charge->update([
             'amount' => (int) $cartData['total'],
             'currency' => strtolower((string) ($cartData['currency'] ?? $charge->currency ?? 'nok')),
@@ -1169,7 +1171,7 @@ class PurchaseService
             $items = [];
         }
 
-        MeranoTicketPurchaseMetadata::mergeInto($metadata, $items);
+        MeranoTicketPurchaseMetadata::syncInto($metadata, $items);
 
         return $metadata;
     }

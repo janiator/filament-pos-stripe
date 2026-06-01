@@ -588,7 +588,7 @@ class PurchasesController extends BaseApiController
         // Remove items from metadata since we have a separate purchase_items field
         unset($cleanMetadata['items']);
 
-        MeranoTicketPurchaseMetadata::mergeInto($cleanMetadata, is_array($items) ? $items : []);
+        MeranoTicketPurchaseMetadata::syncInto($cleanMetadata, is_array($items) ? $items : []);
 
         // Set cleaned metadata (without items)
         $data['purchase_metadata'] = ! empty($cleanMetadata) ? $cleanMetadata : null;
@@ -747,17 +747,7 @@ class PurchasesController extends BaseApiController
                 continue;
             }
 
-            $itemMetadata = $item['metadata'] ?? null;
-            if (! is_array($itemMetadata)) {
-                $itemMetadata = [];
-            }
-
-            if (
-                isset($item['merano_booking_id'])
-                || isset($item['merano_booking_number'])
-                || isset($itemMetadata['merano_booking_id'])
-                || isset($itemMetadata['merano_booking_number'])
-            ) {
+            if (MeranoTicketPurchaseMetadata::isTicketLineItem($item)) {
                 return false;
             }
         }
@@ -847,22 +837,6 @@ class PurchasesController extends BaseApiController
     }
 
     /**
-     * Determine if an item row represents a Merano ticket line.
-     */
-    protected function isTicketLineItem(array $item): bool
-    {
-        $itemMetadata = $item['metadata'] ?? null;
-        if (! is_array($itemMetadata)) {
-            $itemMetadata = [];
-        }
-
-        return isset($item['merano_booking_id'])
-            || isset($item['merano_booking_number'])
-            || isset($itemMetadata['merano_booking_id'])
-            || isset($itemMetadata['merano_booking_number']);
-    }
-
-    /**
      * Extract lightweight line-item data from charge metadata for the kiosk-sales report.
      *
      * @return array<int, array{product_name: string, quantity: float, unit_price_ore: int, line_total_ore: int}>
@@ -882,7 +856,7 @@ class PurchasesController extends BaseApiController
 
         $lineItems = [];
         foreach ($arrayItems as $index => $item) {
-            if ($this->isTicketLineItem($item)) {
+            if (MeranoTicketPurchaseMetadata::isTicketLineItem($item)) {
                 continue;
             }
 
