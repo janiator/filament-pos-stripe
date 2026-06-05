@@ -31,7 +31,7 @@ class ReportController extends Controller
         }
 
         $session = PosSession::where('id', $sessionId)
-            ->where('store_id', $store->id)
+            ->forStore($store->id)
             ->where('status', 'open')
             ->firstOrFail();
 
@@ -100,7 +100,7 @@ class ReportController extends Controller
         }
 
         $session = PosSession::where('id', $sessionId)
-            ->where('store_id', $store->id)
+            ->forStore($store->id)
             ->where('status', 'closed')
             ->firstOrFail();
 
@@ -167,7 +167,7 @@ class ReportController extends Controller
             abort(403, 'You do not have access to this store');
         }
         $session = PosSession::where('id', $sessionId)
-            ->where('store_id', $store->id)
+            ->forStore($store->id)
             ->where('status', 'open')
             ->firstOrFail();
 
@@ -199,7 +199,7 @@ class ReportController extends Controller
         }
 
         $session = PosSession::where('id', $sessionId)
-            ->where('store_id', $store->id)
+            ->forStore($store->id)
             ->where('status', 'closed')
             ->firstOrFail();
 
@@ -241,7 +241,7 @@ class ReportController extends Controller
         }
 
         $session = PosSession::where('id', $sessionId)
-            ->where('store_id', $store->id)
+            ->forStore($store->id)
             ->where('status', 'open')
             ->firstOrFail();
 
@@ -320,7 +320,7 @@ class ReportController extends Controller
         }
 
         $session = PosSession::where('id', $sessionId)
-            ->where('store_id', $store->id)
+            ->forStore($store->id)
             ->where('status', 'closed')
             ->firstOrFail();
 
