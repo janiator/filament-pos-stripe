@@ -61,6 +61,11 @@ class PowerOfficeManualVoucherPayloadFactory
                 $row['VatId'] = $resolved['vat_code_id'];
             }
 
+            $departmentId = $ledgerPayload['department_id'] ?? null;
+            if (is_numeric($departmentId) && (int) $departmentId > 0 && ! empty($line['apply_department'])) {
+                $row['DepartmentId'] = (int) $departmentId;
+            }
+
             $lines[] = $row;
         }
 

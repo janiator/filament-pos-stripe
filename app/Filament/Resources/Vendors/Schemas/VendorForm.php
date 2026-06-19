@@ -63,7 +63,13 @@ class VendorForm
                             ->label('Kontonummer for regnskap')
                             ->maxLength(64)
                             ->columnSpanFull()
-                            ->helperText('Leverandørkonto i regnskapssystemet (brukes ved synk mot regnskap).'),
+                            ->helperText('Leverandørkonto / reskontro i regnskapssystemet (brukes ved synk mot regnskap).'),
+
+                        TextInput::make('commission_revenue_account_number')
+                            ->label('Provisjon / Jobberiet-andel konto')
+                            ->maxLength(64)
+                            ->columnSpanFull()
+                            ->helperText('Valgfri salgskonto for provisjon (f.eks. 3023). Tom = global konto i PowerOffice-innstillinger.'),
                     ]),
 
                 Section::make('Metadata')

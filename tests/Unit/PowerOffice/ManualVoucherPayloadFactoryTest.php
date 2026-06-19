@@ -9,12 +9,14 @@ it('builds PowerOffice manual voucher json with signed currency amounts', functi
         'document_date' => '2026-03-23',
         'description' => 'POS Z-report 1',
         'currency' => 'NOK',
+        'department_id' => 20,
         'lines' => [
             [
                 'account' => '3000',
                 'debit_minor' => 0,
                 'credit_minor' => 10_000,
                 'description' => 'Sales',
+                'apply_department' => true,
             ],
             [
                 'account' => '1920',
@@ -37,6 +39,28 @@ it('builds PowerOffice manual voucher json with signed currency amounts', functi
 
     expect($creditLine['CurrencyAmount'])->toBe(-100.0)
         ->and($creditLine['VatId'])->toBe(9)
+        ->and($creditLine['DepartmentId'])->toBe(20)
         ->and($debitLine['CurrencyAmount'])->toBe(100.0)
         ->and($debitLine)->not->toHaveKey('VatId');
+});
+
+it('omits department id when turnover line flag is absent', function () {
+    $factory = new PowerOfficeManualVoucherPayloadFactory;
+
+    $body = $factory->build([
+        'document_date' => '2026-03-23',
+        'department_id' => 20,
+        'lines' => [
+            [
+                'account' => '1920',
+                'debit_minor' => 10_000,
+                'credit_minor' => 0,
+                'description' => 'Cash',
+            ],
+        ],
+    ], [
+        '1920' => ['id' => 66, 'vat_code_id' => null],
+    ], 'poweroffice_z_report_1_3');
+
+    expect($body['VoucherLines'][0])->not->toHaveKey('DepartmentId');
 });

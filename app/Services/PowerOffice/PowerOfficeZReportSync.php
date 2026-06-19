@@ -22,6 +22,7 @@ class PowerOfficeZReportSync
         protected PowerOfficeLedgerPayloadBuilder $ledgerPayloadBuilder,
         protected PowerOfficeApiClient $apiClient,
         protected PowerOfficeGeneralLedgerAccountResolver $generalLedgerAccountResolver,
+        protected PowerOfficeDepartmentResolver $departmentResolver,
         protected PowerOfficeManualVoucherPayloadFactory $manualVoucherPayloadFactory,
         protected ZReportPdfGenerator $zReportPdfGenerator,
     ) {}
@@ -145,6 +146,13 @@ class PowerOfficeZReportSync
 
         try {
             $payload = $this->ledgerPayloadBuilder->build($session, $integration, $zReport);
+            $departmentNo = $payload['department_no'] ?? null;
+            if (is_string($departmentNo) && trim($departmentNo) !== '') {
+                $departmentId = $this->departmentResolver->resolveIdForDepartmentNo($integration, trim($departmentNo));
+                if ($departmentId !== null) {
+                    $payload['department_id'] = $departmentId;
+                }
+            }
         } catch (MissingPowerOfficeMappingException $e) {
             $this->failRun($syncRun, $integration, 'Missing mapping: '.implode(', ', $e->missingBasisKeys));
 

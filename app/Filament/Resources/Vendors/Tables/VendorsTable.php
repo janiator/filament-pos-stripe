@@ -3,10 +3,13 @@
 namespace App\Filament\Resources\Vendors\Tables;
 
 use App\Models\Vendor;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -52,6 +55,13 @@ class VendorsTable
                     ->label('Kontonummer for regnskap')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('commission_percent')
+                    ->label(__('Commission'))
+                    ->suffix('%')
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
 
                 TextColumn::make('products_count')
                     ->label(__('Products'))
@@ -113,6 +123,47 @@ class VendorsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('setCommissionPercent')
+                        ->label(__('Set Commission Percentage'))
+                        ->icon('heroicon-o-percent-badge')
+                        ->color('info')
+                        ->form([
+                            TextInput::make('commission_percent')
+                                ->label(__('Commission Percentage'))
+                                ->numeric()
+                                ->step(0.01)
+                                ->minValue(0)
+                                ->maxValue(100)
+                                ->suffix('%')
+                                ->required()
+                                ->helperText(__('Commission percentage (0-100) applied to vendor sales in X/Z reports.')),
+                        ])
+                        ->action(function (EloquentCollection|Collection|LazyCollection $records, array $data): void {
+                            $commissionPercent = $data['commission_percent'] ?? null;
+
+                            if ($commissionPercent === null || $commissionPercent === '') {
+                                Notification::make()
+                                    ->danger()
+                                    ->title(__('Commission percentage required'))
+                                    ->send();
+
+                                return;
+                            }
+
+                            $updated = Vendor::query()
+                                ->whereIn('id', $records->pluck('id'))
+                                ->whereNull('archived_at')
+                                ->update(['commission_percent' => $commissionPercent]);
+
+                            Notification::make()
+                                ->success()
+                                ->title(__('Commission percentage set'))
+                                ->body(__('Commission has been updated for :count vendor(s).', ['count' => $updated]))
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion()
+                        ->successNotificationTitle(__('Commission percentage set')),
+
                     DeleteBulkAction::make()
                         ->using(function (DeleteBulkAction $action, EloquentCollection|Collection|LazyCollection $records): void {
                             if (! $action->shouldFetchSelectedRecords()) {

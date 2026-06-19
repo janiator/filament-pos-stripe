@@ -29,7 +29,7 @@ class PowerOfficeIntegrationFactory extends Factory
             'access_token' => null,
             'refresh_token' => null,
             'token_expires_at' => null,
-            'mapping_basis' => PowerOfficeMappingBasis::Vat,
+            'mapping_basis' => PowerOfficeMappingBasis::Category,
             'auto_sync_on_z_report' => true,
             'sync_enabled' => true,
             'last_onboarded_at' => null,

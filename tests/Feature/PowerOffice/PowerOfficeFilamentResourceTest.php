@@ -41,27 +41,41 @@ beforeEach(function () {
     Filament::bootCurrentPanel();
 });
 
-it('shows the onboarding wizard when setup is not finished', function () {
+it('shows the connection screen when PowerOffice is not connected', function () {
     PowerOfficeIntegration::factory()->onboardingWizard()->create([
         'store_id' => $this->store->id,
     ]);
 
     livewire(ManagePowerOfficeIntegration::class)
         ->assertOk()
-        ->assertSee('Step 1 of 3', false);
+        ->assertSee(__('Connect PowerOffice'), false)
+        ->assertSee(__('Open PowerOffice sign-in'), false)
+        ->assertDontSee(__('PowerOffice sync enabled'));
 });
 
-it('loads the PowerOffice hub in settings mode when onboarding is complete', function () {
+it('loads the PowerOffice settings page when connected', function () {
     PowerOfficeIntegration::factory()->connected()->create([
         'store_id' => $this->store->id,
     ]);
 
     livewire(ManagePowerOfficeIntegration::class)
         ->assertOk()
-        ->assertSee('PowerOffice sync enabled', false);
+        ->assertSee(__('PowerOffice sync enabled'), false)
+        ->assertDontSee(__('Connect PowerOffice'));
 });
 
-it('shows the wizard when PowerOffice is not connected even if onboarding was marked complete', function () {
+it('loads settings when connected even if onboarding timestamp is missing', function () {
+    PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $this->store->id,
+        'onboarding_completed_at' => null,
+    ]);
+
+    livewire(ManagePowerOfficeIntegration::class)
+        ->assertOk()
+        ->assertSee(__('PowerOffice sync enabled'), false);
+});
+
+it('shows the connection screen when PowerOffice is not connected even if onboarding was marked complete', function () {
     PowerOfficeIntegration::factory()->create([
         'store_id' => $this->store->id,
         'status' => PowerOfficeIntegrationStatus::NotConnected,
@@ -71,5 +85,6 @@ it('shows the wizard when PowerOffice is not connected even if onboarding was ma
 
     livewire(ManagePowerOfficeIntegration::class)
         ->assertOk()
-        ->assertSee('Step 1 of 3', false);
+        ->assertSee(__('Connect PowerOffice'), false)
+        ->assertDontSee(__('PowerOffice sync enabled'));
 });

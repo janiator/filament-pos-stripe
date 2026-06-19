@@ -117,6 +117,7 @@ class VendorsController extends BaseApiController
             'active' => 'nullable|boolean',
             'commission_percent' => 'nullable|numeric|min:0|max:100',
             'supplier_ledger_account_number' => 'nullable|string|max:64',
+            'commission_revenue_account_number' => 'nullable|string|max:64',
             'metadata' => 'nullable|array',
         ]);
 
@@ -131,6 +132,7 @@ class VendorsController extends BaseApiController
             $vendor->active = $validated['active'] ?? true;
             $vendor->commission_percent = $validated['commission_percent'] ?? null;
             $vendor->supplier_ledger_account_number = $validated['supplier_ledger_account_number'] ?? null;
+            $vendor->commission_revenue_account_number = $validated['commission_revenue_account_number'] ?? null;
             $vendor->metadata = $validated['metadata'] ?? null;
             $vendor->save();
 
@@ -179,6 +181,7 @@ class VendorsController extends BaseApiController
             'active' => 'nullable|boolean',
             'commission_percent' => 'nullable|numeric|min:0|max:100',
             'supplier_ledger_account_number' => 'nullable|string|max:64',
+            'commission_revenue_account_number' => 'nullable|string|max:64',
             'metadata' => 'nullable|array',
         ]);
 
@@ -203,6 +206,9 @@ class VendorsController extends BaseApiController
             }
             if (array_key_exists('supplier_ledger_account_number', $validated)) {
                 $vendor->supplier_ledger_account_number = $validated['supplier_ledger_account_number'];
+            }
+            if (array_key_exists('commission_revenue_account_number', $validated)) {
+                $vendor->commission_revenue_account_number = $validated['commission_revenue_account_number'];
             }
             if (isset($validated['metadata'])) {
                 $vendor->metadata = $validated['metadata'];
@@ -263,6 +269,7 @@ class VendorsController extends BaseApiController
             'active' => $vendor->active,
             'commission_percent' => $vendor->commission_percent,
             'supplier_ledger_account_number' => $vendor->supplier_ledger_account_number,
+            'commission_revenue_account_number' => $vendor->commission_revenue_account_number,
             'products_count' => $vendor->products_count ?? $vendor->products()->count(),
             'metadata' => $vendor->metadata,
             'archived_at' => $vendor->archived_at
