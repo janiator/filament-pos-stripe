@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PowerOfficeMappingBasis;
+use App\Exceptions\PowerOffice\MissingPowerOfficeMappingException;
 use App\Models\ArticleGroupCode;
 use App\Models\Collection as ProductCollection;
 use App\Models\ConnectedCharge;
@@ -186,6 +187,123 @@ it('posts vipps fees to configured fee account and reduces vipps clearing debit'
 
     expect(collect($payload['lines'])->firstWhere('account', '7720')['debit_minor'] ?? null)->toBe(125)
         ->and(collect($payload['lines'])->firstWhere('account', '1925')['debit_minor'] ?? null)->toBe(4_875);
+});
+
+it('reduces fallback mobile clearing debit when vipps fee lines are posted without payment method net data', function () {
+    $store = Store::factory()->create();
+    $integration = PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Vat,
+        'settings' => [
+            'ledger' => [
+                'payment_method_fees' => [
+                    'vipps' => ['debit_account_no' => '7720'],
+                ],
+            ],
+        ],
+    ]);
+
+    PowerOfficeAccountMapping::factory()->create([
+        'store_id' => $store->id,
+        'power_office_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Vat,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'vat_account_no' => '2700',
+        'card_clearing_account_no' => '1925',
+    ]);
+
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'status' => 'closed',
+        'closed_at' => now(),
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'status' => 'succeeded',
+        'payment_method' => 'vipps',
+        'amount' => 5_000,
+        'application_fee_amount' => 125,
+    ]);
+
+    $zReport = [
+        'net_amount' => 5_000,
+        'vat_amount' => 1_000,
+        'vat_rate' => 25,
+        'total_tips' => 0,
+        'sales_net_minor_by_vat_rate' => ['25' => 4_000],
+        'net_cash_amount' => 0,
+        'net_card_amount' => 0,
+        'net_mobile_amount' => 5_000,
+        'net_other_amount' => 0,
+    ];
+
+    $payload = app(PowerOfficeLedgerPayloadBuilder::class)->build($session, $integration->fresh('accountMappings'), $zReport);
+
+    expect(collect($payload['lines'])->firstWhere('account', '7720')['debit_minor'] ?? null)->toBe(125)
+        ->and(collect($payload['lines'])->where('account', '1925')->sum('debit_minor'))->toBe(4_875);
+});
+
+it('subtracts vipps fees once when multiple payment method net keys match vipps', function () {
+    $store = Store::factory()->create();
+    $integration = PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Vat,
+        'settings' => [
+            'ledger' => [
+                'payment_debits' => [
+                    'vipps' => '1925',
+                    'custom_vipps' => '1925',
+                ],
+                'payment_method_fees' => [
+                    'vipps' => ['debit_account_no' => '7720'],
+                ],
+            ],
+        ],
+    ]);
+
+    PowerOfficeAccountMapping::factory()->create([
+        'store_id' => $store->id,
+        'power_office_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Vat,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'vat_account_no' => '2700',
+    ]);
+
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'status' => 'closed',
+        'closed_at' => now(),
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'status' => 'succeeded',
+        'payment_method' => 'vipps',
+        'amount' => 5_000,
+        'application_fee_amount' => 125,
+    ]);
+
+    $zReport = [
+        'net_amount' => 5_000,
+        'vat_amount' => 1_000,
+        'vat_rate' => 25,
+        'total_tips' => 0,
+        'sales_net_minor_by_vat_rate' => ['25' => 4_000],
+        'by_payment_method_net' => [
+            'vipps' => ['amount' => 3_000, 'count' => 1, 'tips' => 0],
+            'custom_vipps' => ['amount' => 2_000, 'count' => 1, 'tips' => 0],
+        ],
+    ];
+
+    $payload = app(PowerOfficeLedgerPayloadBuilder::class)->build($session, $integration->fresh('accountMappings'), $zReport);
+
+    expect(collect($payload['lines'])->firstWhere('account', '7720')['debit_minor'] ?? null)->toBe(125)
+        ->and(collect($payload['lines'])->where('account', '1925')->sum('debit_minor'))->toBe(4_875);
 });
 
 it('marks turnover lines for department when department is configured', function () {
@@ -499,3 +617,143 @@ it('uses vendor commission split instead of article group or collection mapping'
     expect(collect($payload['lines'])->firstWhere('account', '40001')['credit_minor'] ?? null)->toBe(9_000)
         ->and(collect($payload['lines'])->firstWhere('account', '3023')['credit_minor'] ?? null)->toBe(1_000);
 });
+
+it('backfills missing products sold before applying hybrid vendor commission splits', function () {
+    $store = Store::factory()->create();
+    $vendor = Vendor::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Stuttreist',
+        'active' => true,
+        'commission_percent' => 10,
+        'supplier_ledger_account_number' => '40001',
+        'commission_revenue_account_number' => '3023',
+    ]);
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'vendor_id' => $vendor->id,
+    ]);
+
+    $integration = PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Category,
+        'settings' => [
+            'ledger' => [
+                'payment_debits' => ['cash' => '1920'],
+            ],
+        ],
+    ]);
+
+    PowerOfficeAccountMapping::factory()->create([
+        'store_id' => $store->id,
+        'power_office_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Category,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'vat_account_no' => '2700',
+        'cash_account_no' => '1920',
+    ]);
+
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'status' => 'closed',
+        'closed_at' => now(),
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'status' => 'succeeded',
+        'payment_method' => 'cash',
+        'amount' => 10_000,
+        'metadata' => [
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 10_000],
+            ],
+        ],
+    ]);
+
+    $zReport = [
+        'net_amount' => 10_000,
+        'vat_amount' => 2_000,
+        'vat_rate' => 25,
+        'total_tips' => 0,
+        'by_payment_method_net' => [
+            'cash' => ['amount' => 10_000, 'count' => 1, 'tips' => 0],
+        ],
+    ];
+
+    $payload = app(PowerOfficeLedgerPayloadBuilder::class)->build($session, $integration->fresh('accountMappings'), $zReport);
+
+    expect(collect($payload['lines'])->firstWhere('account', '40001')['credit_minor'] ?? null)->toBe(9_000)
+        ->and(collect($payload['lines'])->firstWhere('account', '3023')['credit_minor'] ?? null)->toBe(1_000)
+        ->and(collect($payload['lines'])->firstWhere('account', '3000'))->toBeNull();
+});
+
+it('rejects commission vendor sales when the vendor share account cannot be resolved', function () {
+    $store = Store::factory()->create();
+    $vendor = Vendor::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Stuttreist',
+        'active' => true,
+        'commission_percent' => 10,
+        'commission_revenue_account_number' => '3023',
+    ]);
+    $product = ConnectedProduct::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'vendor_id' => $vendor->id,
+    ]);
+
+    $integration = PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Category,
+        'settings' => [
+            'ledger' => [
+                'payment_debits' => ['cash' => '1920'],
+                'commission_revenue_account_no' => '3023',
+            ],
+        ],
+    ]);
+
+    PowerOfficeAccountMapping::factory()->create([
+        'store_id' => $store->id,
+        'power_office_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Category,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'vat_account_no' => '2700',
+        'cash_account_no' => '1920',
+    ]);
+
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'status' => 'closed',
+        'closed_at' => now(),
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'status' => 'succeeded',
+        'payment_method' => 'cash',
+        'amount' => 10_000,
+        'metadata' => [
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 10_000],
+            ],
+        ],
+    ]);
+
+    $zReport = [
+        'net_amount' => 10_000,
+        'vat_amount' => 2_000,
+        'vat_rate' => 25,
+        'total_tips' => 0,
+        'by_payment_method_net' => [
+            'cash' => ['amount' => 10_000, 'count' => 1, 'tips' => 0],
+        ],
+    ];
+
+    app(PowerOfficeLedgerPayloadBuilder::class)->build($session, $integration->fresh('accountMappings'), $zReport);
+})->throws(MissingPowerOfficeMappingException::class);

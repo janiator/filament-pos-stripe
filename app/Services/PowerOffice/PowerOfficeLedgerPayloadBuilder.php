@@ -4,6 +4,7 @@ namespace App\Services\PowerOffice;
 
 use App\Enums\PowerOfficeMappingBasis;
 use App\Exceptions\PowerOffice\MissingPowerOfficeMappingException;
+use App\Filament\Resources\PosSessions\Tables\PosSessionsTable;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
 use App\Models\PosSession;
@@ -196,7 +197,7 @@ class PowerOfficeLedgerPayloadBuilder
         PowerOfficeIntegration $integration,
         array $zReport,
     ): array {
-        $productsSold = $zReport['products_sold'] ?? [];
+        $productsSold = $this->productsSoldForHybridSales($session, $zReport);
         if (! is_array($productsSold) || $productsSold === []) {
             $missing = [];
             foreach (array_keys($this->bucketsForCollection($session, $zReport)) as $key) {
@@ -247,7 +248,7 @@ class PowerOfficeLedgerPayloadBuilder
         array $zReport,
         bool $applyDepartment,
     ): array {
-        $productsSold = $zReport['products_sold'] ?? [];
+        $productsSold = $this->productsSoldForHybridSales($session, $zReport);
         if (! is_array($productsSold) || $productsSold === []) {
             $lines = [];
             foreach ($this->bucketsForCollection($session, $zReport) as $collectionKey => $amount) {
@@ -389,6 +390,10 @@ class PowerOfficeLedgerPayloadBuilder
         $commissionAccount = $this->resolveVendorCommissionAccount($integration, $vendor);
 
         if ($commissionMinor > 0 && filled($commissionAccount)) {
+            if ($vendorShareMinor > 0 && ! filled($supplierAccount)) {
+                throw new MissingPowerOfficeMappingException(['vendor:'.$vendor->getKey()]);
+            }
+
             if ($vendorShareMinor > 0 && filled($supplierAccount)) {
                 $credits[$supplierAccount] = ($credits[$supplierAccount] ?? 0) + $vendorShareMinor;
             }
@@ -419,6 +424,22 @@ class PowerOfficeLedgerPayloadBuilder
         }
 
         return PowerOfficeLedgerSettings::commissionRevenueAccount($integration);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function productsSoldForHybridSales(PosSession $session, array $zReport): array
+    {
+        $productsSold = $zReport['products_sold'] ?? [];
+        if ($productsSold instanceof Collection) {
+            $productsSold = $productsSold->all();
+        }
+        if (is_array($productsSold) && $productsSold !== []) {
+            return $productsSold;
+        }
+
+        return PosSessionsTable::calculateProductsSold($session)->values()->all();
     }
 
     /**
@@ -754,6 +775,7 @@ class PowerOfficeLedgerPayloadBuilder
         $lines = [];
         $vippsFeeAccount = PowerOfficeLedgerSettings::paymentMethodFeeDebitAccount($integration, 'vipps');
         $vippsFees = $vippsFeeAccount ? $this->vippsFeesMinorForSession($session) : 0;
+        $remainingVippsFees = $vippsFees;
 
         $byNet = $zReport['by_payment_method_net'] ?? [];
         if ($byNet instanceof Collection) {
@@ -770,8 +792,10 @@ class PowerOfficeLedgerPayloadBuilder
                     continue;
                 }
                 $methodKey = (string) $method;
-                if ($vippsFees > 0 && $this->isVippsPaymentMethod($methodKey)) {
-                    $amount = max(0, $amount - $vippsFees);
+                if ($remainingVippsFees > 0 && $this->isVippsPaymentMethod($methodKey)) {
+                    $feeReduction = min($amount, $remainingVippsFees);
+                    $amount -= $feeReduction;
+                    $remainingVippsFees -= $feeReduction;
                 }
                 if ($amount <= 0) {
                     continue;
@@ -826,9 +850,14 @@ class PowerOfficeLedgerPayloadBuilder
         $netMobile = (int) ($zReport['net_mobile_amount'] ?? 0);
         $netOther = (int) ($zReport['net_other_amount'] ?? 0);
 
+        $cardAmount = $netCard + $netMobile + $netOther;
+        if ($vippsFees > 0 && $cardAmount > 0) {
+            $cardAmount = max(0, $cardAmount - $vippsFees);
+        }
+
         $map = [
             'cash' => $netCash,
-            'card' => $netCard + $netMobile + $netOther,
+            'card' => $cardAmount,
         ];
 
         foreach ($map as $method => $amount) {
