@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PowerOfficeEnvironment;
 use App\Enums\PowerOfficeIntegrationStatus;
 use App\Enums\PowerOfficeMappingBasis;
+use App\Support\PowerOffice\PowerOfficeLedgerDefaults;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -64,7 +65,7 @@ class PowerOfficeIntegration extends Model
             }
 
             if ($integration->getAttribute('mapping_basis') === null) {
-                $integration->setAttribute('mapping_basis', PowerOfficeMappingBasis::Vat);
+                $integration->setAttribute('mapping_basis', PowerOfficeLedgerDefaults::mappingBasis());
             }
         });
     }

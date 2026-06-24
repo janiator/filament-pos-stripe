@@ -10,6 +10,9 @@ use App\Models\PowerOfficeIntegration;
  */
 final class PowerOfficeLedgerSettings
 {
+    /** Stored mapping row holding shared VAT/tips/payment accounts when basis is vendor. */
+    public const SHARED_MAPPING_BASIS_KEY = '_shared';
+
     /**
      * @return array<string, mixed>
      */
@@ -25,6 +28,20 @@ final class PowerOfficeLedgerSettings
     public static function defaultSalesAccount(PowerOfficeIntegration $integration): ?string
     {
         $v = self::ledger($integration)['default_sales_account_no'] ?? null;
+
+        return filled($v) ? (string) $v : null;
+    }
+
+    public static function departmentNo(PowerOfficeIntegration $integration): ?string
+    {
+        $v = self::ledger($integration)['department_no'] ?? null;
+
+        return filled($v) ? trim((string) $v) : null;
+    }
+
+    public static function commissionRevenueAccount(PowerOfficeIntegration $integration): ?string
+    {
+        $v = self::ledger($integration)['commission_revenue_account_no'] ?? null;
 
         return filled($v) ? (string) $v : null;
     }
@@ -46,6 +63,24 @@ final class PowerOfficeLedgerSettings
         }
 
         return null;
+    }
+
+    public static function paymentMethodFeeDebitAccount(PowerOfficeIntegration $integration, string $method): ?string
+    {
+        $map = self::ledger($integration)['payment_method_fees'] ?? [];
+        if (! is_array($map)) {
+            return null;
+        }
+
+        $m = strtolower(trim($method));
+        $block = $map[$m] ?? null;
+        if (! is_array($block)) {
+            return null;
+        }
+
+        $v = $block['debit_account_no'] ?? null;
+
+        return filled($v) ? (string) $v : null;
     }
 
     /**

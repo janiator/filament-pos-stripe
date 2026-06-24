@@ -5,15 +5,21 @@ namespace App\Filament\Resources\PowerOfficeIntegrations\Pages;
 use App\Enums\PowerOfficeEnvironment;
 use App\Enums\PowerOfficeMappingBasis;
 use App\Filament\Concerns\BuildsClusterWideSubNavigation;
+use App\Filament\Resources\ArticleGroupCodes\ArticleGroupCodeResource;
 use App\Filament\Resources\PowerOfficeIntegrations\PowerOfficeIntegrationResource;
+use App\Filament\Resources\Vendors\VendorResource;
 use App\Jobs\SyncPowerOfficeZReportJob;
+use App\Models\ArticleGroupCode;
 use App\Models\Collection as ProductCollection;
+use App\Models\ConnectedProduct;
 use App\Models\PosSession;
 use App\Models\PowerOfficeAccountMapping;
 use App\Models\PowerOfficeIntegration;
 use App\Models\PowerOfficeSyncRun;
 use App\Models\Vendor;
 use App\Services\PowerOffice\PowerOfficeOnboardingService;
+use App\Support\PowerOffice\PowerOfficeLedgerDefaults;
+use App\Support\PowerOffice\PowerOfficeLedgerSettings;
 use App\Support\PowerOffice\PowerOfficeStandardVatRates;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -23,6 +29,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ViewField;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -46,26 +53,6 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
 
     public ?array $data = [];
 
-    public int $wizardStep = 1;
-
-    public string $wizardMappingBasis = '';
-
-    /** @var list<array{basis_key: string, label: string, sales_account_no: string, vat_account_no: string, tips_account_no: string, cash_account_no: string, card_clearing_account_no: string, fees_account_no: string, rounding_account_no: string}> */
-    public array $wizardMappingRows = [];
-
-    /**
-     * Shared ledger accounts for VAT-based setup (wizard step 3); copied onto each stored mapping row.
-     *
-     * @var array{vat_account_no: string, tips_account_no: string, cash_account_no: string, card_clearing_account_no: string, rounding_account_no: string}
-     */
-    public array $wizardSharedLedger = [
-        'vat_account_no' => '',
-        'tips_account_no' => '',
-        'cash_account_no' => '',
-        'card_clearing_account_no' => '',
-        'rounding_account_no' => '',
-    ];
-
     public function mount(): void
     {
         abort_unless(PowerOfficeIntegrationResource::canAccess(), 403);
@@ -75,30 +62,18 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
 
         $this->integration = PowerOfficeIntegration::query()->firstOrCreate(
             ['store_id' => $store->getKey()],
-            [],
+            [
+                'mapping_basis' => PowerOfficeLedgerDefaults::mappingBasis(),
+                'settings' => [
+                    'ledger' => PowerOfficeLedgerDefaults::ledgerSettings(),
+                ],
+            ],
         );
 
-        $this->wizardMappingBasis = $this->integration->mapping_basis->value;
-
         if ($this->shouldShowSettings()) {
+            $this->markOnboardingCompleteIfConnected();
             $this->fillSettingsForm();
-
-            return;
         }
-
-        if (! $this->integration->isConnected()) {
-            $this->wizardStep = 1;
-
-            return;
-        }
-
-        if ($this->integration->onboarding_completed_at === null) {
-            $this->wizardStep = 2;
-
-            return;
-        }
-
-        $this->wizardStep = 1;
     }
 
     public function getTitle(): string
@@ -112,13 +87,22 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
     }
 
     /**
-     * Full settings UI only after the Filament wizard is finished and PowerOffice is connected.
+     * Full settings UI once PowerOffice is connected; ledger configuration lives here only.
      */
     public function shouldShowSettings(): bool
     {
         return $this->integration !== null
-            && $this->integration->onboarding_completed_at !== null
             && $this->integration->isConnected();
+    }
+
+    protected function markOnboardingCompleteIfConnected(): void
+    {
+        if ($this->integration?->onboarding_completed_at !== null) {
+            return;
+        }
+
+        $this->integration->update(['onboarding_completed_at' => now()]);
+        $this->integration->refresh();
     }
 
     public function form(Schema $schema): Schema
@@ -157,12 +141,18 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                     ->schema([
                         Select::make('mapping_basis')
                             ->label(__('How to split ledger lines'))
-                            ->options(collect(PowerOfficeMappingBasis::cases())->mapWithKeys(
+                            ->options(collect(PowerOfficeMappingBasis::integrationMappingBases())->mapWithKeys(
                                 fn (PowerOfficeMappingBasis $b): array => [$b->value => $b->label()]
                             ))
                             ->required()
                             ->live()
-                            ->native(false),
+                            ->native(false)
+                            ->helperText(fn (Get $get): ?string => match ($get('mapping_basis')) {
+                                PowerOfficeMappingBasis::Category->value => __('Hybrid mode: article group code is the primary income account; product collection is fallback. Vendors with commission % (e.g. Stuttreist) split automatically from the Vendors screen.'),
+                                PowerOfficeMappingBasis::Vendor->value => __('Not recommended for Jobberiet-style setups: all turnover posts to vendor reskontro instead of varegruppe accounts.'),
+                                PowerOfficeMappingBasis::PaymentMethod->value => __('Revenue account per payment method. VAT, tips, and payment debits use the shared setup below.'),
+                                default => null,
+                            }),
                         Section::make('Revenue account by VAT rate')
                             ->description(__('Only rates you expect on Z-reports need a number. Each rate posts net sales to its own revenue account.'))
                             ->visible(fn (Get $get): bool => $get('mapping_basis') === PowerOfficeMappingBasis::Vat->value)
@@ -173,9 +163,20 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                                     ->maxLength(64))
                                 ->values()
                                 ->all()),
+                        Section::make('Vendor revenue accounts')
+                            ->description(__('Per-vendor reskontro and commission are edited on each vendor. Missing reskontro falls back to the default sales account in Ledger routing.'))
+                            ->visible(fn (Get $get): bool => $get('mapping_basis') === PowerOfficeMappingBasis::Vendor->value)
+                            ->schema([
+                                ViewField::make('vendor_ledger_overview')
+                                    ->view('filament.resources.power-office-integrations.components.vendor-ledger-overview')
+                                    ->viewData(fn (): array => [
+                                        'vendors' => $this->storeVendorsForLedgerOverview(),
+                                        'vendorsUrl' => $this->vendorsIndexUrl(),
+                                    ]),
+                            ]),
                         Section::make('VAT, tips, rounding, and payment fallbacks')
                             ->description(__('Output VAT, tips, and rounding always use these. Cash / card here are only used when **Ledger routing → Debit accounts per payment method** is empty or the Z-report has no `by_payment_method_net` (then net cash vs card uses these two accounts). PSP-style fees use **Ledger routing → Payment fees**, not a single field here.'))
-                            ->visible(fn (Get $get): bool => $get('mapping_basis') === PowerOfficeMappingBasis::Vat->value)
+                            ->visible(fn (Get $get): bool => $this->usesSharedLedgerAccountsSection($get('mapping_basis')))
                             ->columns(2)
                             ->schema([
                                 TextInput::make('ledger_shared_vat_account_no')
@@ -196,9 +197,45 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                                     ->label(__('Rounding account'))
                                     ->maxLength(64),
                             ]),
+                        Section::make('Revenue account per article group code')
+                            ->description(__('Primary income routing: each product’s article group code decides the sales account. Momskode (3 vs 0) is set on the GL account in PowerOffice Go; use 0% VAT on Kantine products in POS.'))
+                            ->visible(fn (Get $get): bool => $get('mapping_basis') === PowerOfficeMappingBasis::Category->value)
+                            ->schema([
+                                Repeater::make('article_group_mappings')
+                                    ->label(__('Article group → sales account'))
+                                    ->schema([
+                                        Select::make('basis_key')
+                                            ->label(__('Article group code'))
+                                            ->options(fn (): array => $this->articleGroupLineOptions())
+                                            ->required()
+                                            ->searchable()
+                                            ->native(false),
+                                        TextInput::make('sales_account_no')
+                                            ->label(__('Sales / revenue account'))
+                                            ->required()
+                                            ->maxLength(64),
+                                        Toggle::make('is_active')
+                                            ->label(__('Active'))
+                                            ->default(true),
+                                    ])
+                                    ->addActionLabel(__('Add article group'))
+                                    ->defaultItems(0)
+                                    ->collapsible()
+                                    ->columnSpanFull(),
+                                ViewField::make('article_group_setup_status')
+                                    ->view('filament.resources.power-office-integrations.components.article-group-setup-status')
+                                    ->viewData(fn (): array => [
+                                        'rows' => $this->articleGroupSetupRows(),
+                                        'articleGroupCodesUrl' => $this->articleGroupCodesIndexUrl(),
+                                    ]),
+                            ]),
                         Repeater::make('mappings')
-                            ->label(__('Account numbers per line'))
-                            ->visible(fn (Get $get): bool => $get('mapping_basis') !== PowerOfficeMappingBasis::Vat->value)
+                            ->label(fn (Get $get): string => match ($get('mapping_basis')) {
+                                PowerOfficeMappingBasis::Category->value => __('Revenue account per product collection (fallback)'),
+                                PowerOfficeMappingBasis::PaymentMethod->value => __('Revenue account per payment method'),
+                                default => __('Account numbers per line'),
+                            })
+                            ->visible(fn (Get $get): bool => $this->usesMappingRepeater($get('mapping_basis')))
                             ->schema([
                                 Select::make('basis_key')
                                     ->label(__('Line'))
@@ -211,38 +248,18 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                                     })
                                     ->required()
                                     ->searchable()
-                                    ->native(false),
-                                TextInput::make('basis_label')
-                                    ->label(__('Description'))
-                                    ->maxLength(255),
+                                    ->native(false)
+                                    ->disabled(fn (Get $get): bool => $get('../../mapping_basis') === PowerOfficeMappingBasis::Category->value)
+                                    ->dehydrated(),
                                 TextInput::make('sales_account_no')
                                     ->label(__('Sales / revenue account'))
                                     ->required()
-                                    ->maxLength(64),
-                                TextInput::make('vat_account_no')
-                                    ->label(__('VAT account'))
-                                    ->maxLength(64),
-                                TextInput::make('tips_account_no')
-                                    ->label(__('Tips account'))
-                                    ->maxLength(64),
-                                TextInput::make('cash_account_no')
-                                    ->label(__('Cash account'))
-                                    ->maxLength(64),
-                                TextInput::make('card_clearing_account_no')
-                                    ->label(__('Card / clearing account'))
-                                    ->maxLength(64),
-                                TextInput::make('fees_account_no')
-                                    ->label(__('Fees account (optional)'))
-                                    ->helperText(__('Not used by Z-report PowerOffice sync. Configure PSP fees under Ledger routing → Payment fees.'))
-                                    ->maxLength(64),
-                                TextInput::make('rounding_account_no')
-                                    ->label(__('Rounding account'))
                                     ->maxLength(64),
                                 Toggle::make('is_active')
                                     ->label(__('Active'))
                                     ->default(true),
                             ])
-                            ->addActionLabel('Add line')
+                            ->addActionLabel(__('Add line'))
                             ->defaultItems(0)
                             ->collapsible()
                             ->columnSpanFull(),
@@ -250,9 +267,17 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                 Section::make('Ledger routing (payments & settlement)')
                     ->description(__('Optional PowerOffice account numbers for payment-type debits (like PSP scripts: cash, card terminal, Vipps, etc.), default revenue when a collection/vendor line is missing, gift-card liability, and paired fee/payout postings when the Z-report includes those amounts.'))
                     ->schema([
+                        TextInput::make('ledger_department_no')
+                            ->label(__('Department number (all turnover)'))
+                            ->helperText(__('Applied to sales, VAT, and tips lines on each Z-report voucher (e.g. 20).'))
+                            ->maxLength(16),
+                        TextInput::make('ledger_commission_revenue_account_no')
+                            ->label(__('Default commission / Jobberiet revenue account'))
+                            ->helperText(__('Fallback when a vendor has commission but no per-vendor commission account. Vendor reskontro is set on each vendor.'))
+                            ->maxLength(64),
                         TextInput::make('ledger_default_sales_account_no')
                             ->label(__('Default sales / revenue account (fallback)'))
-                            ->helperText(__('Used for product collection or vendor split when no mapping exists for that collection or vendor (e.g. newly added categories).'))
+                            ->helperText(__('Used when no article group or collection mapping exists for a product (e.g. newly added groups).'))
                             ->visible(fn (Get $get): bool => in_array($get('mapping_basis'), [
                                 PowerOfficeMappingBasis::Category->value,
                                 PowerOfficeMappingBasis::Vendor->value,
@@ -303,6 +328,10 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                                     ->label(__('Fee expense account (debit)'))
                                     ->maxLength(64),
                             ]),
+                        TextInput::make('ledger_vipps_fee_debit_account_no')
+                            ->label(__('Vipps fee expense account'))
+                            ->helperText(__('Debit Vipps application fees separately so the Vipps clearing account matches bank deposits (e.g. 7720).'))
+                            ->maxLength(64),
                         Section::make('Payout to bank (paired posting)')
                             ->description(__('If the Z-report includes payout_to_bank_minor, posts credit from settlement and debit to bank.'))
                             ->columns(2)
@@ -340,33 +369,146 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             foreach (PowerOfficeStandardVatRates::basisKeys() as $vatKey) {
                 $base['vat_sales_'.$vatKey] = $this->integration->accountMappings
                     ->firstWhere('basis_key', $vatKey)
-                    ?->sales_account_no ?? '';
+                    ?->sales_account_no ?? PowerOfficeLedgerDefaults::vatRateSalesAccounts()[$vatKey] ?? '';
             }
-            $base = array_merge($base, $this->sharedAccountsToLedgerFormKeys($shared));
+            $base = array_merge($base, PowerOfficeLedgerDefaults::mergeFormDefaults(
+                $this->sharedAccountsToLedgerFormKeys($shared)
+            ));
             $base['mappings'] = [];
-            $base = array_merge($base, $this->ledgerFormStateFromIntegration());
+            $base = array_merge($base, PowerOfficeLedgerDefaults::mergeFormDefaults($this->ledgerFormStateFromIntegration()));
 
             $this->form->fill($base);
 
             return;
         }
 
-        $base['mappings'] = $this->integration->accountMappings->map(fn (PowerOfficeAccountMapping $m): array => [
-            'basis_key' => $m->basis_key,
-            'basis_label' => $m->basis_label,
-            'sales_account_no' => $m->sales_account_no,
-            'vat_account_no' => $m->vat_account_no,
-            'tips_account_no' => $m->tips_account_no,
-            'cash_account_no' => $m->cash_account_no,
-            'card_clearing_account_no' => $m->card_clearing_account_no,
-            'fees_account_no' => $m->fees_account_no,
-            'rounding_account_no' => $m->rounding_account_no,
-            'is_active' => $m->is_active,
-        ])->values()->all();
+        if ($this->integration->mapping_basis === PowerOfficeMappingBasis::Vendor) {
+            $shared = $this->extractSharedAccountsFromMappings($this->integration->accountMappings);
+            $base = array_merge($base, PowerOfficeLedgerDefaults::mergeFormDefaults(
+                $this->sharedAccountsToLedgerFormKeys($shared)
+            ));
+            $base['mappings'] = [];
+            $base['article_group_mappings'] = [];
+            $base = array_merge($base, PowerOfficeLedgerDefaults::mergeFormDefaults($this->ledgerFormStateFromIntegration()));
 
-        $base = array_merge($base, $this->ledgerFormStateFromIntegration());
+            $this->form->fill($base);
+
+            return;
+        }
+
+        if ($this->integration->mapping_basis === PowerOfficeMappingBasis::Category) {
+            $base = array_merge($base, $this->fillHybridCategoryMappingFormState());
+
+            $this->form->fill($base);
+
+            return;
+        }
+
+        $lineOptions = $this->mappingLineOptions($this->integration->mapping_basis);
+
+        $base['mappings'] = $this->integration->accountMappings
+            ->reject(fn (PowerOfficeAccountMapping $m): bool => $m->basis_key === PowerOfficeLedgerSettings::SHARED_MAPPING_BASIS_KEY)
+            ->map(fn (PowerOfficeAccountMapping $m): array => [
+                'basis_key' => $m->basis_key,
+                'sales_account_no' => $m->sales_account_no ?? '',
+                'is_active' => $m->is_active,
+            ])->values()->all();
+
+        $base['article_group_mappings'] = [];
+
+        if ($this->integration->mapping_basis === PowerOfficeMappingBasis::PaymentMethod) {
+            $shared = $this->extractSharedAccountsFromMappings($this->integration->accountMappings);
+            $base = array_merge($base, PowerOfficeLedgerDefaults::mergeFormDefaults(
+                $this->sharedAccountsToLedgerFormKeys($shared)
+            ));
+        }
+
+        $base = array_merge($base, PowerOfficeLedgerDefaults::mergeFormDefaults($this->ledgerFormStateFromIntegration()));
 
         $this->form->fill($base);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function fillHybridCategoryMappingFormState(): array
+    {
+        $shared = $this->extractSharedAccountsFromMappings($this->integration->accountMappings);
+        $articleOptions = $this->articleGroupLineOptions();
+        $collectionOptions = $this->mappingLineOptions(PowerOfficeMappingBasis::Category);
+
+        $articleGroupMappings = $this->integration->accountMappings
+            ->where('basis_type', PowerOfficeMappingBasis::ArticleGroup)
+            ->map(function (PowerOfficeAccountMapping $m) use ($articleOptions): array {
+                $salesAccount = $m->sales_account_no;
+                if (! filled($salesAccount)) {
+                    $label = $articleOptions[(string) $m->basis_key] ?? '';
+                    $name = str_contains($label, ' — ') ? trim(explode(' — ', $label, 2)[1]) : $label;
+                    $salesAccount = PowerOfficeLedgerDefaults::salesAccountForArticleGroupName($name);
+                }
+
+                return [
+                    'basis_key' => $m->basis_key,
+                    'sales_account_no' => $salesAccount ?? '',
+                    'is_active' => $m->is_active,
+                ];
+            })->values()->all();
+
+        if ($articleGroupMappings === []) {
+            $articleGroupMappings = collect($articleOptions)
+                ->map(fn (string $label, string $code): array => [
+                    'basis_key' => $code,
+                    'sales_account_no' => PowerOfficeLedgerDefaults::salesAccountForArticleGroupName(
+                        str_contains($label, ' — ') ? trim(explode(' — ', $label, 2)[1]) : $label
+                    ) ?? '',
+                    'is_active' => true,
+                ])
+                ->filter(fn (array $row): bool => filled($row['sales_account_no']))
+                ->values()
+                ->all();
+        }
+
+        $collectionMappings = $this->integration->accountMappings
+            ->where('basis_type', PowerOfficeMappingBasis::Category)
+            ->map(function (PowerOfficeAccountMapping $m): array {
+                $salesAccount = $m->sales_account_no;
+                if (! filled($salesAccount)) {
+                    if ($m->basis_key === '0') {
+                        $salesAccount = PowerOfficeLedgerDefaults::ledgerSettings()['default_sales_account_no'] ?? null;
+                    } elseif (is_numeric($m->basis_key)) {
+                        $collection = ProductCollection::query()->find((int) $m->basis_key);
+                        $salesAccount = $collection
+                            ? PowerOfficeLedgerDefaults::salesAccountForCollectionName($collection->name)
+                            : null;
+                    }
+                }
+
+                return [
+                    'basis_key' => $m->basis_key,
+                    'sales_account_no' => $salesAccount ?? '',
+                    'is_active' => $m->is_active,
+                ];
+            })->values()->all();
+
+        if ($collectionMappings === []) {
+            $collectionMappings = collect($collectionOptions)
+                ->map(fn (string $label, string|int $key): array => [
+                    'basis_key' => (string) $key,
+                    'sales_account_no' => $this->defaultWizardSalesAccountForLine($label, (string) $key),
+                    'is_active' => true,
+                ])
+                ->values()
+                ->all();
+        }
+
+        return array_merge(
+            PowerOfficeLedgerDefaults::mergeFormDefaults($this->sharedAccountsToLedgerFormKeys($shared)),
+            PowerOfficeLedgerDefaults::mergeFormDefaults($this->ledgerFormStateFromIntegration()),
+            [
+                'article_group_mappings' => $articleGroupMappings,
+                'mappings' => $collectionMappings,
+            ],
+        );
     }
 
     public function saveSettings(): void
@@ -406,8 +548,12 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
         $pd = is_array($l['payment_debits'] ?? null) ? $l['payment_debits'] : [];
         $pf = is_array($l['payment_fee'] ?? null) ? $l['payment_fee'] : [];
         $po = is_array($l['payout'] ?? null) ? $l['payout'] : [];
+        $pmf = is_array($l['payment_method_fees'] ?? null) ? $l['payment_method_fees'] : [];
+        $vippsFee = is_array($pmf['vipps'] ?? null) ? $pmf['vipps'] : [];
 
         return [
+            'ledger_department_no' => (string) ($l['department_no'] ?? ''),
+            'ledger_commission_revenue_account_no' => (string) ($l['commission_revenue_account_no'] ?? ''),
             'ledger_default_sales_account_no' => (string) ($l['default_sales_account_no'] ?? ''),
             'ledger_payment_debit_cash' => (string) ($pd['cash'] ?? ''),
             'ledger_payment_debit_card_present' => (string) ($pd['card_present'] ?? ''),
@@ -420,6 +566,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             'ledger_interim_liquid_account_no' => (string) ($l['interim_liquid_account_no'] ?? ''),
             'ledger_fee_credit_account_no' => (string) ($pf['credit_account_no'] ?? ''),
             'ledger_fee_debit_account_no' => (string) ($pf['debit_account_no'] ?? ''),
+            'ledger_vipps_fee_debit_account_no' => (string) ($vippsFee['debit_account_no'] ?? ''),
             'ledger_payout_credit_account_no' => (string) ($po['credit_account_no'] ?? ''),
             'ledger_payout_debit_bank_account_no' => (string) ($po['debit_bank_account_no'] ?? ''),
         ];
@@ -453,6 +600,16 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
 
         $ledger = [];
 
+        $departmentNo = trim((string) ($data['ledger_department_no'] ?? ''));
+        if ($departmentNo !== '') {
+            $ledger['department_no'] = $departmentNo;
+        }
+
+        $commissionAccount = trim((string) ($data['ledger_commission_revenue_account_no'] ?? ''));
+        if ($commissionAccount !== '') {
+            $ledger['commission_revenue_account_no'] = $commissionAccount;
+        }
+
         $defaultSales = trim((string) ($data['ledger_default_sales_account_no'] ?? ''));
         if ($defaultSales !== '') {
             $ledger['default_sales_account_no'] = $defaultSales;
@@ -481,6 +638,15 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             ];
         }
 
+        $vippsFeeDebit = trim((string) ($data['ledger_vipps_fee_debit_account_no'] ?? ''));
+        if ($vippsFeeDebit !== '') {
+            $ledger['payment_method_fees'] = [
+                'vipps' => [
+                    'debit_account_no' => $vippsFeeDebit,
+                ],
+            ];
+        }
+
         $payoutCredit = trim((string) ($data['ledger_payout_credit_account_no'] ?? ''));
         $payoutBank = trim((string) ($data['ledger_payout_debit_bank_account_no'] ?? ''));
         if ($payoutCredit !== '' && $payoutBank !== '') {
@@ -501,7 +667,8 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
      */
     protected function extractSharedAccountsFromMappings(Collection $mappings): array
     {
-        $first = $mappings->first();
+        $first = $mappings->firstWhere('basis_key', PowerOfficeLedgerSettings::SHARED_MAPPING_BASIS_KEY)
+            ?? $mappings->first();
         if (! $first instanceof PowerOfficeAccountMapping) {
             return [
                 'vat_account_no' => null,
@@ -563,7 +730,24 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             return;
         }
 
-        $this->saveMappingsFromRepeater($data['mappings'] ?? []);
+        if ($basis === PowerOfficeMappingBasis::Vendor) {
+            $this->saveVendorBasisSharedMapping($data);
+
+            return;
+        }
+
+        if ($basis === PowerOfficeMappingBasis::Category) {
+            $this->saveHybridCategoryMappings($data, $this->ledgerSharedAccountsFromFormData($data));
+
+            return;
+        }
+
+        $shared = null;
+        if ($basis === PowerOfficeMappingBasis::PaymentMethod) {
+            $shared = $this->ledgerSharedAccountsFromFormData($data);
+        }
+
+        $this->saveMappingsFromRepeater($data['mappings'] ?? [], $shared, $basis);
     }
 
     /**
@@ -605,12 +789,83 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
     }
 
     /**
-     * @param  list<array<string, mixed>>  $rows
+     * @param  array<string, mixed>  $data
+     * @param  array{vat_account_no: ?string, tips_account_no: ?string, cash_account_no: ?string, card_clearing_account_no: ?string, rounding_account_no: ?string}  $shared
      */
-    protected function saveMappingsFromRepeater(array $rows): void
+    protected function saveHybridCategoryMappings(array $data, array $shared): void
     {
         $integration = $this->integration->fresh();
         abort_unless($integration, 404);
+
+        PowerOfficeAccountMapping::query()
+            ->where('power_office_integration_id', $integration->getKey())
+            ->whereIn('basis_type', [
+                PowerOfficeMappingBasis::Category,
+                PowerOfficeMappingBasis::ArticleGroup,
+            ])
+            ->delete();
+
+        $articleOptions = $this->articleGroupLineOptions();
+        foreach ($data['article_group_mappings'] ?? [] as $row) {
+            if (empty($row['basis_key']) || empty($row['sales_account_no'])) {
+                continue;
+            }
+
+            PowerOfficeAccountMapping::query()->create([
+                'store_id' => $integration->store_id,
+                'power_office_integration_id' => $integration->getKey(),
+                'basis_type' => PowerOfficeMappingBasis::ArticleGroup,
+                'basis_key' => (string) $row['basis_key'],
+                'basis_label' => $articleOptions[(string) $row['basis_key']] ?? null,
+                'sales_account_no' => (string) $row['sales_account_no'],
+                'vat_account_no' => $shared['vat_account_no'],
+                'tips_account_no' => $shared['tips_account_no'],
+                'cash_account_no' => $shared['cash_account_no'],
+                'card_clearing_account_no' => $shared['card_clearing_account_no'],
+                'fees_account_no' => null,
+                'rounding_account_no' => $shared['rounding_account_no'],
+                'is_active' => (bool) ($row['is_active'] ?? true),
+            ]);
+        }
+
+        $collectionOptions = $this->mappingLineOptions(PowerOfficeMappingBasis::Category);
+        foreach ($data['mappings'] ?? [] as $row) {
+            if (empty($row['basis_key']) || empty($row['sales_account_no'])) {
+                continue;
+            }
+
+            PowerOfficeAccountMapping::query()->create([
+                'store_id' => $integration->store_id,
+                'power_office_integration_id' => $integration->getKey(),
+                'basis_type' => PowerOfficeMappingBasis::Category,
+                'basis_key' => (string) $row['basis_key'],
+                'basis_label' => $collectionOptions[(string) $row['basis_key']] ?? null,
+                'sales_account_no' => (string) $row['sales_account_no'],
+                'vat_account_no' => $shared['vat_account_no'],
+                'tips_account_no' => $shared['tips_account_no'],
+                'cash_account_no' => $shared['cash_account_no'],
+                'card_clearing_account_no' => $shared['card_clearing_account_no'],
+                'fees_account_no' => null,
+                'rounding_account_no' => $shared['rounding_account_no'],
+                'is_active' => (bool) ($row['is_active'] ?? true),
+            ]);
+        }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @param  array{vat_account_no: ?string, tips_account_no: ?string, cash_account_no: ?string, card_clearing_account_no: ?string, rounding_account_no: ?string}|null  $shared
+     */
+    protected function saveMappingsFromRepeater(
+        array $rows,
+        ?array $shared = null,
+        ?PowerOfficeMappingBasis $basis = null,
+    ): void {
+        $integration = $this->integration->fresh();
+        abort_unless($integration, 404);
+
+        $mappingBasis = $basis ?? $integration->mapping_basis;
+        $lineOptions = $this->mappingLineOptions($mappingBasis);
 
         PowerOfficeAccountMapping::query()
             ->where('power_office_integration_id', $integration->getKey())
@@ -624,19 +879,98 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             PowerOfficeAccountMapping::query()->create([
                 'store_id' => $integration->store_id,
                 'power_office_integration_id' => $integration->getKey(),
-                'basis_type' => $integration->mapping_basis,
+                'basis_type' => $mappingBasis,
                 'basis_key' => (string) $row['basis_key'],
-                'basis_label' => $row['basis_label'] ?? null,
+                'basis_label' => $lineOptions[(string) $row['basis_key']] ?? null,
                 'sales_account_no' => (string) $row['sales_account_no'],
-                'vat_account_no' => filled($row['vat_account_no'] ?? null) ? (string) $row['vat_account_no'] : null,
-                'tips_account_no' => filled($row['tips_account_no'] ?? null) ? (string) $row['tips_account_no'] : null,
-                'cash_account_no' => filled($row['cash_account_no'] ?? null) ? (string) $row['cash_account_no'] : null,
-                'card_clearing_account_no' => filled($row['card_clearing_account_no'] ?? null) ? (string) $row['card_clearing_account_no'] : null,
-                'fees_account_no' => filled($row['fees_account_no'] ?? null) ? (string) $row['fees_account_no'] : null,
-                'rounding_account_no' => filled($row['rounding_account_no'] ?? null) ? (string) $row['rounding_account_no'] : null,
+                'vat_account_no' => $shared['vat_account_no'] ?? null,
+                'tips_account_no' => $shared['tips_account_no'] ?? null,
+                'cash_account_no' => $shared['cash_account_no'] ?? null,
+                'card_clearing_account_no' => $shared['card_clearing_account_no'] ?? null,
+                'fees_account_no' => null,
+                'rounding_account_no' => $shared['rounding_account_no'] ?? null,
                 'is_active' => (bool) ($row['is_active'] ?? true),
             ]);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function saveVendorBasisSharedMapping(array $data): void
+    {
+        $integration = $this->integration->fresh();
+        abort_unless($integration, 404);
+
+        $shared = $this->ledgerSharedAccountsFromFormData($data);
+        $defaultSales = trim((string) ($data['ledger_default_sales_account_no'] ?? ''));
+        if ($defaultSales === '') {
+            $defaultSales = (string) (PowerOfficeLedgerDefaults::ledgerSettings()['default_sales_account_no'] ?? '3000');
+        }
+
+        PowerOfficeAccountMapping::query()
+            ->where('power_office_integration_id', $integration->getKey())
+            ->delete();
+
+        PowerOfficeAccountMapping::query()->create([
+            'store_id' => $integration->store_id,
+            'power_office_integration_id' => $integration->getKey(),
+            'basis_type' => PowerOfficeMappingBasis::Vendor,
+            'basis_key' => PowerOfficeLedgerSettings::SHARED_MAPPING_BASIS_KEY,
+            'basis_label' => __('Shared ledger accounts'),
+            'sales_account_no' => $defaultSales,
+            'vat_account_no' => $shared['vat_account_no'],
+            'tips_account_no' => $shared['tips_account_no'],
+            'cash_account_no' => $shared['cash_account_no'],
+            'card_clearing_account_no' => $shared['card_clearing_account_no'],
+            'fees_account_no' => null,
+            'rounding_account_no' => $shared['rounding_account_no'],
+            'is_active' => true,
+        ]);
+    }
+
+    protected function usesSharedLedgerAccountsSection(?string $mappingBasis): bool
+    {
+        return in_array($mappingBasis, [
+            PowerOfficeMappingBasis::Vat->value,
+            PowerOfficeMappingBasis::Category->value,
+            PowerOfficeMappingBasis::Vendor->value,
+            PowerOfficeMappingBasis::PaymentMethod->value,
+        ], true);
+    }
+
+    protected function usesMappingRepeater(?string $mappingBasis): bool
+    {
+        return in_array($mappingBasis, [
+            PowerOfficeMappingBasis::Category->value,
+            PowerOfficeMappingBasis::PaymentMethod->value,
+        ], true);
+    }
+
+    /**
+     * @return Collection<int, Vendor>
+     */
+    public function storeVendorsForLedgerOverview(): Collection
+    {
+        $store = Filament::getTenant();
+        if (! $store) {
+            return collect();
+        }
+
+        return Vendor::query()
+            ->where('store_id', $store->getKey())
+            ->orderBy('name')
+            ->get();
+    }
+
+    protected function vendorsIndexUrl(): ?string
+    {
+        $store = Filament::getTenant();
+        if (! $store) {
+            return null;
+        }
+
+        return VendorResource::getUrl('index', ['tenant' => $store]);
     }
 
     protected function getFormActions(): array
@@ -692,132 +1026,11 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
     public function refreshIntegration(): void
     {
         $this->integration?->refresh();
-    }
 
-    public function wizardNext(): void
-    {
-        if ($this->wizardStep === 1) {
-            $this->integration?->refresh();
-            if (! $this->integration?->isConnected()) {
-                Notification::make()
-                    ->title(__('Connect PowerOffice first'))
-                    ->body('Use the button below to sign in to PowerOffice Go, then click Next.')
-                    ->warning()
-                    ->send();
-
-                return;
-            }
-            $this->wizardStep = 2;
-
-            return;
+        if ($this->shouldShowSettings()) {
+            $this->markOnboardingCompleteIfConnected();
+            $this->fillSettingsForm();
         }
-
-        if ($this->wizardStep === 2) {
-            if (PowerOfficeMappingBasis::tryFrom($this->wizardMappingBasis) === null) {
-                Notification::make()
-                    ->title(__('Choose how to split lines'))
-                    ->warning()
-                    ->send();
-
-                return;
-            }
-
-            $this->integration->update([
-                'mapping_basis' => PowerOfficeMappingBasis::from($this->wizardMappingBasis),
-            ]);
-            $this->integration->refresh();
-            $this->seedWizardMappingRows();
-            $this->wizardStep = 3;
-
-            return;
-        }
-    }
-
-    public function wizardBack(): void
-    {
-        if ($this->wizardStep > 1) {
-            $this->wizardStep--;
-        }
-    }
-
-    public function completeWizard(): void
-    {
-        $isVatWizard = PowerOfficeMappingBasis::tryFrom($this->wizardMappingBasis) === PowerOfficeMappingBasis::Vat;
-
-        if ($isVatWizard) {
-            $hasAnySales = collect($this->wizardMappingRows)->contains(
-                fn (array $row): bool => trim((string) ($row['sales_account_no'] ?? '')) !== '',
-            );
-            if (! $hasAnySales) {
-                Notification::make()
-                    ->title(__('Sales account required'))
-                    ->body('Enter at least one sales/revenue account for the VAT rates you use.')
-                    ->warning()
-                    ->send();
-
-                return;
-            }
-        } else {
-            foreach ($this->wizardMappingRows as $row) {
-                if (trim((string) ($row['sales_account_no'] ?? '')) === '') {
-                    Notification::make()
-                        ->title(__('Sales account required'))
-                        ->body('Enter a sales/revenue account for each row (you can use the same number for all).')
-                        ->warning()
-                        ->send();
-
-                    return;
-                }
-            }
-        }
-
-        $this->integration->update([
-            'mapping_basis' => PowerOfficeMappingBasis::from($this->wizardMappingBasis),
-            'onboarding_completed_at' => now(),
-        ]);
-        $this->integration->refresh();
-
-        $isVat = PowerOfficeMappingBasis::from($this->wizardMappingBasis) === PowerOfficeMappingBasis::Vat;
-        $shared = $this->wizardSharedLedger;
-
-        $rows = [];
-        foreach ($this->wizardMappingRows as $row) {
-            if ($isVat && trim((string) ($row['sales_account_no'] ?? '')) === '') {
-                continue;
-            }
-
-            $rows[] = [
-                'basis_key' => $row['basis_key'],
-                'basis_label' => $row['label'] ?? null,
-                'sales_account_no' => $row['sales_account_no'],
-                'vat_account_no' => $isVat
-                    ? (trim((string) ($shared['vat_account_no'] ?? '')) !== '' ? $shared['vat_account_no'] : null)
-                    : ($row['vat_account_no'] ?: null),
-                'tips_account_no' => $isVat
-                    ? (trim((string) ($shared['tips_account_no'] ?? '')) !== '' ? $shared['tips_account_no'] : null)
-                    : ($row['tips_account_no'] ?: null),
-                'cash_account_no' => $isVat
-                    ? (trim((string) ($shared['cash_account_no'] ?? '')) !== '' ? $shared['cash_account_no'] : null)
-                    : ($row['cash_account_no'] ?: null),
-                'card_clearing_account_no' => $isVat
-                    ? (trim((string) ($shared['card_clearing_account_no'] ?? '')) !== '' ? $shared['card_clearing_account_no'] : null)
-                    : ($row['card_clearing_account_no'] ?: null),
-                'fees_account_no' => $isVat ? null : ($row['fees_account_no'] ?: null),
-                'rounding_account_no' => $isVat
-                    ? (trim((string) ($shared['rounding_account_no'] ?? '')) !== '' ? $shared['rounding_account_no'] : null)
-                    : ($row['rounding_account_no'] ?: null),
-                'is_active' => true,
-            ];
-        }
-
-        $this->saveMappingsFromRepeater($rows);
-
-        Notification::make()
-            ->title(__('Setup complete'))
-            ->success()
-            ->send();
-
-        $this->redirect(static::getUrl(), navigate: true);
     }
 
     public function startOnboardingWizard(): void
@@ -846,7 +1059,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
 
         Notification::make()
             ->title(__('Continue in PowerOffice'))
-            ->body('Complete activation in the new window, then return here and refresh or click Next.')
+            ->body(__('Complete activation in the new window, then return here and click Refresh status. Ledger accounts are configured on this page once connected.'))
             ->success()
             ->send();
 
@@ -884,31 +1097,21 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             ->send();
     }
 
-    protected function seedWizardMappingRows(): void
+    protected function defaultWizardSalesAccountForLine(string $label, string $basisKey): string
     {
-        $options = $this->mappingLineOptions($this->integration->mapping_basis);
-        $this->wizardMappingRows = collect($options)
-            ->map(fn (string $label, string|int $key): array => [
-                'basis_key' => (string) $key,
-                'label' => $label,
-                'sales_account_no' => '',
-                'vat_account_no' => '',
-                'tips_account_no' => '',
-                'cash_account_no' => '',
-                'card_clearing_account_no' => '',
-                'fees_account_no' => '',
-                'rounding_account_no' => '',
-            ])
-            ->values()
-            ->all();
+        if ($this->integration?->mapping_basis === PowerOfficeMappingBasis::Vat) {
+            return PowerOfficeLedgerDefaults::vatRateSalesAccounts()[$basisKey] ?? '';
+        }
 
-        $this->wizardSharedLedger = [
-            'vat_account_no' => '',
-            'tips_account_no' => '',
-            'cash_account_no' => '',
-            'card_clearing_account_no' => '',
-            'rounding_account_no' => '',
-        ];
+        if ($this->integration?->mapping_basis === PowerOfficeMappingBasis::Category) {
+            if ($basisKey === '0') {
+                return (string) (PowerOfficeLedgerDefaults::ledgerSettings()['default_sales_account_no'] ?? '');
+            }
+
+            return PowerOfficeLedgerDefaults::salesAccountForCollectionName($label) ?? '';
+        }
+
+        return '';
     }
 
     /**
@@ -956,5 +1159,81 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function articleGroupLineOptions(): array
+    {
+        $store = Filament::getTenant();
+        if (! $store) {
+            return [];
+        }
+
+        return ArticleGroupCode::query()
+            ->where(function ($query) use ($store): void {
+                $query->where('stripe_account_id', $store->stripe_account_id)
+                    ->orWhere(function ($query): void {
+                        $query->whereNull('stripe_account_id')
+                            ->where('is_standard', true);
+                    });
+            })
+            ->where('active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->mapWithKeys(fn (ArticleGroupCode $code): array => [
+                $code->code => $code->code.' — '.$code->name,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return list<array{code: string, name: string, sales_account: ?string, product_count: int, mapped: bool}>
+     */
+    public function articleGroupSetupRows(): array
+    {
+        $store = Filament::getTenant();
+        if (! $store || ! $this->integration) {
+            return [];
+        }
+
+        $mappings = $this->integration->accountMappings
+            ->where('basis_type', PowerOfficeMappingBasis::ArticleGroup)
+            ->keyBy('basis_key');
+
+        $productCounts = ConnectedProduct::query()
+            ->where('stripe_account_id', $store->stripe_account_id)
+            ->whereNotNull('article_group_code')
+            ->selectRaw('article_group_code, count(*) as aggregate')
+            ->groupBy('article_group_code')
+            ->pluck('aggregate', 'article_group_code');
+
+        return collect($this->articleGroupLineOptions())
+            ->map(function (string $label, string $code) use ($mappings, $productCounts): array {
+                $mapping = $mappings->get($code);
+                $name = str_contains($label, ' — ') ? trim(explode(' — ', $label, 2)[1]) : $label;
+
+                return [
+                    'code' => $code,
+                    'name' => $name,
+                    'sales_account' => $mapping?->sales_account_no,
+                    'product_count' => (int) ($productCounts[$code] ?? 0),
+                    'mapped' => filled($mapping?->sales_account_no),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    protected function articleGroupCodesIndexUrl(): ?string
+    {
+        $store = Filament::getTenant();
+        if (! $store) {
+            return null;
+        }
+
+        return ArticleGroupCodeResource::getUrl('index', ['tenant' => $store]);
     }
 }

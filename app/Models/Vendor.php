@@ -22,6 +22,7 @@ class Vendor extends Model
         'active',
         'commission_percent',
         'supplier_ledger_account_number',
+        'commission_revenue_account_number',
         'metadata',
         'archived_at',
     ];
