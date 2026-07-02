@@ -1072,7 +1072,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             ->color('primary')
             ->visible(fn (): bool => $this->missingPowerOfficeAccountCount() > 0)
             ->modalHeading(__('Create missing PowerOffice accounts'))
-            ->modalDescription(__('GL accounts are created via the Accounting Settings API (vat code is set on the account); vendor reskontro numbers are created as suppliers. Remove rows you do not want to create.'))
+            ->modalDescription(__('GL accounts are created via the Accounting Settings API (vat code is set on the account); vendor leverandørnr / reskontro numbers are created as suppliers. Remove rows you do not want to create.'))
             ->fillForm(fn (): array => [
                 'gl_accounts' => collect($this->powerOfficeAccountStatus['gl'] ?? [])
                     ->reject(fn (array $row): bool => $row['exists'])
@@ -1122,14 +1122,14 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                             ->native(false),
                     ]),
                 Repeater::make('suppliers')
-                    ->label(__('Vendor reskontro (suppliers)'))
+                    ->label(__('Vendor leverandørnr / reskontro (suppliers)'))
                     ->addable(false)
                     ->reorderable(false)
                     ->defaultItems(0)
                     ->columns(2)
                     ->schema([
                         TextInput::make('number')
-                            ->label(__('Reskontro number'))
+                            ->label(__('Leverandørnr / reskontro number'))
                             ->disabled()
                             ->dehydrated(),
                         TextInput::make('name')

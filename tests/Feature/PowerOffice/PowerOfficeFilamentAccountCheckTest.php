@@ -146,3 +146,43 @@ it('bulk creates missing GL accounts and suppliers through the PowerOffice api',
         && (int) data_get($request->data(), 'Number') === 40001
         && data_get($request->data(), 'Name') === 'Stuttreist');
 });
+
+it('reports detailed PowerOffice validation errors when supplier creation fails', function () {
+    Http::fake(function (Request $request) {
+        if (str_contains(strtolower($request->url()), 'oauth/token')) {
+            return Http::response(['access_token' => 'fake-token', 'expires_in' => 3600], 200);
+        }
+
+        if (str_contains($request->url(), 'GeneralLedgerAccounts')) {
+            if ($request->method() === 'POST') {
+                return Http::response(['Id' => 999, 'AccountNo' => data_get($request->data(), 'AccountNo')], 201);
+            }
+
+            return Http::response([
+                ['Id' => 101, 'AccountNo' => 3000, 'VatCodeId' => 1],
+                ['Id' => 102, 'AccountNo' => 2700, 'VatCodeId' => 1],
+            ], 200);
+        }
+
+        if (str_contains($request->url(), 'Suppliers')) {
+            if ($request->method() === 'POST') {
+                return Http::response([
+                    'title' => 'Aggregated (multiple) Validation Exception',
+                    'detail' => 'Supplier validation error(s)',
+                    'errors' => [
+                        'Number' => ['The supplier number must be within the supplier number series.'],
+                    ],
+                ], 400);
+            }
+
+            return Http::response(null, 204);
+        }
+
+        return Http::response([], 200);
+    });
+
+    livewire(ManagePowerOfficeIntegration::class)
+        ->callAction('checkPowerOfficeAccounts')
+        ->callAction('createMissingPowerOfficeAccounts')
+        ->assertNotified();
+});

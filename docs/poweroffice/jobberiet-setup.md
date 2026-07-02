@@ -29,7 +29,7 @@ Momskode is **not** sent from POS; the API uses `VatId` resolved from each GL ac
 
 ## Account check & bulk create
 
-On **Filament → PowerOffice**, the **PowerOffice accounts** section has **Check accounts in PowerOffice**: it verifies every saved account number (mappings, ledger routing, vendor commission accounts via `GET /GeneralLedgerAccounts`; vendor reskontro numbers via `GET /Suppliers`). Missing numbers can be bulk-created with **Create missing in PowerOffice** — GL accounts are created with a name + vat code (`POST /GeneralLedgerAccounts`, requires `GeneralLedgerAccount_Full`); reskontro numbers are created as suppliers (`POST /Suppliers`, requires `Supplier_Full`; the number must fall inside the client's supplier sub-ledger number series).
+On **Filament → PowerOffice**, the **PowerOffice accounts** section has **Check accounts in PowerOffice**: it verifies every saved account number (mappings, ledger routing, vendor commission accounts via `GET /GeneralLedgerAccounts`; vendor leverandørnr / reskontro numbers via `GET /Suppliers`). Missing numbers can be bulk-created with **Create missing in PowerOffice** — GL accounts are created with a name + vat code (`POST /GeneralLedgerAccounts`, requires `GeneralLedgerAccount_Full`); vendor reskontro rows are created as suppliers with `Number = leverandørnr` (`POST /Suppliers`, requires `Supplier_Full`). The leverandørnr must be the intended supplier account number (e.g. 40001) and must fall inside the client's supplier sub-ledger number series in PowerOffice Go.
 
 ## Voucher shape (matches the accountant's manual booking)
 

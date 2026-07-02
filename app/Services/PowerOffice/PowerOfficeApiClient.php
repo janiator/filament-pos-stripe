@@ -260,12 +260,40 @@ class PowerOfficeApiClient
 
         $json = $response->json();
         if (is_array($json)) {
-            $msg = $json['Message'] ?? $json['message'] ?? $json['title'] ?? $json['error'] ?? null;
-            if (is_string($msg) && $msg !== '') {
-                return ': '.$msg;
+            $parts = [];
+            foreach (['Message', 'message', 'title', 'error', 'detail', 'Detail'] as $key) {
+                $msg = $json[$key] ?? null;
+                if (is_string($msg) && $msg !== '' && ! in_array($msg, $parts, true)) {
+                    $parts[] = $msg;
+                }
+                if (is_array($msg)) {
+                    foreach ($msg as $item) {
+                        if (is_string($item) && $item !== '' && ! in_array($item, $parts, true)) {
+                            $parts[] = $item;
+                        }
+                    }
+                }
             }
-            if (is_array($msg) && isset($msg[0]) && is_string($msg[0])) {
-                return ': '.$msg[0];
+
+            foreach (['errors', 'Errors', 'validationErrors', 'ValidationErrors'] as $key) {
+                $errors = $json[$key] ?? null;
+                if (! is_array($errors)) {
+                    continue;
+                }
+                foreach ($errors as $field => $messages) {
+                    $prefix = is_string($field) ? $field.': ' : '';
+                    foreach ((array) $messages as $message) {
+                        if (is_string($message) && $message !== '') {
+                            $parts[] = $prefix.$message;
+                        }
+                    }
+                }
+            }
+
+            if ($parts !== []) {
+                $message = implode(' | ', array_slice(array_values(array_unique($parts)), 0, 8));
+
+                return ': '.$message.(count($parts) > 8 ? ' …' : '');
             }
         }
 
