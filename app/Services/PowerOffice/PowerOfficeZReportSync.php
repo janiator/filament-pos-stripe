@@ -94,6 +94,8 @@ class PowerOfficeZReportSync
                 'pos_session_id' => $session->id,
                 'reason' => 'zero_or_missing_transaction_value',
             ]);
+            $syncRun = $this->syncRunFor($integration, $store->getKey(), $session->id);
+            $this->failRun($syncRun, $integration, 'Z-report has no transaction value to sync to PowerOffice.');
 
             return false;
         }
@@ -141,15 +143,7 @@ class PowerOfficeZReportSync
             ]);
         }
 
-        $syncRun = PowerOfficeSyncRun::query()->firstOrCreate(
-            ['idempotency_key' => $idempotencyKey],
-            [
-                'power_office_integration_id' => $integration->getKey(),
-                'store_id' => $store->getKey(),
-                'pos_session_id' => $session->id,
-                'status' => PowerOfficeSyncRunStatus::Pending,
-            ],
-        );
+        $syncRun = $this->syncRunFor($integration, $store->getKey(), $session->id);
 
         if ($syncRun->status === PowerOfficeSyncRunStatus::Success) {
             return true;
@@ -322,6 +316,19 @@ class PowerOfficeZReportSync
     public function idempotencyKey(int $storeId, int $posSessionId): string
     {
         return 'poweroffice_z_report_'.$storeId.'_'.$posSessionId;
+    }
+
+    protected function syncRunFor(PowerOfficeIntegration $integration, int $storeId, int $posSessionId): PowerOfficeSyncRun
+    {
+        return PowerOfficeSyncRun::query()->firstOrCreate(
+            ['idempotency_key' => $this->idempotencyKey($storeId, $posSessionId)],
+            [
+                'power_office_integration_id' => $integration->getKey(),
+                'store_id' => $storeId,
+                'pos_session_id' => $posSessionId,
+                'status' => PowerOfficeSyncRunStatus::Pending,
+            ],
+        );
     }
 
     /**

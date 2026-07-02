@@ -497,6 +497,42 @@ it('does not dispatch sync job when z-report is not eligible', function () {
     \Illuminate\Support\Facades\Queue::assertNotPushed(\App\Jobs\SyncPowerOfficeZReportJob::class);
 });
 
+it('records a clear failure message when a manual sync is attempted for an ineligible z-report', function () {
+    $store = Store::factory()->create();
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::PowerOfficeGo,
+        'is_active' => true,
+    ]);
+
+    PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'auto_sync_on_z_report' => true,
+        'sync_enabled' => true,
+    ]);
+
+    $session = PosSession::factory()->forStore($store)->create([
+        'status' => 'closed',
+        'closing_data' => [
+            'z_report_data' => [
+                'transactions_count' => 0,
+                'net_amount' => 0,
+                'total_amount' => 0,
+            ],
+        ],
+    ]);
+
+    expect(app(PowerOfficeZReportSync::class)->sync($session->id, force: true, reverseExisting: true))->toBeFalse();
+
+    $run = \App\Models\PowerOfficeSyncRun::query()
+        ->where('pos_session_id', $session->id)
+        ->first();
+
+    expect($run)->not->toBeNull()
+        ->and($run->status)->toBe(PowerOfficeSyncRunStatus::Failed)
+        ->and($run->error_message)->toBe('Z-report has no transaction value to sync to PowerOffice.');
+});
+
 it('fails the sync run with a clear message when PowerOffice base URL is empty', function () {
     config(['poweroffice.base_urls.dev' => '']);
 
