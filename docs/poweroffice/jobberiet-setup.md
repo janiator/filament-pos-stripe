@@ -25,7 +25,7 @@ Also confirm:
 - Vipps fee account **7720** exists for application-fee debits.
 - The integration has **ReverseVoucher_Full** privilege in PowerOffice Go — required for the re-sync action (reverse old voucher + post corrected one).
 
-Momskode is **not** sent from POS; the API uses `VatId` resolved from each GL account in PowerOffice.
+Momskode is **not** configured from POS; the API sends `VatId` on **every** voucher line — from each GL account's vat code when set, otherwise PowerOffice VAT code **0** (ingen mva). Vendor reskontro lines use code 0 so VAT is only reported on the store's own turnover + commission revenue.
 
 ## Account check & bulk create
 

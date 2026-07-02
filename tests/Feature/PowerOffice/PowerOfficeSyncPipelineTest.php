@@ -40,6 +40,22 @@ function fakePowerOfficeLedgerHttp(): void
             ], 200);
         }
 
+        if (str_contains($request->url(), 'VatCodes')) {
+            return Http::response([
+                ['Id' => 201, 'Code' => '0'],
+                ['Id' => 1, 'Code' => '3'],
+            ], 200);
+        }
+
+        if (preg_match('#GeneralLedgerAccounts/(\d+)(?:\?|$)#', $request->url(), $matches)) {
+            $id = (int) $matches[1];
+
+            return Http::response([
+                'Id' => $id,
+                'VatCodeId' => null,
+            ], 200);
+        }
+
         if (str_contains($request->url(), 'GeneralLedgerAccounts')) {
             return Http::response([
                 ['Id' => 101, 'AccountNo' => 3000, 'VatCodeId' => 1],
@@ -123,6 +139,23 @@ it('creates a successful sync run when mapping exists and API succeeds', functio
     expect($run)->not->toBeNull()
         ->and($run->status)->toBe(PowerOfficeSyncRunStatus::Success)
         ->and($run->journal_voucher_no)->toBe(42);
+
+    Http::assertSent(function (Request $request) {
+        if ($request->method() !== 'POST' || ! str_contains($request->url(), 'ManualJournals')) {
+            return false;
+        }
+        $lines = data_get($request->data(), 'VoucherLines', []);
+        if (! is_array($lines)) {
+            return false;
+        }
+        foreach ($lines as $line) {
+            if (! is_array($line) || ! isset($line['VatId'])) {
+                return false;
+            }
+        }
+
+        return $lines !== [];
+    });
 });
 
 it('does not sync when add-on is inactive', function () {
@@ -257,6 +290,22 @@ it('continues re-sync when PowerOffice reports the previous voucher is already r
             return Http::response([
                 'access_token' => 'fake-poweroffice-access-token',
                 'expires_in' => 3600,
+            ], 200);
+        }
+
+        if (str_contains($request->url(), 'VatCodes')) {
+            return Http::response([
+                ['Id' => 201, 'Code' => '0'],
+                ['Id' => 1, 'Code' => '3'],
+            ], 200);
+        }
+
+        if (preg_match('#GeneralLedgerAccounts/(\d+)(?:\?|$)#', $request->url(), $matches)) {
+            $id = (int) $matches[1];
+
+            return Http::response([
+                'Id' => $id,
+                'VatCodeId' => null,
             ], 200);
         }
 

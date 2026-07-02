@@ -363,11 +363,18 @@ it('posts gross sales with no separate VAT line and applies department to all li
             '1920' => ['id' => 2, 'vat_code_id' => null],
         ],
         'poweroffice_z_report_test',
+        99,
     );
 
     foreach ($apiBody['VoucherLines'] as $line) {
-        expect($line['DepartmentId'] ?? null)->toBe(20);
+        expect($line['DepartmentId'] ?? null)->toBe(20)
+            ->and($line)->toHaveKey('VatId');
     }
+
+    $salesLine = collect($apiBody['VoucherLines'])->firstWhere('AccountId', 1);
+    $cashLine = collect($apiBody['VoucherLines'])->firstWhere('AccountId', 2);
+    expect($salesLine['VatId'])->toBe(3)
+        ->and($cashLine['VatId'])->toBe(99);
 });
 
 it('uses vendor supplier account for vendor basis without commission', function () {

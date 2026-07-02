@@ -23,6 +23,7 @@ class PowerOfficeZReportSync
         protected PowerOfficeApiClient $apiClient,
         protected PowerOfficeGeneralLedgerAccountResolver $generalLedgerAccountResolver,
         protected PowerOfficeDepartmentResolver $departmentResolver,
+        protected PowerOfficeVatCodeResolver $vatCodeResolver,
         protected PowerOfficeManualVoucherPayloadFactory $manualVoucherPayloadFactory,
         protected ZReportPdfGenerator $zReportPdfGenerator,
     ) {}
@@ -188,7 +189,8 @@ class PowerOfficeZReportSync
 
         try {
             $accountMap = $this->generalLedgerAccountResolver->resolveMapForAccountNos($integration, $accountCodes);
-            $apiPayload = $this->manualVoucherPayloadFactory->build($payload, $accountMap, $idempotencyKey);
+            $zeroVatId = $this->vatCodeResolver->resolveZeroVatId($integration);
+            $apiPayload = $this->manualVoucherPayloadFactory->build($payload, $accountMap, $idempotencyKey, $zeroVatId);
         } catch (PowerOfficeUnresolvedGlAccountsException $e) {
             $this->failRun($syncRun, $integration, 'PowerOffice GL accounts not found: '.implode(', ', $e->missingAccountNos));
 

@@ -13,8 +13,12 @@ class PowerOfficeManualVoucherPayloadFactory
      * @param  array<string, array{id: int, vat_code_id: ?int}>  $accountMap
      * @return array<string, mixed>
      */
-    public function build(array $ledgerPayload, array $accountMap, string $externalImportReference): array
-    {
+    public function build(
+        array $ledgerPayload,
+        array $accountMap,
+        string $externalImportReference,
+        int $defaultVatId,
+    ): array {
         $currency = strtoupper((string) ($ledgerPayload['currency'] ?? 'NOK'));
         $documentDate = (string) ($ledgerPayload['document_date'] ?? now()->format('Y-m-d'));
         $voucherDateIso = $documentDate.'T12:00:00Z';
@@ -57,9 +61,7 @@ class PowerOfficeManualVoucherPayloadFactory
                 'Description' => (string) ($line['description'] ?? ''),
             ];
 
-            if ($resolved['vat_code_id'] !== null) {
-                $row['VatId'] = $resolved['vat_code_id'];
-            }
+            $row['VatId'] = $resolved['vat_code_id'] ?? $defaultVatId;
 
             // Department dimension goes on every line (turnover, payment, fees), matching manual bookkeeping.
             $departmentId = $ledgerPayload['department_id'] ?? null;
