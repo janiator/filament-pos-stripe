@@ -1031,7 +1031,7 @@ class PosSessionsTable
             return false;
         }
 
-        return app(PowerOfficeZReportSync::class)->isSessionEligibleForSync($record);
+        return true;
     }
 
     protected static function isTripletexActivatedForTenant(): bool

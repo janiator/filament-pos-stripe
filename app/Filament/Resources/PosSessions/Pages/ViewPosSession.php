@@ -426,7 +426,7 @@ class ViewPosSession extends ViewRecord
             return false;
         }
 
-        return app(PowerOfficeZReportSync::class)->isSessionEligibleForSync($this->record);
+        return true;
     }
 
     protected function canSyncToTripletex(): bool
