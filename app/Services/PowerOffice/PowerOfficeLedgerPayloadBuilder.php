@@ -254,6 +254,8 @@ class PowerOfficeLedgerPayloadBuilder
             $credits[$salesAccount] = ($credits[$salesAccount] ?? 0) + $amount;
         }
 
+        $credits = $this->reconcileHybridSalesCreditsToNetAmount($credits, $zReport);
+
         $lines = [];
         foreach ($credits as $account => $creditMinor) {
             if ($creditMinor <= 0) {
@@ -390,13 +392,50 @@ class PowerOfficeLedgerPayloadBuilder
     }
 
     /**
+     * @param  array<string, int>  $credits
+     * @return array<string, int>
+     */
+    protected function reconcileHybridSalesCreditsToNetAmount(array $credits, array $zReport): array
+    {
+        $targetMinor = (int) ($zReport['net_amount'] ?? 0);
+        if ($targetMinor <= 0) {
+            return $credits;
+        }
+
+        $positive = array_filter($credits, fn (int $amount): bool => $amount > 0);
+        $sum = array_sum($positive);
+        if ($sum <= 0 || $sum === $targetMinor) {
+            return $credits;
+        }
+
+        // ponytail: proportional scale when product-line totals drift from Z-report net (duplicate receipts, etc.)
+        $scaled = [];
+        $allocated = 0;
+        $accounts = array_keys($positive);
+        $lastIndex = count($accounts) - 1;
+
+        foreach ($accounts as $index => $account) {
+            if ($index === $lastIndex) {
+                $scaled[$account] = max(0, $targetMinor - $allocated);
+
+                continue;
+            }
+
+            $share = (int) round($positive[$account] * $targetMinor / $sum);
+            $scaled[$account] = $share;
+            $allocated += $share;
+        }
+
+        return $scaled;
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     protected function productsSoldForHybridSales(PosSession $session, array $zReport): array
     {
-        // Always rebuild from receipts/charges — cached Z-report products_sold can be partial
-        // and would skip vendor or article-group lines while payment debits stay at session total.
-        $calculated = PosSessionsTable::calculateProductsSold($session)->values()->all();
+        // Accounting scope: session receipts + charge metadata only (matches net Z-report turnover).
+        $calculated = PosSessionsTable::calculateProductsSold($session, accountingScope: true)->values()->all();
         if ($calculated !== []) {
             return $calculated;
         }

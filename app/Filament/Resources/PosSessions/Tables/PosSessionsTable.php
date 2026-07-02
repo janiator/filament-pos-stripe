@@ -2087,7 +2087,7 @@ class PosSessionsTable
         return $lineItems;
     }
 
-    public static function calculateProductsSold(PosSession $session): \Illuminate\Support\Collection
+    public static function calculateProductsSold(PosSession $session, bool $accountingScope = false): \Illuminate\Support\Collection
     {
         $session->load(['receipts.charge', 'charges']);
 
@@ -2104,10 +2104,17 @@ class PosSessionsTable
             return $receipt->charge && $receipt->charge->status === 'succeeded';
         });
 
-        // Also get receipts linked to charges in this session, even if receipt's pos_session_id doesn't match
-        // This handles cases where receipt and charge have mismatched session IDs
-        $chargesInSession = $session->charges->whereIn('status', ['succeeded', 'refunded'])->pluck('id');
-        if ($chargesInSession->isNotEmpty()) {
+        if ($accountingScope) {
+            // PowerOffice / Tripletex: one sales receipt per charge on this session only.
+            // Avoids inflating turnover when duplicate or foreign-session receipts link to the same charge.
+            $salesReceipts = $salesReceipts
+                ->sortBy('id')
+                ->unique(fn ($receipt) => $receipt->charge_id ?? 'receipt:'.$receipt->getKey())
+                ->values();
+        } elseif ($session->charges->whereIn('status', ['succeeded', 'refunded'])->isNotEmpty()) {
+            // Also get receipts linked to charges in this session, even if receipt's pos_session_id doesn't match
+            // This handles cases where receipt and charge have mismatched session IDs
+            $chargesInSession = $session->charges->whereIn('status', ['succeeded', 'refunded'])->pluck('id');
             $receiptsByCharge = \App\Models\Receipt::whereIn('charge_id', $chargesInSession)
                 ->where('receipt_type', 'sales')
                 ->with('charge')
