@@ -33,8 +33,10 @@ On **Filament → PowerOffice**, the **PowerOffice accounts** section has **Chec
 
 ## Voucher shape (matches the accountant's manual booking)
 
+- Hybrid mode uses the Z-report **Salg per leverandør** table (`sales_by_vendor`) for vendor reskontro and provision (commission) amounts — the same figures as on the PDF.
+- Store-owned turnover (no-vendor bucket) is split across **article group** accounts (3020, 3000, …) from product lines; only scaled when product subtotals drift from the Z-report store bucket.
 - Sales are credited **gross (incl. VAT)** to sales/reskontro accounts. PowerOffice splits out the VAT from each line's vat code — **no explicit VAT line** is posted to 2700/2701. Vendor reskontro lines carry no vat code, so VAT is only reported on the store's own turnover + commission revenue, exactly like the manual voucher.
-- Commission vendors are split gross: vendor share → vendor's `supplier_ledger_account_number` (reskontro, e.g. 40001), commission share → commission revenue account (3023) with vat code.
+- Commission vendors: vendor share → reskontro (`amount − provision` from Z-report), provision → commission account (3023). Amounts come from the Z-report, not a second product-line recalculation.
 - Payment debits are gross per method (cash / card). To mirror the accountant exactly (bank debited directly, no interim/fee/payout lines), set `payment_debits.card` to the **bank account** (e.g. 1920) and leave the **payment fee** and **payout** account pairs empty in PowerOffice settings. Configure fee/payout pairs only if you want the Stripe settlement modelled through an interim account instead.
 
 ## Re-sync (corrected Z-report)

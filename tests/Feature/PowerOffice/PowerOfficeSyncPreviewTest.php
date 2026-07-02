@@ -12,7 +12,7 @@ use App\Models\Vendor;
 use App\Services\PowerOffice\PowerOfficeLedgerPayloadBuilder;
 use App\Services\PowerOffice\PowerOfficeSyncPreviewService;
 
-it('uses accounting-scoped products sold and reconciles hybrid sales to z-report net amount', function () {
+it('uses z-report sales by vendor for hybrid vendor and commission amounts', function () {
     $store = Store::factory()->create();
     ArticleGroupCode::query()->create([
         'store_id' => $store->id,
@@ -46,6 +46,7 @@ it('uses accounting-scoped products sold and reconciles hybrid sales to z-report
         'settings' => [
             'ledger' => [
                 'payment_debits' => ['cash' => '1920'],
+                'commission_revenue_account_no' => '3023',
             ],
         ],
     ]);
@@ -85,8 +86,20 @@ it('uses accounting-scoped products sold and reconciles hybrid sales to z-report
         'vat_amount' => 2_000,
         'vat_rate' => 25,
         'total_tips' => 0,
-        'products_sold' => [
-            ['product_id' => $vaskeriProduct->id, 'amount' => 7_000],
+        'sales_by_vendor' => [
+            [
+                'id' => 'no-vendor',
+                'name' => 'Ingen leverandør',
+                'amount' => 7_000,
+                'commission_amount' => 0,
+            ],
+            [
+                'id' => $vendor->id,
+                'name' => $vendor->name,
+                'amount' => 3_000,
+                'commission_percent' => 10,
+                'commission_amount' => 300,
+            ],
         ],
         'by_payment_method_net' => [
             'cash' => ['amount' => 10_000, 'count' => 1, 'tips' => 0],
@@ -104,14 +117,32 @@ it('uses accounting-scoped products sold and reconciles hybrid sales to z-report
         ->and($debitTotal)->toBe($creditTotal);
 });
 
-it('reconciles inflated hybrid product totals to z-report net amount', function () {
+it('matches z-report vendor reskontro and commission totals for a multi-vendor session', function () {
     $store = Store::factory()->create();
+    $vendorA = Vendor::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Lise Solvang',
+        'active' => true,
+        'supplier_ledger_account_number' => '40044',
+    ]);
+    $vendorB = Vendor::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Lene Gjelsvik',
+        'active' => true,
+        'commission_percent' => 10,
+        'supplier_ledger_account_number' => '40053',
+        'commission_revenue_account_number' => '3023',
+    ]);
+
     $integration = PowerOfficeIntegration::factory()->connected()->create([
         'store_id' => $store->id,
         'mapping_basis' => PowerOfficeMappingBasis::Category,
         'settings' => [
             'ledger' => [
                 'payment_debits' => ['cash' => '1920'],
+                'commission_revenue_account_no' => '3023',
             ],
         ],
     ]);
@@ -119,16 +150,11 @@ it('reconciles inflated hybrid product totals to z-report net amount', function 
     PowerOfficeAccountMapping::factory()->create([
         'store_id' => $store->id,
         'power_office_integration_id' => $integration->id,
-        'basis_type' => PowerOfficeMappingBasis::ArticleGroup,
-        'basis_key' => '04010',
-        'sales_account_no' => '3020',
+        'basis_type' => PowerOfficeMappingBasis::Category,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
         'vat_account_no' => '2700',
         'cash_account_no' => '1920',
-    ]);
-
-    $product = ConnectedProduct::factory()->create([
-        'stripe_account_id' => $store->stripe_account_id,
-        'article_group_code' => '04010',
     ]);
 
     $session = PosSession::factory()->create([
@@ -138,27 +164,42 @@ it('reconciles inflated hybrid product totals to z-report net amount', function 
     ]);
 
     $zReport = [
-        'net_amount' => 2_991_00,
-        'vat_amount' => 598_20,
+        'net_amount' => 1_485_50,
+        'vat_amount' => 297_10,
         'vat_rate' => 25,
         'total_tips' => 0,
-        'products_sold' => [
-            ['product_id' => $product->id, 'amount' => 5_036_60],
+        'sales_by_vendor' => [
+            [
+                'id' => 'no-vendor',
+                'name' => 'Ingen leverandør',
+                'amount' => 1_000_00,
+                'commission_amount' => 0,
+            ],
+            [
+                'id' => $vendorA->id,
+                'name' => $vendorA->name,
+                'amount' => 1_215_50,
+                'commission_amount' => 0,
+            ],
+            [
+                'id' => $vendorB->id,
+                'name' => $vendorB->name,
+                'amount' => 170_00,
+                'commission_percent' => 10,
+                'commission_amount' => 17_00,
+            ],
         ],
         'by_payment_method_net' => [
-            'card_present' => ['amount' => 2_881_00, 'count' => 1, 'tips' => 0],
-            'cash' => ['amount' => 110_00, 'count' => 1, 'tips' => 0],
+            'cash' => ['amount' => 1_485_50, 'count' => 1, 'tips' => 0],
         ],
     ];
 
     $payload = app(PowerOfficeLedgerPayloadBuilder::class)->build($session, $integration->fresh('accountMappings'), $zReport);
 
-    $debitTotal = collect($payload['lines'])->sum('debit_minor');
-    $creditTotal = collect($payload['lines'])->sum('credit_minor');
-
-    expect(collect($payload['lines'])->firstWhere('account', '3020')['credit_minor'] ?? null)->toBe(2_991_00)
-        ->and($debitTotal)->toBe(2_991_00)
-        ->and($creditTotal)->toBe(2_991_00);
+    expect(collect($payload['lines'])->firstWhere('account', '40044')['credit_minor'] ?? null)->toBe(1_215_50)
+        ->and(collect($payload['lines'])->firstWhere('account', '40053')['credit_minor'] ?? null)->toBe(153_00)
+        ->and(collect($payload['lines'])->firstWhere('account', '3023')['credit_minor'] ?? null)->toBe(17_00)
+        ->and(collect($payload['lines'])->firstWhere('account', '3000')['credit_minor'] ?? null)->toBe(1_000_00);
 });
 
 it('builds a balanced preview payload for a closed session', function () {

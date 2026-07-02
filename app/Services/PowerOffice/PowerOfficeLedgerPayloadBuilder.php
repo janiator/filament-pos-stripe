@@ -205,6 +205,14 @@ class PowerOfficeLedgerPayloadBuilder
         PowerOfficeIntegration $integration,
         array $zReport,
     ): array {
+        $vendorRows = $zReport['sales_by_vendor'] ?? [];
+        if ($vendorRows instanceof Collection) {
+            $vendorRows = $vendorRows->all();
+        }
+        if (is_array($vendorRows) && $vendorRows !== []) {
+            return $this->buildHybridSalesCreditLinesFromSalesByVendor($session, $integration, $zReport, $vendorRows);
+        }
+
         $productsSold = $this->productsSoldForHybridSales($session, $zReport);
         if (! is_array($productsSold) || $productsSold === []) {
             // Without product rows the collection buckets fall back to net-per-VAT-rate; convert to gross.
@@ -254,14 +262,217 @@ class PowerOfficeLedgerPayloadBuilder
             $credits[$salesAccount] = ($credits[$salesAccount] ?? 0) + $amount;
         }
 
-        $credits = $this->reconcileHybridSalesCreditsToNetAmount($credits, $zReport);
-
         $lines = [];
         foreach ($credits as $account => $creditMinor) {
             if ($creditMinor <= 0) {
                 continue;
             }
             $lines[] = $this->salesCreditLine($session, $account, $creditMinor, 'sales');
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Hybrid sales from Z-report {@see PosSessionsTable::calculateSalesByVendor()} — matches “Salg per leverandør”.
+     *
+     * @param  list<array<string, mixed>>  $vendorRows
+     * @return list<array{account: string, debit_minor: int, credit_minor: int, description: string}>
+     */
+    protected function buildHybridSalesCreditLinesFromSalesByVendor(
+        PosSession $session,
+        PowerOfficeIntegration $integration,
+        array $zReport,
+        array $vendorRows,
+    ): array {
+        /** @var array<string, int> $credits */
+        $credits = [];
+
+        foreach ($vendorRows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $amount = (int) ($row['amount'] ?? 0);
+            if ($amount <= 0) {
+                continue;
+            }
+
+            $commissionAmount = (int) ($row['commission_amount'] ?? 0);
+            $vendorId = isset($row['id']) ? (string) $row['id'] : 'unknown';
+
+            if ($vendorId === 'no-vendor' || $vendorId === 'unknown') {
+                $this->accumulateHybridStoreCreditsByArticleGroup(
+                    $session,
+                    $integration,
+                    $zReport,
+                    $credits,
+                    $amount,
+                );
+
+                continue;
+            }
+
+            if (! is_numeric($vendorId)) {
+                continue;
+            }
+
+            $vendor = Vendor::query()->find((int) $vendorId);
+            if (! $vendor instanceof Vendor) {
+                $account = PowerOfficeLedgerSettings::defaultSalesAccount($integration);
+                if ($account) {
+                    $credits[$account] = ($credits[$account] ?? 0) + $amount;
+                }
+
+                continue;
+            }
+
+            if (! filled($vendor->supplier_ledger_account_number) && (float) ($vendor->commission_percent ?? 0) <= 0) {
+                $this->accumulateHybridStoreCreditsByArticleGroup(
+                    $session,
+                    $integration,
+                    $zReport,
+                    $credits,
+                    $amount,
+                    $vendor,
+                );
+
+                continue;
+            }
+
+            $this->accumulateVendorCreditsFromZReportRow(
+                $integration,
+                $vendor,
+                $amount,
+                $commissionAmount,
+                $credits,
+            );
+        }
+
+        return $this->salesCreditLinesFromCreditsMap($session, $credits, 'sales');
+    }
+
+    /**
+     * Store-owned turnover: split the Z-report store bucket across article groups / collections.
+     *
+     * @param  array<string, int>  $credits
+     */
+    protected function accumulateHybridStoreCreditsByArticleGroup(
+        PosSession $session,
+        PowerOfficeIntegration $integration,
+        array $zReport,
+        array &$credits,
+        int $targetMinor,
+        ?Vendor $limitToVendor = null,
+    ): void {
+        $productsSold = $this->productsSoldForHybridSales($session, $zReport);
+        if (! is_array($productsSold) || $productsSold === []) {
+            $account = $this->resolveDefaultStoreSalesAccount($integration, $session);
+            if ($account && $targetMinor > 0) {
+                $credits[$account] = ($credits[$account] ?? 0) + $targetMinor;
+            }
+
+            return;
+        }
+
+        $products = $this->loadProductsForHybridSales($productsSold);
+        /** @var array<string, int> $storeCredits */
+        $storeCredits = [];
+
+        foreach ($productsSold as $row) {
+            $amount = (int) ($row['amount'] ?? 0);
+            if ($amount <= 0) {
+                continue;
+            }
+
+            $product = $this->resolveProductFromSoldRow($row, $products);
+            $productVendor = $product?->vendor;
+
+            if ($limitToVendor !== null) {
+                if ($productVendor?->getKey() !== $limitToVendor->getKey()) {
+                    continue;
+                }
+            } elseif ($productVendor !== null && filled($productVendor->supplier_ledger_account_number)) {
+                continue;
+            } elseif ($productVendor !== null && (float) ($productVendor->commission_percent ?? 0) > 0) {
+                continue;
+            }
+
+            $salesAccount = $this->resolveHybridSalesAccount($integration, $product, $session);
+            if (! $salesAccount) {
+                continue;
+            }
+
+            $storeCredits[$salesAccount] = ($storeCredits[$salesAccount] ?? 0) + $amount;
+        }
+
+        if ($storeCredits === []) {
+            $account = $this->resolveDefaultStoreSalesAccount($integration, $session);
+            if ($account && $targetMinor > 0) {
+                $credits[$account] = ($credits[$account] ?? 0) + $targetMinor;
+            }
+
+            return;
+        }
+
+        $scaled = $this->scaleCreditsMapToTarget($storeCredits, $targetMinor);
+
+        foreach ($scaled as $account => $creditMinor) {
+            if ($creditMinor <= 0) {
+                continue;
+            }
+            $credits[$account] = ($credits[$account] ?? 0) + $creditMinor;
+        }
+    }
+
+    /**
+     * @param  array<string, int>  $credits
+     */
+    protected function accumulateVendorCreditsFromZReportRow(
+        PowerOfficeIntegration $integration,
+        Vendor $vendor,
+        int $grossMinor,
+        int $commissionMinor,
+        array &$credits,
+    ): void {
+        if ($commissionMinor <= 0 && (float) ($vendor->commission_percent ?? 0) > 0) {
+            $commissionMinor = (int) round($grossMinor * ((float) $vendor->commission_percent / 100));
+        }
+
+        $supplierAccount = $this->resolveVendorSupplierAccount($integration, $vendor);
+        $commissionAccount = $this->resolveVendorCommissionAccount($integration, $vendor);
+
+        if ($commissionMinor > 0 && filled($commissionAccount)) {
+            $vendorShareMinor = $grossMinor - $commissionMinor;
+            if ($vendorShareMinor > 0) {
+                if (! filled($supplierAccount)) {
+                    throw new MissingPowerOfficeMappingException(['vendor:'.$vendor->getKey()]);
+                }
+                $credits[$supplierAccount] = ($credits[$supplierAccount] ?? 0) + $vendorShareMinor;
+            }
+            $credits[$commissionAccount] = ($credits[$commissionAccount] ?? 0) + $commissionMinor;
+
+            return;
+        }
+
+        $account = $supplierAccount ?? PowerOfficeLedgerSettings::defaultSalesAccount($integration);
+        if (filled($account)) {
+            $credits[$account] = ($credits[$account] ?? 0) + $grossMinor;
+        }
+    }
+
+    /**
+     * @param  array<string, int>  $credits
+     * @return list<array{account: string, debit_minor: int, credit_minor: int, description: string}>
+     */
+    protected function salesCreditLinesFromCreditsMap(PosSession $session, array $credits, string $label): array
+    {
+        $lines = [];
+        foreach ($credits as $account => $creditMinor) {
+            if ($creditMinor <= 0) {
+                continue;
+            }
+            $lines[] = $this->salesCreditLine($session, $account, $creditMinor, $label);
         }
 
         return $lines;
@@ -316,7 +527,13 @@ class PowerOfficeLedgerPayloadBuilder
             }
 
             if ((float) ($vendor->commission_percent ?? 0) > 0) {
-                $this->accumulateVendorCommissionCredits($integration, $vendor, $amount, $credits);
+                $this->accumulateVendorCreditsFromZReportRow(
+                    $integration,
+                    $vendor,
+                    $amount,
+                    (int) ($row['commission_amount'] ?? 0),
+                    $credits,
+                );
 
                 continue;
             }
@@ -373,6 +590,27 @@ class PowerOfficeLedgerPayloadBuilder
         }
     }
 
+    protected function resolveDefaultStoreSalesAccount(PowerOfficeIntegration $integration, ?PosSession $session = null): ?string
+    {
+        $fromSettings = PowerOfficeLedgerSettings::defaultSalesAccount($integration);
+        if (filled($fromSettings)) {
+            return $fromSettings;
+        }
+
+        $fromMapping = $integration->accountMappings()
+            ->where('is_active', true)
+            ->whereNotNull('sales_account_no')
+            ->orderBy('id')
+            ->value('sales_account_no');
+
+        if (filled($fromMapping)) {
+            return (string) $fromMapping;
+        }
+
+        return $this->resolveSalesAccountNo($integration, PowerOfficeMappingBasis::Category, '0', $session)
+            ?? $this->resolveSalesAccountNo($integration, PowerOfficeMappingBasis::Vat, '25', $session);
+    }
+
     protected function resolveVendorSupplierAccount(PowerOfficeIntegration $integration, Vendor $vendor): ?string
     {
         if (filled($vendor->supplier_ledger_account_number)) {
@@ -395,9 +633,8 @@ class PowerOfficeLedgerPayloadBuilder
      * @param  array<string, int>  $credits
      * @return array<string, int>
      */
-    protected function reconcileHybridSalesCreditsToNetAmount(array $credits, array $zReport): array
+    protected function scaleCreditsMapToTarget(array $credits, int $targetMinor): array
     {
-        $targetMinor = (int) ($zReport['net_amount'] ?? 0);
         if ($targetMinor <= 0) {
             return $credits;
         }
@@ -408,7 +645,6 @@ class PowerOfficeLedgerPayloadBuilder
             return $credits;
         }
 
-        // ponytail: proportional scale when product-line totals drift from Z-report net (duplicate receipts, etc.)
         $scaled = [];
         $allocated = 0;
         $accounts = array_keys($positive);
