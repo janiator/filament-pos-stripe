@@ -328,7 +328,7 @@ class PowerOfficeZReportSync
      * Reverse the voucher recorded on a successful sync run (POST /Vouchers/Reverse/{id}).
      * Returns reversal metadata on success, or null after marking the run failed.
      *
-     * @return array{voucher_id: string, journal_voucher_no: ?int, reversed_at: string}|null
+     * @return array{voucher_id: string, journal_voucher_no: ?int, reversed_at: string, already_reversed?: bool}|null
      */
     protected function reversePostedVoucher(PowerOfficeSyncRun $run, PowerOfficeIntegration $integration): ?array
     {
@@ -351,11 +351,26 @@ class PowerOfficeZReportSync
 
         if (! $response->successful()) {
             $this->apiClient->logFailedResponse('voucher_reversal_post', $response);
+
+            if ($this->voucherReversalResponseMeansAlreadyReversed($response)) {
+                return [
+                    'voucher_id' => $voucherId,
+                    'journal_voucher_no' => $run->journal_voucher_no,
+                    'reversed_at' => now()->toIso8601String(),
+                    'already_reversed' => true,
+                ];
+            }
+
+            $message = 'PowerOffice voucher reversal failed: HTTP '.$response->status().$this->apiClient->summarizeErrorBody($response)
+                .' (voucher Id: '.$voucherId.').';
+            if ($response->status() === 403) {
+                $message .= ' The integration needs the ReverseVoucher_Full privilege in PowerOffice Go.';
+            }
+
             $this->failRun(
                 $run,
                 $integration,
-                'PowerOffice voucher reversal failed: HTTP '.$response->status().$this->apiClient->summarizeErrorBody($response)
-                .' (voucher Id: '.$voucherId.'). The integration needs the ReverseVoucher_Full privilege in PowerOffice Go.'
+                $message
             );
 
             return null;
@@ -366,6 +381,15 @@ class PowerOfficeZReportSync
             'journal_voucher_no' => $run->journal_voucher_no,
             'reversed_at' => now()->toIso8601String(),
         ];
+    }
+
+    protected function voucherReversalResponseMeansAlreadyReversed(Response $response): bool
+    {
+        $body = mb_strtolower($response->body());
+
+        return str_contains($body, 'already reversed')
+            || str_contains($body, 'already been reversed')
+            || str_contains($body, 'allerede reversert');
     }
 
     protected function failRun(PowerOfficeSyncRun $syncRun, PowerOfficeIntegration $integration, string $message): void

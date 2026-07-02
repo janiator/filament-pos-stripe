@@ -70,7 +70,70 @@ class PowerOfficeGeneralLedgerAccountResolver
         }
 
         if ($missing !== []) {
+            $map = array_replace($map, $this->resolveSupplierSubledgerMap($integration, $missing));
+            $missing = [];
+            foreach ($unique as $code) {
+                if (! isset($map[$code])) {
+                    $missing[] = $code;
+                }
+            }
+        }
+
+        if ($missing !== []) {
             throw new PowerOfficeUnresolvedGlAccountsException($missing);
+        }
+
+        return $map;
+    }
+
+    /**
+     * Resolve PowerOffice supplier numbers to their sub-ledger account IDs.
+     *
+     * @param  list<string>  $accountNos
+     * @return array<string, array{id: int, vat_code_id: ?int}>
+     */
+    protected function resolveSupplierSubledgerMap(PowerOfficeIntegration $integration, array $accountNos): array
+    {
+        $supplierNos = array_values(array_filter($accountNos, fn (string $accountNo): bool => is_numeric($accountNo)));
+        if ($supplierNos === []) {
+            return [];
+        }
+
+        $response = $this->apiClient->get($integration, '/Suppliers', [
+            'supplierNos' => implode(',', $supplierNos),
+            'Fields' => 'Number,SubledgerAccountId',
+        ]);
+
+        if ($response->status() === 204) {
+            return [];
+        }
+
+        if (! $response->successful()) {
+            $this->apiClient->logFailedResponse('suppliers_subledger_accounts', $response);
+            throw new \RuntimeException(
+                'PowerOffice Suppliers request failed: HTTP '.$response->status()
+                .$this->apiClient->summarizeErrorBody($response)
+            );
+        }
+
+        $json = $response->json();
+        if (! is_array($json)) {
+            throw new \RuntimeException('PowerOffice Suppliers returned invalid JSON.');
+        }
+
+        $map = [];
+        foreach ($json as $row) {
+            if (! is_array($row) || ! isset($row['Number'], $row['SubledgerAccountId'])) {
+                continue;
+            }
+            $subledgerAccountId = $row['SubledgerAccountId'];
+            if (! is_numeric($subledgerAccountId)) {
+                continue;
+            }
+            $map[trim((string) $row['Number'])] = [
+                'id' => (int) $subledgerAccountId,
+                'vat_code_id' => null,
+            ];
         }
 
         return $map;
