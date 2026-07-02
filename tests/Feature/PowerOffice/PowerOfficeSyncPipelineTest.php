@@ -47,15 +47,6 @@ function fakePowerOfficeLedgerHttp(): void
             ], 200);
         }
 
-        if (preg_match('#GeneralLedgerAccounts/(\d+)(?:\?|$)#', $request->url(), $matches)) {
-            $id = (int) $matches[1];
-
-            return Http::response([
-                'Id' => $id,
-                'VatCodeId' => null,
-            ], 200);
-        }
-
         if (str_contains($request->url(), 'GeneralLedgerAccounts')) {
             return Http::response([
                 ['Id' => 101, 'AccountNo' => 3000, 'VatCodeId' => 1],
@@ -297,15 +288,6 @@ it('continues re-sync when PowerOffice reports the previous voucher is already r
             return Http::response([
                 ['Id' => 201, 'Code' => '0'],
                 ['Id' => 1, 'Code' => '3'],
-            ], 200);
-        }
-
-        if (preg_match('#GeneralLedgerAccounts/(\d+)(?:\?|$)#', $request->url(), $matches)) {
-            $id = (int) $matches[1];
-
-            return Http::response([
-                'Id' => $id,
-                'VatCodeId' => null,
             ], 200);
         }
 
