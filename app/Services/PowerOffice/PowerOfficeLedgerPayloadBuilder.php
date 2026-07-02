@@ -394,15 +394,19 @@ class PowerOfficeLedgerPayloadBuilder
      */
     protected function productsSoldForHybridSales(PosSession $session, array $zReport): array
     {
+        // Always rebuild from receipts/charges — cached Z-report products_sold can be partial
+        // and would skip vendor or article-group lines while payment debits stay at session total.
+        $calculated = PosSessionsTable::calculateProductsSold($session)->values()->all();
+        if ($calculated !== []) {
+            return $calculated;
+        }
+
         $productsSold = $zReport['products_sold'] ?? [];
         if ($productsSold instanceof Collection) {
             $productsSold = $productsSold->all();
         }
-        if (is_array($productsSold) && $productsSold !== []) {
-            return $productsSold;
-        }
 
-        return PosSessionsTable::calculateProductsSold($session)->values()->all();
+        return is_array($productsSold) ? $productsSold : [];
     }
 
     /**

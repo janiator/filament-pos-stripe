@@ -6,6 +6,7 @@ use App\Actions\PosSessions\RegenerateZReports;
 use App\Enums\AddonType;
 use App\Enums\PowerOfficeSyncRunStatus;
 use App\Enums\TripletexSyncRunStatus;
+use App\Filament\Actions\PowerOfficeVoucherPreviewAction;
 use App\Filament\Actions\TripletexVoucherPreviewAction;
 use App\Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\PosSessions\PosSessionResource;
@@ -49,14 +50,13 @@ class ViewPosSession extends ViewRecord
                 ->icon('heroicon-o-cloud-arrow-up')
                 ->color('success')
                 ->visible(fn (): bool => $this->canSyncToPowerOffice())
-                ->requiresConfirmation(fn (): bool => $this->latestSuccessfulPowerOfficeRun() !== null)
-                ->modalHeading(__('Re-sync PowerOffice'))
-                ->modalDescription(function (): string {
-                    $run = $this->latestSuccessfulPowerOfficeRun();
-                    $voucherLabel = $run?->journal_voucher_no ? "bilagsnr #{$run->journal_voucher_no}" : 'the existing voucher';
-
-                    return __('This session was already synced. The :voucher will be reversed in PowerOffice and a new voucher will be posted from the current Z-report.', ['voucher' => $voucherLabel]);
-                })
+                ->requiresConfirmation()
+                ->modalHeading(fn (): string => PowerOfficeVoucherPreviewAction::modalHeadingForSession($this->record))
+                ->modalDescription(fn (): string => PowerOfficeVoucherPreviewAction::modalDescriptionForSession($this->record))
+                ->modalWidth('4xl')
+                ->fillForm(fn (): array => PowerOfficeVoucherPreviewAction::fillFormForSession($this->record))
+                ->form(PowerOfficeVoucherPreviewAction::syncConfirmationFormSchema(fn (): PosSession => $this->record))
+                ->modalSubmitActionLabel(__('Sync PowerOffice'))
                 ->action(function (): void {
                     Notification::make()
                         ->title(__('Syncing with PowerOffice...'))

@@ -60,20 +60,7 @@ class PowerOfficeZReportSync
             return false;
         }
 
-        $zReport = $session->closing_data['z_report_data'] ?? null;
-        if (! is_array($zReport) && $session->status === 'closed') {
-            try {
-                // Build and persist snapshot on-demand for legacy/manual-close flows.
-                $zReport = PosSessionsTable::generateZReport($session);
-                $session->refresh();
-                $zReport = $session->closing_data['z_report_data'] ?? $zReport;
-            } catch (\Throwable $e) {
-                Log::warning('PowerOffice sync failed to build Z-report snapshot', [
-                    'pos_session_id' => $session->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
+        $zReport = $this->materializeZReportData($session);
         if (! is_array($zReport)) {
             Log::warning('PowerOffice sync skipped: no Z-report snapshot on session', ['pos_session_id' => $session->id]);
             $syncRun = PowerOfficeSyncRun::query()->firstOrCreate(
@@ -172,6 +159,19 @@ class PowerOfficeZReportSync
             return false;
         } catch (\Throwable $e) {
             $this->failRun($syncRun, $integration, $e->getMessage());
+
+            return false;
+        }
+
+        $debitSum = array_sum(array_column($payload['lines'] ?? [], 'debit_minor'));
+        $creditSum = array_sum(array_column($payload['lines'] ?? [], 'credit_minor'));
+        if ($debitSum !== $creditSum) {
+            $diffNok = number_format(abs($debitSum - $creditSum) / 100, 2, '.', '');
+            $this->failRun(
+                $syncRun,
+                $integration,
+                'Voucher is not in balance: '.$diffNok.' NOK (debit '.number_format($debitSum / 100, 2, '.', '').', credit '.number_format($creditSum / 100, 2, '.', '').'). Preview in Filament before syncing.',
+            );
 
             return false;
         }
@@ -318,6 +318,29 @@ class PowerOfficeZReportSync
     public function idempotencyKey(int $storeId, int $posSessionId): string
     {
         return 'poweroffice_z_report_'.$storeId.'_'.$posSessionId;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function materializeZReportData(PosSession $session): ?array
+    {
+        $zReport = $session->closing_data['z_report_data'] ?? null;
+        if (! is_array($zReport) && $session->status === 'closed') {
+            try {
+                // Build and persist snapshot on-demand for legacy/manual-close flows.
+                PosSessionsTable::generateZReport($session);
+                $session->refresh();
+                $zReport = $session->closing_data['z_report_data'] ?? null;
+            } catch (\Throwable $e) {
+                Log::warning('PowerOffice sync failed to build Z-report snapshot', [
+                    'pos_session_id' => $session->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return is_array($zReport) ? $zReport : null;
     }
 
     protected function syncRunFor(PowerOfficeIntegration $integration, int $storeId, int $posSessionId): PowerOfficeSyncRun

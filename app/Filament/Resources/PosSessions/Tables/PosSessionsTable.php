@@ -6,6 +6,7 @@ use App\Enums\AddonType;
 use App\Enums\PowerOfficeSyncRunStatus;
 use App\Enums\TripletexIntegrationStatus;
 use App\Enums\TripletexSyncRunStatus;
+use App\Filament\Actions\PowerOfficeVoucherPreviewAction;
 use App\Filament\Actions\TripletexVoucherPreviewAction;
 use App\Filament\Resources\PosSessions\PosSessionResource;
 use App\Mail\ZReportMail;
@@ -644,14 +645,15 @@ class PosSessionsTable
                         ->icon('heroicon-o-cloud-arrow-up')
                         ->color('success')
                         ->visible(fn (PosSession $record): bool => self::canSyncToPowerOffice($record))
-                        ->requiresConfirmation(fn (PosSession $record): bool => self::latestSuccessfulPowerOfficeRun($record) !== null)
-                        ->modalHeading(__('Re-sync PowerOffice'))
-                        ->modalDescription(function (PosSession $record): string {
-                            $run = self::latestSuccessfulPowerOfficeRun($record);
-                            $voucherLabel = $run?->journal_voucher_no ? "bilagsnr #{$run->journal_voucher_no}" : 'the existing voucher';
-
-                            return __('This session was already synced. The :voucher will be reversed in PowerOffice and a new voucher will be posted from the current Z-report.', ['voucher' => $voucherLabel]);
-                        })
+                        ->requiresConfirmation()
+                        ->modalHeading(fn (PosSession $record): string => PowerOfficeVoucherPreviewAction::modalHeadingForSession($record))
+                        ->modalDescription(fn (PosSession $record): string => PowerOfficeVoucherPreviewAction::modalDescriptionForSession($record))
+                        ->modalWidth('4xl')
+                        ->fillForm(fn (PosSession $record): array => PowerOfficeVoucherPreviewAction::fillFormForSession($record))
+                        ->form(PowerOfficeVoucherPreviewAction::syncConfirmationFormSchema(
+                            fn (): ?PosSession => null,
+                        ))
+                        ->modalSubmitActionLabel(__('Sync PowerOffice'))
                         ->action(function (PosSession $record): void {
                             Log::info('Filament PowerOffice sync clicked', [
                                 'pos_session_id' => $record->id,
