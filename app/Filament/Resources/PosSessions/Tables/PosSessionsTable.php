@@ -644,6 +644,14 @@ class PosSessionsTable
                         ->icon('heroicon-o-cloud-arrow-up')
                         ->color('success')
                         ->visible(fn (PosSession $record): bool => self::canSyncToPowerOffice($record))
+                        ->requiresConfirmation(fn (PosSession $record): bool => self::latestSuccessfulPowerOfficeRun($record) !== null)
+                        ->modalHeading(__('Re-sync PowerOffice'))
+                        ->modalDescription(function (PosSession $record): string {
+                            $run = self::latestSuccessfulPowerOfficeRun($record);
+                            $voucherLabel = $run?->journal_voucher_no ? "bilagsnr #{$run->journal_voucher_no}" : 'the existing voucher';
+
+                            return __('This session was already synced. The :voucher will be reversed in PowerOffice and a new voucher will be posted from the current Z-report.', ['voucher' => $voucherLabel]);
+                        })
                         ->action(function (PosSession $record): void {
                             Log::info('Filament PowerOffice sync clicked', [
                                 'pos_session_id' => $record->id,
@@ -658,7 +666,7 @@ class PosSessionsTable
 
                             try {
                                 $sync = app(PowerOfficeZReportSync::class);
-                                $ok = $sync->sync($record->id, true);
+                                $ok = $sync->sync($record->id, force: true, reverseExisting: true);
                                 $run = PowerOfficeSyncRun::query()
                                     ->where('pos_session_id', $record->id)
                                     ->latest('id')
@@ -1000,6 +1008,15 @@ class PosSessionsTable
         }
 
         return Addon::storeHasActiveAddon($tenant->getKey(), AddonType::PowerOfficeGo);
+    }
+
+    protected static function latestSuccessfulPowerOfficeRun(PosSession $record): ?PowerOfficeSyncRun
+    {
+        return PowerOfficeSyncRun::query()
+            ->where('pos_session_id', $record->id)
+            ->where('status', PowerOfficeSyncRunStatus::Success)
+            ->latest('id')
+            ->first();
     }
 
     protected static function canSyncToPowerOffice(PosSession $record): bool

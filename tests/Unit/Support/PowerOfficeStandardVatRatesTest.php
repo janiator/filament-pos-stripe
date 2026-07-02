@@ -29,3 +29,46 @@ it('resolves sales credit buckets from split before empty mapping buckets', func
         $mapping,
     ))->toBe(['15' => 500]);
 });
+
+it('resolves gross sales credit buckets per vat rate for the vat basis', function () {
+    $z = [
+        'sales_net_minor_by_vat_rate' => ['25' => 1_000, '15' => 400],
+        'vat_minor_by_vat_rate' => ['25' => 250, '15' => 60],
+        'net_amount' => 1_400,
+        'vat_amount' => 310,
+        'vat_rate' => 25,
+    ];
+
+    expect(PowerOfficeStandardVatRates::resolveGrossSalesCreditBucketsForLedger(
+        PowerOfficeMappingBasis::Vat,
+        $z,
+        ['25' => 1_000, '15' => 400],
+    ))->toBe(['25' => 1_250, '15' => 460]);
+});
+
+it('falls back to single-rate gross bucket when the vat split is missing', function () {
+    $z = [
+        'net_amount' => 1_000,
+        'vat_amount' => 250,
+        'vat_rate' => 25,
+    ];
+
+    expect(PowerOfficeStandardVatRates::resolveGrossSalesCreditBucketsForLedger(
+        PowerOfficeMappingBasis::Vat,
+        $z,
+        ['25' => 1_000],
+    ))->toBe(['25' => 1_250]);
+});
+
+it('returns mapping buckets unchanged for non-vat bases because they already hold gross amounts', function () {
+    $z = [
+        'sales_net_minor_by_vat_rate' => ['25' => 1_000],
+        'vat_minor_by_vat_rate' => ['25' => 250],
+    ];
+
+    expect(PowerOfficeStandardVatRates::resolveGrossSalesCreditBucketsForLedger(
+        PowerOfficeMappingBasis::PaymentMethod,
+        $z,
+        ['card' => 750, 'cash' => 500],
+    ))->toBe(['card' => 750, 'cash' => 500]);
+});

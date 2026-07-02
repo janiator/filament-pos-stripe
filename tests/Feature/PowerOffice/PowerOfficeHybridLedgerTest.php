@@ -178,6 +178,7 @@ it('posts vipps fees to configured fee account and reduces vipps clearing debit'
         'vat_rate' => 25,
         'total_tips' => 0,
         'sales_net_minor_by_vat_rate' => ['25' => 4_000],
+        'vat_minor_by_vat_rate' => ['25' => 1_000],
         'by_payment_method_net' => [
             'vipps' => ['amount' => 5_000, 'count' => 1, 'tips' => 0],
         ],
@@ -234,6 +235,7 @@ it('reduces fallback mobile clearing debit when vipps fee lines are posted witho
         'vat_rate' => 25,
         'total_tips' => 0,
         'sales_net_minor_by_vat_rate' => ['25' => 4_000],
+        'vat_minor_by_vat_rate' => ['25' => 1_000],
         'net_cash_amount' => 0,
         'net_card_amount' => 0,
         'net_mobile_amount' => 5_000,
@@ -294,6 +296,7 @@ it('subtracts vipps fees once when multiple payment method net keys match vipps'
         'vat_rate' => 25,
         'total_tips' => 0,
         'sales_net_minor_by_vat_rate' => ['25' => 4_000],
+        'vat_minor_by_vat_rate' => ['25' => 1_000],
         'by_payment_method_net' => [
             'vipps' => ['amount' => 3_000, 'count' => 1, 'tips' => 0],
             'custom_vipps' => ['amount' => 2_000, 'count' => 1, 'tips' => 0],
@@ -306,7 +309,7 @@ it('subtracts vipps fees once when multiple payment method net keys match vipps'
         ->and(collect($payload['lines'])->where('account', '1925')->sum('debit_minor'))->toBe(4_875);
 });
 
-it('marks turnover lines for department when department is configured', function () {
+it('posts gross sales with no separate VAT line and applies department to all lines', function () {
     $store = Store::factory()->create();
     $integration = PowerOfficeIntegration::factory()->connected()->create([
         'store_id' => $store->id,
@@ -337,19 +340,34 @@ it('marks turnover lines for department when department is configured', function
 
     $zReport = [
         'net_amount' => 1_000,
-        'vat_amount' => 200,
+        'vat_amount' => 250,
         'vat_rate' => 25,
         'total_tips' => 0,
         'by_payment_method_net' => [
-            'cash' => ['amount' => 1_000, 'count' => 1, 'tips' => 0],
+            'cash' => ['amount' => 1_250, 'count' => 1, 'tips' => 0],
         ],
     ];
 
     $payload = app(PowerOfficeLedgerPayloadBuilder::class)->build($session, $integration->fresh('accountMappings'), $zReport);
 
+    // Gross sales credit with the account's vat code; PowerOffice splits out the VAT itself.
     expect($payload['department_no'])->toBe('20')
-        ->and(collect($payload['lines'])->firstWhere('account', '3000')['apply_department'] ?? false)->toBeTrue()
-        ->and(collect($payload['lines'])->firstWhere('account', '1920')['apply_department'] ?? null)->toBeNull();
+        ->and(collect($payload['lines'])->firstWhere('account', '3000')['credit_minor'] ?? null)->toBe(1_250)
+        ->and(collect($payload['lines'])->firstWhere('account', '2700'))->toBeNull()
+        ->and(collect($payload['lines'])->firstWhere('account', '1920')['debit_minor'] ?? null)->toBe(1_250);
+
+    $apiBody = app(\App\Services\PowerOffice\PowerOfficeManualVoucherPayloadFactory::class)->build(
+        array_merge($payload, ['department_id' => 20]),
+        [
+            '3000' => ['id' => 1, 'vat_code_id' => 3],
+            '1920' => ['id' => 2, 'vat_code_id' => null],
+        ],
+        'poweroffice_z_report_test',
+    );
+
+    foreach ($apiBody['VoucherLines'] as $line) {
+        expect($line['DepartmentId'] ?? null)->toBe(20);
+    }
 });
 
 it('uses vendor supplier account for vendor basis without commission', function () {

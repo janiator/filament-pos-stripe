@@ -49,6 +49,14 @@ class ViewPosSession extends ViewRecord
                 ->icon('heroicon-o-cloud-arrow-up')
                 ->color('success')
                 ->visible(fn (): bool => $this->canSyncToPowerOffice())
+                ->requiresConfirmation(fn (): bool => $this->latestSuccessfulPowerOfficeRun() !== null)
+                ->modalHeading(__('Re-sync PowerOffice'))
+                ->modalDescription(function (): string {
+                    $run = $this->latestSuccessfulPowerOfficeRun();
+                    $voucherLabel = $run?->journal_voucher_no ? "bilagsnr #{$run->journal_voucher_no}" : 'the existing voucher';
+
+                    return __('This session was already synced. The :voucher will be reversed in PowerOffice and a new voucher will be posted from the current Z-report.', ['voucher' => $voucherLabel]);
+                })
                 ->action(function (): void {
                     Notification::make()
                         ->title(__('Syncing with PowerOffice...'))
@@ -58,7 +66,7 @@ class ViewPosSession extends ViewRecord
 
                     try {
                         $sync = app(PowerOfficeZReportSync::class);
-                        $ok = $sync->sync($this->record->id, true);
+                        $ok = $sync->sync($this->record->id, force: true, reverseExisting: true);
                         $run = PowerOfficeSyncRun::query()
                             ->where('pos_session_id', $this->record->id)
                             ->latest('id')
@@ -390,6 +398,15 @@ class ViewPosSession extends ViewRecord
                     $this->refresh();
                 }),
         ];
+    }
+
+    protected function latestSuccessfulPowerOfficeRun(): ?PowerOfficeSyncRun
+    {
+        return PowerOfficeSyncRun::query()
+            ->where('pos_session_id', $this->record->id)
+            ->where('status', PowerOfficeSyncRunStatus::Success)
+            ->latest('id')
+            ->first();
     }
 
     protected function canSyncToPowerOffice(): bool

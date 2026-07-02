@@ -31,8 +31,10 @@ class PowerOfficeZReportSync
      * Sync Z-report for a closed POS session to PowerOffice.
      *
      * @param  bool  $force  When true, sync even if auto_sync_on_z_report is disabled (manual / retry).
+     * @param  bool  $reverseExisting  When true and a voucher was already posted, reverse it in
+     *                                 PowerOffice first and post a fresh voucher from the current Z-report.
      */
-    public function sync(int $posSessionId, bool $force = false): bool
+    public function sync(int $posSessionId, bool $force = false, bool $reverseExisting = false): bool
     {
         $session = PosSession::query()->with('store')->find($posSessionId);
         if (! $session || $session->status !== 'closed') {
@@ -104,7 +106,9 @@ class PowerOfficeZReportSync
             ->latest('id')
             ->first();
 
-        if ($existingSuccessRun) {
+        $reversalInfo = null;
+
+        if ($existingSuccessRun && ! $reverseExisting) {
             // Backfill final bilagsnr on old successful runs that only stored interim response data.
             if (! is_numeric($existingSuccessRun->journal_voucher_no) || (int) $existingSuccessRun->journal_voucher_no <= 0) {
                 $existingVoucherId = data_get($existingSuccessRun->response_payload, 'Id')
@@ -121,6 +125,20 @@ class PowerOfficeZReportSync
             }
 
             return true;
+        }
+
+        if ($existingSuccessRun && $reverseExisting) {
+            $reversalInfo = $this->reversePostedVoucher($existingSuccessRun, $integration);
+            if ($reversalInfo === null) {
+                return false;
+            }
+
+            // Reopen the run so the normal posting flow below re-posts under the same idempotency key
+            // (PowerOffice frees the ExternalImportReference when a voucher is reversed).
+            $existingSuccessRun->update([
+                'status' => PowerOfficeSyncRunStatus::Pending,
+                'journal_voucher_no' => null,
+            ]);
         }
 
         $syncRun = PowerOfficeSyncRun::query()->firstOrCreate(
@@ -222,6 +240,9 @@ class PowerOfficeZReportSync
         $journalVoucherNo = $this->resolveFinalJournalVoucherNo($integration, $voucherId, $journalVoucherNo);
 
         $responsePayload = $postedJson;
+        if ($reversalInfo !== null) {
+            $responsePayload['reversed_previous_voucher'] = $reversalInfo;
+        }
 
         if ($voucherId !== null && $voucherId !== '') {
             try {
@@ -301,6 +322,50 @@ class PowerOfficeZReportSync
     public function idempotencyKey(int $storeId, int $posSessionId): string
     {
         return 'poweroffice_z_report_'.$storeId.'_'.$posSessionId;
+    }
+
+    /**
+     * Reverse the voucher recorded on a successful sync run (POST /Vouchers/Reverse/{id}).
+     * Returns reversal metadata on success, or null after marking the run failed.
+     *
+     * @return array{voucher_id: string, journal_voucher_no: ?int, reversed_at: string}|null
+     */
+    protected function reversePostedVoucher(PowerOfficeSyncRun $run, PowerOfficeIntegration $integration): ?array
+    {
+        $voucherId = data_get($run->response_payload, 'Id') ?? data_get($run->response_payload, 'id');
+        $voucherId = is_string($voucherId) ? $voucherId : (is_numeric($voucherId) ? (string) $voucherId : null);
+
+        if ($voucherId === null || $voucherId === '') {
+            $this->failRun($run, $integration, 'Cannot re-sync: previous sync run has no PowerOffice voucher Id to reverse.');
+
+            return null;
+        }
+
+        try {
+            $response = $this->apiClient->postVoucherReversal($integration, $voucherId);
+        } catch (\Throwable $e) {
+            $this->failRun($run, $integration, 'PowerOffice voucher reversal failed: '.$e->getMessage());
+
+            return null;
+        }
+
+        if (! $response->successful()) {
+            $this->apiClient->logFailedResponse('voucher_reversal_post', $response);
+            $this->failRun(
+                $run,
+                $integration,
+                'PowerOffice voucher reversal failed: HTTP '.$response->status().$this->apiClient->summarizeErrorBody($response)
+                .' (voucher Id: '.$voucherId.'). The integration needs the ReverseVoucher_Full privilege in PowerOffice Go.'
+            );
+
+            return null;
+        }
+
+        return [
+            'voucher_id' => $voucherId,
+            'journal_voucher_no' => $run->journal_voucher_no,
+            'reversed_at' => now()->toIso8601String(),
+        ];
     }
 
     protected function failRun(PowerOfficeSyncRun $syncRun, PowerOfficeIntegration $integration, string $message): void

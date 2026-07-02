@@ -17,6 +17,7 @@ use App\Models\PowerOfficeAccountMapping;
 use App\Models\PowerOfficeIntegration;
 use App\Models\PowerOfficeSyncRun;
 use App\Models\Vendor;
+use App\Services\PowerOffice\PowerOfficeAccountStatusService;
 use App\Services\PowerOffice\PowerOfficeOnboardingService;
 use App\Support\PowerOffice\PowerOfficeLedgerDefaults;
 use App\Support\PowerOffice\PowerOfficeLedgerSettings;
@@ -52,6 +53,11 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
     public ?PowerOfficeIntegration $integration = null;
 
     public ?array $data = [];
+
+    /**
+     * Result of the last "check accounts in PowerOffice" run (see PowerOfficeAccountStatusService::check()).
+     */
+    public ?array $powerOfficeAccountStatus = null;
 
     public function mount(): void
     {
@@ -1021,6 +1027,173 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                     $this->runSyncLatestZReport();
                 }),
         ];
+    }
+
+    public function checkPowerOfficeAccountsAction(): Action
+    {
+        return Action::make('checkPowerOfficeAccounts')
+            ->label(__('Check accounts in PowerOffice'))
+            ->icon('heroicon-o-magnifying-glass')
+            ->color('gray')
+            ->action(function (PowerOfficeAccountStatusService $service): void {
+                $integration = $this->integration?->fresh('accountMappings');
+                if (! $integration) {
+                    return;
+                }
+
+                try {
+                    $this->powerOfficeAccountStatus = $service->check($integration);
+                } catch (\Throwable $e) {
+                    Notification::make()
+                        ->title(__('PowerOffice account check failed'))
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $missing = $this->missingPowerOfficeAccountCount();
+
+                $notification = Notification::make()
+                    ->title($missing === 0
+                        ? __('All account numbers exist in PowerOffice')
+                        : __(':count account number(s) are missing in PowerOffice', ['count' => $missing]));
+                $missing === 0 ? $notification->success() : $notification->warning();
+                $notification->send();
+            });
+    }
+
+    public function createMissingPowerOfficeAccountsAction(): Action
+    {
+        return Action::make('createMissingPowerOfficeAccounts')
+            ->label(__('Create missing in PowerOffice'))
+            ->icon('heroicon-o-plus-circle')
+            ->color('primary')
+            ->visible(fn (): bool => $this->missingPowerOfficeAccountCount() > 0)
+            ->modalHeading(__('Create missing PowerOffice accounts'))
+            ->modalDescription(__('GL accounts are created via the Accounting Settings API (vat code is set on the account); vendor reskontro numbers are created as suppliers. Remove rows you do not want to create.'))
+            ->fillForm(fn (): array => [
+                'gl_accounts' => collect($this->powerOfficeAccountStatus['gl'] ?? [])
+                    ->reject(fn (array $row): bool => $row['exists'])
+                    ->map(fn (array $row): array => [
+                        'account_no' => $row['account_no'],
+                        'name' => implode(', ', $row['purposes']),
+                        'vat_code' => $row['suggested_vat_code'],
+                    ])
+                    ->values()
+                    ->all(),
+                'suppliers' => collect($this->powerOfficeAccountStatus['suppliers'] ?? [])
+                    ->reject(fn (array $row): bool => $row['exists'])
+                    ->map(fn (array $row): array => [
+                        'number' => $row['number'],
+                        'name' => $row['vendor'],
+                    ])
+                    ->values()
+                    ->all(),
+            ])
+            ->form([
+                Repeater::make('gl_accounts')
+                    ->label(__('General ledger accounts'))
+                    ->addable(false)
+                    ->reorderable(false)
+                    ->defaultItems(0)
+                    ->columns(3)
+                    ->schema([
+                        TextInput::make('account_no')
+                            ->label(__('Account'))
+                            ->disabled()
+                            ->dehydrated(),
+                        TextInput::make('name')
+                            ->label(__('Name'))
+                            ->required()
+                            ->maxLength(120),
+                        Select::make('vat_code')
+                            ->label(__('VAT code'))
+                            ->options([
+                                '0' => __('0 — No VAT'),
+                                '3' => __('3 — Outgoing VAT 25%'),
+                                '31' => __('31 — Outgoing VAT 15%'),
+                                '33' => __('33 — Outgoing VAT low rate'),
+                                '5' => __('5 — Exempt domestic turnover'),
+                                '6' => __('6 — Outside the VAT act'),
+                            ])
+                            ->required()
+                            ->native(false),
+                    ]),
+                Repeater::make('suppliers')
+                    ->label(__('Vendor reskontro (suppliers)'))
+                    ->addable(false)
+                    ->reorderable(false)
+                    ->defaultItems(0)
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('number')
+                            ->label(__('Reskontro number'))
+                            ->disabled()
+                            ->dehydrated(),
+                        TextInput::make('name')
+                            ->label(__('Supplier name'))
+                            ->required()
+                            ->maxLength(120),
+                    ]),
+            ])
+            ->action(function (array $data, PowerOfficeAccountStatusService $service): void {
+                $integration = $this->integration?->fresh();
+                if (! $integration) {
+                    return;
+                }
+
+                $created = 0;
+                $errors = [];
+
+                foreach ($data['gl_accounts'] ?? [] as $row) {
+                    $result = $service->createGlAccount(
+                        $integration,
+                        (string) $row['account_no'],
+                        (string) $row['name'],
+                        (string) $row['vat_code'],
+                    );
+                    $result['ok'] ? $created++ : $errors[] = $row['account_no'].': '.$result['error'];
+                }
+
+                foreach ($data['suppliers'] ?? [] as $row) {
+                    $result = $service->createSupplier($integration, (string) $row['number'], (string) $row['name']);
+                    $result['ok'] ? $created++ : $errors[] = $row['number'].': '.$result['error'];
+                }
+
+                try {
+                    $this->powerOfficeAccountStatus = $service->check($integration->fresh('accountMappings'));
+                } catch (\Throwable) {
+                    // Keep the previous status if the refresh fails; the notification below still reports results.
+                }
+
+                if ($errors === []) {
+                    Notification::make()
+                        ->title(__(':count account(s) created in PowerOffice', ['count' => $created]))
+                        ->success()
+                        ->send();
+
+                    return;
+                }
+
+                Notification::make()
+                    ->title(__(':created created, :failed failed', ['created' => $created, 'failed' => count($errors)]))
+                    ->body(implode("\n", array_slice($errors, 0, 5)))
+                    ->danger()
+                    ->persistent()
+                    ->send();
+            });
+    }
+
+    public function missingPowerOfficeAccountCount(): int
+    {
+        if (! is_array($this->powerOfficeAccountStatus)) {
+            return 0;
+        }
+
+        return collect($this->powerOfficeAccountStatus['gl'] ?? [])->where('exists', false)->count()
+            + collect($this->powerOfficeAccountStatus['suppliers'] ?? [])->where('exists', false)->count();
     }
 
     public function refreshIntegration(): void

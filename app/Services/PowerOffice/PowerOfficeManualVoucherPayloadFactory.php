@@ -61,8 +61,9 @@ class PowerOfficeManualVoucherPayloadFactory
                 $row['VatId'] = $resolved['vat_code_id'];
             }
 
+            // Department dimension goes on every line (turnover, payment, fees), matching manual bookkeeping.
             $departmentId = $ledgerPayload['department_id'] ?? null;
-            if (is_numeric($departmentId) && (int) $departmentId > 0 && ! empty($line['apply_department'])) {
+            if (is_numeric($departmentId) && (int) $departmentId > 0) {
                 $row['DepartmentId'] = (int) $departmentId;
             }
 

@@ -50,6 +50,89 @@
 
         <x-filament::section class="mt-8">
             <x-slot name="heading">
+                {{ __('PowerOffice accounts') }}
+            </x-slot>
+            <x-slot name="description">
+                {{ __('Checks whether the saved account numbers (mappings, ledger routing, vendor reskontro and commission accounts) exist in PowerOffice Go. Save your settings first.') }}
+            </x-slot>
+
+            <div class="flex flex-wrap items-center gap-3">
+                {{ $this->checkPowerOfficeAccountsAction }}
+                @if($this->missingPowerOfficeAccountCount() > 0)
+                    {{ $this->createMissingPowerOfficeAccountsAction }}
+                @endif
+            </div>
+
+            @if(is_array($this->powerOfficeAccountStatus))
+                @php
+                    $glRows = $this->powerOfficeAccountStatus['gl'] ?? [];
+                    $supplierRows = $this->powerOfficeAccountStatus['suppliers'] ?? [];
+                @endphp
+
+                <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
+                    <table class="w-full divide-y divide-gray-200 text-sm dark:divide-white/10">
+                        <thead class="bg-gray-50 dark:bg-white/5">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-200">{{ __('Account') }}</th>
+                                <th class="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-200">{{ __('Used for') }}</th>
+                                <th class="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-200">{{ __('In PowerOffice') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                            @forelse($glRows as $row)
+                                <tr wire:key="po-gl-{{ $row['account_no'] }}">
+                                    <td class="px-3 py-2 font-mono text-gray-900 dark:text-white">{{ $row['account_no'] }}</td>
+                                    <td class="px-3 py-2 text-gray-700 dark:text-gray-300">{{ implode(', ', $row['purposes']) }}</td>
+                                    <td class="px-3 py-2">
+                                        @if($row['exists'])
+                                            <x-filament::badge color="success">{{ __('Exists') }}</x-filament::badge>
+                                        @else
+                                            <x-filament::badge color="danger">{{ __('Missing') }}</x-filament::badge>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="px-3 py-2 text-gray-500 dark:text-gray-400">{{ __('No account numbers configured yet.') }}</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                @if($supplierRows !== [])
+                    <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
+                        <table class="w-full divide-y divide-gray-200 text-sm dark:divide-white/10">
+                            <thead class="bg-gray-50 dark:bg-white/5">
+                                <tr>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-200">{{ __('Reskontro') }}</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-200">{{ __('Vendor') }}</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-200">{{ __('In PowerOffice') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                                @foreach($supplierRows as $row)
+                                    <tr wire:key="po-supplier-{{ $row['number'] }}">
+                                        <td class="px-3 py-2 font-mono text-gray-900 dark:text-white">{{ $row['number'] }}</td>
+                                        <td class="px-3 py-2 text-gray-700 dark:text-gray-300">{{ $row['vendor'] }}</td>
+                                        <td class="px-3 py-2">
+                                            @if($row['exists'])
+                                                <x-filament::badge color="success">{{ __('Exists') }}</x-filament::badge>
+                                            @else
+                                                <x-filament::badge color="danger">{{ __('Missing') }}</x-filament::badge>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            @endif
+        </x-filament::section>
+
+        <x-filament::section class="mt-8">
+            <x-slot name="heading">
                 {{ __('Recent syncs') }}
             </x-slot>
             @if($this->recentSyncRuns()->isEmpty())

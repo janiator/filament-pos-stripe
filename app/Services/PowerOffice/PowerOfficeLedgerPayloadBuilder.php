@@ -52,29 +52,22 @@ class PowerOfficeLedgerPayloadBuilder
         }
 
         $lines = [];
-        $vatAmount = (int) ($zReport['vat_amount'] ?? 0);
         $tipsAmount = (int) ($zReport['total_tips'] ?? 0);
-        $applyDepartment = PowerOfficeLedgerSettings::departmentNo($integration) !== null;
 
+        // Sales are credited GROSS with the GL account's vat code (PowerOffice splits out the VAT),
+        // exactly like a manually entered voucher. No explicit output-VAT line is posted.
         if ($basis === PowerOfficeMappingBasis::Category) {
-            $lines = array_merge($lines, $this->buildHybridCollectionSalesCreditLines($session, $integration, $zReport, $applyDepartment));
+            $lines = array_merge($lines, $this->buildHybridCollectionSalesCreditLines($session, $integration, $zReport));
         } elseif ($basis === PowerOfficeMappingBasis::Vendor) {
-            $lines = array_merge($lines, $this->buildVendorSalesCreditLines($session, $integration, $zReport, $applyDepartment));
+            $lines = array_merge($lines, $this->buildVendorSalesCreditLines($session, $integration, $zReport));
         } else {
-            $salesBuckets = PowerOfficeStandardVatRates::resolveSalesCreditBucketsForLedger($basis, $zReport, $mappingBuckets);
+            $salesBuckets = PowerOfficeStandardVatRates::resolveGrossSalesCreditBucketsForLedger($basis, $zReport, $mappingBuckets);
 
             foreach ($salesBuckets as $basisKey => $amount) {
                 if ($amount <= 0) {
                     continue;
                 }
-                $salesAccount = $this->resolveSalesAccountForCreditLine(
-                    $integration,
-                    $basis,
-                    $mappingBuckets,
-                    $zReport,
-                    (string) $basisKey,
-                    $session,
-                );
+                $salesAccount = $this->resolveSalesAccountNo($integration, $basis, (string) $basisKey, $session);
                 if (! $salesAccount) {
                     continue;
                 }
@@ -83,35 +76,7 @@ class PowerOfficeLedgerPayloadBuilder
                     $salesAccount,
                     $amount,
                     'sales ('.$basisKey.')',
-                    $applyDepartment,
                 );
-            }
-        }
-
-        if ($vatAmount > 0 && $defaultMapping->vat_account_no) {
-            $vatByRate = PowerOfficeStandardVatRates::normalizeVatMinorByVatRateMap($zReport['vat_minor_by_vat_rate'] ?? null);
-            if ($vatByRate !== []) {
-                foreach ($vatByRate as $rateKey => $vatPart) {
-                    $vatPart = (int) $vatPart;
-                    if ($vatPart <= 0) {
-                        continue;
-                    }
-                    $lines[] = [
-                        'account' => $defaultMapping->vat_account_no,
-                        'debit_minor' => 0,
-                        'credit_minor' => $vatPart,
-                        'description' => 'Z-report '.$session->session_number.' VAT '.$rateKey.'%',
-                        'apply_department' => $applyDepartment,
-                    ];
-                }
-            } else {
-                $lines[] = [
-                    'account' => $defaultMapping->vat_account_no,
-                    'debit_minor' => 0,
-                    'credit_minor' => $vatAmount,
-                    'description' => 'Z-report '.$session->session_number.' VAT',
-                    'apply_department' => $applyDepartment,
-                ];
             }
         }
 
@@ -121,7 +86,6 @@ class PowerOfficeLedgerPayloadBuilder
                 'debit_minor' => 0,
                 'credit_minor' => $tipsAmount,
                 'description' => 'Z-report '.$session->session_number.' tips',
-                'apply_department' => $applyDepartment,
             ];
         }
 
@@ -167,26 +131,20 @@ class PowerOfficeLedgerPayloadBuilder
     }
 
     /**
-     * @return list<array{account: string, debit_minor: int, credit_minor: int, description: string, apply_department?: bool}>
+     * @return array{account: string, debit_minor: int, credit_minor: int, description: string}
      */
     protected function salesCreditLine(
         PosSession $session,
         string $account,
         int $creditMinor,
         string $label,
-        bool $applyDepartment,
     ): array {
-        $line = [
+        return [
             'account' => $account,
             'debit_minor' => 0,
             'credit_minor' => $creditMinor,
             'description' => 'Z-report '.$session->session_number.' '.$label,
         ];
-        if ($applyDepartment) {
-            $line['apply_department'] = true;
-        }
-
-        return $line;
     }
 
     /**
@@ -240,18 +198,24 @@ class PowerOfficeLedgerPayloadBuilder
     }
 
     /**
-     * @return list<array{account: string, debit_minor: int, credit_minor: int, description: string, apply_department?: bool}>
+     * @return list<array{account: string, debit_minor: int, credit_minor: int, description: string}>
      */
     protected function buildHybridCollectionSalesCreditLines(
         PosSession $session,
         PowerOfficeIntegration $integration,
         array $zReport,
-        bool $applyDepartment,
     ): array {
         $productsSold = $this->productsSoldForHybridSales($session, $zReport);
         if (! is_array($productsSold) || $productsSold === []) {
+            // Without product rows the collection buckets fall back to net-per-VAT-rate; convert to gross.
+            $grossBuckets = PowerOfficeStandardVatRates::resolveGrossSalesCreditBucketsForLedger(
+                PowerOfficeMappingBasis::Vat,
+                $zReport,
+                $this->bucketsForVat($zReport),
+            );
+
             $lines = [];
-            foreach ($this->bucketsForCollection($session, $zReport) as $collectionKey => $amount) {
+            foreach ($grossBuckets as $collectionKey => $amount) {
                 if ($amount <= 0) {
                     continue;
                 }
@@ -259,7 +223,7 @@ class PowerOfficeLedgerPayloadBuilder
                 if (! $account) {
                     continue;
                 }
-                $lines[] = $this->salesCreditLine($session, $account, $amount, 'sales ('.$collectionKey.')', $applyDepartment);
+                $lines[] = $this->salesCreditLine($session, $account, $amount, 'sales ('.$collectionKey.')');
             }
 
             return $lines;
@@ -295,20 +259,19 @@ class PowerOfficeLedgerPayloadBuilder
             if ($creditMinor <= 0) {
                 continue;
             }
-            $lines[] = $this->salesCreditLine($session, $account, $creditMinor, 'sales', $applyDepartment);
+            $lines[] = $this->salesCreditLine($session, $account, $creditMinor, 'sales');
         }
 
         return $lines;
     }
 
     /**
-     * @return list<array{account: string, debit_minor: int, credit_minor: int, description: string, apply_department?: bool}>
+     * @return list<array{account: string, debit_minor: int, credit_minor: int, description: string}>
      */
     protected function buildVendorSalesCreditLines(
         PosSession $session,
         PowerOfficeIntegration $integration,
         array $zReport,
-        bool $applyDepartment,
     ): array {
         $rows = $zReport['sales_by_vendor'] ?? [];
         if ($rows instanceof Collection) {
@@ -368,7 +331,7 @@ class PowerOfficeLedgerPayloadBuilder
             if ($creditMinor <= 0) {
                 continue;
             }
-            $lines[] = $this->salesCreditLine($session, $account, $creditMinor, 'sales vendor', $applyDepartment);
+            $lines[] = $this->salesCreditLine($session, $account, $creditMinor, 'sales vendor');
         }
 
         return $lines;
@@ -904,76 +867,6 @@ class PowerOfficeLedgerPayloadBuilder
         return $method === 'cash'
             ? ($mapping->cash_account_no ?? null)
             : ($mapping->card_clearing_account_no ?? null);
-    }
-
-    protected function dominantPaymentMethodKeyForSalesAccount(array $zReport, array $mappingBuckets): ?string
-    {
-        $byNet = $zReport['by_payment_method_net'] ?? [];
-        if ($byNet instanceof Collection) {
-            $byNet = $byNet->all();
-        }
-        $bestKey = null;
-        $bestAmt = -1;
-        if (is_array($byNet)) {
-            foreach ($byNet as $method => $data) {
-                if (! is_array($data)) {
-                    continue;
-                }
-                $amount = (int) ($data['amount'] ?? 0);
-                if ($amount > $bestAmt) {
-                    $bestAmt = $amount;
-                    $bestKey = is_string($method) ? $method : (string) $method;
-                }
-            }
-        }
-        if ($bestKey !== null && $bestAmt > 0) {
-            return $bestKey;
-        }
-        foreach ($mappingBuckets as $k => $amount) {
-            $n = (int) $amount;
-            if ($n > $bestAmt) {
-                $bestAmt = $n;
-                $bestKey = (string) $k;
-            }
-        }
-
-        return ($bestKey !== null && $bestAmt > 0) ? $bestKey : null;
-    }
-
-    protected function resolveSalesAccountForCreditLine(
-        PowerOfficeIntegration $integration,
-        PowerOfficeMappingBasis $basis,
-        array $mappingBuckets,
-        array $zReport,
-        string $salesBucketKey,
-        ?PosSession $session = null,
-    ): ?string {
-        $vatSplit = PowerOfficeStandardVatRates::normalizeSalesNetMinorByVatRateMap($zReport['sales_net_minor_by_vat_rate'] ?? null);
-        if ($basis === PowerOfficeMappingBasis::Vat || $vatSplit === [] || ! array_key_exists($salesBucketKey, $vatSplit)) {
-            return $this->resolveSalesAccountNo($integration, $basis, $salesBucketKey, $session);
-        }
-
-        if ($basis === PowerOfficeMappingBasis::PaymentMethod) {
-            $dominant = $this->dominantPaymentMethodKeyForSalesAccount($zReport, $mappingBuckets);
-            if ($dominant !== null) {
-                $acct = $this->resolveSalesAccountNo($integration, $basis, $dominant, $session);
-                if (filled($acct)) {
-                    return $acct;
-                }
-            }
-        }
-
-        $fallbackAccount = PowerOfficeLedgerSettings::defaultSalesAccount($integration);
-        if (filled($fallbackAccount)) {
-            return $fallbackAccount;
-        }
-
-        $firstKey = array_key_first($mappingBuckets);
-        if (is_string($firstKey) && $firstKey !== '') {
-            return $this->resolveSalesAccountNo($integration, $basis, $firstKey, $session);
-        }
-
-        return null;
     }
 
     protected function resolveSalesAccountNo(

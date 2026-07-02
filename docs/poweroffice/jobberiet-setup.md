@@ -21,10 +21,25 @@ Create or verify these GL accounts in PowerOffice Go:
 
 Also confirm:
 
-- **Department 20** exists and is used for turnover (set in POS PowerOffice settings as `Department number (all turnover)`).
+- **Department 20** exists; it is applied to **every voucher line** (turnover, payments, fees), matching manual bookkeeping.
 - Vipps fee account **7720** exists for application-fee debits.
+- The integration has **ReverseVoucher_Full** privilege in PowerOffice Go — required for the re-sync action (reverse old voucher + post corrected one).
 
 Momskode is **not** sent from POS; the API uses `VatId` resolved from each GL account in PowerOffice.
+
+## Account check & bulk create
+
+On **Filament → PowerOffice**, the **PowerOffice accounts** section has **Check accounts in PowerOffice**: it verifies every saved account number (mappings, ledger routing, vendor commission accounts via `GET /GeneralLedgerAccounts`; vendor reskontro numbers via `GET /Suppliers`). Missing numbers can be bulk-created with **Create missing in PowerOffice** — GL accounts are created with a name + vat code (`POST /GeneralLedgerAccounts`, requires `GeneralLedgerAccount_Full`); reskontro numbers are created as suppliers (`POST /Suppliers`, requires `Supplier_Full`; the number must fall inside the client's supplier sub-ledger number series).
+
+## Voucher shape (matches the accountant's manual booking)
+
+- Sales are credited **gross (incl. VAT)** to sales/reskontro accounts. PowerOffice splits out the VAT from each line's vat code — **no explicit VAT line** is posted to 2700/2701. Vendor reskontro lines carry no vat code, so VAT is only reported on the store's own turnover + commission revenue, exactly like the manual voucher.
+- Commission vendors are split gross: vendor share → vendor's `supplier_ledger_account_number` (reskontro, e.g. 40001), commission share → commission revenue account (3023) with vat code.
+- Payment debits are gross per method (cash / card). To mirror the accountant exactly (bank debited directly, no interim/fee/payout lines), set `payment_debits.card` to the **bank account** (e.g. 1920) and leave the **payment fee** and **payout** account pairs empty in PowerOffice settings. Configure fee/payout pairs only if you want the Stripe settlement modelled through an interim account instead.
+
+## Re-sync (corrected Z-report)
+
+The **Sync PowerOffice** action on a POS session is safe to re-run. If a voucher was already posted, Filament asks for confirmation, then POSTs `/Vouchers/Reverse/{id}` (PowerOffice creates a reversal voucher and frees the `ExternalImportReference`) and posts a fresh voucher from the current Z-report snapshot. Automatic sync on session close never reverses.
 
 ## POS admin (Filament)
 

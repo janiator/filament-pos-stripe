@@ -53,6 +53,13 @@ function fakePowerOfficeLedgerHttp(): void
             return Http::response('', 204);
         }
 
+        if (str_contains($request->url(), 'Vouchers/Reverse/')) {
+            return Http::response([
+                'IsReversed' => true,
+                'VoucherId' => 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+            ], 200);
+        }
+
         return Http::response([
             'Id' => 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
             'VoucherNo' => 42,
@@ -87,7 +94,7 @@ it('creates a successful sync run when mapping exists and API succeeds', functio
     ]);
 
     $zReport = [
-        'net_amount' => 10000,
+        'net_amount' => 8000,
         'vat_amount' => 2000,
         'vat_rate' => 25,
         'total_tips' => 0,
@@ -163,7 +170,7 @@ it('is idempotent for the same session', function () {
         'closed_at' => now(),
         'closing_data' => [
             'z_report_data' => [
-                'net_amount' => 5000,
+                'net_amount' => 4000,
                 'vat_amount' => 1000,
                 'vat_rate' => 25,
                 'total_tips' => 0,
@@ -181,6 +188,67 @@ it('is idempotent for the same session', function () {
     $sync->sync($session->id, true);
 
     expect(\App\Models\PowerOfficeSyncRun::query()->where('pos_session_id', $session->id)->count())->toBe(1);
+
+    Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'Vouchers/Reverse/'));
+});
+
+it('reverses the posted voucher and creates a new one when re-syncing', function () {
+    fakePowerOfficeLedgerHttp();
+
+    $store = Store::factory()->create();
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::PowerOfficeGo,
+        'is_active' => true,
+    ]);
+
+    $integration = PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Vat,
+    ]);
+
+    PowerOfficeAccountMapping::factory()->create([
+        'power_office_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Vat,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'vat_account_no' => '2700',
+        'cash_account_no' => '1920',
+        'card_clearing_account_no' => '1921',
+    ]);
+
+    $session = PosSession::factory()->forStore($store)->create([
+        'status' => 'closed',
+        'closed_at' => now(),
+        'closing_data' => [
+            'z_report_data' => [
+                'net_amount' => 4000,
+                'vat_amount' => 1000,
+                'vat_rate' => 25,
+                'total_tips' => 0,
+                'net_cash_amount' => 5000,
+                'net_card_amount' => 0,
+                'net_mobile_amount' => 0,
+                'net_other_amount' => 0,
+                'store' => ['id' => $store->id, 'name' => $store->name],
+            ],
+        ],
+    ]);
+
+    $sync = app(PowerOfficeZReportSync::class);
+    expect($sync->sync($session->id, true))->toBeTrue();
+    expect($sync->sync($session->id, force: true, reverseExisting: true))->toBeTrue();
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'POST'
+        && str_contains($request->url(), 'Vouchers/Reverse/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'));
+
+    $runs = \App\Models\PowerOfficeSyncRun::query()->where('pos_session_id', $session->id)->get();
+
+    expect($runs)->toHaveCount(1)
+        ->and($runs->first()->status)->toBe(PowerOfficeSyncRunStatus::Success)
+        ->and($runs->first()->journal_voucher_no)->toBe(42)
+        ->and(data_get($runs->first()->response_payload, 'reversed_previous_voucher.voucher_id'))
+        ->toBe('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
 });
 
 it('dispatches sync job when a Z-report event is created and integration is ready', function () {

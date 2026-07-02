@@ -69,6 +69,48 @@ class PowerOfficeApiClient
     }
 
     /**
+     * @param  array<string, mixed>  $body
+     */
+    public function post(PowerOfficeIntegration $integration, string $path, array $body): Response
+    {
+        $base = $this->validatedBaseUrlForEnvironmentKey(
+            $integration->environment === PowerOfficeEnvironment::Prod ? 'prod' : 'dev',
+        );
+        $url = $base.'/'.ltrim($path, '/');
+        if (! $this->isAbsoluteHttpUrl($url)) {
+            throw new \RuntimeException('PowerOffice POST URL is not a valid absolute URL: '.$url);
+        }
+
+        return Http::withHeaders($this->headers($integration))
+            ->acceptJson()
+            ->asJson()
+            ->timeout(60)
+            ->post($url, $body);
+    }
+
+    /**
+     * Reverse a voucher previously posted by this integration (POST /Vouchers/Reverse/{id}).
+     * Go creates a reversal voucher nullifying the original transactions and frees the
+     * ExternalImportReference for reuse on a corrected voucher.
+     */
+    public function postVoucherReversal(PowerOfficeIntegration $integration, string $voucherGuid): Response
+    {
+        $base = $this->validatedBaseUrlForEnvironmentKey(
+            $integration->environment === PowerOfficeEnvironment::Prod ? 'prod' : 'dev',
+        );
+        $url = $base.'/Vouchers/Reverse/'.rawurlencode($voucherGuid);
+        if (! $this->isAbsoluteHttpUrl($url)) {
+            throw new \RuntimeException('PowerOffice voucher reversal URL is not valid: '.$url);
+        }
+
+        return Http::withHeaders($this->headers($integration))
+            ->acceptJson()
+            ->asJson()
+            ->timeout(60)
+            ->post($url);
+    }
+
+    /**
      * Attach or replace PDF documentation on a posted voucher (API-imported vouchers only).
      *
      * @see https://developer.poweroffice.net — Voucher documentation

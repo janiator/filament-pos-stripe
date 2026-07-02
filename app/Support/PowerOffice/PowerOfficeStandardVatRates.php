@@ -104,6 +104,46 @@ final class PowerOfficeStandardVatRates
     }
 
     /**
+     * Gross (VAT-inclusive) sales credit buckets for PowerOffice manual vouchers.
+     * PowerOffice derives VAT from each GL account's vat code, so posted amounts must be gross
+     * and no explicit VAT line is booked (same as an accountant entering a manual voucher).
+     *
+     * For the VAT basis the Z-report stores net + VAT per rate; other bases already bucket gross amounts.
+     *
+     * @param  array<string, int>  $mappingBuckets
+     * @return array<string, int>
+     */
+    public static function resolveGrossSalesCreditBucketsForLedger(
+        PowerOfficeMappingBasis $basis,
+        array $zReport,
+        array $mappingBuckets,
+    ): array {
+        if ($basis !== PowerOfficeMappingBasis::Vat) {
+            return $mappingBuckets;
+        }
+
+        $netSplit = self::normalizeSalesNetMinorByVatRateMap($zReport['sales_net_minor_by_vat_rate'] ?? null);
+        if ($netSplit !== []) {
+            $vatSplit = self::normalizeVatMinorByVatRateMap($zReport['vat_minor_by_vat_rate'] ?? null);
+            $gross = [];
+            foreach ($netSplit as $rate => $net) {
+                $gross[$rate] = $net + ($vatSplit[$rate] ?? 0);
+            }
+
+            return $gross;
+        }
+
+        $grossTotal = (int) ($zReport['net_amount'] ?? 0) + (int) ($zReport['vat_amount'] ?? 0);
+        if ($grossTotal <= 0) {
+            return [];
+        }
+
+        $rate = (string) (int) ($zReport['vat_rate'] ?? 25);
+
+        return [$rate => $grossTotal];
+    }
+
+    /**
      * Sales credit buckets for Tripletex / PowerOffice Z-report payloads: prefer normalized VAT split,
      * else the mapping buckets, with a single-rate VAT fallback when mapping buckets are empty.
      *
