@@ -5,12 +5,14 @@ namespace App\Services\PowerOffice;
 use App\Enums\PowerOfficeMappingBasis;
 use App\Exceptions\PowerOffice\MissingPowerOfficeMappingException;
 use App\Filament\Resources\PosSessions\Tables\PosSessionsTable;
+use App\Models\ArticleGroupCode;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedProduct;
 use App\Models\PosSession;
 use App\Models\PowerOfficeAccountMapping;
 use App\Models\PowerOfficeIntegration;
 use App\Models\Vendor;
+use App\Support\PowerOffice\PowerOfficeLedgerLineDescriptions;
 use App\Support\PowerOffice\PowerOfficeLedgerSettings;
 use App\Support\PowerOffice\PowerOfficeStandardVatRates;
 use Illuminate\Support\Collection;
@@ -72,10 +74,9 @@ class PowerOfficeLedgerPayloadBuilder
                     continue;
                 }
                 $lines[] = $this->salesCreditLine(
-                    $session,
                     $salesAccount,
                     $amount,
-                    'sales ('.$basisKey.')',
+                    $this->salesDescriptionForBasisKey($integration, $basis, (string) $basisKey),
                 );
             }
         }
@@ -85,7 +86,7 @@ class PowerOfficeLedgerPayloadBuilder
                 'account' => $defaultMapping->tips_account_no,
                 'debit_minor' => 0,
                 'credit_minor' => $tipsAmount,
-                'description' => 'Z-report '.$session->session_number.' tips',
+                'description' => PowerOfficeLedgerLineDescriptions::tips(),
             ];
         }
 
@@ -104,14 +105,14 @@ class PowerOfficeLedgerPayloadBuilder
                     'account' => $defaultMapping->rounding_account_no,
                     'debit_minor' => 0,
                     'credit_minor' => $diff,
-                    'description' => 'Rounding Z-report '.$session->session_number,
+                    'description' => PowerOfficeLedgerLineDescriptions::rounding(),
                 ];
             } else {
                 $lines[] = [
                     'account' => $defaultMapping->rounding_account_no,
                     'debit_minor' => abs($diff),
                     'credit_minor' => 0,
-                    'description' => 'Rounding Z-report '.$session->session_number,
+                    'description' => PowerOfficeLedgerLineDescriptions::rounding(),
                 ];
             }
         }
@@ -123,7 +124,7 @@ class PowerOfficeLedgerPayloadBuilder
             'pos_session_id' => $session->id,
             'session_number' => $session->session_number,
             'document_date' => $closedAt->format('Y-m-d'),
-            'description' => 'POS Z-report '.$session->session_number,
+            'description' => PowerOfficeLedgerLineDescriptions::voucher($session),
             'currency' => 'NOK',
             'department_no' => PowerOfficeLedgerSettings::departmentNo($integration),
             'lines' => $lines,
@@ -133,18 +134,88 @@ class PowerOfficeLedgerPayloadBuilder
     /**
      * @return array{account: string, debit_minor: int, credit_minor: int, description: string}
      */
-    protected function salesCreditLine(
-        PosSession $session,
-        string $account,
-        int $creditMinor,
-        string $label,
-    ): array {
+    protected function salesCreditLine(string $account, int $creditMinor, string $description): array
+    {
         return [
             'account' => $account,
             'debit_minor' => 0,
             'credit_minor' => $creditMinor,
-            'description' => 'Z-report '.$session->session_number.' '.$label,
+            'description' => $description,
         ];
+    }
+
+    /**
+     * @param  array<string, int>  $credits
+     */
+    protected function accumulateCredit(array &$credits, string $account, int $amount, string $description): void
+    {
+        if ($amount <= 0) {
+            return;
+        }
+
+        $key = $account."\0".$description;
+        $credits[$key] = ($credits[$key] ?? 0) + $amount;
+    }
+
+    /**
+     * @param  array<string, int>  $credits
+     * @return list<array{account: string, debit_minor: int, credit_minor: int, description: string}>
+     */
+    protected function creditLinesFromAccumulatedMap(array $credits): array
+    {
+        $lines = [];
+        foreach ($credits as $key => $creditMinor) {
+            if ($creditMinor <= 0) {
+                continue;
+            }
+            [$account, $description] = explode("\0", $key, 2);
+            $lines[] = $this->salesCreditLine($account, $creditMinor, $description);
+        }
+
+        return $lines;
+    }
+
+    protected function salesDescriptionForHybridProduct(?ConnectedProduct $product): string
+    {
+        if ($product !== null) {
+            $product->loadMissing(['articleGroupCode', 'collections']);
+            $articleName = trim((string) ($product->articleGroupCode?->name ?? ''));
+            if ($articleName !== '') {
+                return PowerOfficeLedgerLineDescriptions::categorySales($articleName);
+            }
+
+            $collectionName = trim((string) ($product->collections->first()?->name ?? ''));
+            if ($collectionName !== '') {
+                return PowerOfficeLedgerLineDescriptions::categorySales($collectionName);
+            }
+        }
+
+        return PowerOfficeLedgerLineDescriptions::categorySales('');
+    }
+
+    protected function salesDescriptionForBasisKey(
+        PowerOfficeIntegration $integration,
+        PowerOfficeMappingBasis $basis,
+        string $basisKey,
+    ): string {
+        return match ($basis) {
+            PowerOfficeMappingBasis::Vat => PowerOfficeLedgerLineDescriptions::vatRateSales($basisKey),
+            PowerOfficeMappingBasis::Category => PowerOfficeLedgerLineDescriptions::categorySales(
+                ProductCollection::query()->find($basisKey)?->name ?? $basisKey,
+            ),
+            PowerOfficeMappingBasis::ArticleGroup => PowerOfficeLedgerLineDescriptions::categorySales(
+                ArticleGroupCode::query()
+                    ->where('store_id', $integration->store_id)
+                    ->where('code', $basisKey)
+                    ->value('name') ?? $basisKey,
+            ),
+            PowerOfficeMappingBasis::Vendor => is_numeric($basisKey)
+                ? PowerOfficeLedgerLineDescriptions::vendorNameFromRow(
+                    Vendor::query()->find((int) $basisKey)?->name,
+                )
+                : PowerOfficeLedgerLineDescriptions::categorySales(''),
+            default => PowerOfficeLedgerLineDescriptions::categorySales($basisKey),
+        };
     }
 
     /**
@@ -231,7 +302,13 @@ class PowerOfficeLedgerPayloadBuilder
                 if (! $account) {
                     continue;
                 }
-                $lines[] = $this->salesCreditLine($session, $account, $amount, 'sales ('.$collectionKey.')');
+                $lines[] = $this->salesCreditLine(
+                    $account,
+                    $amount,
+                    PowerOfficeLedgerLineDescriptions::categorySales(
+                        ProductCollection::query()->find($collectionKey)?->name ?? (string) $collectionKey,
+                    ),
+                );
             }
 
             return $lines;
@@ -259,18 +336,15 @@ class PowerOfficeLedgerPayloadBuilder
             if (! $salesAccount) {
                 continue;
             }
-            $credits[$salesAccount] = ($credits[$salesAccount] ?? 0) + $amount;
+            $this->accumulateCredit(
+                $credits,
+                $salesAccount,
+                $amount,
+                $this->salesDescriptionForHybridProduct($product),
+            );
         }
 
-        $lines = [];
-        foreach ($credits as $account => $creditMinor) {
-            if ($creditMinor <= 0) {
-                continue;
-            }
-            $lines[] = $this->salesCreditLine($session, $account, $creditMinor, 'sales');
-        }
-
-        return $lines;
+        return $this->creditLinesFromAccumulatedMap($credits);
     }
 
     /**
@@ -321,7 +395,12 @@ class PowerOfficeLedgerPayloadBuilder
             if (! $vendor instanceof Vendor) {
                 $account = PowerOfficeLedgerSettings::defaultSalesAccount($integration);
                 if ($account) {
-                    $credits[$account] = ($credits[$account] ?? 0) + $amount;
+                    $this->accumulateCredit(
+                        $credits,
+                        $account,
+                        $amount,
+                        PowerOfficeLedgerLineDescriptions::vendorNameFromRow($row['name'] ?? null),
+                    );
                 }
 
                 continue;
@@ -349,7 +428,7 @@ class PowerOfficeLedgerPayloadBuilder
             );
         }
 
-        return $this->salesCreditLinesFromCreditsMap($session, $credits, 'sales');
+        return $this->creditLinesFromAccumulatedMap($credits);
     }
 
     /**
@@ -369,7 +448,12 @@ class PowerOfficeLedgerPayloadBuilder
         if (! is_array($productsSold) || $productsSold === []) {
             $account = $this->resolveDefaultStoreSalesAccount($integration, $session);
             if ($account && $targetMinor > 0) {
-                $credits[$account] = ($credits[$account] ?? 0) + $targetMinor;
+                $this->accumulateCredit(
+                    $credits,
+                    $account,
+                    $targetMinor,
+                    PowerOfficeLedgerLineDescriptions::categorySales(''),
+                );
             }
 
             return;
@@ -403,13 +487,23 @@ class PowerOfficeLedgerPayloadBuilder
                 continue;
             }
 
-            $storeCredits[$salesAccount] = ($storeCredits[$salesAccount] ?? 0) + $amount;
+            $this->accumulateCredit(
+                $storeCredits,
+                $salesAccount,
+                $amount,
+                $this->salesDescriptionForHybridProduct($product),
+            );
         }
 
         if ($storeCredits === []) {
             $account = $this->resolveDefaultStoreSalesAccount($integration, $session);
             if ($account && $targetMinor > 0) {
-                $credits[$account] = ($credits[$account] ?? 0) + $targetMinor;
+                $this->accumulateCredit(
+                    $credits,
+                    $account,
+                    $targetMinor,
+                    PowerOfficeLedgerLineDescriptions::categorySales(''),
+                );
             }
 
             return;
@@ -417,11 +511,12 @@ class PowerOfficeLedgerPayloadBuilder
 
         $scaled = $this->scaleCreditsMapToTarget($storeCredits, $targetMinor);
 
-        foreach ($scaled as $account => $creditMinor) {
+        foreach ($scaled as $key => $creditMinor) {
             if ($creditMinor <= 0) {
                 continue;
             }
-            $credits[$account] = ($credits[$account] ?? 0) + $creditMinor;
+            [$account, $description] = explode("\0", $key, 2);
+            $this->accumulateCredit($credits, $account, $creditMinor, $description);
         }
     }
 
@@ -448,34 +543,32 @@ class PowerOfficeLedgerPayloadBuilder
                 if (! filled($supplierAccount)) {
                     throw new MissingPowerOfficeMappingException(['vendor:'.$vendor->getKey()]);
                 }
-                $credits[$supplierAccount] = ($credits[$supplierAccount] ?? 0) + $vendorShareMinor;
+                $this->accumulateCredit(
+                    $credits,
+                    $supplierAccount,
+                    $vendorShareMinor,
+                    PowerOfficeLedgerLineDescriptions::vendorName($vendor),
+                );
             }
-            $credits[$commissionAccount] = ($credits[$commissionAccount] ?? 0) + $commissionMinor;
+            $this->accumulateCredit(
+                $credits,
+                $commissionAccount,
+                $commissionMinor,
+                PowerOfficeLedgerLineDescriptions::vendorCommission($vendor),
+            );
 
             return;
         }
 
         $account = $supplierAccount ?? PowerOfficeLedgerSettings::defaultSalesAccount($integration);
         if (filled($account)) {
-            $credits[$account] = ($credits[$account] ?? 0) + $grossMinor;
+            $this->accumulateCredit(
+                $credits,
+                $account,
+                $grossMinor,
+                PowerOfficeLedgerLineDescriptions::vendorName($vendor),
+            );
         }
-    }
-
-    /**
-     * @param  array<string, int>  $credits
-     * @return list<array{account: string, debit_minor: int, credit_minor: int, description: string}>
-     */
-    protected function salesCreditLinesFromCreditsMap(PosSession $session, array $credits, string $label): array
-    {
-        $lines = [];
-        foreach ($credits as $account => $creditMinor) {
-            if ($creditMinor <= 0) {
-                continue;
-            }
-            $lines[] = $this->salesCreditLine($session, $account, $creditMinor, $label);
-        }
-
-        return $lines;
     }
 
     /**
@@ -510,7 +603,12 @@ class PowerOfficeLedgerPayloadBuilder
             if ($vendorId === 'no-vendor' || $vendorId === 'unknown') {
                 $account = PowerOfficeLedgerSettings::defaultSalesAccount($integration);
                 if ($account) {
-                    $credits[$account] = ($credits[$account] ?? 0) + $amount;
+                    $this->accumulateCredit(
+                        $credits,
+                        $account,
+                        $amount,
+                        PowerOfficeLedgerLineDescriptions::categorySales(''),
+                    );
                 }
 
                 continue;
@@ -520,7 +618,12 @@ class PowerOfficeLedgerPayloadBuilder
             if (! $vendor) {
                 $account = PowerOfficeLedgerSettings::defaultSalesAccount($integration);
                 if ($account) {
-                    $credits[$account] = ($credits[$account] ?? 0) + $amount;
+                    $this->accumulateCredit(
+                        $credits,
+                        $account,
+                        $amount,
+                        PowerOfficeLedgerLineDescriptions::vendorNameFromRow($row['name'] ?? null),
+                    );
                 }
 
                 continue;
@@ -541,19 +644,16 @@ class PowerOfficeLedgerPayloadBuilder
             $account = $this->resolveVendorSupplierAccount($integration, $vendor)
                 ?? PowerOfficeLedgerSettings::defaultSalesAccount($integration);
             if ($account) {
-                $credits[$account] = ($credits[$account] ?? 0) + $amount;
+                $this->accumulateCredit(
+                    $credits,
+                    $account,
+                    $amount,
+                    PowerOfficeLedgerLineDescriptions::vendorName($vendor),
+                );
             }
         }
 
-        $lines = [];
-        foreach ($credits as $account => $creditMinor) {
-            if ($creditMinor <= 0) {
-                continue;
-            }
-            $lines[] = $this->salesCreditLine($session, $account, $creditMinor, 'sales vendor');
-        }
-
-        return $lines;
+        return $this->creditLinesFromAccumulatedMap($credits);
     }
 
     /**
@@ -577,16 +677,31 @@ class PowerOfficeLedgerPayloadBuilder
             }
 
             if ($vendorShareMinor > 0 && filled($supplierAccount)) {
-                $credits[$supplierAccount] = ($credits[$supplierAccount] ?? 0) + $vendorShareMinor;
+                $this->accumulateCredit(
+                    $credits,
+                    $supplierAccount,
+                    $vendorShareMinor,
+                    PowerOfficeLedgerLineDescriptions::vendorName($vendor),
+                );
             }
-            $credits[$commissionAccount] = ($credits[$commissionAccount] ?? 0) + $commissionMinor;
+            $this->accumulateCredit(
+                $credits,
+                $commissionAccount,
+                $commissionMinor,
+                PowerOfficeLedgerLineDescriptions::vendorCommission($vendor),
+            );
 
             return;
         }
 
         $fallback = $supplierAccount ?? PowerOfficeLedgerSettings::defaultSalesAccount($integration);
         if (filled($fallback)) {
-            $credits[$fallback] = ($credits[$fallback] ?? 0) + $grossMinor;
+            $this->accumulateCredit(
+                $credits,
+                $fallback,
+                $grossMinor,
+                PowerOfficeLedgerLineDescriptions::vendorName($vendor),
+            );
         }
     }
 
@@ -790,7 +905,7 @@ class PowerOfficeLedgerPayloadBuilder
             'account' => $feeAccount,
             'debit_minor' => $fees,
             'credit_minor' => 0,
-            'description' => 'Z-report '.$session->session_number.' Vipps fees',
+            'description' => PowerOfficeLedgerLineDescriptions::vippsFees(),
         ]];
     }
 
@@ -823,7 +938,7 @@ class PowerOfficeLedgerPayloadBuilder
                 'account' => $giftAccount,
                 'debit_minor' => 0,
                 'credit_minor' => $giftMinor,
-                'description' => 'Z-report '.$session->session_number.' gift card sales (liability)',
+                'description' => PowerOfficeLedgerLineDescriptions::giftCardLiability(),
             ];
         }
 
@@ -838,13 +953,13 @@ class PowerOfficeLedgerPayloadBuilder
                     'account' => $fee['credit'],
                     'debit_minor' => 0,
                     'credit_minor' => $fees,
-                    'description' => 'Z-report '.$session->session_number.' payment fees (settlement)',
+                    'description' => PowerOfficeLedgerLineDescriptions::paymentFeesSettlement(),
                 ];
                 $extra[] = [
                     'account' => $fee['debit'],
                     'debit_minor' => $fees,
                     'credit_minor' => 0,
-                    'description' => 'Z-report '.$session->session_number.' payment fees (expense)',
+                    'description' => PowerOfficeLedgerLineDescriptions::paymentFeesExpense(),
                 ];
             }
         }
@@ -860,13 +975,13 @@ class PowerOfficeLedgerPayloadBuilder
                     'account' => $po['credit'],
                     'debit_minor' => 0,
                     'credit_minor' => $payout,
-                    'description' => 'Z-report '.$session->session_number.' payout (settlement)',
+                    'description' => PowerOfficeLedgerLineDescriptions::payoutSettlement(),
                 ];
                 $extra[] = [
                     'account' => $po['debit'],
                     'debit_minor' => $payout,
                     'credit_minor' => 0,
-                    'description' => 'Z-report '.$session->session_number.' payout (bank)',
+                    'description' => PowerOfficeLedgerLineDescriptions::payoutBank(),
                 ];
             }
         }
@@ -1050,7 +1165,7 @@ class PowerOfficeLedgerPayloadBuilder
                     'account' => $account,
                     'debit_minor' => $amount,
                     'credit_minor' => 0,
-                    'description' => 'Z-report payment '.(string) $method,
+                    'description' => PowerOfficeLedgerLineDescriptions::payment((string) $method, $session),
                 ];
             }
 
@@ -1079,7 +1194,7 @@ class PowerOfficeLedgerPayloadBuilder
                         'account' => $account,
                         'debit_minor' => $amount,
                         'credit_minor' => 0,
-                        'description' => 'Z-report payment '.(string) $method,
+                        'description' => PowerOfficeLedgerLineDescriptions::payment((string) $method, $session),
                     ];
                 }
             }
@@ -1114,7 +1229,7 @@ class PowerOfficeLedgerPayloadBuilder
                 'account' => $account,
                 'debit_minor' => $amount,
                 'credit_minor' => 0,
-                'description' => 'Z-report payment '.$method,
+                'description' => PowerOfficeLedgerLineDescriptions::payment($method, $session),
             ];
         }
 

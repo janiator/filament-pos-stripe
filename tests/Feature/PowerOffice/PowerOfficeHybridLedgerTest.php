@@ -130,7 +130,9 @@ it('splits stuttreist vendor sales between reskontro and commission revenue acco
     $payload = app(PowerOfficeLedgerPayloadBuilder::class)->build($session, $integration->fresh('accountMappings'), $zReport);
 
     expect(collect($payload['lines'])->firstWhere('account', '40001')['credit_minor'] ?? null)->toBe(9_000)
-        ->and(collect($payload['lines'])->firstWhere('account', '3023')['credit_minor'] ?? null)->toBe(1_000);
+        ->and(collect($payload['lines'])->firstWhere('account', '3023')['credit_minor'] ?? null)->toBe(1_000)
+        ->and(collect($payload['lines'])->firstWhere('account', '40001')['description'] ?? null)->toBe('Stuttreist')
+        ->and(collect($payload['lines'])->firstWhere('account', '3023')['description'] ?? null)->toBe('Salg Stuttreist');
 });
 
 it('posts vipps fees to configured fee account and reduces vipps clearing debit', function () {

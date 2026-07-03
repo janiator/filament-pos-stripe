@@ -67,7 +67,7 @@ it('aggregates products sold by primary collection id', function () {
 
     $payload = app(PowerOfficeLedgerPayloadBuilder::class)->build($session, $integration->fresh('accountMappings'), $zReport);
 
-    $salesLine = collect($payload['lines'])->first(fn (array $l): bool => $l['credit_minor'] === 10_000 && str_contains($l['description'], 'sales'));
+    $salesLine = collect($payload['lines'])->first(fn (array $l): bool => $l['credit_minor'] === 10_000 && str_contains($l['description'], 'Salg'));
     expect($salesLine)->not->toBeNull()
         ->and($salesLine['account'])->toBe('3100');
 });
@@ -135,7 +135,7 @@ it('uses default sales account when collection mapping is missing', function () 
 
     $payload = app(PowerOfficeLedgerPayloadBuilder::class)->build($session, $integration->fresh('accountMappings'), $zReport);
 
-    $salesLine = collect($payload['lines'])->first(fn (array $l): bool => $l['credit_minor'] === 5_000 && str_contains($l['description'], 'sales'));
+    $salesLine = collect($payload['lines'])->first(fn (array $l): bool => $l['credit_minor'] === 5_000 && str_contains($l['description'], 'Salg'));
     expect($salesLine)->not->toBeNull()
         ->and($salesLine['account'])->toBe('3999');
 });
