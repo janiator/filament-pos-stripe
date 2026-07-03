@@ -19,6 +19,11 @@ use Illuminate\Support\Collection;
 
 class PowerOfficeLedgerPayloadBuilder
 {
+    /** @var int Commission minor units held until flushed to one 3023 line. */
+    protected int $pendingAggregatedCommissionMinor = 0;
+
+    protected ?string $pendingAggregatedCommissionAccount = null;
+
     public function __construct(
         protected StripeSettlementTotalsForPosSession $stripeSettlementTotals,
     ) {}
@@ -28,6 +33,9 @@ class PowerOfficeLedgerPayloadBuilder
      */
     public function build(PosSession $session, PowerOfficeIntegration $integration, array $zReport): array
     {
+        $this->pendingAggregatedCommissionMinor = 0;
+        $this->pendingAggregatedCommissionAccount = null;
+
         $basis = $integration->mapping_basis;
         $mappingBuckets = $this->extractBuckets($session, $basis, $zReport);
 
@@ -344,6 +352,8 @@ class PowerOfficeLedgerPayloadBuilder
             );
         }
 
+        $this->flushAggregatedCommissionCredits($integration, $credits);
+
         return $this->creditLinesFromAccumulatedMap($credits);
     }
 
@@ -427,6 +437,8 @@ class PowerOfficeLedgerPayloadBuilder
                 $credits,
             );
         }
+
+        $this->flushAggregatedCommissionCredits($integration, $credits);
 
         return $this->creditLinesFromAccumulatedMap($credits);
     }
@@ -535,14 +547,14 @@ class PowerOfficeLedgerPayloadBuilder
         }
 
         $supplierAccount = $this->resolveVendorSupplierAccount($integration, $vendor);
-        $commissionAccount = $this->resolveVendorCommissionAccount($integration, $vendor);
 
-        if ($commissionMinor > 0 && filled($commissionAccount)) {
+        if ($commissionMinor > 0) {
+            if (! filled($supplierAccount)) {
+                throw new MissingPowerOfficeMappingException(['vendor:'.$vendor->getKey()]);
+            }
+
             $vendorShareMinor = $grossMinor - $commissionMinor;
             if ($vendorShareMinor > 0) {
-                if (! filled($supplierAccount)) {
-                    throw new MissingPowerOfficeMappingException(['vendor:'.$vendor->getKey()]);
-                }
                 $this->accumulateCredit(
                     $credits,
                     $supplierAccount,
@@ -550,12 +562,11 @@ class PowerOfficeLedgerPayloadBuilder
                     PowerOfficeLedgerLineDescriptions::vendorName($vendor),
                 );
             }
-            $this->accumulateCredit(
-                $credits,
-                $commissionAccount,
-                $commissionMinor,
-                PowerOfficeLedgerLineDescriptions::vendorCommission($vendor),
-            );
+
+            $this->pendingAggregatedCommissionMinor += $commissionMinor;
+            if ($this->pendingAggregatedCommissionAccount === null) {
+                $this->pendingAggregatedCommissionAccount = $this->resolveVendorCommissionAccount($integration, $vendor);
+            }
 
             return;
         }
@@ -569,6 +580,33 @@ class PowerOfficeLedgerPayloadBuilder
                 PowerOfficeLedgerLineDescriptions::vendorName($vendor),
             );
         }
+    }
+
+    /**
+     * @param  array<string, int>  $credits
+     */
+    protected function flushAggregatedCommissionCredits(
+        PowerOfficeIntegration $integration,
+        array &$credits,
+    ): void {
+        if ($this->pendingAggregatedCommissionMinor <= 0) {
+            return;
+        }
+
+        $commissionAccount = $this->pendingAggregatedCommissionAccount
+            ?? PowerOfficeLedgerSettings::commissionRevenueAccount($integration);
+        if (! filled($commissionAccount)) {
+            throw new MissingPowerOfficeMappingException([], 'Commission revenue account (3023) is not configured.');
+        }
+
+        $this->accumulateCredit(
+            $credits,
+            (string) $commissionAccount,
+            $this->pendingAggregatedCommissionMinor,
+            PowerOfficeLedgerLineDescriptions::aggregatedStuttreistCommission(),
+        );
+        $this->pendingAggregatedCommissionMinor = 0;
+        $this->pendingAggregatedCommissionAccount = null;
     }
 
     /**
@@ -653,6 +691,8 @@ class PowerOfficeLedgerPayloadBuilder
             }
         }
 
+        $this->flushAggregatedCommissionCredits($integration, $credits);
+
         return $this->creditLinesFromAccumulatedMap($credits);
     }
 
@@ -667,16 +707,15 @@ class PowerOfficeLedgerPayloadBuilder
     ): void {
         $commissionPercent = (float) $vendor->commission_percent;
         $commissionMinor = (int) round($grossMinor * ($commissionPercent / 100));
-        $vendorShareMinor = $grossMinor - $commissionMinor;
         $supplierAccount = $this->resolveVendorSupplierAccount($integration, $vendor);
-        $commissionAccount = $this->resolveVendorCommissionAccount($integration, $vendor);
 
-        if ($commissionMinor > 0 && filled($commissionAccount)) {
-            if ($vendorShareMinor > 0 && ! filled($supplierAccount)) {
+        if ($commissionMinor > 0) {
+            if (! filled($supplierAccount)) {
                 throw new MissingPowerOfficeMappingException(['vendor:'.$vendor->getKey()]);
             }
 
-            if ($vendorShareMinor > 0 && filled($supplierAccount)) {
+            $vendorShareMinor = $grossMinor - $commissionMinor;
+            if ($vendorShareMinor > 0) {
                 $this->accumulateCredit(
                     $credits,
                     $supplierAccount,
@@ -684,12 +723,11 @@ class PowerOfficeLedgerPayloadBuilder
                     PowerOfficeLedgerLineDescriptions::vendorName($vendor),
                 );
             }
-            $this->accumulateCredit(
-                $credits,
-                $commissionAccount,
-                $commissionMinor,
-                PowerOfficeLedgerLineDescriptions::vendorCommission($vendor),
-            );
+
+            $this->pendingAggregatedCommissionMinor += $commissionMinor;
+            if ($this->pendingAggregatedCommissionAccount === null) {
+                $this->pendingAggregatedCommissionAccount = $this->resolveVendorCommissionAccount($integration, $vendor);
+            }
 
             return;
         }

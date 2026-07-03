@@ -717,6 +717,88 @@ it('backfills missing products sold before applying hybrid vendor commission spl
         ->and(collect($payload['lines'])->firstWhere('account', '3000'))->toBeNull();
 });
 
+it('aggregates commission from multiple vendors into one 3023 line', function () {
+    $store = Store::factory()->create();
+    $vendorA = Vendor::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Vendor A',
+        'active' => true,
+        'commission_percent' => 10,
+        'supplier_ledger_account_number' => '40001',
+        'commission_revenue_account_number' => '3023',
+    ]);
+    $vendorB = Vendor::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => $store->stripe_account_id,
+        'name' => 'Vendor B',
+        'active' => true,
+        'commission_percent' => 10,
+        'supplier_ledger_account_number' => '40002',
+        'commission_revenue_account_number' => '3023',
+    ]);
+
+    $integration = PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Category,
+        'settings' => [
+            'ledger' => [
+                'payment_debits' => ['cash' => '1920'],
+                'commission_revenue_account_no' => '3023',
+            ],
+        ],
+    ]);
+
+    PowerOfficeAccountMapping::factory()->create([
+        'store_id' => $store->id,
+        'power_office_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Category,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'cash_account_no' => '1920',
+    ]);
+
+    $session = PosSession::factory()->create([
+        'store_id' => $store->id,
+        'status' => 'closed',
+        'closed_at' => now(),
+    ]);
+
+    $zReport = [
+        'net_amount' => 2_000,
+        'vat_amount' => 400,
+        'vat_rate' => 25,
+        'total_tips' => 0,
+        'sales_by_vendor' => [
+            [
+                'id' => $vendorA->id,
+                'name' => $vendorA->name,
+                'amount' => 1_000,
+                'commission_percent' => 10,
+                'commission_amount' => 100,
+            ],
+            [
+                'id' => $vendorB->id,
+                'name' => $vendorB->name,
+                'amount' => 1_000,
+                'commission_percent' => 10,
+                'commission_amount' => 100,
+            ],
+        ],
+        'by_payment_method_net' => [
+            'cash' => ['amount' => 2_000, 'count' => 1, 'tips' => 0],
+        ],
+    ];
+
+    $payload = app(PowerOfficeLedgerPayloadBuilder::class)->build($session, $integration->fresh('accountMappings'), $zReport);
+
+    $commissionLines = collect($payload['lines'])->where('account', '3023')->values();
+
+    expect($commissionLines)->toHaveCount(1)
+        ->and($commissionLines[0]['credit_minor'])->toBe(200)
+        ->and($commissionLines[0]['description'])->toBe('Salg Stuttreist');
+});
+
 it('rejects commission vendor sales when the vendor share account cannot be resolved', function () {
     $store = Store::factory()->create();
     $vendor = Vendor::query()->create([

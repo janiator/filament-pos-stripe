@@ -60,6 +60,11 @@ final class PowerOfficeLedgerLineDescriptions
         return $name !== '' ? $name : 'Leverandør';
     }
 
+    public static function aggregatedStuttreistCommission(): string
+    {
+        return self::categorySales('Stuttreist');
+    }
+
     public static function vendorCommission(Vendor $vendor): string
     {
         return 'Salg '.self::vendorName($vendor);
