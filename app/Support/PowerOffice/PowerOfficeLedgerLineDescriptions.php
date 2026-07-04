@@ -104,7 +104,7 @@ final class PowerOfficeLedgerLineDescriptions
 
     public static function paymentFeesSettlement(): string
     {
-        return 'Betalingsgebyr (avrungning)';
+        return 'Betalingsgebyr';
     }
 
     public static function paymentFeesExpense(): string
@@ -114,7 +114,7 @@ final class PowerOfficeLedgerLineDescriptions
 
     public static function payoutSettlement(): string
     {
-        return 'Utbetaling (avrungning)';
+        return 'Utbetaling';
     }
 
     public static function payoutBank(): string
