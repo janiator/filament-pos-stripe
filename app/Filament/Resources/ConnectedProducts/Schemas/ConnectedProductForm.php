@@ -1310,7 +1310,7 @@ class ConnectedProductForm
                     $includeId = $record?->quantity_unit_id
                         ?? (is_numeric($get('quantity_unit_id')) ? (int) $get('quantity_unit_id') : null);
 
-                    return QuantityUnit::forSelect($query, $includeId);
+                    return $query->forSelect($includeId);
                 }
             )
             ->getOptionLabelFromRecordUsing(fn (QuantityUnit $record): string => $record->display_name)
