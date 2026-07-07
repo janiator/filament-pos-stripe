@@ -347,3 +347,75 @@ it('shows per-rate mva rows in z-report embed when sales_net_minor_by_vat_rate i
         ->toMatch('/<td>200\.00 NOK<\/td>\s*<td class="text-right">50\.00 NOK<\/td>\s*<td class="text-right">250\.00 NOK<\/td>/')
         ->toMatch('/<th scope="row">Sum<\/th>\s*<td>300\.00 NOK<\/td>\s*<td class="text-right">65\.00 NOK<\/td>\s*<td class="text-right">365\.00 NOK<\/td>/');
 });
+
+it('renders the same z-report body in filament preview and pdf embed', function () {
+    $store = Store::factory()->create(['name' => 'Z Report Parity Store']);
+    $session = PosSession::factory()->forStore($store)->create([
+        'status' => 'closed',
+        'opened_at' => now()->subHours(2),
+        'closed_at' => now(),
+        'closing_notes' => 'Test closing note',
+    ]);
+    $session->load(['store', 'posDevice', 'user']);
+
+    $report = [
+        'store' => ['name' => $store->name],
+        'device' => null,
+        'cashier' => null,
+        'transactions_count' => 2,
+        'total_amount' => 50_000,
+        'total_refunded' => 5_000,
+        'refunds' => [[
+            'paid_at' => now()->subHour()->toISOString(),
+            'id' => 're_test_refund',
+            'payment_method' => 'card',
+            'description' => 'Refund test',
+            'amount' => 10_000,
+            'amount_refunded' => 5_000,
+        ]],
+        'cash_amount' => 10_000,
+        'card_amount' => 45_000,
+        'mobile_amount' => 0,
+        'other_amount' => 0,
+        'cash_refunded' => 0,
+        'card_refunded' => 5_000,
+        'net_cash_amount' => 10_000,
+        'net_card_amount' => 40_000,
+        'report_type' => 'Z-Report',
+        'stripe_fees_minor' => 250,
+        'payout_to_bank_minor' => 39_750,
+        'opening_balance' => 100,
+        'expected_cash' => 200,
+        'actual_cash' => 195,
+        'cash_difference' => -5,
+        'tips_enabled' => false,
+        'vat_base' => 36_000,
+        'vat_amount' => 9_000,
+        'vat_rate' => 25,
+        'manual_discounts' => ['count' => 1, 'amount' => 500],
+        'closing_notes' => 'Test closing note',
+        'cash_drawer_opens' => 3,
+        'nullinnslag_count' => 1,
+        'receipt_count' => 2,
+    ];
+
+    $embedHtml = view('reports.embed.z-report', [
+        'session' => $session,
+        'report' => $report,
+    ])->render();
+
+    $previewHtml = view('filament.resources.pos-reports.modals.z-report', [
+        'session' => $session,
+        'report' => $report,
+    ])->render();
+
+    $embedBody = view('reports.partials.z-report-body', [
+        'session' => $session,
+        'report' => $report,
+    ])->render();
+
+    expect($previewHtml)->toContain($embedBody)
+        ->and($embedHtml)->toContain($embedBody)
+        ->and($previewHtml)->toContain('Last ned PDF')
+        ->and($embedHtml)->not->toContain('Last ned PDF');
+});

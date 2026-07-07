@@ -1,0 +1,537 @@
+    <div class="header">
+        <h1>Z-Rapport (Sluttrapport)</h1>
+        <div class="header-info">
+            <div><strong>Øktsnummer:</strong> {{ $session->session_number }}</div>
+            <div><strong>Butikk:</strong> {{ $report['store']['name'] ?? 'N/A' }}</div>
+            <div><strong>Åpnet:</strong> {{ $session->opened_at->format('d.m.Y H:i') }}</div>
+            <div><strong>Stengt:</strong> {{ $session->closed_at?->format('d.m.Y H:i') ?? 'N/A' }}</div>
+            @if($report['device'])
+                <div><strong>Enhet:</strong> {{ $report['device']['name'] }}</div>
+            @endif
+            @if($report['cashier'])
+                <div><strong>Kasserer:</strong> {{ $report['cashier']['name'] }}</div>
+            @endif
+        </div>
+    </div>
+
+    <div class="metrics">
+        <div>
+            <div class="metric-card">
+                <div class="metric-label">Transaksjoner</div>
+                <div class="metric-value">{{ $report['transactions_count'] }}</div>
+            </div>
+        </div>
+        <div>
+            <div class="metric-card">
+                <div class="metric-label">Totalt Beløp</div>
+                @php
+                    $totalTurnoverMinor = (int) ($report['total_amount'] ?? 0) - (int) ($report['total_refunded'] ?? 0);
+                    $hasRefunds = isset($report['total_refunded']) && $report['total_refunded'] > 0;
+                @endphp
+                <div class="metric-value">{{ number_format($totalTurnoverMinor / 100, 2) }} NOK</div>
+                @if($hasRefunds)
+                    <div style="font-size: 7pt; color: #4b5563; margin-top: 4px;">
+                        Totalt: {{ number_format($report['total_amount'] / 100, 2) }} NOK
+                    </div>
+                    <div style="font-size: 7pt; color: #dc2626; margin-top: 2px;">
+                        Refusjoner: -{{ number_format($report['total_refunded'] / 100, 2) }} NOK
+                    </div>
+                @endif
+            </div>
+        </div>
+        <div>
+            <div class="metric-card">
+                <div class="metric-label">Kontant</div>
+                @php
+                    $netCashAmount = $report['net_cash_amount'] ?? ($report['cash_amount'] - ($report['cash_refunded'] ?? 0));
+                    $hasCashRefunds = isset($report['cash_refunded']) && $report['cash_refunded'] > 0;
+                @endphp
+                <div class="metric-value">{{ number_format($netCashAmount / 100, 2) }} NOK</div>
+                @if($hasCashRefunds)
+                    <div style="font-size: 7pt; color: #4b5563; margin-top: 4px;">
+                        Totalt: {{ number_format($report['cash_amount'] / 100, 2) }} NOK
+                    </div>
+                    <div style="font-size: 7pt; color: #dc2626; margin-top: 2px;">
+                        Refusjoner: -{{ number_format($report['cash_refunded'] / 100, 2) }} NOK
+                    </div>
+                @endif
+            </div>
+        </div>
+        <div>
+            <div class="metric-card">
+                <div class="metric-label">Kort</div>
+                @php
+                    $netCardAmount = $report['net_card_amount'] ?? ($report['card_amount'] - ($report['card_refunded'] ?? 0));
+                    $cardRefunded = $report['card_refunded'] ?? 0;
+                    $hasCardRefunds = $cardRefunded > 0;
+                @endphp
+                <div class="metric-value">{{ number_format($netCardAmount / 100, 2) }} NOK</div>
+                @if($hasCardRefunds)
+                    <div style="font-size: 7pt; color: #4b5563; margin-top: 4px;">
+                        Totalt: {{ number_format($report['card_amount'] / 100, 2) }} NOK
+                    </div>
+                    <div style="font-size: 7pt; color: #dc2626; margin-top: 2px;">
+                        Refusjoner: -{{ number_format($cardRefunded / 100, 2) }} NOK
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    @if($report['mobile_amount'] > 0 || $report['other_amount'] > 0)
+        <div class="metrics">
+            @if($report['mobile_amount'] > 0)
+                <div>
+                    <div class="metric-card">
+                        <div class="metric-label">Mobil</div>
+                        @php
+                            $netMobileAmount = $report['net_mobile_amount'] ?? ($report['mobile_amount'] - ($report['mobile_refunded'] ?? 0));
+                            $mobileRefunded = $report['mobile_refunded'] ?? 0;
+                            $hasMobileRefunds = $mobileRefunded > 0;
+                        @endphp
+                        <div class="metric-value" style="font-size: 14pt;">{{ number_format($netMobileAmount / 100, 2) }} NOK</div>
+                        @if($hasMobileRefunds)
+                            <div style="font-size: 7pt; color: #4b5563; margin-top: 4px;">
+                                Totalt: {{ number_format($report['mobile_amount'] / 100, 2) }} NOK
+                            </div>
+                            <div style="font-size: 7pt; color: #dc2626; margin-top: 2px;">
+                                Refusjoner: -{{ number_format($mobileRefunded / 100, 2) }} NOK
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+            @if($report['other_amount'] > 0)
+                <div>
+                    <div class="metric-card">
+                        <div class="metric-label">Annet</div>
+                        @php
+                            $netOtherAmount = $report['net_other_amount'] ?? ($report['other_amount'] - ($report['other_refunded'] ?? 0));
+                            $otherRefunded = $report['other_refunded'] ?? 0;
+                            $hasOtherRefunds = $otherRefunded > 0;
+                        @endphp
+                        <div class="metric-value" style="font-size: 14pt;">{{ number_format($netOtherAmount / 100, 2) }} NOK</div>
+                        @if($hasOtherRefunds)
+                            <div style="font-size: 7pt; color: #4b5563; margin-top: 4px;">
+                                Totalt: {{ number_format($report['other_amount'] / 100, 2) }} NOK
+                            </div>
+                            <div style="font-size: 7pt; color: #dc2626; margin-top: 2px;">
+                                Refusjoner: -{{ number_format($otherRefunded / 100, 2) }} NOK
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endif
+
+    @if(($report['report_type'] ?? '') === 'Z-Report')
+        @php
+            $zStripeFeesMinor = (int) ($report['stripe_fees_minor'] ?? 0);
+            $zPayoutToBankMinor = (int) ($report['payout_to_bank_minor'] ?? 0);
+        @endphp
+        <div class="section">
+            <div class="section-title">Stripe</div>
+            <table>
+                <tr>
+                    <th>Post</th>
+                    <th class="text-right">Beløp</th>
+                </tr>
+                <tr>
+                    <td>Stripe-gebyr (kort) <span style="color: #6b7280; font-weight: normal;">— saldo for økten</span></td>
+                    <td class="text-right">{{ number_format($zStripeFeesMinor / 100, 2) }} NOK</td>
+                </tr>
+                <tr>
+                    <td>Utbetaling til bank <span style="color: #6b7280; font-weight: normal;">— ankomst stengedag</span></td>
+                    <td class="text-right">{{ number_format($zPayoutToBankMinor / 100, 2) }} NOK</td>
+                </tr>
+            </table>
+        </div>
+    @endif
+
+    <div class="cash-grid {{ (!empty($report['tips_enabled']) && $report['tips_enabled'] === true) ? 'with-tips' : '' }}">
+        <div>
+            <div class="cash-item yellow">
+                <strong>Åpningssaldo</strong>
+                <div class="value">{{ number_format($report['opening_balance'] ?? 0, 2) }} NOK</div>
+            </div>
+        </div>
+        <div>
+            <div class="cash-item yellow">
+                <strong>Forventet Kontant</strong>
+                <div class="value">{{ number_format($report['expected_cash'], 2) }} NOK</div>
+            </div>
+        </div>
+        <div>
+            <div class="cash-item purple">
+                <strong>Faktisk Kontant</strong>
+                <div class="value">{{ number_format($report['actual_cash'] ?? 0, 2) }} NOK</div>
+            </div>
+        </div>
+        <div>
+            <div class="cash-item {{ ($report['cash_difference'] ?? 0) > 0 ? 'red' : (($report['cash_difference'] ?? 0) < 0 ? 'yellow' : 'green') }}">
+                <strong>Differanse</strong>
+                <div class="value">{{ number_format($report['cash_difference'] ?? 0, 2) }} NOK</div>
+            </div>
+        </div>
+        @if(!empty($report['tips_enabled']) && $report['tips_enabled'] === true)
+            <div>
+                <div class="cash-item blue">
+                    <strong>Totalt Drikkepenger</strong>
+                    <div class="value">{{ number_format(($report['total_tips'] ?? 0) / 100, 2) }} NOK</div>
+                </div>
+            </div>
+        @endif
+    </div>
+
+    @if(isset($report['refunds']) && count($report['refunds']) > 0)
+        <div class="section">
+            <div class="section-title">Refusjoner ({{ count($report['refunds']) }} refusjoner)</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tid</th>
+                        <th>ID</th>
+                        <th>Metode</th>
+                        <th>Beskrivelse</th>
+                        <th class="text-right">Opprinnelig Beløp</th>
+                        <th class="text-right">Refundert Beløp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($report['refunds'] as $refund)
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($refund['refunded_at'] ?? $refund['created_at'] ?? $refund['paid_at'])->format('H:i:s') }}</td>
+                            <td style="font-size: 6pt;">{{ substr($refund['stripe_charge_id'] ?? $refund['charge_id'] ?? $refund['id'], 0, 10) }}...</td>
+                            <td>{{ ucfirst($refund['payment_method'] ?? 'N/A') }}</td>
+                            <td>{{ $refund['description'] ?? 'Cash payment' }}</td>
+                            <td class="text-right">{{ number_format(($refund['amount'] ?? $refund['original_amount'] ?? 0) / 100, 2) }} NOK</td>
+                            <td class="text-right" style="color: #dc2626;">-{{ number_format(($refund['amount_refunded'] ?? 0) / 100, 2) }} NOK</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 2px solid #e5e7eb;">
+                <div style="display: table; width: 100%;">
+                    <div style="display: table-cell; width: 70%; font-weight: 600; color: #111827;">
+                        Totalt Refundert:
+                    </div>
+                    <div style="display: table-cell; width: 30%; text-align: right; font-weight: 700; color: #dc2626; font-size: 11pt;">
+                        {{ number_format($report['total_refunded'] / 100, 2) }} NOK
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <div class="section">
+        <div class="section-title">MVA-oppdeling</div>
+        @include('reports.partials.mva-oppdeling-table', ['report' => $report])
+        @if(isset($report['total_refunded']) && $report['total_refunded'] > 0)
+            <div style="font-size: 7pt; color: #6b7280; margin-top: 8px;">
+                (Totalt: {{ number_format($report['total_amount'] / 100, 2) }} NOK - Refusjoner: {{ number_format($report['total_refunded'] / 100, 2) }} NOK)
+            </div>
+        @endif
+    </div>
+
+    @if(isset($report['manual_discounts']) && $report['manual_discounts']['count'] > 0)
+        <div class="section">
+            <div class="section-title">Manuelle Rabatter</div>
+            <table>
+                <tr>
+                    <th>Antall Rabatter</th>
+                    <th class="text-right">Totalt Rabattbeløp</th>
+                </tr>
+                <tr>
+                    <td>{{ $report['manual_discounts']['count'] }}</td>
+                    <td class="text-right">{{ number_format($report['manual_discounts']['amount'] / 100, 2) }} NOK</td>
+                </tr>
+            </table>
+        </div>
+    @endif
+
+    @if(isset($report['line_corrections']) && $report['line_corrections']['total_count'] > 0)
+        <div class="section">
+            <div class="section-title">Linjekorreksjoner</div>
+            <table>
+                <tr>
+                    <th>Type</th>
+                    <th class="text-center">Antall</th>
+                    <th class="text-right">Reduksjon</th>
+                </tr>
+                @if(isset($report['line_corrections']['by_type']) && count($report['line_corrections']['by_type']) > 0)
+                    @foreach($report['line_corrections']['by_type'] as $correction)
+                        <tr>
+                            <td>{{ ucfirst($correction['type']) }}</td>
+                            <td class="text-center">{{ $correction['count'] }}</td>
+                            <td class="text-right">{{ number_format($correction['total_amount_reduction'] / 100, 2) }} NOK</td>
+                        </tr>
+                    @endforeach
+                @endif
+                <tr style="font-weight: 600; border-top: 2px solid #e5e7eb;">
+                    <td>Totalt</td>
+                    <td class="text-center">{{ $report['line_corrections']['total_count'] }}</td>
+                    <td class="text-right">{{ number_format($report['line_corrections']['total_amount_reduction'] / 100, 2) }} NOK</td>
+                </tr>
+            </table>
+        </div>
+    @endif
+
+    @if((isset($report['cash_withdrawals']) && $report['cash_withdrawals']['count'] > 0) || (isset($report['cash_deposits']) && $report['cash_deposits']['count'] > 0))
+        <div class="section">
+            <div class="section-title">Kontantuttak og innskudd</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th class="text-center">Antall</th>
+                        <th class="text-right">Beløp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if(isset($report['cash_withdrawals']) && $report['cash_withdrawals']['count'] > 0)
+                        <tr>
+                            <td>Kontantuttak</td>
+                            <td class="text-center">{{ $report['cash_withdrawals']['count'] }}</td>
+                            <td class="text-right">{{ number_format($report['cash_withdrawals']['total_amount'] / 100, 2) }} NOK</td>
+                        </tr>
+                    @endif
+                    @if(isset($report['cash_deposits']) && $report['cash_deposits']['count'] > 0)
+                        <tr>
+                            <td>Kontantinnskudd</td>
+                            <td class="text-center">{{ $report['cash_deposits']['count'] }}</td>
+                            <td class="text-right">{{ number_format($report['cash_deposits']['total_amount'] / 100, 2) }} NOK</td>
+                        </tr>
+                    @endif
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    @if(!empty($report['closing_notes']))
+        <div class="section">
+            <div class="section-title">Stengningsnotater</div>
+            <p style="font-size: 9pt; color: #4b5563;">{{ $report['closing_notes'] }}</p>
+        </div>
+    @endif
+
+    @if(isset($report['products_sold']) && count($report['products_sold']) > 0)
+        <div class="section">
+            <div class="section-title">Solgte Produkter ({{ count($report['products_sold']) }} produkter)</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Produkt</th>
+                        <th class="text-center">Antall</th>
+                        <th class="text-right">Beløp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($report['products_sold'] as $product)
+                        <tr>
+                            <td>{{ $product['name'] }}</td>
+                            <td class="text-center">{{ $product['quantity'] }}</td>
+                            <td class="text-right">{{ number_format($product['amount'] / 100, 2) }} NOK</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    @if(isset($report['sales_by_vendor']) && count($report['sales_by_vendor']) > 0)
+        <div class="section">
+            <div class="section-title">Salg per Leverandør</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Leverandør</th>
+                        <th class="text-center">Antall</th>
+                        <th class="text-right">Beløp</th>
+                        <th class="text-right">Provision</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($report['sales_by_vendor'] as $vendor)
+                        <tr>
+                            <td>{{ $vendor['name'] }}</td>
+                            <td class="text-center">{{ $vendor['count'] }}</td>
+                            <td class="text-right">{{ number_format($vendor['amount'] / 100, 2) }} NOK</td>
+                            <td class="text-right">
+                                @if(isset($vendor['commission_percent']) && $vendor['commission_percent'] > 0)
+                                    {{ number_format($vendor['commission_amount'] / 100, 2) }} NOK
+                                    <span style="font-size: 6pt; color: #6b7280;">({{ number_format($vendor['commission_percent'], 2) }}%)</span>
+                                @else
+                                    <span style="color: #9ca3af;">-</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    @if(isset($report['complete_transaction_list']) && count($report['complete_transaction_list']) > 0)
+        <div class="section page-break">
+            <div class="section-title">Komplett Transaksjonsliste ({{ count($report['complete_transaction_list']) }} transaksjoner)</div>
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th style="width: 12%;">Dato & Tid</th>
+                        <th style="width: 10%;">ID</th>
+                        <th style="width: 10%;">Status</th>
+                        <th style="width: 10%;">Metode</th>
+                        <th style="width: 8%;">Bet. Kode</th>
+                        <th style="width: 8%;">Trans. Kode</th>
+                        <th style="width: 15%; text-align: right;">Beløp</th>
+                        @if(!empty($report['tips_enabled']) && $report['tips_enabled'] === true)
+                            <th style="width: 12%; text-align: right;">Drikkepenger</th>
+                        @endif
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($report['complete_transaction_list'] as $transaction)
+                        @php
+                            $isRefunded = isset($transaction['amount_refunded']) && $transaction['amount_refunded'] > 0;
+                            $refundedAmount = $transaction['amount_refunded'] ?? 0;
+                            $status = $transaction['status'] ?? 'unknown';
+                            $isPending = $status === 'pending';
+                            $isDeferred = $transaction['is_deferred'] ?? false;
+                            
+                            $statusLabel = match($status) {
+                                'succeeded' => 'Fullført',
+                                'refunded' => 'Refundert',
+                                'pending' => $isDeferred ? 'Venter (Utlevert)' : 'Venter',
+                                'processing' => 'Behandler',
+                                'failed' => 'Feilet',
+                                'cancelled' => 'Kansellert',
+                                default => ucfirst($status),
+                            };
+                            
+                            $statusClass = match($status) {
+                                'succeeded' => 'status-succeeded',
+                                'refunded' => 'status-refunded',
+                                'pending' => 'status-pending',
+                                'processing' => 'status-processing',
+                                'failed', 'cancelled' => 'status-failed',
+                                default => '',
+                            };
+                        @endphp
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($transaction['paid_at'] ?? $transaction['created_at'])->format('d.m.Y H:i:s') }}</td>
+                            <td style="font-size: 6pt;">{{ substr($transaction['stripe_charge_id'] ?? $transaction['id'], 0, 10) }}...</td>
+                            <td>
+                                <span class="{{ $statusClass }}">{{ $statusLabel }}</span>
+                                @if($isPending)
+                                    <div style="font-size: 5pt; color: #6b7280; margin-top: 1px;">
+                                        (Ikke inkl.)
+                                    </div>
+                                @endif
+                            </td>
+                            <td>{{ ucfirst($transaction['payment_method'] ?? 'N/A') }}</td>
+                            <td>{{ $transaction['payment_code'] ?? 'N/A' }}</td>
+                            <td>{{ $transaction['transaction_code'] ?? 'N/A' }}</td>
+                            <td class="text-right" style="font-weight: 600; color: {{ $isPending ? '#6b7280' : ($isRefunded ? '#dc2626' : '#111827') }}; {{ $isPending ? 'font-style: italic;' : '' }}">
+                                {{ number_format($transaction['amount'] / 100, 2) }} NOK
+                                @if($isRefunded)
+                                    <div style="font-size: 5.5pt; color: #dc2626; margin-top: 1px;">
+                                        Ref: -{{ number_format($refundedAmount / 100, 2) }} NOK
+                                    </div>
+                                    <div style="font-size: 5.5pt; font-weight: 600; color: #111827; margin-top: 1px;">
+                                        Netto: {{ number_format(($transaction['amount'] - $refundedAmount) / 100, 2) }} NOK
+                                    </div>
+                                @endif
+                            </td>
+                            @if(!empty($report['tips_enabled']) && $report['tips_enabled'] === true)
+                                <td class="text-right">{{ ($transaction['tip_amount'] ?? 0) > 0 ? number_format($transaction['tip_amount'] / 100, 2) . ' NOK' : '-' }}</td>
+                            @endif
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @elseif(isset($report['charges']) && count($report['charges']) > 0)
+        <div class="section">
+            <div class="section-title">Alle Transaksjoner</div>
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th style="width: 18%;">{{ ! empty($report['spans_multiple_days']) && $report['spans_multiple_days'] ? 'Dato & Tid' : 'Tid' }}</th>
+                        <th style="width: 12%;">Metode</th>
+                        <th style="width: 12%;">Kode</th>
+                        <th class="text-right">Beløp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($report['charges'] as $charge)
+                        <tr>
+                            <td>
+                                @if(! empty($report['spans_multiple_days']) && $report['spans_multiple_days'])
+                                    {{ $charge->paid_at?->format('d.m.Y H:i') ?? $charge->created_at->format('d.m.Y H:i') }}
+                                @else
+                                    {{ $charge->paid_at?->format('H:i') ?? $charge->created_at->format('H:i') }}
+                                @endif
+                            </td>
+                            <td>{{ ucfirst($charge->payment_method) }}</td>
+                            <td>{{ $charge->payment_code ?? 'N/A' }}</td>
+                            <td class="text-right">{{ number_format($charge->amount / 100, 2) }} NOK</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    @if(isset($report['event_summary']) && count($report['event_summary']) > 0)
+        <div class="section">
+            <div class="section-title">Hendelsessammendrag</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Hendelseskode</th>
+                        <th>Beskrivelse</th>
+                        <th class="text-right">Antall</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($report['event_summary'] as $event)
+                        <tr>
+                            <td>{{ $event['code'] }}</td>
+                            <td>{{ $event['description'] }}</td>
+                            <td class="text-right">{{ $event['count'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    <div class="metrics">
+        <div>
+            <div class="metric-card">
+                <div class="metric-label">Kontantskuff-åpninger</div>
+                <div class="metric-value">{{ $report['cash_drawer_opens'] ?? 0 }}</div>
+            </div>
+        </div>
+        <div>
+            <div class="metric-card">
+                <div class="metric-label">Nullinnslag Antall</div>
+                <div class="metric-value">{{ $report['nullinnslag_count'] ?? 0 }}</div>
+            </div>
+        </div>
+        <div>
+            <div class="metric-card">
+                <div class="metric-label">Kvitteringer Generert</div>
+                <div class="metric-value">{{ $report['receipt_count'] ?? 0 }}</div>
+                @if(isset($report['receipt_summary']) && count($report['receipt_summary']) > 0)
+                    <div style="font-size: 6pt; color: #6b7280; margin-top: 4px;">
+                        @foreach($report['receipt_summary'] as $type => $data)
+                            {{ ucfirst($type) }}: {{ $data['count'] }}@if(!$loop->last), @endif
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
+        <div></div>
+    </div>
