@@ -14,11 +14,7 @@ class RepairQuantityUnitReferencesCommand extends Command
     public function handle(): int
     {
         $updated = QuantityUnit::remapLegacyProductReferences();
-        $globalCount = QuantityUnit::query()
-            ->whereNull('store_id')
-            ->whereNull('stripe_account_id')
-            ->where('active', true)
-            ->count();
+        $globalCount = QuantityUnit::query()->visibleInCatalog()->count();
 
         $this->info("Global active quantity units: {$globalCount}");
         $this->info("Products remapped: {$updated}");

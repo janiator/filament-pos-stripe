@@ -28,126 +28,164 @@ class QuantityUnit extends Model
         'active' => 'boolean',
     ];
 
-    /**
-     * Get the store that owns this quantity unit
-     */
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
     }
 
-    /**
-     * Get the products using this quantity unit
-     */
     public function products(): HasMany
     {
         return $this->hasMany(ConnectedProduct::class);
     }
 
-    /**
-     * Get display name (name with symbol)
-     */
     public function getDisplayNameAttribute(): string
     {
         return $this->name.($this->symbol ? ' ('.$this->symbol.')' : '');
     }
 
     /**
-     * Global standard units available in product/API selects.
-     * Optionally include a legacy or orphaned unit so existing values stay visible while editing.
+     * Units shown in the catalog and product select: global rows plus optional store rows.
      */
-    public function scopeForSelect(Builder $query, ?int $includeId = null): Builder
+    public function scopeVisibleInCatalog(Builder $query, ?int $storeId = null): Builder
     {
-        return $query->where(function (Builder $q) use ($includeId): void {
-            $q->where(function (Builder $global): void {
-                $global->whereNull('store_id')
-                    ->whereNull('stripe_account_id')
-                    ->where('active', true);
-            });
+        $query->where('active', true);
 
-            if ($includeId !== null) {
-                $q->orWhere('id', $includeId);
-            }
-        })->orderBy('name');
+        if ($storeId !== null) {
+            $query->where(function (Builder $q) use ($storeId): void {
+                $q->where(function (Builder $global): void {
+                    $global->whereNull('store_id')->whereNull('stripe_account_id');
+                })->orWhere('store_id', $storeId);
+            });
+        } else {
+            $query->whereNull('store_id')->whereNull('stripe_account_id');
+        }
+
+        return $query->orderBy('name');
     }
 
-    public static function defaultPiece(): ?self
+    public static function defaultPieceId(?int $storeId = null): ?int
     {
-        return static::query()
-            ->whereNull('store_id')
-            ->whereNull('stripe_account_id')
-            ->where('active', true)
-            ->where('name', 'Piece')
-            ->first();
+        $query = static::query()->visibleInCatalog($storeId);
+
+        return $query->clone()->where('name', 'Piece')->value('id')
+            ?? $query->clone()->value('id');
     }
 
     /**
      * @return array<string, string>
      */
-    public static function optionsForSelect(?int $includeId = null): array
+    public static function optionsForCatalog(?int $storeId = null): array
     {
         return static::query()
-            ->forSelect($includeId)
+            ->visibleInCatalog($storeId)
             ->get()
             ->mapWithKeys(fn (self $unit): array => [(string) $unit->id => $unit->display_name])
             ->all();
     }
 
-    public static function selectableGlobalIds(): array
-    {
-        return static::query()
-            ->whereNull('store_id')
-            ->whereNull('stripe_account_id')
-            ->where('active', true)
-            ->pluck('id')
-            ->map(fn (int $id): string => (string) $id)
-            ->all();
-    }
-
-    public static function isSelectableGlobalId(?int $id): bool
+    public static function isVisibleCatalogId(?int $id, ?int $storeId = null): bool
     {
         if ($id === null) {
             return false;
         }
 
-        return static::query()
-            ->whereKey($id)
-            ->whereNull('store_id')
-            ->whereNull('stripe_account_id')
-            ->where('active', true)
-            ->exists();
+        return static::query()->visibleInCatalog($storeId)->whereKey($id)->exists();
     }
 
-    public static function resolveReplacementId(?int $unitId): ?int
+    /**
+     * Map a legacy unit id to a catalog-visible id. Never returns null when $unitId is set.
+     */
+    public static function resolveReplacementId(?int $unitId, ?int $storeId = null): ?int
     {
-        if ($unitId !== null && static::isSelectableGlobalId($unitId)) {
+        if ($unitId !== null && static::isVisibleCatalogId($unitId, $storeId)) {
             return $unitId;
         }
 
-        $globals = static::query()
-            ->whereNull('store_id')
-            ->whereNull('stripe_account_id')
-            ->where('active', true)
-            ->get()
-            ->keyBy(fn (self $unit): string => strtolower($unit->name.'|'.($unit->symbol ?? '')));
-
-        $defaultPieceId = $globals->first(
-            fn (self $unit): bool => $unit->name === 'Piece' && $unit->symbol === 'stk'
-        )?->id ?? $globals->first()?->id;
+        $defaultId = static::defaultPieceId($storeId);
 
         if ($unitId === null) {
-            return $defaultPieceId;
+            return $defaultId;
         }
 
         $existing = static::query()->find($unitId);
 
         if ($existing === null) {
-            return $defaultPieceId;
+            return $defaultId ?? $unitId;
         }
 
-        $key = strtolower($existing->name.'|'.($existing->symbol ?? ''));
+        $globalMatch = static::query()
+            ->whereNull('store_id')
+            ->whereNull('stripe_account_id')
+            ->where('active', true)
+            ->where('name', $existing->name)
+            ->where(function (Builder $query) use ($existing): void {
+                if ($existing->symbol === null) {
+                    $query->whereNull('symbol');
+                } else {
+                    $query->where('symbol', $existing->symbol);
+                }
+            })
+            ->first();
 
-        return $globals->get($key)?->id ?? $defaultPieceId;
+        if ($globalMatch !== null) {
+            return $globalMatch->id;
+        }
+
+        $match = static::query()
+            ->visibleInCatalog($storeId)
+            ->where('name', $existing->name)
+            ->where(function (Builder $query) use ($existing): void {
+                if ($existing->symbol === null) {
+                    $query->whereNull('symbol');
+                } else {
+                    $query->where('symbol', $existing->symbol);
+                }
+            })
+            ->first();
+
+        return $match?->id ?? $defaultId ?? $unitId;
+    }
+
+    public static function resolveToGlobalId(?int $unitId): ?int
+    {
+        if ($unitId !== null && static::query()->whereKey($unitId)->whereNull('store_id')->whereNull('stripe_account_id')->where('active', true)->exists()) {
+            return $unitId;
+        }
+
+        $defaultId = static::defaultPieceId();
+
+        if ($unitId === null) {
+            return $defaultId;
+        }
+
+        $existing = static::query()->find($unitId);
+
+        if ($existing === null) {
+            return $defaultId ?? $unitId;
+        }
+
+        $globalMatch = static::query()
+            ->whereNull('store_id')
+            ->whereNull('stripe_account_id')
+            ->where('active', true)
+            ->where('name', $existing->name)
+            ->where(function (Builder $query) use ($existing): void {
+                if ($existing->symbol === null) {
+                    $query->whereNull('symbol');
+                } else {
+                    $query->where('symbol', $existing->symbol);
+                }
+            })
+            ->first();
+
+        return $globalMatch?->id ?? $defaultId ?? $unitId;
+    }
+
+    public static function defaultPiece(): ?self
+    {
+        $id = static::defaultPieceId();
+
+        return $id ? static::query()->find($id) : null;
     }
 
     public static function labelForId(?int $id): ?string
@@ -161,41 +199,37 @@ class QuantityUnit extends Model
         return $unit?->display_name;
     }
 
+    public static function storeIdForStripeAccount(?string $stripeAccountId): ?int
+    {
+        if ($stripeAccountId === null || $stripeAccountId === '') {
+            return null;
+        }
+
+        return Store::query()->where('stripe_account_id', $stripeAccountId)->value('id');
+    }
+
     /**
-     * Ensure global units exist and point every product at a selectable global unit.
+     * Ensure global units exist and point every product at a catalog-visible unit.
      */
     public static function remapLegacyProductReferences(): int
     {
         (new \Database\Seeders\QuantityUnitSeeder)->run();
 
-        $globals = static::query()
-            ->whereNull('store_id')
-            ->whereNull('stripe_account_id')
-            ->where('active', true)
-            ->get()
-            ->keyBy(fn (self $unit): string => strtolower($unit->name.'|'.($unit->symbol ?? '')));
-
-        $defaultPieceId = static::resolveReplacementId(null);
-
-        if ($defaultPieceId === null) {
-            return 0;
-        }
-
-        $selectableIds = $globals->pluck('id')->all();
         $updated = 0;
 
         DB::table('connected_products')
             ->whereNotNull('quantity_unit_id')
             ->orderBy('id')
-            ->chunkById(500, function ($products) use (&$updated, $selectableIds, $defaultPieceId): void {
+            ->chunkById(500, function ($products) use (&$updated): void {
                 foreach ($products as $product) {
                     $currentId = (int) $product->quantity_unit_id;
+                    $storeId = static::storeIdForStripeAccount($product->stripe_account_id ?? null);
 
-                    if (in_array($currentId, $selectableIds, true)) {
+                    $replacementId = static::resolveToGlobalId($currentId);
+
+                    if ($replacementId === null || $replacementId === $currentId) {
                         continue;
                     }
-
-                    $replacementId = static::resolveReplacementId($currentId) ?? $defaultPieceId;
 
                     DB::table('connected_products')
                         ->where('id', $product->id)

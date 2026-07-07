@@ -22,7 +22,7 @@ class QuantityUnitsController extends BaseApiController
 
             $this->authorizeTenant($request, $store);
 
-            $query = QuantityUnit::query()->forSelect();
+            $query = QuantityUnit::query()->visibleInCatalog($store->id);
 
             if ($request->has('active')) {
                 $query->where('active', filter_var($request->get('active'), FILTER_VALIDATE_BOOLEAN));
@@ -37,7 +37,6 @@ class QuantityUnitsController extends BaseApiController
                 });
             }
 
-            // FlutterFlow infinite scroll: page is zero-indexed (0 = first page)
             $perPage = min($request->get('per_page', 100), 100);
             $page = max(1, (int) $request->get('page', 0) + 1);
             $quantityUnits = $query->paginate($perPage, ['*'], 'page', $page);

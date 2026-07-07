@@ -1303,10 +1303,10 @@ class ConnectedProductForm
     {
         return Select::make('quantity_unit_id')
             ->label(__('Quantity Unit'))
-            ->options(fn (): array => QuantityUnit::optionsForSelect())
+            ->options(fn (): array => QuantityUnit::optionsForCatalog(self::currentTenantStoreId()))
             ->getSearchResultsUsing(function (string $search): array {
                 return QuantityUnit::query()
-                    ->forSelect()
+                    ->visibleInCatalog(self::currentTenantStoreId())
                     ->where(function ($query) use ($search) {
                         $query->where('name', 'like', "%{$search}%")
                             ->orWhere('symbol', 'like', "%{$search}%");
@@ -1319,7 +1319,6 @@ class ConnectedProductForm
             ->getOptionLabelUsing(fn ($value): ?string => QuantityUnit::labelForId(is_numeric($value) ? (int) $value : null))
             ->searchable()
             ->preload()
-            ->default(fn ($record) => QuantityUnit::resolveReplacementId($record?->quantity_unit_id))
             ->helperText(__('Unit label will be automatically set from the quantity unit symbol.'))
             ->placeholder(__('Select quantity unit'))
             ->hintAction(
@@ -1329,6 +1328,17 @@ class ConnectedProductForm
                     ->url(fn (): string => QuantityUnitResource::getUrl('index'))
             )
             ->columnSpanFull();
+    }
+
+    private static function currentTenantStoreId(): ?int
+    {
+        try {
+            $tenant = Filament::getTenant();
+
+            return $tenant?->id;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

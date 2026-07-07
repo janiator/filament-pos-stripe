@@ -35,26 +35,18 @@ class EditConnectedProduct extends EditRecord
         }
     }
 
-    protected function mutateFormDataBeforeFill(array $data): array
-    {
-        if (isset($data['quantity_unit_id'])) {
-            $data['quantity_unit_id'] = QuantityUnit::resolveReplacementId(
-                is_numeric($data['quantity_unit_id']) ? (int) $data['quantity_unit_id'] : null
-            );
-        }
-
-        return $data;
-    }
-
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Handle compare_at_price_decimal conversion
-        if (isset($data['quantity_unit_id'])) {
-            $data['quantity_unit_id'] = QuantityUnit::resolveReplacementId(
-                is_numeric($data['quantity_unit_id']) ? (int) $data['quantity_unit_id'] : null
-            );
+        if (array_key_exists('quantity_unit_id', $data) && $data['quantity_unit_id'] !== null && $data['quantity_unit_id'] !== '') {
+            $storeId = QuantityUnit::storeIdForStripeAccount($this->record->stripe_account_id ?? null);
+            $replacementId = QuantityUnit::resolveReplacementId((int) $data['quantity_unit_id'], $storeId);
+
+            if ($replacementId !== null) {
+                $data['quantity_unit_id'] = $replacementId;
+            }
         }
 
+        // Handle compare_at_price_decimal conversion
         if (isset($data['compare_at_price_decimal'])) {
             if ($data['compare_at_price_decimal'] !== null && $data['compare_at_price_decimal'] !== '') {
                 $data['compare_at_price_amount'] = (int) round($data['compare_at_price_decimal'] * 100);

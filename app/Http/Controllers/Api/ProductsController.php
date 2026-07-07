@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\ConnectedPrice;
 use App\Models\ConnectedProduct;
 use App\Models\ProductVariant;
+use App\Models\QuantityUnit;
 use App\Models\Store;
 use App\Services\InventoryLedgerService;
 use Illuminate\Http\JsonResponse;
@@ -459,7 +460,9 @@ class ProductsController extends BaseApiController
         }
 
         // Default to "Piece" (stk) when product has no quantity unit set
-        $pieceUnit = \App\Models\QuantityUnit::defaultPiece();
+        $storeId = QuantityUnit::storeIdForStripeAccount($product->stripe_account_id);
+        $pieceId = QuantityUnit::defaultPieceId($storeId);
+        $pieceUnit = $pieceId ? QuantityUnit::query()->find($pieceId) : null;
 
         if ($pieceUnit) {
             return [
