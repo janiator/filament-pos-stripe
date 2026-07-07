@@ -1303,17 +1303,23 @@ class ConnectedProductForm
     {
         return Select::make('quantity_unit_id')
             ->label(__('Quantity Unit'))
-            ->relationship(
-                'quantityUnit',
-                'name',
-                modifyQueryUsing: function ($query, Get $get, $record = null) {
-                    $includeId = $record?->quantity_unit_id
-                        ?? (is_numeric($get('quantity_unit_id')) ? (int) $get('quantity_unit_id') : null);
+            ->options(function (Get $get, $record) {
+                return QuantityUnit::optionsForSelect(self::resolveQuantityUnitIncludeId($get, $record));
+            })
+            ->getSearchResultsUsing(function (string $search, Get $get, $record) {
+                $includeId = self::resolveQuantityUnitIncludeId($get, $record);
 
-                    return $query->forSelect($includeId);
-                }
-            )
-            ->getOptionLabelFromRecordUsing(fn (QuantityUnit $record): string => $record->display_name)
+                return QuantityUnit::query()
+                    ->forSelect($includeId)
+                    ->where(function ($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%")
+                            ->orWhere('symbol', 'like', "%{$search}%");
+                    })
+                    ->limit(50)
+                    ->get()
+                    ->mapWithKeys(fn (QuantityUnit $unit): array => [$unit->id => $unit->display_name])
+                    ->all();
+            })
             ->getOptionLabelUsing(fn ($value): ?string => QuantityUnit::labelForId(is_numeric($value) ? (int) $value : null))
             ->searchable()
             ->preload()
@@ -1333,6 +1339,13 @@ class ConnectedProductForm
                     ->url(fn (): string => QuantityUnitResource::getUrl('index'))
             )
             ->columnSpanFull();
+    }
+
+    private static function resolveQuantityUnitIncludeId(Get $get, mixed $record = null): ?int
+    {
+        $includeId = $record?->quantity_unit_id ?? $get('quantity_unit_id');
+
+        return is_numeric($includeId) ? (int) $includeId : null;
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\QuantityUnits\Pages;
 
 use App\Filament\Resources\QuantityUnits\QuantityUnitResource;
+use App\Models\QuantityUnit;
 use Database\Seeders\QuantityUnitSeeder;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -27,6 +28,7 @@ class ListQuantityUnits extends ListRecords
                     try {
                         $seeder = new QuantityUnitSeeder;
                         $seeder->run();
+                        QuantityUnit::remapLegacyProductReferences();
 
                         Notification::make()
                             ->success()

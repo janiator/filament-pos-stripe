@@ -68,6 +68,40 @@ it('lists global quantity units from the api', function () {
     expect(collect($response->json('quantity_units'))->pluck('name'))->toContain('Piece');
 });
 
+it('includes global units even when is_standard is false', function () {
+    $unit = QuantityUnit::query()
+        ->whereNull('store_id')
+        ->whereNull('stripe_account_id')
+        ->where('name', 'Piece')
+        ->firstOrFail();
+
+    $unit->update(['is_standard' => false]);
+
+    expect(QuantityUnit::optionsForSelect()[$unit->id])->toBe('Piece (stk)');
+});
+
+it('updates existing global units when defaults are imported again', function () {
+    $unit = QuantityUnit::query()
+        ->whereNull('store_id')
+        ->whereNull('stripe_account_id')
+        ->where('name', 'Piece')
+        ->firstOrFail();
+
+    $unit->update([
+        'is_standard' => false,
+        'active' => false,
+        'description' => null,
+    ]);
+
+    seedGlobalQuantityUnits();
+
+    $unit->refresh();
+
+    expect($unit->is_standard)->toBeTrue()
+        ->and($unit->active)->toBeTrue()
+        ->and($unit->description)->toBe('Per item/piece');
+});
+
 it('remaps per-store product quantity unit references to matching global units', function () {
     seedGlobalQuantityUnits();
 

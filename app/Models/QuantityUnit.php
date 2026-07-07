@@ -62,7 +62,6 @@ class QuantityUnit extends Model
             $q->where(function (Builder $global): void {
                 $global->whereNull('store_id')
                     ->whereNull('stripe_account_id')
-                    ->where('is_standard', true)
                     ->where('active', true);
             });
 
@@ -77,10 +76,21 @@ class QuantityUnit extends Model
         return static::query()
             ->whereNull('store_id')
             ->whereNull('stripe_account_id')
-            ->where('is_standard', true)
             ->where('active', true)
             ->where('name', 'Piece')
             ->first();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function optionsForSelect(?int $includeId = null): array
+    {
+        return static::query()
+            ->forSelect($includeId)
+            ->get()
+            ->mapWithKeys(fn (self $unit): array => [$unit->id => $unit->display_name])
+            ->all();
     }
 
     public static function labelForId(?int $id): ?string

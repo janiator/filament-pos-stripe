@@ -57,7 +57,7 @@ class QuantityUnitSeeder extends Seeder
     private function firstOrCreateUnit(array $search, array $attributes): void
     {
         try {
-            QuantityUnit::firstOrCreate($search, $attributes);
+            QuantityUnit::query()->updateOrCreate($search, $attributes);
         } catch (UniqueConstraintViolationException) {
             // Concurrent run already inserted this row; ignore.
         }
