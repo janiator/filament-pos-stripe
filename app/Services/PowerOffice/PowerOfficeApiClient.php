@@ -4,6 +4,7 @@ namespace App\Services\PowerOffice;
 
 use App\Enums\PowerOfficeEnvironment;
 use App\Models\PowerOfficeIntegration;
+use App\Support\PowerOffice\PowerOfficePostingSettings;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -30,10 +31,10 @@ class PowerOfficeApiClient
         $base = $this->validatedBaseUrlForEnvironmentKey(
             $integration->environment === PowerOfficeEnvironment::Prod ? 'prod' : 'dev',
         );
-        $path = trim((string) config('poweroffice.ledger.post_path'));
+        $path = PowerOfficePostingSettings::ledgerPostPath($integration);
         if ($path === '') {
             throw new \RuntimeException(
-                'PowerOffice ledger path is empty. Set POWEROFFICE_LEDGER_POST_PATH (e.g. /JournalEntryVouchers/ManualJournals or /Vouchers/ManualJournals).'
+                'PowerOffice ledger path is empty. Configure voucher posting mode in PowerOffice settings or POWEROFFICE_LEDGER_POST_PATH.'
             );
         }
         $url = $base.'/'.ltrim($path, '/');

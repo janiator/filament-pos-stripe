@@ -673,3 +673,53 @@ it('does not sync when sync_enabled is false even when forced', function () {
     $sync = app(PowerOfficeZReportSync::class);
     expect($sync->sync($session->id, true))->toBeFalse();
 });
+
+it('posts journal entry draft vouchers when direct posting is disabled on the integration', function () {
+    fakePowerOfficeLedgerHttp();
+
+    $store = Store::factory()->create();
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::PowerOfficeGo,
+        'is_active' => true,
+    ]);
+
+    $integration = PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Vat,
+        'settings' => ['voucher_posting_mode' => 'journal_entry'],
+    ]);
+
+    PowerOfficeAccountMapping::factory()->create([
+        'power_office_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Vat,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'vat_account_no' => '2700',
+        'cash_account_no' => '1920',
+        'card_clearing_account_no' => '1921',
+    ]);
+
+    $zReport = [
+        'net_amount' => 8000,
+        'vat_amount' => 2000,
+        'vat_rate' => 25,
+        'total_tips' => 0,
+        'net_cash_amount' => 10_000,
+        'net_card_amount' => 0,
+        'net_mobile_amount' => 0,
+        'net_other_amount' => 0,
+        'store' => ['id' => $store->id, 'name' => $store->name],
+    ];
+
+    $session = PosSession::factory()->forStore($store)->create([
+        'status' => 'closed',
+        'closed_at' => now(),
+        'closing_data' => ['z_report_data' => $zReport],
+    ]);
+
+    expect(app(PowerOfficeZReportSync::class)->sync($session->id, true))->toBeTrue();
+
+    Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
+        && str_contains($request->url(), '/JournalEntryVouchers/ManualJournals'));
+});

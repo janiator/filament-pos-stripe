@@ -12,6 +12,7 @@ use App\Models\PosSession;
 use App\Models\PowerOfficeIntegration;
 use App\Models\PowerOfficeSyncRun;
 use App\Services\ZReport\ZReportPdfGenerator;
+use App\Support\PowerOffice\PowerOfficePostingSettings;
 use Filament\Notifications\Notification;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Log;
@@ -217,7 +218,7 @@ class PowerOfficeZReportSync
             $this->apiClient->logFailedResponse('ledger_post', $response);
             $message = 'PowerOffice HTTP '.$response->status().$this->apiClient->summarizeErrorBody($response);
             if ($response->status() === 403) {
-                $message .= ' Go UI "Direktepostere manuelle bilag" needs POST …/Vouchers/ManualJournals; journal-entry workflow needs …/JournalEntryVouchers/ManualJournals (POWEROFFICE_LEDGER_POST_PATH). After changing privileges in Go, run: php artisan poweroffice:forget-token '.$store->slug.' then poweroffice:diagnose '.$store->slug.'. See docs/flutterflow/POWEROFFICE_GO_INTEGRATION.md.';
+                $message .= ' Direct posting needs POST …/Vouchers/ManualJournals and privilege “Direktepostere manuelle bilag”. Journal-entry drafts need POST …/JournalEntryVouchers/ManualJournals (toggle under PowerOffice → Sync). After changing privileges in Go, run: php artisan poweroffice:forget-token '.$store->slug.' then poweroffice:diagnose '.$store->slug.'. See docs/poweroffice/jobberiet-setup.md.';
             }
             $this->failRun($syncRun, $integration, $message);
 
@@ -446,7 +447,7 @@ class PowerOfficeZReportSync
             return (is_numeric($fallbackVoucherNo) && $fallbackVoucherNo > 0) ? (int) $fallbackVoucherNo : null;
         }
 
-        $postPath = trim((string) config('poweroffice.ledger.post_path'));
+        $postPath = PowerOfficePostingSettings::ledgerPostPath($integration);
         if ($postPath === '') {
             return (is_numeric($fallbackVoucherNo) && $fallbackVoucherNo > 0) ? (int) $fallbackVoucherNo : null;
         }

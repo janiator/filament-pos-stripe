@@ -41,6 +41,8 @@ return [
     'poweroffice' => [
         'z_report_include_settlement_label' => 'Bokfør Stripe-gebyr og bankutbetaling på Z-rapportbilag',
         'z_report_include_settlement_help' => 'Når av, ignoreres gebyr- og utbetalingskontoparene under ved Z-rapportsynk og forhåndsvisning. Bruk når kortbetalinger allerede debiterer bank direkte (f.eks. 1920). Gavekortforpliktelse bokføres fortsatt når den er satt opp.',
+        'direct_post_to_ledger_label' => 'Bokfør direkte til hovedbok',
+        'direct_post_to_ledger_help' => 'På: Z-rapportsynk bruker POST /Vouchers/ManualJournals (direktepostering). Av: bilag sendes som kladd i Go (POST /JournalEntryVouchers/ManualJournals) til regnskapsfører for gjennomgang og godkjenning før bokføring.',
     ],
     // Navigation Groups
     'navigation_groups' => [

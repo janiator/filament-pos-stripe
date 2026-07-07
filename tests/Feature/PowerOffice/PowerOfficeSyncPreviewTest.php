@@ -247,6 +247,9 @@ it('builds a balanced preview payload for a closed session', function () {
 
     expect($preview['ok'])->toBeTrue()
         ->and($preview['balanced'])->toBeTrue()
+        ->and($preview['voucher_posting_mode'])->toBe('direct')
+        ->and($preview['posts_directly_to_ledger'])->toBeTrue()
+        ->and($preview['ledger_post_path'])->toBe('/Vouchers/ManualJournals')
         ->and($preview['lines_display'])->toHaveCount(2)
         ->and($preview['debit_total_minor'])->toBe(5_000)
         ->and($preview['credit_total_minor'])->toBe(5_000);

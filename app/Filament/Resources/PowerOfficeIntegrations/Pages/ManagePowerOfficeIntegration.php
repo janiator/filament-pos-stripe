@@ -21,6 +21,7 @@ use App\Services\PowerOffice\PowerOfficeAccountStatusService;
 use App\Services\PowerOffice\PowerOfficeOnboardingService;
 use App\Support\PowerOffice\PowerOfficeLedgerDefaults;
 use App\Support\PowerOffice\PowerOfficeLedgerSettings;
+use App\Support\PowerOffice\PowerOfficePostingSettings;
 use App\Support\PowerOffice\PowerOfficeStandardVatRates;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -129,6 +130,11 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                             ->default(true),
                         Toggle::make('auto_sync_on_z_report')
                             ->label(__('Sync automatically when a Z-report is generated'))
+                            ->default(true)
+                            ->visible(fn (Get $get): bool => (bool) $get('sync_enabled')),
+                        Toggle::make('direct_post_to_ledger')
+                            ->label(__('filament.poweroffice.direct_post_to_ledger_label'))
+                            ->helperText(__('filament.poweroffice.direct_post_to_ledger_help'))
                             ->default(true)
                             ->visible(fn (Get $get): bool => (bool) $get('sync_enabled')),
                     ]),
@@ -372,6 +378,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             'mapping_basis' => $this->integration->mapping_basis->value,
             'sync_enabled' => $this->integration->sync_enabled,
             'auto_sync_on_z_report' => $this->integration->auto_sync_on_z_report,
+            'direct_post_to_ledger' => PowerOfficePostingSettings::usesDirectPosting($this->integration),
         ];
 
         if ($this->integration->mapping_basis === PowerOfficeMappingBasis::Vat) {
@@ -534,6 +541,13 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             'auto_sync_on_z_report' => (bool) ($data['auto_sync_on_z_report'] ?? true),
         ]);
 
+        $this->integration->refresh();
+
+        $settings = is_array($this->integration->settings) ? $this->integration->settings : [];
+        $settings['voucher_posting_mode'] = PowerOfficePostingSettings::modeFromDirectToggle(
+            (bool) ($data['direct_post_to_ledger'] ?? true),
+        )->value;
+        $this->integration->update(['settings' => $settings]);
         $this->integration->refresh();
 
         $this->saveMappingsForBasis($data);

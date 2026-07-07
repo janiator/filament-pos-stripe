@@ -6,6 +6,7 @@ use App\Exceptions\PowerOffice\MissingPowerOfficeMappingException;
 use App\Exceptions\PowerOffice\PowerOfficeUnresolvedGlAccountsException;
 use App\Models\PosSession;
 use App\Models\PowerOfficeIntegration;
+use App\Support\PowerOffice\PowerOfficePostingSettings;
 
 final class PowerOfficeSyncPreviewService
 {
@@ -106,6 +107,9 @@ final class PowerOfficeSyncPreviewService
             'credit_total_minor' => $creditTotal,
             'difference_minor' => $differenceMinor,
             'balanced' => $differenceMinor === 0,
+            'voucher_posting_mode' => PowerOfficePostingSettings::mode($integration)->value,
+            'posts_directly_to_ledger' => PowerOfficePostingSettings::usesDirectPosting($integration),
+            'ledger_post_path' => PowerOfficePostingSettings::ledgerPostPath($integration),
             'poweroffice_voucher_payload' => null,
             'resolve_error' => null,
         ];

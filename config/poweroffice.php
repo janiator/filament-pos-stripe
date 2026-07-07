@@ -47,8 +47,9 @@ return [
     ],
 
     'ledger' => [
-        // Default: direct manual journal posting (/Vouchers/ManualJournals) — matches Go UI "Direktepostere manuelle bilag".
-        // Use /JournalEntryVouchers/ManualJournals if the client enabled "send to journal entry" / Journal Entry Voucher workflow only.
+        // Default when a store has no voucher_posting_mode in settings (override per store in Filament → PowerOffice → Sync).
+        // Direct: /Vouchers/ManualJournals — immediate ledger posting ([Voucher Posting](https://developer.poweroffice.net/workflows/endpoints/voucher-workflows/voucher-posting)).
+        // Journal entry: /JournalEntryVouchers/ManualJournals — draft in Go for review/approval ([Journal Entry Voucher](https://developer.poweroffice.net/endpoints/voucher-workflows/journalentryvoucher)).
         'post_path' => trim((string) env('POWEROFFICE_LEDGER_POST_PATH')) ?: '/Vouchers/ManualJournals',
     ],
 
