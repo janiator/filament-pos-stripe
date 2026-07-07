@@ -4,6 +4,8 @@ namespace App\Filament\Resources\ConnectedProducts\Pages;
 
 use App\Filament\Resources\ConnectedProducts\ConnectedProductResource;
 use App\Filament\Resources\Pages\EditRecord;
+use App\Models\ConnectedProduct;
+use App\Models\QuantityUnit;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
@@ -33,9 +35,26 @@ class EditConnectedProduct extends EditRecord
         }
     }
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if (isset($data['quantity_unit_id'])) {
+            $data['quantity_unit_id'] = QuantityUnit::resolveReplacementId(
+                is_numeric($data['quantity_unit_id']) ? (int) $data['quantity_unit_id'] : null
+            );
+        }
+
+        return $data;
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         // Handle compare_at_price_decimal conversion
+        if (isset($data['quantity_unit_id'])) {
+            $data['quantity_unit_id'] = QuantityUnit::resolveReplacementId(
+                is_numeric($data['quantity_unit_id']) ? (int) $data['quantity_unit_id'] : null
+            );
+        }
+
         if (isset($data['compare_at_price_decimal'])) {
             if ($data['compare_at_price_decimal'] !== null && $data['compare_at_price_decimal'] !== '') {
                 $data['compare_at_price_amount'] = (int) round($data['compare_at_price_decimal'] * 100);

@@ -77,7 +77,7 @@ it('includes global units even when is_standard is false', function () {
 
     $unit->update(['is_standard' => false]);
 
-    expect(QuantityUnit::optionsForSelect()[$unit->id])->toBe('Piece (stk)');
+    expect(QuantityUnit::optionsForSelect()[(string) $unit->id])->toBe('Piece (stk)');
 });
 
 it('updates existing global units when defaults are imported again', function () {
@@ -102,6 +102,35 @@ it('updates existing global units when defaults are imported again', function ()
         ->and($unit->description)->toBe('Per item/piece');
 });
 
+it('remaps products linked to stripe-scoped legacy units', function () {
+    seedGlobalQuantityUnits();
+
+    $globalPiece = QuantityUnit::defaultPiece();
+    $legacyUnit = QuantityUnit::query()->create([
+        'store_id' => null,
+        'stripe_account_id' => 'acct_legacy_unit',
+        'name' => 'Piece',
+        'symbol' => 'stk',
+        'is_standard' => true,
+        'active' => true,
+    ]);
+
+    $product = ConnectedProduct::factory()->create([
+        'quantity_unit_id' => $legacyUnit->id,
+    ]);
+
+    expect(QuantityUnit::remapLegacyProductReferences())->toBe(1)
+        ->and($product->fresh()->quantity_unit_id)->toBe($globalPiece->id);
+});
+
+it('resolves replacement ids for missing legacy references', function () {
+    seedGlobalQuantityUnits();
+
+    $globalPiece = QuantityUnit::defaultPiece();
+
+    expect(QuantityUnit::resolveReplacementId(999999))->toBe($globalPiece->id);
+});
+
 it('remaps per-store product quantity unit references to matching global units', function () {
     seedGlobalQuantityUnits();
 
@@ -119,7 +148,6 @@ it('remaps per-store product quantity unit references to matching global units',
         'quantity_unit_id' => $storeUnit->id,
     ]);
 
-    QuantityUnit::remapLegacyProductReferences();
-
-    expect($product->fresh()->quantity_unit_id)->toBe($globalPiece->id);
+    expect(QuantityUnit::remapLegacyProductReferences())->toBe(1)
+        ->and($product->fresh()->quantity_unit_id)->toBe($globalPiece->id);
 });

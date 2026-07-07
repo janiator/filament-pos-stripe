@@ -4,7 +4,6 @@ namespace App\Filament\Resources\QuantityUnits\Pages;
 
 use App\Filament\Resources\QuantityUnits\QuantityUnitResource;
 use App\Models\QuantityUnit;
-use Database\Seeders\QuantityUnitSeeder;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Notifications\Notification;
@@ -26,14 +25,12 @@ class ListQuantityUnits extends ListRecords
                 ->modalDescription(__('filament.actions.import_quantity_unit_defaults.description'))
                 ->action(function (): void {
                     try {
-                        $seeder = new QuantityUnitSeeder;
-                        $seeder->run();
-                        QuantityUnit::remapLegacyProductReferences();
+                        $updated = QuantityUnit::remapLegacyProductReferences();
 
                         Notification::make()
                             ->success()
                             ->title(__('filament.actions.import_quantity_unit_defaults.title'))
-                            ->body(__('filament.actions.import_quantity_unit_defaults.body'))
+                            ->body(__('filament.actions.import_quantity_unit_defaults.body').($updated > 0 ? " {$updated} products remapped." : ''))
                             ->send();
 
                         $this->refresh();

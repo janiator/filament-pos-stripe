@@ -1303,33 +1303,23 @@ class ConnectedProductForm
     {
         return Select::make('quantity_unit_id')
             ->label(__('Quantity Unit'))
-            ->options(function (Get $get, $record) {
-                return QuantityUnit::optionsForSelect(self::resolveQuantityUnitIncludeId($get, $record));
-            })
-            ->getSearchResultsUsing(function (string $search, Get $get, $record) {
-                $includeId = self::resolveQuantityUnitIncludeId($get, $record);
-
+            ->options(fn (): array => QuantityUnit::optionsForSelect())
+            ->getSearchResultsUsing(function (string $search): array {
                 return QuantityUnit::query()
-                    ->forSelect($includeId)
+                    ->forSelect()
                     ->where(function ($query) use ($search) {
                         $query->where('name', 'like', "%{$search}%")
                             ->orWhere('symbol', 'like', "%{$search}%");
                     })
                     ->limit(50)
                     ->get()
-                    ->mapWithKeys(fn (QuantityUnit $unit): array => [$unit->id => $unit->display_name])
+                    ->mapWithKeys(fn (QuantityUnit $unit): array => [(string) $unit->id => $unit->display_name])
                     ->all();
             })
             ->getOptionLabelUsing(fn ($value): ?string => QuantityUnit::labelForId(is_numeric($value) ? (int) $value : null))
             ->searchable()
             ->preload()
-            ->default(function (Get $get, $record = null) {
-                if ($record?->quantity_unit_id) {
-                    return $record->quantity_unit_id;
-                }
-
-                return QuantityUnit::defaultPiece()?->id;
-            })
+            ->default(fn ($record) => QuantityUnit::resolveReplacementId($record?->quantity_unit_id))
             ->helperText(__('Unit label will be automatically set from the quantity unit symbol.'))
             ->placeholder(__('Select quantity unit'))
             ->hintAction(
@@ -1339,13 +1329,6 @@ class ConnectedProductForm
                     ->url(fn (): string => QuantityUnitResource::getUrl('index'))
             )
             ->columnSpanFull();
-    }
-
-    private static function resolveQuantityUnitIncludeId(Get $get, mixed $record = null): ?int
-    {
-        $includeId = $record?->quantity_unit_id ?? $get('quantity_unit_id');
-
-        return is_numeric($includeId) ? (int) $includeId : null;
     }
 
     /**

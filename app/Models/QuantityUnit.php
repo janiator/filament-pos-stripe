@@ -82,15 +82,72 @@ class QuantityUnit extends Model
     }
 
     /**
-     * @return array<int, string>
+     * @return array<string, string>
      */
     public static function optionsForSelect(?int $includeId = null): array
     {
         return static::query()
             ->forSelect($includeId)
             ->get()
-            ->mapWithKeys(fn (self $unit): array => [$unit->id => $unit->display_name])
+            ->mapWithKeys(fn (self $unit): array => [(string) $unit->id => $unit->display_name])
             ->all();
+    }
+
+    public static function selectableGlobalIds(): array
+    {
+        return static::query()
+            ->whereNull('store_id')
+            ->whereNull('stripe_account_id')
+            ->where('active', true)
+            ->pluck('id')
+            ->map(fn (int $id): string => (string) $id)
+            ->all();
+    }
+
+    public static function isSelectableGlobalId(?int $id): bool
+    {
+        if ($id === null) {
+            return false;
+        }
+
+        return static::query()
+            ->whereKey($id)
+            ->whereNull('store_id')
+            ->whereNull('stripe_account_id')
+            ->where('active', true)
+            ->exists();
+    }
+
+    public static function resolveReplacementId(?int $unitId): ?int
+    {
+        if ($unitId !== null && static::isSelectableGlobalId($unitId)) {
+            return $unitId;
+        }
+
+        $globals = static::query()
+            ->whereNull('store_id')
+            ->whereNull('stripe_account_id')
+            ->where('active', true)
+            ->get()
+            ->keyBy(fn (self $unit): string => strtolower($unit->name.'|'.($unit->symbol ?? '')));
+
+        $defaultPieceId = $globals->first(
+            fn (self $unit): bool => $unit->name === 'Piece' && $unit->symbol === 'stk'
+        )?->id ?? $globals->first()?->id;
+
+        if ($unitId === null) {
+            return $defaultPieceId;
+        }
+
+        $existing = static::query()->find($unitId);
+
+        if ($existing === null) {
+            return $defaultPieceId;
+        }
+
+        $key = strtolower($existing->name.'|'.($existing->symbol ?? ''));
+
+        return $globals->get($key)?->id ?? $defaultPieceId;
     }
 
     public static function labelForId(?int $id): ?string
@@ -105,46 +162,49 @@ class QuantityUnit extends Model
     }
 
     /**
-     * Point products at global units when they still reference deleted or per-store rows.
+     * Ensure global units exist and point every product at a selectable global unit.
      */
-    public static function remapLegacyProductReferences(): void
+    public static function remapLegacyProductReferences(): int
     {
         (new \Database\Seeders\QuantityUnitSeeder)->run();
 
         $globals = static::query()
             ->whereNull('store_id')
             ->whereNull('stripe_account_id')
+            ->where('active', true)
             ->get()
             ->keyBy(fn (self $unit): string => strtolower($unit->name.'|'.($unit->symbol ?? '')));
 
-        $defaultPieceId = $globals->first(
-            fn (self $unit): bool => $unit->name === 'Piece' && $unit->symbol === 'stk'
-        )?->id ?? $globals->first()?->id;
+        $defaultPieceId = static::resolveReplacementId(null);
 
         if ($defaultPieceId === null) {
-            return;
+            return 0;
         }
+
+        $selectableIds = $globals->pluck('id')->all();
+        $updated = 0;
 
         DB::table('connected_products')
             ->whereNotNull('quantity_unit_id')
-            ->whereNotExists(function ($query): void {
-                $query->select(DB::raw(1))
-                    ->from('quantity_units')
-                    ->whereColumn('quantity_units.id', 'connected_products.quantity_unit_id');
-            })
-            ->update(['quantity_unit_id' => $defaultPieceId]);
+            ->orderBy('id')
+            ->chunkById(500, function ($products) use (&$updated, $selectableIds, $defaultPieceId): void {
+                foreach ($products as $product) {
+                    $currentId = (int) $product->quantity_unit_id;
 
-        foreach (static::query()->whereNotNull('store_id')->get() as $storeUnit) {
-            $key = strtolower($storeUnit->name.'|'.($storeUnit->symbol ?? ''));
-            $global = $globals->get($key);
+                    if (in_array($currentId, $selectableIds, true)) {
+                        continue;
+                    }
 
-            if (! $global) {
-                continue;
-            }
+                    $replacementId = static::resolveReplacementId($currentId) ?? $defaultPieceId;
 
-            DB::table('connected_products')
-                ->where('quantity_unit_id', $storeUnit->id)
-                ->update(['quantity_unit_id' => $global->id]);
-        }
+                    DB::table('connected_products')
+                        ->where('id', $product->id)
+                        ->update(['quantity_unit_id' => $replacementId]);
+
+                    $updated++;
+                }
+            });
+
+        return $updated;
     }
 }
