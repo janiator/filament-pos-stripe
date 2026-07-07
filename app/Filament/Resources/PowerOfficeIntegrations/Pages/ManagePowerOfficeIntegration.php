@@ -323,6 +323,10 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                             ->label(__('Interim / PSP liquid account (reference)'))
                             ->helperText(__('Optional note field: often the same account you use as the “credit” side for fees and payouts below (Stripe/Zettle balance before bank payout).'))
                             ->maxLength(64),
+                        Toggle::make('ledger_z_report_include_settlement')
+                            ->label(__('filament.poweroffice.z_report_include_settlement_label'))
+                            ->helperText(__('filament.poweroffice.z_report_include_settlement_help'))
+                            ->default(true),
                         Section::make('Payment fees (paired posting)')
                             ->description(__('If the Z-report includes stripe_fees_minor, posts credit to settlement account and debit to expense (same pattern as Zettle PAYMENT_FEE lines).'))
                             ->columns(2)
@@ -575,6 +579,7 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
             'ledger_vipps_fee_debit_account_no' => (string) ($vippsFee['debit_account_no'] ?? ''),
             'ledger_payout_credit_account_no' => (string) ($po['credit_account_no'] ?? ''),
             'ledger_payout_debit_bank_account_no' => (string) ($po['debit_bank_account_no'] ?? ''),
+            'ledger_z_report_include_settlement' => PowerOfficeLedgerSettings::zReportIncludesSettlement($this->integration),
         ];
     }
 
@@ -661,6 +666,8 @@ class ManagePowerOfficeIntegration extends Page implements HasActions, HasForms
                 'debit_bank_account_no' => $payoutBank,
             ];
         }
+
+        $ledger['z_report_include_settlement'] = (bool) ($data['ledger_z_report_include_settlement'] ?? true);
 
         $settings['ledger'] = $ledger;
         $integration->update(['settings' => $settings]);

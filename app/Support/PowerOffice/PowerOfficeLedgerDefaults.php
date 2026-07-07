@@ -146,6 +146,7 @@ final class PowerOfficeLedgerDefaults
             'ledger_vipps_fee_debit_account_no' => (string) ($vippsFee['debit_account_no'] ?? ''),
             'ledger_payout_credit_account_no' => '',
             'ledger_payout_debit_bank_account_no' => '',
+            'ledger_z_report_include_settlement' => true,
             'ledger_shared_vat_account_no' => (string) $shared['vat_account_no'],
             'ledger_shared_tips_account_no' => (string) $shared['tips_account_no'],
             'ledger_shared_cash_account_no' => (string) $shared['cash_account_no'],

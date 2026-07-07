@@ -122,4 +122,15 @@ final class PowerOfficeLedgerSettings
 
         return filled($v) ? (string) $v : null;
     }
+
+    /**
+     * When false, Stripe fee and bank payout paired lines are omitted from Z-report vouchers
+     * (gift-card liability still posts when configured). Defaults true for existing setups.
+     */
+    public static function zReportIncludesSettlement(PowerOfficeIntegration $integration): bool
+    {
+        $v = self::ledger($integration)['z_report_include_settlement'] ?? null;
+
+        return $v === null ? true : (bool) $v;
+    }
 }

@@ -253,3 +253,104 @@ it('prefers Z-report stripe_fees_minor over database when positive', function ()
     expect($feeCredit)->not->toBeNull()
         ->and($feeCredit['credit_minor'])->toBe(501);
 });
+
+it('omits stripe fee and payout lines when z_report_include_settlement is disabled', function () {
+    $store = Store::factory()->create([
+        'stripe_account_id' => 'acct_no_settlement',
+    ]);
+
+    $closedAt = now()->startOfDay()->addHours(15);
+
+    $session = PosSession::factory()->forStore($store)->create([
+        'status' => 'closed',
+        'closed_at' => $closedAt,
+    ]);
+
+    $integration = PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Vat,
+        'settings' => [
+            'ledger' => [
+                'z_report_include_settlement' => false,
+                'payment_fee' => [
+                    'credit_account_no' => '2900',
+                    'debit_account_no' => '7900',
+                ],
+                'payout' => [
+                    'credit_account_no' => '1901',
+                    'debit_bank_account_no' => '1920',
+                ],
+                'payment_debits' => [
+                    'card' => '1921',
+                ],
+            ],
+        ],
+    ]);
+
+    PowerOfficeAccountMapping::factory()->create([
+        'store_id' => $store->id,
+        'power_office_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Vat,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'vat_account_no' => '2700',
+        'cash_account_no' => '1920',
+        'card_clearing_account_no' => '1921',
+    ]);
+
+    ConnectedCharge::factory()->create([
+        'stripe_account_id' => $store->stripe_account_id,
+        'pos_session_id' => $session->id,
+        'stripe_charge_id' => 'ch_no_settlement',
+        'status' => 'succeeded',
+        'payment_method' => 'card',
+        'amount' => 10_000,
+    ]);
+
+    StoreStripeBalanceTransaction::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_balance_transaction_id' => 'txn_no_settlement_fee',
+        'type' => 'charge',
+        'amount' => 10_000,
+        'fee' => 275,
+        'net' => 9_725,
+        'currency' => 'nok',
+        'status' => 'available',
+        'stripe_charge_id' => 'ch_no_settlement',
+        'stripe_created' => (int) now()->subHour()->timestamp,
+    ]);
+
+    StoreStripePayout::query()->create([
+        'store_id' => $store->id,
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_payout_id' => 'po_no_settlement',
+        'amount' => 9_725,
+        'currency' => 'nok',
+        'status' => 'paid',
+        'arrival_date' => $closedAt->toDateString(),
+    ]);
+
+    $zReport = [
+        'net_amount' => 10_000,
+        'vat_amount' => 2_500,
+        'vat_rate' => 25,
+        'total_tips' => 0,
+        'stripe_fees_minor' => 275,
+        'payout_to_bank_minor' => 9_725,
+        'by_payment_method_net' => [
+            'card' => ['amount' => 10_000, 'count' => 1, 'tips' => 0],
+        ],
+    ];
+
+    $payload = app(PowerOfficeLedgerPayloadBuilder::class)->build(
+        $session,
+        $integration->fresh('accountMappings'),
+        $zReport
+    );
+
+    $accounts = collect($payload['lines'])->pluck('account');
+
+    expect($accounts)->not->toContain('2900', '7900', '1901')
+        ->and($accounts)->toContain('1921');
+});

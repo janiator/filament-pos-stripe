@@ -38,6 +38,10 @@ return [
         'skip_payout_bank_transfer_help' => 'When enabled, automatic payout sync, previews, retries, and historical payout jobs (unless you override per run) omit the main settlement pair (payout clearing account credit vs bank debit, e.g. 1901 → 1920). Fees, application fees, and external ticket lines still post when present. Use when the bank period in Tripletex is closed and you record the bank movement manually.',
         'vat_sales_accounts_section_description' => 'Net sales (excluding VAT) are posted per rate when the Z-report includes a line-item VAT split (from receipt/charge lines and product VAT %). Configure one ledger account per rate (0%, 15%, 25%). Tripletex optional VAT type ids below apply per sales line.',
     ],
+    'poweroffice' => [
+        'z_report_include_settlement_label' => 'Post Stripe fees and bank payout on Z-report voucher',
+        'z_report_include_settlement_help' => 'When off, the fee and payout account pairs below are ignored on Z-report sync and previews. Use when card payments already debit bank directly (e.g. 1920). Gift card liability still posts when configured.',
+    ],
     'resources' => [
         'store' => [
             'tenant_menu' => 'Store information',

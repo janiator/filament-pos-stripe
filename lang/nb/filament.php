@@ -38,6 +38,10 @@ return [
         'skip_payout_bank_transfer_help' => 'Når aktivert, utelates hovedparet (kredit mellomkonto / debet bank, f.eks. 1901 → 1920) ved automatisk utbetalingssynk, forhåndsvisning, retry og historiske utbetalingsjobber (med mindre du overstyrer per kjøring). Gebyrer, app-gebyr og eksterne billettlinjer bokføres fortsatt når de finnes. Bruk når bankperioden i Tripletex er stengt og du bokfører bankbevegelsen manuelt.',
         'vat_sales_accounts_section_description' => 'Netto omsetning (ekskl. MVA) bokføres per sats når Z-rapporten har linjebasert MVA-fordeling (fra kvitterings-/belastningslinjer og produktets MVA-%). Fyll inn én reskontokonto per sats (0 %, 15 %, 25 %). Valgfrie Tripletex MVA-type-id-er under gjelder per salgslinje.',
     ],
+    'poweroffice' => [
+        'z_report_include_settlement_label' => 'Bokfør Stripe-gebyr og bankutbetaling på Z-rapportbilag',
+        'z_report_include_settlement_help' => 'Når av, ignoreres gebyr- og utbetalingskontoparene under ved Z-rapportsynk og forhåndsvisning. Bruk når kortbetalinger allerede debiterer bank direkte (f.eks. 1920). Gavekortforpliktelse bokføres fortsatt når den er satt opp.',
+    ],
     // Navigation Groups
     'navigation_groups' => [
         'automation' => 'Automasjon',

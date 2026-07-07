@@ -980,47 +980,49 @@ class PowerOfficeLedgerPayloadBuilder
             ];
         }
 
-        $fees = (int) ($zReport['stripe_fees_minor'] ?? 0);
-        if ($fees <= 0) {
-            $fees = $this->stripeSettlementTotals->feesMinorForSession($session);
-        }
-        if ($fees > 0) {
-            $fee = PowerOfficeLedgerSettings::paymentFeeAccounts($integration);
-            if ($fee['credit'] && $fee['debit']) {
-                $extra[] = [
-                    'account' => $fee['credit'],
-                    'debit_minor' => 0,
-                    'credit_minor' => $fees,
-                    'description' => PowerOfficeLedgerLineDescriptions::paymentFeesSettlement(),
-                ];
-                $extra[] = [
-                    'account' => $fee['debit'],
-                    'debit_minor' => $fees,
-                    'credit_minor' => 0,
-                    'description' => PowerOfficeLedgerLineDescriptions::paymentFeesExpense(),
-                ];
+        if (PowerOfficeLedgerSettings::zReportIncludesSettlement($integration)) {
+            $fees = (int) ($zReport['stripe_fees_minor'] ?? 0);
+            if ($fees <= 0) {
+                $fees = $this->stripeSettlementTotals->feesMinorForSession($session);
             }
-        }
+            if ($fees > 0) {
+                $fee = PowerOfficeLedgerSettings::paymentFeeAccounts($integration);
+                if ($fee['credit'] && $fee['debit']) {
+                    $extra[] = [
+                        'account' => $fee['credit'],
+                        'debit_minor' => 0,
+                        'credit_minor' => $fees,
+                        'description' => PowerOfficeLedgerLineDescriptions::paymentFeesSettlement(),
+                    ];
+                    $extra[] = [
+                        'account' => $fee['debit'],
+                        'debit_minor' => $fees,
+                        'credit_minor' => 0,
+                        'description' => PowerOfficeLedgerLineDescriptions::paymentFeesExpense(),
+                    ];
+                }
+            }
 
-        $payout = (int) ($zReport['payout_to_bank_minor'] ?? 0);
-        if ($payout <= 0) {
-            $payout = $this->stripeSettlementTotals->payoutMinorForSessionCloseDate($session);
-        }
-        if ($payout > 0) {
-            $po = PowerOfficeLedgerSettings::payoutAccounts($integration);
-            if ($po['credit'] && $po['debit']) {
-                $extra[] = [
-                    'account' => $po['credit'],
-                    'debit_minor' => 0,
-                    'credit_minor' => $payout,
-                    'description' => PowerOfficeLedgerLineDescriptions::payoutSettlement(),
-                ];
-                $extra[] = [
-                    'account' => $po['debit'],
-                    'debit_minor' => $payout,
-                    'credit_minor' => 0,
-                    'description' => PowerOfficeLedgerLineDescriptions::payoutBank(),
-                ];
+            $payout = (int) ($zReport['payout_to_bank_minor'] ?? 0);
+            if ($payout <= 0) {
+                $payout = $this->stripeSettlementTotals->payoutMinorForSessionCloseDate($session);
+            }
+            if ($payout > 0) {
+                $po = PowerOfficeLedgerSettings::payoutAccounts($integration);
+                if ($po['credit'] && $po['debit']) {
+                    $extra[] = [
+                        'account' => $po['credit'],
+                        'debit_minor' => 0,
+                        'credit_minor' => $payout,
+                        'description' => PowerOfficeLedgerLineDescriptions::payoutSettlement(),
+                    ];
+                    $extra[] = [
+                        'account' => $po['debit'],
+                        'debit_minor' => $payout,
+                        'credit_minor' => 0,
+                        'description' => PowerOfficeLedgerLineDescriptions::payoutBank(),
+                    ];
+                }
             }
         }
 
