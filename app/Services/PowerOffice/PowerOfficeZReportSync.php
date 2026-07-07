@@ -4,6 +4,7 @@ namespace App\Services\PowerOffice;
 
 use App\Enums\AddonType;
 use App\Enums\PowerOfficeSyncRunStatus;
+use App\Enums\PowerOfficeVoucherPostingMode;
 use App\Exceptions\PowerOffice\MissingPowerOfficeMappingException;
 use App\Exceptions\PowerOffice\PowerOfficeUnresolvedGlAccountsException;
 use App\Filament\Resources\PosSessions\Tables\PosSessionsTable;
@@ -119,7 +120,7 @@ class PowerOfficeZReportSync
         }
 
         if ($existingSuccessRun && $reverseExisting) {
-            $reversalInfo = $this->reversePostedVoucher($existingSuccessRun, $integration);
+            $reversalInfo = $this->removePreviousVoucherForResync($existingSuccessRun, $integration);
             if ($reversalInfo === null) {
                 return false;
             }
@@ -243,6 +244,7 @@ class PowerOfficeZReportSync
         $journalVoucherNo = $this->resolveFinalJournalVoucherNo($integration, $voucherId, $journalVoucherNo);
 
         $responsePayload = $postedJson;
+        $responsePayload['voucher_posting_mode'] = PowerOfficePostingSettings::mode($integration)->value;
         if ($reversalInfo !== null) {
             $responsePayload['reversed_previous_voucher'] = $reversalInfo;
         }
@@ -364,62 +366,174 @@ class PowerOfficeZReportSync
     }
 
     /**
-     * Reverse the voucher recorded on a successful sync run (POST /Vouchers/Reverse/{id}).
-     * Returns reversal metadata on success, or null after marking the run failed.
+     * Remove the voucher from a successful sync run before re-posting a corrected Z-report.
      *
-     * @return array{voucher_id: string, journal_voucher_no: ?int, reversed_at: string, already_reversed?: bool}|null
+     * Direct postings are reversed (POST /Vouchers/Reverse/{id}); journal-entry drafts are deleted
+     * (DELETE /JournalEntryVouchers/{id}).
+     *
+     * @return array{voucher_id: string, journal_voucher_no: ?int, reversed_at: string, removal_method: string, already_reversed?: bool, already_deleted?: bool}|null
      */
-    protected function reversePostedVoucher(PowerOfficeSyncRun $run, PowerOfficeIntegration $integration): ?array
+    protected function removePreviousVoucherForResync(PowerOfficeSyncRun $run, PowerOfficeIntegration $integration): ?array
     {
-        $voucherId = data_get($run->response_payload, 'Id') ?? data_get($run->response_payload, 'id');
-        $voucherId = is_string($voucherId) ? $voucherId : (is_numeric($voucherId) ? (string) $voucherId : null);
-
-        if ($voucherId === null || $voucherId === '') {
-            $this->failRun($run, $integration, 'Cannot re-sync: previous sync run has no PowerOffice voucher Id to reverse.');
+        $voucherId = $this->voucherIdFromSyncRun($run);
+        if ($voucherId === null) {
+            $this->failRun($run, $integration, 'Cannot re-sync: previous sync run has no PowerOffice voucher Id to remove.');
 
             return null;
         }
 
+        $postingMode = $this->postingModeForSyncRun($run, $integration);
+
+        if ($postingMode === PowerOfficeVoucherPostingMode::JournalEntry) {
+            return $this->deleteJournalEntryDraftForResync($run, $integration, $voucherId);
+        }
+
+        $reversal = $this->reverseDirectPostedVoucherForResync($run, $integration, $voucherId);
+        if (is_array($reversal)) {
+            return $reversal;
+        }
+        if ($reversal === false) {
+            return null;
+        }
+
+        // ponytail: fallback for older successful runs that omitted voucher_posting_mode but created journal-entry drafts.
+        return $this->deleteJournalEntryDraftForResync($run, $integration, $voucherId);
+    }
+
+    /**
+     * @return array{voucher_id: string, journal_voucher_no: ?int, reversed_at: string, removal_method: string, already_reversed?: bool}|false|null
+     */
+    protected function reverseDirectPostedVoucherForResync(
+        PowerOfficeSyncRun $run,
+        PowerOfficeIntegration $integration,
+        string $voucherId,
+    ): array|false|null {
         try {
             $response = $this->apiClient->postVoucherReversal($integration, $voucherId);
         } catch (\Throwable $e) {
             $this->failRun($run, $integration, 'PowerOffice voucher reversal failed: '.$e->getMessage());
 
+            return false;
+        }
+
+        if ($response->successful()) {
+            return [
+                'voucher_id' => $voucherId,
+                'journal_voucher_no' => $run->journal_voucher_no,
+                'reversed_at' => now()->toIso8601String(),
+                'removal_method' => 'reverse',
+            ];
+        }
+
+        $this->apiClient->logFailedResponse('voucher_reversal_post', $response);
+
+        if ($this->voucherReversalResponseMeansAlreadyReversed($response)) {
+            return [
+                'voucher_id' => $voucherId,
+                'journal_voucher_no' => $run->journal_voucher_no,
+                'reversed_at' => now()->toIso8601String(),
+                'removal_method' => 'reverse',
+                'already_reversed' => true,
+            ];
+        }
+
+        if ($response->status() === 404 && $this->responseMeansVoucherNotFound($response)) {
             return null;
         }
 
-        if (! $response->successful()) {
-            $this->apiClient->logFailedResponse('voucher_reversal_post', $response);
+        $message = 'PowerOffice voucher reversal failed: HTTP '.$response->status().$this->apiClient->summarizeErrorBody($response)
+            .' (voucher Id: '.$voucherId.').';
+        if ($response->status() === 403) {
+            $message .= ' The integration needs the ReverseVoucher_Full privilege in PowerOffice Go.';
+        }
 
-            if ($this->voucherReversalResponseMeansAlreadyReversed($response)) {
-                return [
-                    'voucher_id' => $voucherId,
-                    'journal_voucher_no' => $run->journal_voucher_no,
-                    'reversed_at' => now()->toIso8601String(),
-                    'already_reversed' => true,
-                ];
-            }
+        $this->failRun($run, $integration, $message);
 
-            $message = 'PowerOffice voucher reversal failed: HTTP '.$response->status().$this->apiClient->summarizeErrorBody($response)
-                .' (voucher Id: '.$voucherId.').';
-            if ($response->status() === 403) {
-                $message .= ' The integration needs the ReverseVoucher_Full privilege in PowerOffice Go.';
-            }
+        return false;
+    }
 
-            $this->failRun(
-                $run,
-                $integration,
-                $message
-            );
+    /**
+     * @return array{voucher_id: string, journal_voucher_no: ?int, reversed_at: string, removal_method: string, already_deleted?: bool}|null
+     */
+    protected function deleteJournalEntryDraftForResync(
+        PowerOfficeSyncRun $run,
+        PowerOfficeIntegration $integration,
+        string $voucherId,
+    ): ?array {
+        try {
+            $response = $this->apiClient->deleteJournalEntryVoucher($integration, $voucherId);
+        } catch (\Throwable $e) {
+            $this->failRun($run, $integration, 'PowerOffice journal-entry voucher delete failed: '.$e->getMessage());
 
             return null;
         }
 
-        return [
-            'voucher_id' => $voucherId,
-            'journal_voucher_no' => $run->journal_voucher_no,
-            'reversed_at' => now()->toIso8601String(),
-        ];
+        if ($response->successful()) {
+            return [
+                'voucher_id' => $voucherId,
+                'journal_voucher_no' => $run->journal_voucher_no,
+                'reversed_at' => now()->toIso8601String(),
+                'removal_method' => 'delete',
+            ];
+        }
+
+        $this->apiClient->logFailedResponse('journal_entry_voucher_delete', $response);
+
+        if ($response->status() === 404 && $this->responseMeansVoucherNotFound($response)) {
+            return [
+                'voucher_id' => $voucherId,
+                'journal_voucher_no' => $run->journal_voucher_no,
+                'reversed_at' => now()->toIso8601String(),
+                'removal_method' => 'delete',
+                'already_deleted' => true,
+            ];
+        }
+
+        $message = 'PowerOffice journal-entry voucher delete failed: HTTP '.$response->status().$this->apiClient->summarizeErrorBody($response)
+            .' (voucher Id: '.$voucherId.').';
+        if ($response->status() === 403) {
+            $message .= ' The integration needs JournalEntryVoucher_Full in PowerOffice Go.';
+        }
+        if ($response->status() === 409) {
+            $message .= ' The draft may already be posted or in approval; remove it manually in Go before re-syncing.';
+        }
+
+        $this->failRun($run, $integration, $message);
+
+        return null;
+    }
+
+    protected function voucherIdFromSyncRun(PowerOfficeSyncRun $run): ?string
+    {
+        $voucherId = data_get($run->response_payload, 'Id') ?? data_get($run->response_payload, 'id');
+        if (is_string($voucherId) && $voucherId !== '') {
+            return $voucherId;
+        }
+
+        return is_numeric($voucherId) ? (string) $voucherId : null;
+    }
+
+    protected function postingModeForSyncRun(PowerOfficeSyncRun $run, PowerOfficeIntegration $integration): PowerOfficeVoucherPostingMode
+    {
+        $stored = data_get($run->response_payload, 'voucher_posting_mode');
+        if (is_string($stored)) {
+            $parsed = PowerOfficeVoucherPostingMode::tryFrom($stored);
+            if ($parsed instanceof PowerOfficeVoucherPostingMode) {
+                return $parsed;
+            }
+        }
+
+        return PowerOfficePostingSettings::mode($integration);
+    }
+
+    protected function responseMeansVoucherNotFound(Response $response): bool
+    {
+        $body = mb_strtolower($response->body());
+
+        return str_contains($body, 'not found')
+            || str_contains($body, 'object not found')
+            || str_contains($body, 'could not find voucher')
+            || str_contains($body, 'finnes ikke');
     }
 
     protected function voucherReversalResponseMeansAlreadyReversed(Response $response): bool

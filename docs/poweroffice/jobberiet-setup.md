@@ -41,7 +41,7 @@ On **Filament → PowerOffice**, the **PowerOffice accounts** section has **Chec
 
 ## Re-sync (corrected Z-report)
 
-The **Sync PowerOffice** action on a POS session is safe to re-run. If a voucher was already posted, Filament asks for confirmation, then POSTs `/Vouchers/Reverse/{id}` (PowerOffice creates a reversal voucher and frees the `ExternalImportReference`) and posts a fresh voucher from the current Z-report snapshot. Automatic sync on session close never reverses.
+The **Sync PowerOffice** action on a POS session is safe to re-run. If a voucher was already synced, Filament asks for confirmation, then removes the previous voucher and posts a fresh one from the current Z-report snapshot. **Direct posting:** POST `/Vouchers/Reverse/{id}` (reversal voucher; frees `ExternalImportReference`). **Journal-entry draft:** DELETE `/JournalEntryVouchers/{id}` (unposted draft only). Automatic sync on session close never reverses or deletes.
 
 ## POS admin (Filament)
 

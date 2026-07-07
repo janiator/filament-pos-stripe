@@ -112,6 +112,25 @@ class PowerOfficeApiClient
     }
 
     /**
+     * Delete an unposted journal-entry voucher draft created by this integration.
+     */
+    public function deleteJournalEntryVoucher(PowerOfficeIntegration $integration, string $voucherGuid): Response
+    {
+        $base = $this->validatedBaseUrlForEnvironmentKey(
+            $integration->environment === PowerOfficeEnvironment::Prod ? 'prod' : 'dev',
+        );
+        $url = $base.'/JournalEntryVouchers/'.rawurlencode($voucherGuid);
+        if (! $this->isAbsoluteHttpUrl($url)) {
+            throw new \RuntimeException('PowerOffice journal entry voucher delete URL is not valid: '.$url);
+        }
+
+        return Http::withHeaders($this->headers($integration))
+            ->acceptJson()
+            ->timeout(60)
+            ->delete($url);
+    }
+
+    /**
      * Attach Z-report PDF to a voucher created by this integration.
      *
      * Direct posting uses PUT /VoucherDocumentation; journal-entry drafts use POST /JournalEntryVouchers/{id}/VoucherPages.

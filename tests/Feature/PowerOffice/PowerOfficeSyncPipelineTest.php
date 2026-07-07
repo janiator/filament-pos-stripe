@@ -64,6 +64,10 @@ function fakePowerOfficeLedgerHttp(): void
             return Http::response('', 201);
         }
 
+        if ($request->method() === 'DELETE' && str_contains($request->url(), '/JournalEntryVouchers/')) {
+            return Http::response('', 200);
+        }
+
         if (str_contains($request->url(), 'Vouchers/Reverse/')) {
             return Http::response([
                 'IsReversed' => true,
@@ -746,4 +750,63 @@ it('posts journal entry draft vouchers when direct posting is disabled on the in
         && str_contains($request->url(), '/VoucherPages'));
 
     Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'VoucherDocumentation'));
+});
+
+it('deletes journal entry draft and creates a new one when re-syncing', function () {
+    fakePowerOfficeLedgerHttp();
+
+    $store = Store::factory()->create();
+    Addon::query()->create([
+        'store_id' => $store->id,
+        'type' => AddonType::PowerOfficeGo,
+        'is_active' => true,
+    ]);
+
+    $integration = PowerOfficeIntegration::factory()->connected()->create([
+        'store_id' => $store->id,
+        'mapping_basis' => PowerOfficeMappingBasis::Vat,
+        'settings' => ['voucher_posting_mode' => 'journal_entry'],
+    ]);
+
+    PowerOfficeAccountMapping::factory()->create([
+        'power_office_integration_id' => $integration->id,
+        'basis_type' => PowerOfficeMappingBasis::Vat,
+        'basis_key' => '25',
+        'sales_account_no' => '3000',
+        'vat_account_no' => '2700',
+        'cash_account_no' => '1920',
+        'card_clearing_account_no' => '1921',
+    ]);
+
+    $session = PosSession::factory()->forStore($store)->create([
+        'status' => 'closed',
+        'closed_at' => now(),
+        'closing_data' => [
+            'z_report_data' => [
+                'net_amount' => 4000,
+                'vat_amount' => 1000,
+                'vat_rate' => 25,
+                'total_tips' => 0,
+                'net_cash_amount' => 5000,
+                'net_card_amount' => 0,
+                'net_mobile_amount' => 0,
+                'net_other_amount' => 0,
+                'store' => ['id' => $store->id, 'name' => $store->name],
+            ],
+        ],
+    ]);
+
+    $sync = app(PowerOfficeZReportSync::class);
+    expect($sync->sync($session->id, true))->toBeTrue();
+    expect($sync->sync($session->id, force: true, reverseExisting: true))->toBeTrue();
+
+    Http::assertSent(fn (Request $request): bool => $request->method() === 'DELETE'
+        && str_contains($request->url(), '/JournalEntryVouchers/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'));
+
+    Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'Vouchers/Reverse/'));
+
+    expect(data_get(
+        \App\Models\PowerOfficeSyncRun::query()->where('pos_session_id', $session->id)->first(),
+        'response_payload.reversed_previous_voucher.removal_method'
+    ))->toBe('delete');
 });

@@ -8,6 +8,7 @@ use App\Models\Addon;
 use App\Models\PosSession;
 use App\Models\PowerOfficeSyncRun;
 use App\Services\PowerOffice\PowerOfficeSyncPreviewService;
+use App\Support\PowerOffice\PowerOfficePostingSettings;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Toggle;
@@ -77,7 +78,9 @@ final class PowerOfficeVoucherPreviewAction
             : 'the existing voucher';
 
         return (string) __(
-            'The :voucher will be reversed in PowerOffice and a new voucher will be posted from the current Z-report. Review the lines below before continuing.',
+            PowerOfficePostingSettings::usesDirectPosting($session->store->powerOfficeIntegration)
+                ? 'The :voucher will be reversed in PowerOffice and a new voucher will be posted from the current Z-report. Review the lines below before continuing.'
+                : 'The :voucher journal-entry draft will be deleted in PowerOffice and a new draft will be created from the current Z-report. Review the lines below before continuing.',
             ['voucher' => $voucherLabel],
         );
     }
