@@ -79,7 +79,7 @@ class PowerOfficeAttachZReportPdfCommand extends Command
         try {
             $pdf = $pdfGenerator->render($session);
             $filename = $pdfGenerator->suggestedFilename($session);
-            $response = $apiClient->putVoucherDocumentation($integration, $voucherId, $pdf, $filename);
+            $response = $apiClient->attachZReportPdf($integration, $voucherId, $pdf, $filename);
         } catch (\Throwable $e) {
             $this->error($e->getMessage());
 

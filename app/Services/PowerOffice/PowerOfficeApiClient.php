@@ -112,6 +112,24 @@ class PowerOfficeApiClient
     }
 
     /**
+     * Attach Z-report PDF to a voucher created by this integration.
+     *
+     * Direct posting uses PUT /VoucherDocumentation; journal-entry drafts use POST /JournalEntryVouchers/{id}/VoucherPages.
+     */
+    public function attachZReportPdf(
+        PowerOfficeIntegration $integration,
+        string $voucherGuid,
+        string $pdfBinary,
+        string $filename = 'z-report.pdf',
+    ): Response {
+        if (PowerOfficePostingSettings::usesDirectPosting($integration)) {
+            return $this->putVoucherDocumentation($integration, $voucherGuid, $pdfBinary, $filename);
+        }
+
+        return $this->postJournalEntryVoucherPage($integration, $voucherGuid, $pdfBinary, $filename);
+    }
+
+    /**
      * Attach or replace PDF documentation on a posted voucher (API-imported vouchers only).
      *
      * @see https://developer.poweroffice.net — Voucher documentation
@@ -140,6 +158,33 @@ class PowerOfficeApiClient
             ->timeout(120)
             ->attach('file', $pdfBinary, $filename, ['Content-Type' => 'application/pdf'])
             ->put($url);
+    }
+
+    /**
+     * Add a documentation page to a journal-entry voucher draft.
+     *
+     * @see https://developer.poweroffice.net/endpoints/voucher-workflows/journalentryvoucher
+     */
+    public function postJournalEntryVoucherPage(
+        PowerOfficeIntegration $integration,
+        string $voucherGuid,
+        string $pdfBinary,
+        string $filename = 'z-report.pdf',
+    ): Response {
+        $base = $this->validatedBaseUrlForEnvironmentKey(
+            $integration->environment === PowerOfficeEnvironment::Prod ? 'prod' : 'dev',
+        );
+        $url = $base.'/JournalEntryVouchers/'.rawurlencode($voucherGuid).'/VoucherPages';
+        if (! $this->isAbsoluteHttpUrl($url)) {
+            throw new \RuntimeException('PowerOffice journal entry voucher page URL is not valid: '.$url);
+        }
+
+        $headers = $this->multipartAuthHeaders($integration);
+
+        return Http::withHeaders($headers)
+            ->timeout(120)
+            ->attach('file', $pdfBinary, $filename, ['Content-Type' => 'application/pdf'])
+            ->post($url);
     }
 
     /**

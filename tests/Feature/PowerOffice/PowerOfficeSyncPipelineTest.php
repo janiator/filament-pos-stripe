@@ -60,6 +60,10 @@ function fakePowerOfficeLedgerHttp(): void
             return Http::response('', 204);
         }
 
+        if (str_contains($request->url(), 'VoucherPages')) {
+            return Http::response('', 201);
+        }
+
         if (str_contains($request->url(), 'Vouchers/Reverse/')) {
             return Http::response([
                 'IsReversed' => true,
@@ -302,6 +306,10 @@ it('continues re-sync when PowerOffice reports the previous voucher is already r
 
         if (str_contains($request->url(), 'VoucherDocumentation')) {
             return Http::response('', 204);
+        }
+
+        if (str_contains($request->url(), 'VoucherPages')) {
+            return Http::response('', 201);
         }
 
         if (str_contains($request->url(), 'Vouchers/Reverse/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')) {
@@ -722,4 +730,10 @@ it('posts journal entry draft vouchers when direct posting is disabled on the in
 
     Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
         && str_contains($request->url(), '/JournalEntryVouchers/ManualJournals'));
+
+    Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
+        && str_contains($request->url(), '/JournalEntryVouchers/')
+        && str_contains($request->url(), '/VoucherPages'));
+
+    Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'VoucherDocumentation'));
 });

@@ -245,7 +245,7 @@ class PowerOfficeZReportSync
             try {
                 $pdfBinary = $this->zReportPdfGenerator->render($session);
                 $filename = $this->zReportPdfGenerator->suggestedFilename($session);
-                $docResponse = $this->putVoucherDocumentationWithRetry($integration, $voucherId, $pdfBinary, $filename);
+                $docResponse = $this->attachVoucherDocumentationWithRetry($integration, $voucherId, $pdfBinary, $filename);
                 if (! $docResponse->successful()) {
                     $this->apiClient->logFailedResponse('voucher_documentation_put', $docResponse);
                     $responsePayload['documentation_upload'] = [
@@ -487,7 +487,7 @@ class PowerOfficeZReportSync
         return (is_numeric($fallbackVoucherNo) && $fallbackVoucherNo > 0) ? (int) $fallbackVoucherNo : null;
     }
 
-    protected function putVoucherDocumentationWithRetry(
+    protected function attachVoucherDocumentationWithRetry(
         PowerOfficeIntegration $integration,
         string $voucherId,
         string $pdfBinary,
@@ -495,7 +495,7 @@ class PowerOfficeZReportSync
     ): Response {
         $lastResponse = null;
         for ($attempt = 1; $attempt <= 6; $attempt++) {
-            $response = $this->apiClient->putVoucherDocumentation($integration, $voucherId, $pdfBinary, $filename);
+            $response = $this->apiClient->attachZReportPdf($integration, $voucherId, $pdfBinary, $filename);
             if ($response->successful()) {
                 return $response;
             }
