@@ -3,9 +3,11 @@
 namespace App\Filament\Resources\ConnectedProducts\Schemas;
 
 use App\Enums\AddonType;
+use App\Filament\Resources\QuantityUnits\QuantityUnitResource;
 use App\Models\Addon;
 use App\Models\ArticleGroupCode;
 use App\Models\Collection;
+use App\Models\QuantityUnit;
 use App\Models\Vendor;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -468,173 +470,7 @@ class ConnectedProductForm
                                             ])
                                             ->columnSpanFull(),
 
-                                        Select::make('quantity_unit_id')
-                                            ->label(__('Quantity Unit'))
-                                            ->relationship(
-                                                'quantityUnit',
-                                                'name',
-                                                modifyQueryUsing: function ($query, $get) {
-                                                    // Prioritize tenant's stripe_account_id (most reliable for preload)
-                                                    $stripeAccountId = null;
-
-                                                    try {
-                                                        $tenant = \Filament\Facades\Filament::getTenant();
-                                                        $stripeAccountId = $tenant?->stripe_account_id;
-                                                    } catch (\Throwable $e) {
-                                                        // Fallback if Filament facade not available
-                                                    }
-
-                                                    // Fallback to form state if tenant not available
-                                                    if (! $stripeAccountId) {
-                                                        $stripeAccountId = $get('stripe_account_id');
-                                                    }
-
-                                                    // Include store-specific units first, then global standard units as fallback
-                                                    // Only show global units if they don't have a store-specific version
-                                                    if ($stripeAccountId) {
-                                                        return $query->where(function ($q) use ($stripeAccountId) {
-                                                            $q->where('stripe_account_id', $stripeAccountId)
-                                                                ->orWhere(function ($q2) use ($stripeAccountId) {
-                                                                    // Only include global units that don't have a store-specific version
-                                                                    $q2->whereNull('stripe_account_id')
-                                                                        ->where('is_standard', true)
-                                                                        ->whereNotExists(function ($subQuery) use ($stripeAccountId) {
-                                                                            $subQuery->select(\DB::raw(1))
-                                                                                ->from('quantity_units as q2')
-                                                                                ->whereColumn('q2.name', 'quantity_units.name')
-                                                                                ->where(function ($q3) {
-                                                                                    $q3->whereColumn('q2.symbol', 'quantity_units.symbol')
-                                                                                        ->orWhere(function ($q4) {
-                                                                                            $q4->whereNull('q2.symbol')
-                                                                                                ->whereNull('quantity_units.symbol');
-                                                                                        });
-                                                                                })
-                                                                                ->where('q2.stripe_account_id', $stripeAccountId)
-                                                                                ->where('q2.active', true);
-                                                                        });
-                                                                });
-                                                        })
-                                                            ->where('active', true)
-                                                            ->orderByRaw('CASE WHEN stripe_account_id IS NOT NULL THEN 0 ELSE 1 END')
-                                                            ->orderBy('name', 'asc');
-                                                    }
-
-                                                    // If no stripe_account_id, return global standard units
-                                                    return $query->whereNull('stripe_account_id')
-                                                        ->where('is_standard', true)
-                                                        ->where('active', true)
-                                                        ->orderBy('name', 'asc');
-                                                }
-                                            )
-                                            ->getOptionLabelFromRecordUsing(function ($record) {
-                                                return $record->name.($record->symbol ? ' ('.$record->symbol.')' : '');
-                                            })
-                                            ->searchable()
-                                            ->preload()
-                                            ->default(function ($get) {
-                                                // Default to "Piece" (stk) for new products
-                                                $stripeAccountId = null;
-                                                try {
-                                                    $tenant = \Filament\Facades\Filament::getTenant();
-                                                    $stripeAccountId = $tenant?->stripe_account_id;
-                                                } catch (\Throwable $e) {
-                                                    // Fallback
-                                                }
-
-                                                if (! $stripeAccountId) {
-                                                    $stripeAccountId = $get('stripe_account_id');
-                                                }
-
-                                                // Find "Piece" quantity unit - prioritize by stripe_account_id, then fallback to standard
-                                                $pieceUnit = null;
-
-                                                // First try to find store-specific Piece unit
-                                                if ($stripeAccountId) {
-                                                    $pieceUnit = \App\Models\QuantityUnit::where('stripe_account_id', $stripeAccountId)
-                                                        ->where('name', 'Piece')
-                                                        ->where('active', true)
-                                                        ->first();
-                                                }
-
-                                                // Fallback to standard Piece unit if not found
-                                                if (! $pieceUnit) {
-                                                    $pieceUnit = \App\Models\QuantityUnit::whereNull('stripe_account_id')
-                                                        ->where('is_standard', true)
-                                                        ->where('name', 'Piece')
-                                                        ->where('active', true)
-                                                        ->first();
-                                                }
-
-                                                // Last resort: find any Piece unit (by name or symbol)
-                                                if (! $pieceUnit) {
-                                                    $pieceUnit = \App\Models\QuantityUnit::where(function ($q) {
-                                                        $q->where('name', 'Piece')
-                                                            ->orWhere('symbol', 'stk');
-                                                    })
-                                                        ->where('active', true)
-                                                        ->first();
-                                                }
-
-                                                return $pieceUnit?->id;
-                                            })
-                                            ->helperText(__('Select the quantity unit for this product (e.g., per piece, per kg, per meter). This determines how the price is calculated. Defaults to Piece (stk).'))
-                                            ->placeholder(__('Select quantity unit'))
-                                            ->hintAction(
-                                                Action::make('createQuantityUnit')
-                                                    ->label(__('Create New Quantity Unit'))
-                                                    ->icon('heroicon-o-plus')
-                                                    ->form([
-                                                        TextInput::make('name')
-                                                            ->label(__('Name'))
-                                                            ->required()
-                                                            ->maxLength(255)
-                                                            ->helperText(__('The name of the quantity unit (e.g., "Piece", "Kilogram")')),
-                                                        TextInput::make('symbol')
-                                                            ->label(__('Symbol'))
-                                                            ->maxLength(20)
-                                                            ->helperText(__('The symbol or abbreviation (e.g., "stk", "kg")')),
-                                                        RichEditor::make('description')
-                                                            ->label(__('Description'))
-                                                            ->helperText(__('Optional description for this quantity unit')),
-                                                        Toggle::make('active')
-                                                            ->label(__('Active'))
-                                                            ->default(true),
-                                                    ])
-                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set) {
-                                                        // Get stripe_account_id from form state
-                                                        $stripeAccountId = $get('stripe_account_id');
-
-                                                        if (! $stripeAccountId) {
-                                                            throw new \Exception('Cannot create quantity unit: stripe_account_id is required');
-                                                        }
-
-                                                        // Get store_id from tenant
-                                                        $tenant = \Filament\Facades\Filament::getTenant();
-                                                        $storeId = $tenant?->id;
-
-                                                        if (! $storeId) {
-                                                            throw new \Exception('Cannot create quantity unit: store_id is required');
-                                                        }
-
-                                                        // Create the quantity unit
-                                                        $quantityUnit = \App\Models\QuantityUnit::create([
-                                                            'store_id' => $storeId,
-                                                            'stripe_account_id' => $stripeAccountId,
-                                                            'name' => $data['name'],
-                                                            'symbol' => $data['symbol'] ?? null,
-                                                            'description' => $data['description'] ?? null,
-                                                            'active' => $data['active'] ?? true,
-                                                            'is_standard' => false,
-                                                        ]);
-
-                                                        // Set the new quantity unit as selected
-                                                        $set('quantity_unit_id', $quantityUnit->id);
-                                                    })
-                                                    ->successNotificationTitle('Quantity unit created')
-                                            )
-                                            ->columnSpanFull()
-                                            ->helperText(__('Unit label will be automatically set from the quantity unit symbol.'))
-                                            ->columnSpanFull(),
+                                        self::quantityUnitSelect(),
 
                                         TextInput::make('url')
                                             ->label(__('Product URL'))
@@ -1055,179 +891,7 @@ class ConnectedProductForm
                                             ])
                                             ->columnSpanFull(),
 
-                                        Select::make('quantity_unit_id')
-                                            ->label(__('Quantity Unit'))
-                                            ->relationship(
-                                                'quantityUnit',
-                                                'name',
-                                                modifyQueryUsing: function ($query, $get, $record) {
-                                                    // Prioritize tenant's stripe_account_id (most reliable for preload)
-                                                    $stripeAccountId = null;
-
-                                                    try {
-                                                        $tenant = \Filament\Facades\Filament::getTenant();
-                                                        $stripeAccountId = $tenant?->stripe_account_id;
-                                                    } catch (\Throwable $e) {
-                                                        // Fallback if Filament facade not available
-                                                    }
-
-                                                    // Fallback to record or form state if tenant not available
-                                                    if (! $stripeAccountId) {
-                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-                                                    }
-
-                                                    // Include store-specific units first, then global standard units as fallback
-                                                    // Only show global units if they don't have a store-specific version
-                                                    if ($stripeAccountId) {
-                                                        return $query->where(function ($q) use ($stripeAccountId) {
-                                                            $q->where('stripe_account_id', $stripeAccountId)
-                                                                ->orWhere(function ($q2) use ($stripeAccountId) {
-                                                                    // Only include global units that don't have a store-specific version
-                                                                    $q2->whereNull('stripe_account_id')
-                                                                        ->where('is_standard', true)
-                                                                        ->whereNotExists(function ($subQuery) use ($stripeAccountId) {
-                                                                            $subQuery->select(\DB::raw(1))
-                                                                                ->from('quantity_units as q2')
-                                                                                ->whereColumn('q2.name', 'quantity_units.name')
-                                                                                ->where(function ($q3) {
-                                                                                    $q3->whereColumn('q2.symbol', 'quantity_units.symbol')
-                                                                                        ->orWhere(function ($q4) {
-                                                                                            $q4->whereNull('q2.symbol')
-                                                                                                ->whereNull('quantity_units.symbol');
-                                                                                        });
-                                                                                })
-                                                                                ->where('q2.stripe_account_id', $stripeAccountId)
-                                                                                ->where('q2.active', true);
-                                                                        });
-                                                                });
-                                                        })
-                                                            ->where('active', true)
-                                                            ->orderByRaw('CASE WHEN stripe_account_id IS NOT NULL THEN 0 ELSE 1 END')
-                                                            ->orderBy('name', 'asc');
-                                                    }
-
-                                                    // If no stripe_account_id, return global standard units
-                                                    return $query->whereNull('stripe_account_id')
-                                                        ->where('is_standard', true)
-                                                        ->where('active', true)
-                                                        ->orderBy('name', 'asc');
-                                                }
-                                            )
-                                            ->getOptionLabelFromRecordUsing(function ($record) {
-                                                return $record->name.($record->symbol ? ' ('.$record->symbol.')' : '');
-                                            })
-                                            ->searchable()
-                                            ->preload()
-                                            ->default(function ($get, $record) {
-                                                // If editing and already has a quantity unit, use it
-                                                if ($record && $record->quantity_unit_id) {
-                                                    return $record->quantity_unit_id;
-                                                }
-
-                                                // Default to "Piece" (stk) for new products
-                                                $stripeAccountId = null;
-                                                try {
-                                                    $tenant = \Filament\Facades\Filament::getTenant();
-                                                    $stripeAccountId = $tenant?->stripe_account_id;
-                                                } catch (\Throwable $e) {
-                                                    // Fallback
-                                                }
-
-                                                if (! $stripeAccountId) {
-                                                    $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-                                                }
-
-                                                // Find "Piece" quantity unit - prioritize by stripe_account_id, then fallback to standard
-                                                $pieceUnit = null;
-
-                                                // First try to find store-specific Piece unit
-                                                if ($stripeAccountId) {
-                                                    $pieceUnit = \App\Models\QuantityUnit::where('stripe_account_id', $stripeAccountId)
-                                                        ->where('name', 'Piece')
-                                                        ->where('active', true)
-                                                        ->first();
-                                                }
-
-                                                // Fallback to standard Piece unit if not found
-                                                if (! $pieceUnit) {
-                                                    $pieceUnit = \App\Models\QuantityUnit::whereNull('stripe_account_id')
-                                                        ->where('is_standard', true)
-                                                        ->where('name', 'Piece')
-                                                        ->where('active', true)
-                                                        ->first();
-                                                }
-
-                                                // Last resort: find any Piece unit (by name or symbol)
-                                                if (! $pieceUnit) {
-                                                    $pieceUnit = \App\Models\QuantityUnit::where(function ($q) {
-                                                        $q->where('name', 'Piece')
-                                                            ->orWhere('symbol', 'stk');
-                                                    })
-                                                        ->where('active', true)
-                                                        ->first();
-                                                }
-
-                                                return $pieceUnit?->id;
-                                            })
-                                            ->helperText(__('Select the quantity unit for this product (e.g., per piece, per kg, per meter). This determines how the price is calculated. Defaults to Piece (stk).'))
-                                            ->placeholder(__('Select quantity unit'))
-                                            ->hintAction(
-                                                Action::make('createQuantityUnit')
-                                                    ->label(__('Create New Quantity Unit'))
-                                                    ->icon('heroicon-o-plus')
-                                                    ->form([
-                                                        TextInput::make('name')
-                                                            ->label(__('Name'))
-                                                            ->required()
-                                                            ->maxLength(255)
-                                                            ->helperText(__('The name of the quantity unit (e.g., "Piece", "Kilogram")')),
-                                                        TextInput::make('symbol')
-                                                            ->label(__('Symbol'))
-                                                            ->maxLength(20)
-                                                            ->helperText(__('The symbol or abbreviation (e.g., "stk", "kg")')),
-                                                        Textarea::make('description')
-                                                            ->label(__('Description'))
-                                                            ->rows(3)
-                                                            ->helperText(__('Optional description for this quantity unit')),
-                                                        Toggle::make('active')
-                                                            ->label(__('Active'))
-                                                            ->default(true),
-                                                    ])
-                                                    ->action(function (array $data, \Filament\Forms\Get $get, \Filament\Forms\Set $set, $record) {
-                                                        // Get stripe_account_id from product record or form state
-                                                        $stripeAccountId = $record?->stripe_account_id ?? $get('stripe_account_id');
-
-                                                        if (! $stripeAccountId) {
-                                                            throw new \Exception('Cannot create quantity unit: stripe_account_id is required');
-                                                        }
-
-                                                        // Get store_id from tenant
-                                                        $tenant = \Filament\Facades\Filament::getTenant();
-                                                        $storeId = $tenant?->id;
-
-                                                        if (! $storeId) {
-                                                            throw new \Exception('Cannot create quantity unit: store_id is required');
-                                                        }
-
-                                                        // Create the quantity unit
-                                                        $quantityUnit = \App\Models\QuantityUnit::create([
-                                                            'store_id' => $storeId,
-                                                            'stripe_account_id' => $stripeAccountId,
-                                                            'name' => $data['name'],
-                                                            'symbol' => $data['symbol'] ?? null,
-                                                            'description' => $data['description'] ?? null,
-                                                            'active' => $data['active'] ?? true,
-                                                            'is_standard' => false,
-                                                        ]);
-
-                                                        // Set the new quantity unit as selected
-                                                        $set('quantity_unit_id', $quantityUnit->id);
-                                                    })
-                                                    ->successNotificationTitle('Quantity unit created')
-                                            )
-                                            ->columnSpanFull()
-                                            ->helperText(__('Unit label will be automatically set from the quantity unit symbol.'))
-                                            ->columnSpanFull(),
+                                        self::quantityUnitSelect(),
 
                                         TextInput::make('url')
                                             ->label(__('Product URL'))
@@ -1630,6 +1294,45 @@ class ConnectedProductForm
                     ->columnSpanFull()
                     ->visibleOn('edit'),
             ]);
+    }
+
+    /**
+     * Quantity unit select backed by the global standard unit catalog.
+     */
+    private static function quantityUnitSelect(): Select
+    {
+        return Select::make('quantity_unit_id')
+            ->label(__('Quantity Unit'))
+            ->relationship(
+                'quantityUnit',
+                'name',
+                modifyQueryUsing: function ($query, Get $get, $record = null) {
+                    $includeId = $record?->quantity_unit_id
+                        ?? (is_numeric($get('quantity_unit_id')) ? (int) $get('quantity_unit_id') : null);
+
+                    return QuantityUnit::forSelect($query, $includeId);
+                }
+            )
+            ->getOptionLabelFromRecordUsing(fn (QuantityUnit $record): string => $record->display_name)
+            ->getOptionLabelUsing(fn ($value): ?string => QuantityUnit::labelForId(is_numeric($value) ? (int) $value : null))
+            ->searchable()
+            ->preload()
+            ->default(function (Get $get, $record = null) {
+                if ($record?->quantity_unit_id) {
+                    return $record->quantity_unit_id;
+                }
+
+                return QuantityUnit::defaultPiece()?->id;
+            })
+            ->helperText(__('Unit label will be automatically set from the quantity unit symbol.'))
+            ->placeholder(__('Select quantity unit'))
+            ->hintAction(
+                Action::make('manageQuantityUnits')
+                    ->label(__('Create New Quantity Unit'))
+                    ->icon('heroicon-o-plus')
+                    ->url(fn (): string => QuantityUnitResource::getUrl('index'))
+            )
+            ->columnSpanFull();
     }
 
     /**

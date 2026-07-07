@@ -458,23 +458,8 @@ class ProductsController extends BaseApiController
             ];
         }
 
-        // Default to "Piece" (stk) - find it from store-specific or global
-        $stripeAccountId = $product->stripe_account_id;
-        $pieceUnit = \App\Models\QuantityUnit::where(function ($q) use ($stripeAccountId) {
-            if ($stripeAccountId) {
-                $q->where('stripe_account_id', $stripeAccountId)
-                    ->orWhere(function ($q2) {
-                        $q2->whereNull('stripe_account_id')
-                            ->where('is_standard', true);
-                    });
-            } else {
-                $q->whereNull('stripe_account_id')
-                    ->where('is_standard', true);
-            }
-        })
-            ->where('name', 'Piece')
-            ->where('active', true)
-            ->first();
+        // Default to "Piece" (stk) when product has no quantity unit set
+        $pieceUnit = \App\Models\QuantityUnit::defaultPiece();
 
         if ($pieceUnit) {
             return [
