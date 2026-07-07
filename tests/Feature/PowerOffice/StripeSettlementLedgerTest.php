@@ -254,7 +254,7 @@ it('prefers Z-report stripe_fees_minor over database when positive', function ()
         ->and($feeCredit['credit_minor'])->toBe(501);
 });
 
-it('omits stripe fee and payout lines when z_report_include_settlement is disabled', function () {
+it('omits payout lines but still posts stripe fees when z_report_include_settlement is disabled', function () {
     $store = Store::factory()->create([
         'stripe_account_id' => 'acct_no_settlement',
     ]);
@@ -349,8 +349,13 @@ it('omits stripe fee and payout lines when z_report_include_settlement is disabl
         $zReport
     );
 
-    $accounts = collect($payload['lines'])->pluck('account');
+    $feeCredit = collect($payload['lines'])->first(fn (array $l): bool => $l['account'] === '2900' && $l['credit_minor'] > 0);
+    $feeDebit = collect($payload['lines'])->first(fn (array $l): bool => $l['account'] === '7900' && $l['debit_minor'] > 0);
 
-    expect($accounts)->not->toContain('2900', '7900', '1901')
-        ->and($accounts)->toContain('1921');
+    expect($feeCredit)->not->toBeNull()
+        ->and($feeCredit['credit_minor'])->toBe(275)
+        ->and($feeDebit)->not->toBeNull()
+        ->and($feeDebit['debit_minor'])->toBe(275)
+        ->and(collect($payload['lines'])->pluck('account'))->not->toContain('1901')
+        ->and(collect($payload['lines'])->pluck('account'))->toContain('1921');
 });

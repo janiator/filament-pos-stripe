@@ -40,7 +40,7 @@ return [
     ],
     'poweroffice' => [
         'z_report_include_settlement_label' => 'Post Stripe fees and bank payout on Z-report voucher',
-        'z_report_include_settlement_help' => 'When off, the fee and payout account pairs below are ignored on Z-report sync and previews. Use when card payments already debit bank directly (e.g. 1920). Gift card liability still posts when configured.',
+        'z_report_include_settlement_help' => 'When off, bank payout lines are omitted on Z-report sync and previews; Stripe fees still post to the payment fee accounts below. Use when card payments already debit bank directly (e.g. 1920). Gift card liability still posts when configured.',
         'direct_post_to_ledger_label' => 'Post directly to the ledger',
         'direct_post_to_ledger_help' => 'When on, Z-report sync uses POST /Vouchers/ManualJournals (direct posting). When off, vouchers are sent as journal-entry drafts in Go (POST /JournalEntryVouchers/ManualJournals) for accountant review and approval before posting.',
     ],

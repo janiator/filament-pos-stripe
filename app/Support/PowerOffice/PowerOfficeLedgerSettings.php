@@ -124,8 +124,9 @@ final class PowerOfficeLedgerSettings
     }
 
     /**
-     * When false, Stripe fee and bank payout paired lines are omitted from Z-report vouchers
-     * (gift-card liability still posts when configured). Defaults true for existing setups.
+     * When false, bank payout paired lines are omitted from Z-report vouchers.
+     * Stripe fees still post to configured payment_fee accounts; gift-card liability still posts when configured.
+     * Defaults true for existing setups.
      */
     public static function zReportIncludesSettlement(PowerOfficeIntegration $integration): bool
     {
