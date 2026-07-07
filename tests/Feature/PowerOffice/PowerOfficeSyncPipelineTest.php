@@ -728,8 +728,18 @@ it('posts journal entry draft vouchers when direct posting is disabled on the in
 
     expect(app(PowerOfficeZReportSync::class)->sync($session->id, true))->toBeTrue();
 
-    Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
-        && str_contains($request->url(), '/JournalEntryVouchers/ManualJournals'));
+    Http::assertSent(function (Request $request): bool {
+        if ($request->method() !== 'POST' || ! str_contains($request->url(), '/JournalEntryVouchers/ManualJournals')) {
+            return false;
+        }
+
+        $lines = data_get($request->data(), 'ManualVoucherLines', []);
+
+        return is_array($lines)
+            && count($lines) >= 2
+            && collect($lines)->contains(fn (mixed $line): bool => is_array($line) && isset($line['DebitAccountId']))
+            && collect($lines)->contains(fn (mixed $line): bool => is_array($line) && isset($line['CreditAccountId']));
+    });
 
     Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
         && str_contains($request->url(), '/JournalEntryVouchers/')

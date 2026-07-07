@@ -104,3 +104,45 @@ it('omits department id when no department is configured', function () {
     expect($body['VoucherLines'][0])->not->toHaveKey('DepartmentId')
         ->and($body['VoucherLines'][0]['VatId'])->toBe(201);
 });
+
+it('builds journal entry manual voucher json with debit and credit account ids', function () {
+    $factory = new PowerOfficeManualVoucherPayloadFactory;
+
+    $body = $factory->build([
+        'document_date' => '2026-03-23',
+        'description' => 'POS Z-report 1',
+        'currency' => 'NOK',
+        'department_id' => 20,
+        'lines' => [
+            [
+                'account' => '3000',
+                'debit_minor' => 0,
+                'credit_minor' => 10_000,
+                'description' => 'Sales',
+            ],
+            [
+                'account' => '1920',
+                'debit_minor' => 10_000,
+                'credit_minor' => 0,
+                'description' => 'Cash',
+            ],
+        ],
+    ], [
+        '3000' => ['id' => 55, 'vat_code_id' => 9],
+        '1920' => ['id' => 66, 'vat_code_id' => null],
+    ], 'poweroffice_z_report_1_2', 201, \App\Enums\PowerOfficeVoucherPostingMode::JournalEntry);
+
+    expect($body)->not->toHaveKey('VoucherLines')
+        ->and($body)->not->toHaveKey('ExternalImportReference')
+        ->and($body['VoucherDate'])->toBe('2026-03-23')
+        ->and($body['ManualVoucherLines'])->toHaveCount(2)
+        ->and($body['Comment'])->toContain('poweroffice_z_report_1_2');
+
+    $creditLine = collect($body['ManualVoucherLines'])->firstWhere('CreditAccountId', 55);
+    $debitLine = collect($body['ManualVoucherLines'])->firstWhere('DebitAccountId', 66);
+
+    expect($creditLine['CurrencyAmount'])->toBe(100.0)
+        ->and($creditLine['CreditVatId'])->toBe(9)
+        ->and($debitLine['CurrencyAmount'])->toBe(100.0)
+        ->and($debitLine['DebitVatId'])->toBe(201);
+});

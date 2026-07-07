@@ -141,6 +141,7 @@ final class PowerOfficeSyncPreviewService
                     $accountMap,
                     $idempotencyKey,
                     $zeroVatId,
+                    PowerOfficePostingSettings::mode($integration),
                 );
             } catch (PowerOfficeUnresolvedGlAccountsException $e) {
                 $out['resolve_error'] = 'PowerOffice GL accounts not found: '.implode(', ', $e->missingAccountNos);
