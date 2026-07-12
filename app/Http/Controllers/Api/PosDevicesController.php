@@ -110,36 +110,18 @@ class PosDevicesController extends BaseApiController
         $validated['auto_print_receipt'] = $validated['auto_print_receipt'] ?? true;
 
         if ($device) {
-            // On update, only refresh device-info and heartbeat fields so we don't overwrite
-            // admin-configured values in Filament (booking_enabled, auto_print_receipt, etc.).
-            $updatePayload = [
-                'device_identifier' => $validated['device_identifier'],
-                'platform' => $validated['platform'],
-                'device_model' => $validated['device_model'] ?? null,
-                'device_brand' => $validated['device_brand'] ?? null,
-                'device_manufacturer' => $validated['device_manufacturer'] ?? null,
-                'device_product' => $validated['device_product'] ?? null,
-                'device_hardware' => $validated['device_hardware'] ?? null,
-                'machine_identifier' => $validated['machine_identifier'] ?? null,
-                'system_name' => $validated['system_name'] ?? null,
-                'system_version' => $validated['system_version'] ?? null,
-                'vendor_identifier' => $validated['vendor_identifier'] ?? null,
-                'android_id' => $validated['android_id'] ?? null,
-                'serial_number' => $validated['serial_number'] ?? null,
-                'device_metadata' => $validated['device_metadata'] ?? null,
-                'device_status' => $validated['device_status'],
-                'last_seen_at' => $validated['last_seen_at'],
-            ];
-            $device->update($updatePayload);
+            $this->syncIdempotentRegisterOntoDevice($device, $validated);
 
-            return response()->json([
-                'message' => 'POS device updated successfully',
-                'device' => $this->formatDeviceResponse($device->load(['terminalLocation.terminalReaders', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])),
-                'is_new_device' => false,
-            ], 200);
+            return $this->idempotentRegisterResponse($device, false);
         }
 
-        $device = PosDevice::create($validated);
+        [$device, $insertedNewRow] = PosDevice::createOrFetchForIdempotentRegister($validated, $store->id, $deviceName);
+
+        if (! $insertedNewRow) {
+            $this->syncIdempotentRegisterOntoDevice($device, $validated);
+
+            return $this->idempotentRegisterResponse($device, false);
+        }
 
         if ($store->default_terminal_location_id) {
             $defaultTerminalLocation = TerminalLocation::where('id', $store->default_terminal_location_id)
@@ -151,11 +133,44 @@ class PosDevicesController extends BaseApiController
             }
         }
 
+        return $this->idempotentRegisterResponse($device, true);
+    }
+
+    /**
+     * On idempotent register, only refresh device-info and heartbeat fields so we don't overwrite
+     * admin-configured values in Filament (booking_enabled, auto_print_receipt, etc.).
+     */
+    private function syncIdempotentRegisterOntoDevice(PosDevice $device, array $validated): void
+    {
+        $device->update([
+            'device_identifier' => $validated['device_identifier'],
+            'platform' => $validated['platform'],
+            'device_model' => $validated['device_model'] ?? null,
+            'device_brand' => $validated['device_brand'] ?? null,
+            'device_manufacturer' => $validated['device_manufacturer'] ?? null,
+            'device_product' => $validated['device_product'] ?? null,
+            'device_hardware' => $validated['device_hardware'] ?? null,
+            'machine_identifier' => $validated['machine_identifier'] ?? null,
+            'system_name' => $validated['system_name'] ?? null,
+            'system_version' => $validated['system_version'] ?? null,
+            'vendor_identifier' => $validated['vendor_identifier'] ?? null,
+            'android_id' => $validated['android_id'] ?? null,
+            'serial_number' => $validated['serial_number'] ?? null,
+            'device_metadata' => $validated['device_metadata'] ?? null,
+            'device_status' => $validated['device_status'],
+            'last_seen_at' => $validated['last_seen_at'],
+        ]);
+    }
+
+    private function idempotentRegisterResponse(PosDevice $device, bool $isNewDevice): JsonResponse
+    {
+        $device->load(['terminalLocation.terminalReaders', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader']);
+
         return response()->json([
-            'message' => 'POS device registered successfully',
-            'device' => $this->formatDeviceResponse($device->load(['terminalLocation.terminalReaders', 'lastConnectedTerminalLocation', 'lastConnectedTerminalReader'])),
-            'is_new_device' => true,
-        ], 201);
+            'message' => $isNewDevice ? 'POS device registered successfully' : 'POS device updated successfully',
+            'device' => $this->formatDeviceResponse($device),
+            'is_new_device' => $isNewDevice,
+        ], $isNewDevice ? 201 : 200);
     }
 
     /**
