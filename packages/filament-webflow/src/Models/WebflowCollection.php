@@ -2,6 +2,7 @@
 
 namespace Positiv\FilamentWebflow\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -38,5 +39,26 @@ class WebflowCollection extends Model
     public function items(): HasMany
     {
         return $this->hasMany(WebflowItem::class, 'webflow_collection_id');
+    }
+
+    /**
+     * Limits collections whose Webflow site belongs to the given store.
+     *
+     * Tenant access uses {@see WebflowSite::$store_id} directly; legacy addon-based linkage
+     * was removed in favor of the {@see WebflowSite::store()} relation.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForSiteOnStore(Builder $query, int|string|null $storeKey): Builder
+    {
+        if ($storeKey === null || $storeKey === '') {
+            return $query;
+        }
+
+        return $query->whereHas(
+            'site',
+            fn (Builder $siteQuery): Builder => $siteQuery->where('store_id', $storeKey),
+        );
     }
 }

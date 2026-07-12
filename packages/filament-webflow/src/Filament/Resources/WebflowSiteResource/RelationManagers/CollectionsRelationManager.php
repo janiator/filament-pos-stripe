@@ -124,7 +124,7 @@ class CollectionsRelationManager extends RelationManager
                     ->action(function (array $data, WebflowCollection $record): void {
                         $storeId = $this->getOwnerRecord()->store_id;
                         WebflowCollection::query()
-                            ->whereHas('site', fn ($q) => $q->where('store_id', $storeId))
+                            ->forSiteOnStore($storeId)
                             ->where('id', '!=', $record->id)
                             ->update(['use_for_event_tickets' => false]);
                         $record->update([
