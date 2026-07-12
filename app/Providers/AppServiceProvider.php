@@ -2,12 +2,15 @@
 
 namespace App\Providers;
 
+use App\Filament\MountedActionsSanitizer;
 use App\Policies\WebflowSitePolicy;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Nightwatch\Facades\Nightwatch;
 use Laravel\Nightwatch\Records\Query;
+use Livewire\Component;
+use Livewire\EventBus;
 use Positiv\FilamentWebflow\Models\WebflowSite;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,6 +28,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $eventBus = $this->app->make(EventBus::class);
+
+        $eventBus->before('hydrate', function (Component $component): void {
+            MountedActionsSanitizer::sanitizeComponent($component);
+        });
+
+        $eventBus->before('dehydrate', function (Component $component): void {
+            MountedActionsSanitizer::sanitizeComponent($component);
+        });
+
         Gate::policy(WebflowSite::class, WebflowSitePolicy::class);
 
         config([
