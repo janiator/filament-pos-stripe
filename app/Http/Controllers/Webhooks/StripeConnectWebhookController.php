@@ -10,10 +10,14 @@ use App\Actions\Webhooks\HandlePaymentMethodWebhook;
 use App\Actions\Webhooks\HandlePayoutWebhook;
 use App\Actions\Webhooks\HandlePriceWebhook;
 use App\Actions\Webhooks\HandleProductWebhook;
+use App\Actions\Webhooks\HandleRefundWebhook;
 use App\Actions\Webhooks\HandleSubscriptionWebhook;
 use App\Actions\Webhooks\HandleTransferWebhook;
+use App\Models\Store;
+use App\Models\WebhookLog;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Schema;
 use Stripe\Account;
 use Stripe\Charge;
 use Stripe\Customer;
@@ -23,6 +27,7 @@ use Stripe\PaymentMethod;
 use Stripe\Payout;
 use Stripe\Price;
 use Stripe\Product;
+use Stripe\Refund;
 use Stripe\Subscription;
 use Stripe\Transfer;
 use Stripe\Webhook;
@@ -34,6 +39,7 @@ class StripeConnectWebhookController extends Controller
         Request $request,
         HandleStripeAccountWebhook $accountHandler,
         HandleChargeWebhook $chargeHandler,
+        HandleRefundWebhook $refundHandler,
         HandleCustomerWebhook $customerHandler,
         HandleSubscriptionWebhook $subscriptionHandler,
         HandleProductWebhook $productHandler,
@@ -371,7 +377,6 @@ class StripeConnectWebhookController extends Controller
                 case 'charge.failed':
                 case 'charge.captured':
                 case 'charge.refunded':
-                case 'charge.refund.updated':
                     $chargeObject = $event->data->object;
                     if (! $chargeObject instanceof Charge) {
                         $result['warnings'][] = "Unexpected webhook object for {$event->type}: ".get_debug_type($chargeObject);
@@ -385,6 +390,20 @@ class StripeConnectWebhookController extends Controller
                     $chargeHandler->handle($charge, $event->type, $accountId);
                     $result['processed'] = true;
                     $result['message'] = "Charge {$charge->id} ({$event->type}) processed";
+                    break;
+
+                case 'charge.refund.updated':
+                    $refundObject = $event->data->object;
+                    if (! $refundObject instanceof Refund) {
+                        $result['warnings'][] = "Unexpected webhook object for {$event->type}: ".get_debug_type($refundObject);
+                        $result['message'] = "Skipped {$event->type} because payload object was not a refund";
+
+                        break;
+                    }
+                    $refundHandler->handle($refundObject, $event->type, $accountId);
+                    $result['processed'] = true;
+                    $result['message'] = "Refund {$refundObject->id} ({$event->type}) processed";
+
                     break;
 
                     // Payment method events
@@ -487,18 +506,18 @@ class StripeConnectWebhookController extends Controller
         // Find store by account ID for logging
         $store = null;
         if ($accountId) {
-            $store = \App\Models\Store::where('stripe_account_id', $accountId)->first();
+            $store = Store::where('stripe_account_id', $accountId)->first();
         }
 
         // Save webhook log to database
         try {
             // Check if table exists before trying to save
-            if (! \Illuminate\Support\Facades\Schema::hasTable('webhook_logs')) {
+            if (! Schema::hasTable('webhook_logs')) {
                 \Log::warning('webhook_logs table does not exist - run migration first', [
                     'event_id' => $event->id,
                 ]);
             } else {
-                $webhookLog = \App\Models\WebhookLog::create([
+                $webhookLog = WebhookLog::create([
                     'store_id' => $store?->id,
                     'stripe_account_id' => $accountId,
                     'event_type' => $event->type,
@@ -522,7 +541,7 @@ class StripeConnectWebhookController extends Controller
 
                 // Cleanup old records (keep max 100 per store)
                 if ($store) {
-                    \App\Models\WebhookLog::cleanupOldRecords($store->id);
+                    WebhookLog::cleanupOldRecords($store->id);
                 }
             }
         } catch (\Throwable $e) {
