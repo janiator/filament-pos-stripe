@@ -101,39 +101,37 @@ class SyncConnectedChargesFromStripe
                         continue;
                     }
 
-                    // Find by stripe_charge_id only (since it's unique)
-                    // The same charge might exist with a different stripe_account_id
-                    $chargeRecord = ConnectedCharge::where('stripe_charge_id', $charge->id)->first();
+                    $existing = ConnectedCharge::where('stripe_charge_id', $charge->id)->first();
 
-                    if ($chargeRecord) {
-                        // Preserve POS-specific fields that don't come from Stripe
-                        // These fields should never be overwritten by Stripe sync
-                        $preservedFields = [
-                            'pos_session_id' => $chargeRecord->pos_session_id,
-                            'transaction_code' => $chargeRecord->transaction_code,
-                            'payment_code' => $chargeRecord->payment_code,
-                            'tip_amount' => $chargeRecord->tip_amount,
-                            'article_group_code' => $chargeRecord->article_group_code,
-                        ];
+                    $preservedFields = [
+                        'pos_session_id' => $existing?->pos_session_id,
+                        'transaction_code' => $existing?->transaction_code,
+                        'payment_code' => $existing?->payment_code,
+                        'tip_amount' => $existing?->tip_amount,
+                        'article_group_code' => $existing?->article_group_code,
+                    ];
 
-                        // Update existing record - ensure stripe_account_id is set correctly
-                        $chargeRecord->fill($data);
-                        // Explicitly set stripe_account_id to ensure it's updated if it changed
-                        $chargeRecord->stripe_account_id = $stripeAccountId;
+                    $chargeRecord = ConnectedCharge::updateOrCreate(
+                        ['stripe_charge_id' => $charge->id],
+                        $data
+                    );
 
-                        // Restore preserved POS-specific fields
-                        foreach ($preservedFields as $field => $value) {
-                            if ($value !== null) {
-                                $chargeRecord->$field = $value;
-                            }
+                    $wasNew = $chargeRecord->wasRecentlyCreated;
+
+                    foreach ($preservedFields as $field => $value) {
+                        if ($value !== null) {
+                            $chargeRecord->$field = $value;
                         }
+                    }
 
+                    if ($chargeRecord->isDirty()) {
                         $chargeRecord->save();
-                        $result['updated']++;
-                    } else {
-                        // Create new record
-                        ConnectedCharge::create($data);
+                    }
+
+                    if ($wasNew) {
                         $result['created']++;
+                    } else {
+                        $result['updated']++;
                     }
                 } catch (Throwable $e) {
                     $result['errors'][] = "Charge {$charge->id}: {$e->getMessage()}";

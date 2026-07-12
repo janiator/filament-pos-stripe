@@ -2,6 +2,7 @@
 
 namespace App\Actions\Webhooks;
 
+use App\Jobs\PushTicketCountsToWebflow;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedPaymentLink;
 use App\Models\EventTicket;
@@ -100,25 +101,26 @@ class HandleChargeWebhook
             }
         }
 
-        // No row found by payment_intent_id: updateOrCreate by (stripe_charge_id, stripe_account_id)
         if (! $chargeRecord) {
-            $chargeRecord = ConnectedCharge::where('stripe_charge_id', $charge->id)
-                ->where('stripe_account_id', $store->stripe_account_id)
-                ->first();
+            $existingSnapshot = ConnectedCharge::where('stripe_charge_id', $charge->id)->first();
 
-            $wasCreated = false;
-            if ($chargeRecord) {
-                $chargeRecord->fill($data);
-                $chargeRecord->stripe_account_id = $store->stripe_account_id;
+            $chargeRecord = ConnectedCharge::updateOrCreate(
+                ['stripe_charge_id' => $charge->id],
+                $data
+            );
+
+            $wasCreated = $chargeRecord->wasRecentlyCreated;
+
+            if ($existingSnapshot !== null) {
                 foreach (self::PRESERVED_POS_FIELDS as $field) {
-                    if ($chargeRecord->getRawOriginal($field) !== null) {
-                        $chargeRecord->$field = $chargeRecord->getRawOriginal($field);
+                    if ($existingSnapshot->getRawOriginal($field) !== null) {
+                        $chargeRecord->$field = $existingSnapshot->getRawOriginal($field);
                     }
                 }
-                $chargeRecord->save();
-            } else {
-                $chargeRecord = ConnectedCharge::create($data);
-                $wasCreated = true;
+
+                if ($chargeRecord->isDirty()) {
+                    $chargeRecord->save();
+                }
             }
 
             \Log::info('Charge webhook processed successfully', [
@@ -184,7 +186,7 @@ class HandleChargeWebhook
                 'quantity' => $quantity,
             ]);
 
-            \App\Jobs\PushTicketCountsToWebflow::dispatch($eventTicket);
+            PushTicketCountsToWebflow::dispatch($eventTicket);
         } catch (\Throwable $e) {
             \Log::warning('Event ticket purchase handling failed', [
                 'charge_id' => $charge->id,
