@@ -44,6 +44,12 @@ it('can load the POS purchases list page', function () {
         ->assertOk();
 });
 
+it('does not throw when the cashier table filter omits user_id in form data', function () {
+    livewire(ListPosPurchases::class)
+        ->filterTable('cashier', [])
+        ->assertOk();
+});
+
 it('can filter POS purchases by status', function () {
     $session = PosSession::factory()->create([
         'store_id' => $this->store->id,
