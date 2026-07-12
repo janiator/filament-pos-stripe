@@ -8,7 +8,6 @@ use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Http\RedirectResponse;
 
 class HorizonRedirectPage extends Page
 {
@@ -39,8 +38,8 @@ class HorizonRedirectPage extends Page
         return __('filament.navigation.horizon');
     }
 
-    public function mount(): RedirectResponse
+    public function mount(): void
     {
-        return new RedirectResponse(url('/horizon'));
+        $this->redirect(url('/horizon'));
     }
 }
