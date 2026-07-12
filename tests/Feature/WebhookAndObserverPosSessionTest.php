@@ -10,6 +10,7 @@ use App\Models\PosSession;
 use App\Models\Store;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Stripe\Charge;
+use Stripe\PaymentMethod;
 
 uses(RefreshDatabase::class);
 
@@ -168,7 +169,7 @@ it('does not overwrite existing payment method customer with null value', functi
         'card_exp_year' => 2030,
     ]);
 
-    $paymentMethod = \Stripe\PaymentMethod::constructFrom([
+    $paymentMethod = PaymentMethod::constructFrom([
         'id' => $existing->stripe_payment_method_id,
         'customer' => null,
         'type' => 'card',
@@ -192,4 +193,75 @@ it('does not overwrite existing payment method customer with null value', functi
     expect($existing->stripe_customer_id)->toBe('cus_existing_123')
         ->and($existing->card_brand)->toBe('mastercard')
         ->and($existing->card_last4)->toBe('4444');
+});
+
+it('deletes connected payment method on detach webhook instead of nulling stripe_customer_id', function () {
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_'.uniqid()]);
+
+    $existing = ConnectedPaymentMethod::query()->create([
+        'stripe_payment_method_id' => 'pm_'.uniqid(),
+        'stripe_account_id' => $store->stripe_account_id,
+        'stripe_customer_id' => 'cus_to_detach_123',
+        'type' => 'card',
+        'card_brand' => 'visa',
+        'card_last4' => '4242',
+        'card_exp_month' => 1,
+        'card_exp_year' => 2030,
+    ]);
+
+    $paymentMethod = PaymentMethod::constructFrom([
+        'id' => $existing->stripe_payment_method_id,
+        'customer' => null,
+        'type' => 'card',
+        'card' => [
+            'brand' => 'visa',
+            'last4' => '4242',
+            'exp_month' => 1,
+            'exp_year' => 2030,
+        ],
+        'metadata' => [],
+    ]);
+
+    app(HandlePaymentMethodWebhook::class)->handle(
+        $paymentMethod,
+        'payment_method.detached',
+        $store->stripe_account_id
+    );
+
+    expect(ConnectedPaymentMethod::query()->whereKey($existing->id)->exists())->toBeFalse();
+});
+
+it('persists payment method when customer is an expanded Stripe object', function () {
+    $store = Store::factory()->create(['stripe_account_id' => 'acct_'.uniqid()]);
+    $cusId = 'cus_expanded_'.uniqid();
+
+    $paymentMethod = PaymentMethod::constructFrom([
+        'id' => 'pm_'.uniqid(),
+        'customer' => [
+            'object' => 'customer',
+            'id' => $cusId,
+        ],
+        'type' => 'card',
+        'card' => [
+            'brand' => 'amex',
+            'last4' => '0005',
+            'exp_month' => 6,
+            'exp_year' => 2033,
+        ],
+        'metadata' => [],
+    ]);
+
+    app(HandlePaymentMethodWebhook::class)->handle(
+        $paymentMethod,
+        'payment_method.attached',
+        $store->stripe_account_id
+    );
+
+    $row = ConnectedPaymentMethod::query()
+        ->where('stripe_payment_method_id', $paymentMethod->id)
+        ->first();
+
+    expect($row)->not->toBeNull()
+        ->and($row->stripe_customer_id)->toBe($cusId)
+        ->and($row->card_brand)->toBe('amex');
 });
