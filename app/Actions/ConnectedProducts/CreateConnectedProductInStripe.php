@@ -74,7 +74,12 @@ class CreateConnectedProductInStripe
                 $createData['tax_code'] = $product->tax_code;
             }
 
-            if ($product->unit_label !== null) {
+            $stripeProductType = $product->type ?? 'service';
+            if (
+                is_string($stripeProductType)
+                && strtolower($stripeProductType) === 'service'
+                && $product->unit_label !== null
+            ) {
                 $createData['unit_label'] = $product->unit_label;
             }
 
