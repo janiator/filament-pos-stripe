@@ -114,6 +114,36 @@ test('merano proxy rejects booking for a device with booking disabled', function
     $response->assertJsonPath('message', 'Booking is not enabled for this device.');
 });
 
+test('merano create booking does not error when pos_session_id is the string null', function () {
+    Addon::factory()->for($this->store)->create([
+        'type' => AddonType::MeranoBooking,
+        'is_active' => true,
+    ]);
+
+    $this->store->update([
+        'merano_base_url' => 'https://merano.example.com',
+        'merano_pos_api_token' => 'merano-token',
+    ]);
+
+    Http::fake([
+        'https://merano.example.com/api/pos/v1/bookings' => Http::response([
+            'booking_id' => 456,
+            'status' => 'pending',
+        ], 201),
+    ]);
+
+    $response = $this->postJson('/api/merano/v1/bookings', [
+        'pos_session_id' => 'null',
+        'event_id' => 10,
+        'seats' => ['A-1'],
+        'name' => 'Jane Doe',
+        'email' => 'jane@example.com',
+        'payment_type' => 'pos',
+    ]);
+
+    $response->assertCreated();
+});
+
 test('merano proxy forwards create booking request when configured', function () {
     Addon::factory()->for($this->store)->create([
         'type' => AddonType::MeranoBooking,
