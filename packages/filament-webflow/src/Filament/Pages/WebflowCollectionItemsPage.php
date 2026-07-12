@@ -244,10 +244,10 @@ class WebflowCollectionItemsPage extends Page implements HasTable
             });
     }
 
-    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): string
+    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null, bool $shouldGuessMissingParameters = false, ?string $configuration = null): string
     {
         // Parent already adds extra parameters (e.g. collection) as query string; do not append again
-        return parent::getUrl($parameters, $isAbsolute, $panel, $tenant);
+        return parent::getUrl($parameters, $isAbsolute, $panel, $tenant, $shouldGuessMissingParameters, $configuration);
     }
 
     public static function getSlug(?\Filament\Panel $panel = null): string
