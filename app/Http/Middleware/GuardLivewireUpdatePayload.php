@@ -13,8 +13,10 @@ class GuardLivewireUpdatePayload
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->is('livewire/update') && $request->isMethod('post') && $request->isJson()) {
-            $payload = $request->json()->all();
+        if ($request->is('livewire/update') && $request->isMethod('post')) {
+            $payload = $request->isJson()
+                ? $request->json()->all()
+                : $request->all();
             $components = $payload['components'] ?? null;
 
             if (! is_array($components)) {
