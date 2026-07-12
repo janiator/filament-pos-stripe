@@ -10,8 +10,15 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Syncs Stripe customers for a single store.
+ *
+ * Uses {@see Batchable} because {@see SyncEverythingFromStripeJob} and {@see SyncStoreEverythingFromStripeJob}
+ * enqueue instances via {@see Bus::batch()}.
+ */
 class SyncStoreCustomersFromStripeJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
