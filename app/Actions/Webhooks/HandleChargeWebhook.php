@@ -2,10 +2,12 @@
 
 namespace App\Actions\Webhooks;
 
+use App\Jobs\PushTicketCountsToWebflow;
 use App\Models\ConnectedCharge;
 use App\Models\ConnectedPaymentLink;
 use App\Models\EventTicket;
 use App\Models\Store;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Stripe\Charge;
 use Stripe\StripeClient;
 
@@ -13,6 +15,10 @@ use Stripe\StripeClient;
  * Processes Stripe charge webhooks. Looks up by stripe_payment_intent_id first when
  * present; when found, updates that row and preserves pos_session_id and other POS
  * fields so webhook and POS-created charges are merged without duplicates or lost session.
+ *
+ * Lookups use Stripe global ids only (payment intent, charge id), not
+ * stripe_account_id, so rows created with a null account still merge and we avoid
+ * insert races against connected_charges_stripe_charge_id_unique.
  */
 class HandleChargeWebhook
 {
@@ -77,9 +83,7 @@ class HandleChargeWebhook
 
         // Look up by payment_intent_id first when present: merge into existing row and preserve POS fields
         if ($charge->payment_intent) {
-            $existing = ConnectedCharge::where('stripe_payment_intent_id', $charge->payment_intent)
-                ->where('stripe_account_id', $store->stripe_account_id)
-                ->first();
+            $existing = ConnectedCharge::where('stripe_payment_intent_id', $charge->payment_intent)->first();
 
             if ($existing) {
                 $existing->fill($data);
@@ -100,11 +104,9 @@ class HandleChargeWebhook
             }
         }
 
-        // No row found by payment_intent_id: updateOrCreate by (stripe_charge_id, stripe_account_id)
+        // No row matched by payment_intent: find or create by stripe_charge_id (globally unique).
         if (! $chargeRecord) {
-            $chargeRecord = ConnectedCharge::where('stripe_charge_id', $charge->id)
-                ->where('stripe_account_id', $store->stripe_account_id)
-                ->first();
+            $chargeRecord = ConnectedCharge::where('stripe_charge_id', $charge->id)->first();
 
             $wasCreated = false;
             if ($chargeRecord) {
@@ -117,8 +119,20 @@ class HandleChargeWebhook
                 }
                 $chargeRecord->save();
             } else {
-                $chargeRecord = ConnectedCharge::create($data);
-                $wasCreated = true;
+                try {
+                    $chargeRecord = ConnectedCharge::create($data);
+                    $wasCreated = true;
+                } catch (UniqueConstraintViolationException) {
+                    $chargeRecord = ConnectedCharge::where('stripe_charge_id', $charge->id)->firstOrFail();
+                    $chargeRecord->fill($data);
+                    $chargeRecord->stripe_account_id = $store->stripe_account_id;
+                    foreach (self::PRESERVED_POS_FIELDS as $field) {
+                        if ($chargeRecord->getRawOriginal($field) !== null) {
+                            $chargeRecord->$field = $chargeRecord->getRawOriginal($field);
+                        }
+                    }
+                    $chargeRecord->save();
+                }
             }
 
             \Log::info('Charge webhook processed successfully', [
@@ -184,7 +198,7 @@ class HandleChargeWebhook
                 'quantity' => $quantity,
             ]);
 
-            \App\Jobs\PushTicketCountsToWebflow::dispatch($eventTicket);
+            PushTicketCountsToWebflow::dispatch($eventTicket);
         } catch (\Throwable $e) {
             \Log::warning('Event ticket purchase handling failed', [
                 'charge_id' => $charge->id,
