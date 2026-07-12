@@ -2,13 +2,22 @@
 
 namespace App\Providers;
 
+use App\Filament\Pages\WebflowItemEditPage;
+use App\Listeners\SyncProductOnMediaDeleted;
+use App\Observers\WebflowSiteObserver;
 use App\Policies\WebflowSitePolicy;
+use App\Queue\FailedJobs\DeduplicatingDatabaseUuidFailedJobProvider;
 use Filament\Support\Facades\FilamentTimezone;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Nightwatch\Facades\Nightwatch;
 use Laravel\Nightwatch\Records\Query;
 use Positiv\FilamentWebflow\Models\WebflowSite;
+use Spatie\MediaLibrary\MediaCollections\Events\CollectionHasBeenClearedEvent;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -17,7 +26,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        if (config('queue.failed.driver') !== 'database-uuids') {
+            return;
+        }
+
+        $this->app->singleton('queue.failer', function (Application $app) {
+            return new DeduplicatingDatabaseUuidFailedJobProvider(
+                $app['db'],
+                (string) config('queue.failed.database'),
+                (string) config('queue.failed.table'),
+            );
+        });
     }
 
     /**
@@ -28,7 +47,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(WebflowSite::class, WebflowSitePolicy::class);
 
         config([
-            'filament-webflow.item_edit_page' => \App\Filament\Pages\WebflowItemEditPage::class,
+            'filament-webflow.item_edit_page' => WebflowItemEditPage::class,
         ]);
 
         Nightwatch::rejectQueries(function (Query $query) {
@@ -45,7 +64,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Force HTTPS in local development when using Herd
         if (app()->environment('local') && str_starts_with(config('app.url', ''), 'https://')) {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
+            URL::forceScheme('https');
         }
 
         // Configure Pulse authorization - allow all authenticated users
@@ -54,17 +73,17 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Register custom Media model for Spatie Media Library
-        \Spatie\MediaLibrary\MediaCollections\Models\Media::resolveRelationUsing('model', function ($mediaModel) {
+        Media::resolveRelationUsing('model', function ($mediaModel) {
             return $mediaModel->morphTo();
         });
 
         // Listen to media collection cleared events to trigger Stripe sync
-        \Illuminate\Support\Facades\Event::listen(
-            \Spatie\MediaLibrary\MediaCollections\Events\CollectionHasBeenClearedEvent::class,
-            \App\Listeners\SyncProductOnMediaDeleted::class
+        Event::listen(
+            CollectionHasBeenClearedEvent::class,
+            SyncProductOnMediaDeleted::class
         );
 
         // When a Webflow site is deleted, remove EventTickets that referenced its items
-        \Positiv\FilamentWebflow\Models\WebflowSite::observe(\App\Observers\WebflowSiteObserver::class);
+        WebflowSite::observe(WebflowSiteObserver::class);
     }
 }
