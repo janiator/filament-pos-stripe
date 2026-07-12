@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 class ProductDeclaration extends Model
 {
@@ -32,6 +34,26 @@ class ProductDeclaration extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    /**
+     * Resolve declaration_date for display/API formatting (Carbon instance or date string).
+     */
+    public function resolvedDeclarationDate(): ?CarbonInterface
+    {
+        $attributes = $this->getAttributes();
+
+        if (array_key_exists('declaration_date', $attributes)) {
+            $value = $attributes['declaration_date'];
+        } else {
+            $value = $this->getAttribute('declaration_date');
+        }
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return Carbon::parse($value);
     }
 
     /**
